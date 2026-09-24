@@ -8,11 +8,16 @@
 5. Generate SECRET_KEY: `python -c "import secrets; print(secrets.token_hex(32))"`
 6. `python run.py`, lalu buka http://127.0.0.1:5000/health
 
+## Database (PostgreSQL)
+1. Buat database: `createdb -U postgres db_mtoa_alr`
+2. Jalankan migrasi: `python -m flask --app run db upgrade`
+3. Isi kategori default: `python -m flask --app run seed-categories`
+
 ## Tes
 `python -m pytest -v`
 
 ## Catatan
-- Gunakan `python -m pip`, bukan `pip` langsung (lebih aman di Windows).
+- Gunakan `python -m pip` dan `python -m flask`, bukan `pip`/`flask` langsung (lebih aman di Windows).
 - File `.env` berisi data rahasia dan tidak boleh di-commit.
 
 Dokumentasi requirement: `docs/requirements.md`

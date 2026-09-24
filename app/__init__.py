@@ -1,4 +1,4 @@
-"""App factory MTOA ALR: tempat aplikasi Flask dirakit (config, extension, blueprint)."""
+"""App factory MTOA ALR: tempat aplikasi Flask dirakit (config, extension, model, blueprint, CLI)."""
 
 import os
 
@@ -34,8 +34,15 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     csrf.init_app(app)
 
-    # --- 4. Daftarkan semua route (blueprint) ---
+    # --- 4. Muat semua model agar terdaftar di metadata (dibutuhkan migrasi) ---
+    from app import models  # noqa: F401
+
+    # --- 5. Daftarkan route (blueprint) dan perintah CLI ---
     register_blueprints(app)
+
+    from app.cli import register_cli_commands
+
+    register_cli_commands(app)
     return app
 
 
