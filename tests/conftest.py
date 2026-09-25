@@ -48,3 +48,10 @@ def fixed_otp_code(monkeypatch):
     """Bikin OTP selalu 123456 biar test bisa nebak kodenya."""
     monkeypatch.setattr(auth_service, "generate_otp_code", lambda: FIXED_OTP_CODE)
     return FIXED_OTP_CODE
+
+@pytest.fixture()
+def logged_in_client(client, registered_user, fixed_otp_code):
+    """Client yg udah login sebagai registered_user (lewat password + OTP)."""
+    client.post("/auth/login", data={"email": registered_user.email, "password": USER_PASSWORD})
+    client.post("/auth/otp", data={"otp_code": fixed_otp_code})
+    return client
