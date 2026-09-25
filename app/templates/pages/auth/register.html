@@ -1,0 +1,22 @@
+{% extends "layouts/auth_base.html" %}
+{% from "components/form_field.html" import render_field %}
+
+{% block title %}Daftar - MTOA ALR{% endblock %}
+
+{% block content %}
+  <h2 class="auth-heading">Daftar Akun</h2>
+  <p class="auth-hint">Gunakan email korporat. Password minimal 8 karakter berisi huruf dan angka.</p>
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.email, placeholder="nama@spindo.com", autocomplete="username") }}
+    {{ render_field(form.full_name, placeholder="Nama lengkap", autocomplete="name") }}
+    {{ render_field(form.department, placeholder="Contoh: ICT") }}
+    {{ render_field(form.job_title, placeholder="Contoh: Staff") }}
+    {{ render_field(form.password, placeholder="Password", autocomplete="new-password") }}
+    {{ render_field(form.confirm_password, placeholder="Ulangi password", autocomplete="new-password") }}
+    {{ form.submit(class_="btn btn-primary btn-block") }}
+  </form>
+
+  <p class="auth-footer">Sudah punya akun? <a href="{{ url_for('auth.login') }}">Masuk</a></p>
+{% endblock %}

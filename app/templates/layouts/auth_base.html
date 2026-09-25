@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}MTOA ALR{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/auth.css') }}">
+</head>
+<body class="auth-body">
+  <main class="auth-card">
+    <div class="auth-brand">
+      <span class="auth-logo">ALR</span>
+      <div>
+        <h1 class="auth-title">MTOA ALR</h1>
+        <p class="auth-subtitle">Access Link Register</p>
+      </div>
+    </div>
+
+    {% include "components/flash_messages.html" %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

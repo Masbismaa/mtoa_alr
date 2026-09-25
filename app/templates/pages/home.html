@@ -1,0 +1,14 @@
+{% extends "layouts/auth_base.html" %}
+
+{% block title %}Beranda - MTOA ALR{% endblock %}
+
+{% block content %}
+  <h2 class="auth-heading">Halo, {{ current_user.full_name }}</h2>
+  <p class="auth-hint">{{ current_user.job_title }} · {{ current_user.department }}</p>
+  <p class="auth-hint">Login berhasil. YAHAHAHAAHHAHAHAYUKKKKKK.</p>
+
+  <form method="post" action="{{ url_for('auth.logout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-secondary btn-block">Logout</button>
+  </form>
+{% endblock %}
