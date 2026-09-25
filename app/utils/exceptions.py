@@ -8,3 +8,9 @@ class ImmutableRecordError(Exception):
 
 class AuthError(Exception):
     """Dilempar kalau register/login/OTP gagal. Pesannya aman buat ditampilin ke user."""
+
+class ValidationError(Exception):
+    """Dilempar kalau input ga valid. error_list isinya detail per field."""
+    def __init__(self, error_list, message="Data tidak valid"):
+        super().__init__(message)
+        self.error_list = error_list

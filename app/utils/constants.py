@@ -65,3 +65,27 @@ MAX_PASSWORD_LENGTH = 128
 
 # nama key di session buat nyimpen user yg lagi nunggu isi OTP
 SESSION_PENDING_USER_KEY = "pending_user_id"
+
+# UI & Customizer
+# pilihan warna aksen: hex disimpen di DB, key dipake CSS (data-accent)
+ACCENT_COLOR_OPTION_LIST = [
+    {"key": "blue", "hex": "#0a6ed1", "label": "Biru"},
+    {"key": "yellow", "hex": "#ffd23f", "label": "Kuning"},
+    {"key": "pink", "hex": "#ff6b9d", "label": "Pink"},
+    {"key": "lime", "hex": "#a3e635", "label": "Lime"},
+    {"key": "teal", "hex": "#2ec4b6", "label": "Tosca"},
+    {"key": "purple", "hex": "#b388ff", "label": "Ungu"},
+]
+ACCENT_KEY_BY_HEX_DICT = {option["hex"]: option["key"] for option in ACCENT_COLOR_OPTION_LIST}
+DEFAULT_ACCENT_KEY = "blue"
+
+# pilihan font
+FONT_FAMILY_OPTION_LIST = [
+    {"key": "system", "label": "Sistem"},
+    {"key": "mono", "label": "Mono"},
+    {"key": "serif", "label": "Serif"},
+]
+FONT_FAMILY_KEY_LIST = [option["key"] for option in FONT_FAMILY_OPTION_LIST]
+
+# label role yg tampil di UI
+ROLE_LABEL_DICT = {ROLE_ADMIN: "Admin", ROLE_USER_ENTRY: "User Entry"}
