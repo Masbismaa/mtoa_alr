@@ -80,3 +80,9 @@
   font-weight: 600;
   color: var(--color-muted);
 }
+
+/* tabel link terbaru */
+.table-card {
+  margin-top: var(--space-5);
+  animation: nb-pop-in 300ms 200ms both;
+}

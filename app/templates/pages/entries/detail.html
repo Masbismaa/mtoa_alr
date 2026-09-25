@@ -1,0 +1,119 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+{% from "components/copy_button.html" import copy_button %}
+
+{% block title %}{{ entry.title }} - MTOA ALR{% endblock %}
+
+{% block page_styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/rich_text_editor.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/entry_detail.css') }}">
+{% endblock %}
+
+{% block content %}
+  <div class="detail-header">
+    <div class="detail-heading">
+      <a href="{{ url_for('main.home') }}" class="btn btn-link back-link">{{ icon("arrow_left") }} Kembali</a>
+      <h2 class="detail-title">{{ entry.title }}</h2>
+      <div class="detail-badge-list">
+        <span class="badge">{{ entry.category.name }}</span>
+        <span class="badge badge-{{ entry.visibility }}">{{ entry.visibility | visibility_label }}</span>
+      </div>
+    </div>
+
+    {% if can_edit %}
+      <div class="detail-actions">
+        <a href="{{ url_for('entries.edit', entry_id=entry.id) }}" class="btn btn-secondary">{{ icon("edit") }} Edit</a>
+        <form method="post" action="{{ url_for('entries.delete', entry_id=entry.id) }}" data-confirm-title="Hapus data link?" data-confirm-message="Data &quot;{{ entry.title }}&quot; beserta field tambahannya bakal dihapus permanen." data-confirm-ok="Ya, hapus">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger">{{ icon("trash") }} Hapus</button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="detail-grid">
+    <div class="detail-main">
+      <section class="card">
+        <h3 class="section-title">{{ icon("link") }} Akses</h3>
+        <dl class="detail-list">
+          {% if entry.url %}
+            <div class="detail-item">
+              <dt>URL</dt>
+              <dd class="copy-row"><code class="copy-value">{{ entry.url }}</code>{{ copy_button(entry.url) }}</dd>
+            </div>
+          {% endif %}
+
+          {% if entry.address %}
+            {% set address_text = entry.address ~ (":" ~ entry.port if entry.port else "") %}
+            <div class="detail-item">
+              <dt>Address</dt>
+              <dd class="copy-row"><code class="copy-value">{{ address_text }}</code>{{ copy_button(address_text) }}</dd>
+            </div>
+          {% endif %}
+
+          {% if entry.username %}
+            <div class="detail-item">
+              <dt>Username</dt>
+              <dd class="copy-row"><code class="copy-value">{{ entry.username }}</code>{{ copy_button(entry.username) }}</dd>
+            </div>
+          {% endif %}
+
+          {% if access_note %}
+            <div class="detail-item">
+              <dt>Access Note / Password</dt>
+              <dd class="copy-row">
+                <pre class="copy-value secret-value" id="access_note_value" data-secret-value="{{ access_note }}">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</pre>
+                <div class="secret-action-list">
+                  <button type="button" class="btn btn-secondary btn-small" data-secret-toggle="access_note_value" aria-pressed="false">{{ icon("eye") }}<span data-secret-label>Tampilkan</span></button>
+                  {{ copy_button(target_id="access_note_value") }}
+                </div>
+              </dd>
+            </div>
+          {% endif %}
+
+          {% if entry.description %}
+            <div class="detail-item">
+              <dt>Deskripsi</dt>
+              <dd class="detail-text">{{ entry.description }}</dd>
+            </div>
+          {% endif %}
+
+          {% if not (entry.url or entry.address or entry.username or access_note or entry.description) %}
+            <p class="text-muted">Belum ada data akses.</p>
+          {% endif %}
+        </dl>
+      </section>
+
+      {% if entry.custom_field_list %}
+        <section class="card">
+          <h3 class="section-title">{{ icon("plus") }} Field Tambahan</h3>
+          <div class="custom-field-view-list">
+            {% for custom_field in entry.custom_field_list %}
+              <article class="custom-field-view">
+                <h4>{{ custom_field.field_label }}</h4>
+                <div class="rich-text-view">{{ custom_field.field_content | rich_text }}</div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+    </div>
+
+    <aside class="card detail-side">
+      <h3 class="section-title">{{ icon("info") }} Info</h3>
+      <dl class="detail-list">
+        <div class="detail-item">
+          <dt>Dibuat Oleh</dt>
+          <dd>{{ entry.owner.full_name }}<br><small class="text-muted">{{ entry.owner.job_title }} · {{ entry.owner.department }}</small></dd>
+        </div>
+        <div class="detail-item"><dt>Dibuat</dt><dd>{{ entry.created_at | local_datetime }}</dd></div>
+        <div class="detail-item"><dt>Terakhir Diubah</dt><dd>{{ entry.updated_at | local_datetime }}</dd></div>
+        <div class="detail-item"><dt>Status Link</dt><dd><span class="badge badge-status-{{ entry.status }}">{{ entry.status | link_status_label }}</span></dd></div>
+      </dl>
+    </aside>
+  </div>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', filename='js/components/secret_toggle.js') }}" defer></script>
+{% endblock %}

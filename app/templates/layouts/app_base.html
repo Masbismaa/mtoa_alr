@@ -4,6 +4,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/layout.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/sidebar.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/customizer.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/dialog.css') }}">
   {% block page_styles %}{% endblock %}
 {% endblock %}
 
@@ -26,10 +27,13 @@
   </div>
 
   {% include "components/theme_customizer.html" %}
+  {% include "components/confirm_dialog.html" %}
 {% endblock %}
 
 {% block scripts %}
   <script src="{{ url_for('static', filename='js/components/sidebar.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/components/theme_customizer.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/confirm_dialog.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/copy_button.js') }}" defer></script>
   {% block page_scripts %}{% endblock %}
 {% endblock %}

@@ -3,12 +3,16 @@
   "use strict";
 
   document.querySelectorAll("form[method='post']:not([data-no-loading])").forEach(function (formEl) {
-    formEl.addEventListener("submit", function () {
-      formEl.querySelectorAll("button[type='submit'], input[type='submit']").forEach(function (buttonEl) {
-        buttonEl.disabled = true;
-        buttonEl.classList.add("is-loading");
-        buttonEl.setAttribute("aria-busy", "true");
-      });
+    formEl.addEventListener("submit", function (event) {
+      // ditunda sebentar: kalau submit-nya dibatalin (misal dialog konfirmasi), tombol ga ikut dikunci
+      window.setTimeout(function () {
+        if (event.defaultPrevented) return;
+        formEl.querySelectorAll("button[type='submit'], input[type='submit']").forEach(function (buttonEl) {
+          buttonEl.disabled = true;
+          buttonEl.classList.add("is-loading");
+          buttonEl.setAttribute("aria-busy", "true");
+        });
+      }, 0);
     });
   });
 

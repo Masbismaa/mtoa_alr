@@ -4,10 +4,15 @@
 {% block title %}Dashboard - MTOA ALR{% endblock %}
 
 {% block page_styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/table.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
 {% endblock %}
 
 {% block content %}
+  <div class="page-actions">
+    <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
+  </div>
+
   <section class="card welcome-card">
     <div>
       <h2>Halo, {{ current_user.full_name }}!</h2>
@@ -26,5 +31,40 @@
     {% endfor %}
   </section>
 
-  <p class="empty-note"></p>
+  <section class="card table-card">
+    <h2 class="section-title">{{ icon("link") }} Link Terbaru</h2>
+    {% if entry_list %}
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Judul</th>
+              <th scope="col">Kategori</th>
+              <th scope="col">Visibilitas</th>
+              <th scope="col">Dibuat Oleh</th>
+              <th scope="col">Dibuat</th>
+              <th scope="col"><span class="visually-hidden">Aksi</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in entry_list %}
+              <tr>
+                <td><a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="table-title-link">{{ entry.title }}</a></td>
+                <td><span class="badge">{{ entry.category.name }}</span></td>
+                <td><span class="badge badge-{{ entry.visibility }}">{{ entry.visibility | visibility_label }}</span></td>
+                <td>{{ entry.owner.full_name }}</td>
+                <td class="table-nowrap">{{ entry.created_at | local_datetime }}</td>
+                <td class="table-action"><a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="btn btn-secondary btn-small">{{ icon("eye") }} View</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <p>Belum ada data link. Yuk tambah yang pertama!</p>
+        <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
+      </div>
+    {% endif %}
+  </section>
 {% endblock %}

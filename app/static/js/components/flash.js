@@ -65,4 +65,4 @@
 
   document.querySelectorAll("[data-flash]").forEach(setup);
   window.AlrFlash = { show: show };
-})();
+})();   

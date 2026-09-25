@@ -1,0 +1,115 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/form_field.html" import render_field %}
+{% from "components/custom_field_row.html" import custom_field_row %}
+{% from "components/icon.html" import icon %}
+
+{% block title %}{{ page_title }} - MTOA ALR{% endblock %}
+
+{% block page_styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/rich_text_editor.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/entry_form.css') }}">
+{% endblock %}
+
+{% block content %}
+  {# kategori yg lagi kepilih -> nentuin field mana yg tampil dari awal (sebelum JS jalan) #}
+  {% set selected_option = (category_option_list | selectattr("id", "equalto", form.category_id.data) | first) or (category_option_list | first) %}
+  {% set selected_field_list = selected_option.field_list.split(",") if selected_option else [] %}
+  {% set selected_required_list = selected_option.required_field_list.split(",") if selected_option else [] %}
+  {% set is_custom_field_shown = selected_option and selected_option.has_custom_field == "true" %}
+  {% set visibility_hint_dict = {"private": "Cuma kamu yang bisa lihat", "public": "Semua user bisa lihat & copy (read-only)"} %}
+
+  <form method="post" action="{{ form_action }}" class="entry-form" novalidate data-entry-form>
+    {{ form.hidden_tag() }}
+
+    <section class="card">
+      <h2 class="section-title">{{ icon("link") }} Data Link</h2>
+
+      <div class="form-group">
+        <label class="form-label" for="category_id">Kategori</label>
+        <select name="category_id" id="category_id" class="form-input{% if form.category_id.errors %} is-invalid{% endif %}">
+          {% for category_option in category_option_list %}
+            <option value="{{ category_option.id }}" data-field-list="{{ category_option.field_list }}" data-required-field-list="{{ category_option.required_field_list }}" data-has-custom-field="{{ category_option.has_custom_field }}"{% if selected_option and selected_option.id == category_option.id %} selected{% endif %}>{{ category_option.name }}</option>
+          {% endfor %}
+        </select>
+        {% for error in form.category_id.errors %}
+          <p class="form-error">{{ error }}</p>
+        {% endfor %}
+      </div>
+
+      {{ render_field(form.title, placeholder="Contoh: Portal HR", autocomplete="off") }}
+
+      <div class="category-field" data-category-field="url"{% if "url" not in selected_field_list %} hidden{% endif %}>
+        <span class="required-badge" data-required-mark{% if "url" not in selected_required_list %} hidden{% endif %}>Wajib</span>
+        {{ render_field(form.url, placeholder="https://aplikasi.spindo.com", autocomplete="off", inputmode="url") }}
+      </div>
+
+      <div class="form-row">
+        <div class="category-field" data-category-field="address"{% if "address" not in selected_field_list %} hidden{% endif %}>
+          <span class="required-badge" data-required-mark{% if "address" not in selected_required_list %} hidden{% endif %}>Wajib</span>
+          {{ render_field(form.address, placeholder="10.0.0.1 atau router-lt2.local", autocomplete="off") }}
+        </div>
+        <div class="category-field" data-category-field="port"{% if "port" not in selected_field_list %} hidden{% endif %}>
+          <span class="required-badge" data-required-mark{% if "port" not in selected_required_list %} hidden{% endif %}>Wajib</span>
+          {{ render_field(form.port, placeholder="22", autocomplete="off", inputmode="numeric") }}
+        </div>
+      </div>
+
+      {{ render_field(form.username, placeholder="Username login (opsional)", autocomplete="off") }}
+      {{ render_field(form.access_note, placeholder="Password / petunjuk akses (opsional)", autocomplete="off", rows=3) }}
+      <p class="form-hint note-hint">{{ icon("lock") }} Access note disimpan terenkripsi di database.</p>
+
+      {{ render_field(form.description, placeholder="Keterangan singkat (opsional)", rows=3) }}
+
+      <fieldset class="form-group visibility-fieldset">
+        <legend class="form-label">Visibilitas</legend>
+        {% if not is_owner %}
+          <p class="form-hint">Cuma pemilik data yang bisa mengubah visibilitas.</p>
+          <input type="hidden" name="visibility" value="{{ form.visibility.data }}">
+        {% endif %}
+        <div class="visibility-option-list">
+          {% for option in form.visibility %}
+            <label class="radio-card">
+              {{ option(disabled=not is_owner) }}
+              <span class="radio-card-text">
+                <strong>{{ option.label.text }}</strong>
+                <small>{{ visibility_hint_dict.get(option.data, "") }}</small>
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+        {% for error in form.visibility.errors %}
+          <p class="form-error">{{ error }}</p>
+        {% endfor %}
+      </fieldset>
+    </section>
+
+    <section class="card custom-field-section" data-custom-field-section data-max-count="{{ custom_field_max_count }}"{% if not is_custom_field_shown %} hidden{% endif %}>
+      <div class="custom-field-section-header">
+        <h2 class="section-title">{{ icon("plus") }} Field Tambahan</h2>
+        <span class="badge">Maks {{ custom_field_max_count }}</span>
+      </div>
+      <p class="text-muted">Tambah info sendiri, satu per satu. Password tetap taruh di kolom <strong>Access Note</strong> biar terenkripsi.</p>
+
+      <div class="custom-field-list" data-custom-field-list>
+        {% for custom_field in custom_field_list %}
+          {{ custom_field_row(custom_field.field_label, custom_field.field_content) }}
+        {% endfor %}
+      </div>
+      <p class="custom-field-empty text-muted" data-custom-field-empty{% if custom_field_list %} hidden{% endif %}>Belum ada field tambahan.</p>
+
+      <button type="button" class="btn btn-secondary" data-custom-field-add>{{ icon("plus") }} Add field</button>
+
+      <template id="custom_field_template">{{ custom_field_row() }}</template>
+    </section>
+
+    <div class="form-actions">
+      <a href="{{ cancel_url }}" class="btn btn-secondary">Batal</a>
+      <button type="submit" class="btn btn-primary">{{ icon("check") }} Simpan</button>
+    </div>
+  </form>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', filename='js/components/rich_text_editor.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/pages/entry_form.js') }}" defer></script>
+{% endblock %}
