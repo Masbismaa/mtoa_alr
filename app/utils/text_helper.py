@@ -1,6 +1,5 @@
 """Helper olah teks yg dipake di banyak tempat."""
-
-from app.utils.constants import ROLE_LABEL_DICT
+from app.utils.constants import LINK_STATUS_LABEL_DICT, ROLE_LABEL_DICT, VISIBILITY_LABEL_DICT
 
 def normalize_email(value):
     """Rapihin email: hapus spasi di ujung + huruf kecil semua."""
@@ -14,8 +13,8 @@ def mask_email(email):
     hidden_count = max(len(local_part) - len(visible_text), 1)
     return f"{visible_text}{'*' * hidden_count}@{domain}"
 
-def get_initials(full_name, max_letter_count=2):
-    """Ambil huruf depan nama buat avatar, misal 'Bisma Prasetya' -> 'BP'."""
+def get_initials(full_name, max_letter_count=3):
+    """Ambil huruf depan nama buat avatar (maks 3), misal 'Mochammad Bisma Prasetya' -> 'MBP'."""
     word_list = [word for word in (full_name or "").split() if word]
     if not word_list:
         return "?"
@@ -24,3 +23,11 @@ def get_initials(full_name, max_letter_count=2):
 def get_role_label(role):
     """Ubah kode role jadi label yg enak dibaca, misal 'user_entry' -> 'User Entry'."""
     return ROLE_LABEL_DICT.get(role, role)
+
+def get_visibility_label(visibility):
+    """Ubah kode visibilitas jadi label, misal 'public' -> 'Public'."""
+    return VISIBILITY_LABEL_DICT.get(visibility, visibility)
+
+def get_link_status_label(status):
+    """Ubah kode status link jadi label, misal 'unknown' -> 'Belum dicek'."""
+    return LINK_STATUS_LABEL_DICT.get(status, status)

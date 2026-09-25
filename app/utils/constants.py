@@ -1,5 +1,4 @@
 """Konstanta global aplikasi; satu sumber kebenaran untuk role, tema, dan kategori default."""
-
 # Role pengguna
 ROLE_ADMIN = "admin"
 ROLE_USER_ENTRY = "user_entry"
@@ -89,3 +88,52 @@ FONT_FAMILY_KEY_LIST = [option["key"] for option in FONT_FAMILY_OPTION_LIST]
 
 # label role yg tampil di UI
 ROLE_LABEL_DICT = {ROLE_ADMIN: "Admin", ROLE_USER_ENTRY: "User Entry"}
+
+# Access Entry
+VISIBILITY_PUBLIC = "public"
+VISIBILITY_PRIVATE = "private"
+VISIBILITY_LIST = [VISIBILITY_PUBLIC, VISIBILITY_PRIVATE]
+VISIBILITY_LABEL_DICT = {VISIBILITY_PUBLIC: "Public", VISIBILITY_PRIVATE: "Private"}
+
+# status link (diisi pengecekan otomatis di M11)
+LINK_STATUS_UNKNOWN = "unknown"
+LINK_STATUS_UP = "up"
+LINK_STATUS_DOWN = "down"
+LINK_STATUS_LIST = [LINK_STATUS_UNKNOWN, LINK_STATUS_UP, LINK_STATUS_DOWN]
+LINK_STATUS_LABEL_DICT = {LINK_STATUS_UNKNOWN: "Belum dicek", LINK_STATUS_UP: "Aktif", LINK_STATUS_DOWN: "Tidak aktif"}
+
+# nama kategori default (harus sama dengan DEFAULT_CATEGORY_LIST)
+CATEGORY_NAME_WEB = "Web"
+CATEGORY_NAME_APPLICATION = "Application"
+CATEGORY_NAME_NETWORK = "Network"
+CATEGORY_NAME_GENERAL = "General"
+
+# field khusus per kategori.
+# field umum (judul, username, access note, deskripsi, visibilitas) selalu ada di semua kategori
+CATEGORY_SPECIFIC_FIELD_LIST = ["url", "address", "port"]
+CATEGORY_FIELD_RULE_DICT = {
+    CATEGORY_NAME_WEB: {"field_list": ["url"], "required_field_list": ["url"], "has_custom_field": False},
+    CATEGORY_NAME_APPLICATION: {"field_list": ["url", "address"], "required_field_list": [], "has_custom_field": False},
+    CATEGORY_NAME_NETWORK: {"field_list": ["address", "port"], "required_field_list": ["address"], "has_custom_field": False},
+    CATEGORY_NAME_GENERAL: {"field_list": [], "required_field_list": [], "has_custom_field": True},
+}
+# kategori baru bikinan admin (nanti) pake aturan ini
+DEFAULT_CATEGORY_FIELD_RULE = {"field_list": ["url", "address", "port"], "required_field_list": [], "has_custom_field": False}
+
+# field tambahan kategori General (tambah 1 per klik, batas pengaman di bawah)
+CUSTOM_FIELD_MAX_COUNT = 20
+
+# batas panjang input
+MAX_TITLE_LENGTH = 150
+MAX_URL_LENGTH = 2048
+MAX_ADDRESS_LENGTH = 255
+MAX_USERNAME_LENGTH = 150
+MAX_ACCESS_NOTE_LENGTH = 2000
+MAX_FIELD_LABEL_LENGTH = 100
+MAX_RICH_TEXT_LENGTH = 20000
+
+# skema URL yg boleh (dipake validasi URL & link di editor)
+ALLOWED_URL_SCHEME_SET = {"http", "https"}
+
+# tag HTML yg boleh dari editor teks, sisanya dibuang
+RICH_TEXT_ALLOWED_TAG_SET = {"p", "div", "br", "b", "strong", "i", "em", "u", "ul", "ol", "li", "code", "pre", "a"}
