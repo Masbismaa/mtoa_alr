@@ -1,0 +1,29 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+
+{% block title %}Settings - MTOA ALR{% endblock %}
+
+{% block page_styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/settings.css') }}">
+{% endblock %}
+
+{% block content %}
+  <div class="settings-grid">
+    <section class="card">
+      <h2 class="section-title">{{ icon("user") }} Profil</h2>
+      <dl class="profile-list">
+        <div><dt>Nama Lengkap</dt><dd>{{ current_user.full_name }}</dd></div>
+        <div><dt>Email</dt><dd>{{ current_user.email }}</dd></div>
+        <div><dt>Departemen</dt><dd>{{ current_user.department }}</dd></div>
+        <div><dt>Jabatan</dt><dd>{{ current_user.job_title }}</dd></div>
+        <div><dt>Role</dt><dd><span class="badge">{{ current_user.role | role_label }}</span></dd></div>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">{{ icon("palette") }} Tampilan</h2>
+      <p class="text-muted">Atur mode terang/gelap, warna aksen, kerapatan, dan font. Perubahan langsung kepake dan tersimpan otomatis ke akunmu.</p>
+      <button type="button" class="btn btn-primary" data-customizer-open>{{ icon("palette") }} Buka UI Customizer</button>
+    </section>
+  </div>
+{% endblock %}

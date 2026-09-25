@@ -1,14 +1,30 @@
-{% extends "layouts/auth_base.html" %}
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
 
-{% block title %}Beranda - MTOA ALR{% endblock %}
+{% block title %}Dashboard - MTOA ALR{% endblock %}
+
+{% block page_styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
+{% endblock %}
 
 {% block content %}
-  <h2 class="auth-heading">Halo, {{ current_user.full_name }}</h2>
-  <p class="auth-hint">{{ current_user.job_title }} · {{ current_user.department }}</p>
-  <p class="auth-hint">Login berhasil. YAHAHAHAAHHAHAHAYUKKKKKK.</p>
+  <section class="card welcome-card">
+    <div>
+      <h2>Halo, {{ current_user.full_name }}!</h2>
+      <p>{{ current_user.job_title }} · {{ current_user.department }}</p>
+    </div>
+    <span class="badge">{{ current_user.role | role_label }}</span>
+  </section>
 
-  <form method="post" action="{{ url_for('auth.logout') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="btn btn-secondary btn-block">Logout</button>
-  </form>
+  <section class="stat-grid" aria-label="Ringkasan">
+    {% for stat in stat_card_list %}
+      <article class="card stat-card">
+        <span class="stat-card-icon">{{ icon(stat.icon) }}</span>
+        <p class="stat-card-label">{{ stat.label }}</p>
+        <p class="stat-card-value">{{ stat.value }}</p>
+      </article>
+    {% endfor %}
+  </section>
+
+  <p class="empty-note"></p>
 {% endblock %}

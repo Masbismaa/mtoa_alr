@@ -1,0 +1,45 @@
+{% from "components/icon.html" import icon %}
+<aside class="sidebar" id="app_sidebar" data-sidebar>
+  <div class="sidebar-brand">
+    <span class="brand-logo">ALR</span>
+    <div class="sidebar-brand-text">
+      <strong>MTOA ALR</strong>
+      <small>Access Link Register</small>
+    </div>
+    <button type="button" class="btn-icon sidebar-close" data-sidebar-close aria-label="Tutup menu">{{ icon("close") }}</button>
+  </div>
+
+  <nav class="sidebar-nav" aria-label="Navigasi utama">
+    <ul>
+      {% for nav_item in sidebar_nav_list %}
+        <li>
+          {% if nav_item.is_available %}
+            <a href="{{ nav_item.url }}" class="nav-link{% if nav_item.is_active %} is-active{% endif %}" title="{{ nav_item.label }}"{% if nav_item.is_active %} aria-current="page"{% endif %}>
+              {{ icon(nav_item.icon) }}<span class="nav-label">{{ nav_item.label }}</span>
+            </a>
+          {% else %}
+            <span class="nav-link is-disabled" aria-disabled="true" title="{{ nav_item.label }} (segera hadir)">
+              {{ icon(nav_item.icon) }}<span class="nav-label">{{ nav_item.label }}</span><em class="nav-badge">Segera</em>
+            </span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </nav>
+
+  <div class="sidebar-profile" title="{{ current_user.full_name }}">
+    <span class="avatar" aria-hidden="true">{{ current_user.full_name | initials }}</span>
+    <div class="sidebar-profile-text">
+      <strong>{{ current_user.full_name }}</strong>
+      <small>{{ current_user.job_title }}</small>
+      <small>{{ current_user.department }}</small>
+    </div>
+  </div>
+
+  <form method="post" action="{{ url_for('auth.logout') }}" class="sidebar-logout">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-secondary btn-block" title="Logout">
+      {{ icon("logout") }}<span class="nav-label">Logout</span>
+    </button>
+  </form>
+</aside>
