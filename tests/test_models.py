@@ -10,7 +10,7 @@ from app.utils.constants import DEFAULT_ACCENT_COLOR, ROLE_USER_ENTRY, THEME_MOD
 
 def build_user(email="user.test@spindo.com", role=None):
     """Helper: membuat objek User contoh untuk test (dipakai ulang, DRY)."""
-    user = User(email=email, full_name="User Test", department="ICT", job_title="Staff")
+    user = User(email=email, full_name="User Test", department="ICT", job_title="Staff", password_hash="hash-dummy")
     if role:
         user.role = role
     return user

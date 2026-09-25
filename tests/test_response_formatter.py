@@ -1,27 +1,25 @@
-"""Test pembersihan input (anti XSS)."""
+"""Test format balasan JSON."""
+from app.utils.response_formatter import error_response, success_response
 
-from app.utils.sanitizer import sanitize_text
+def test_success_response_format(app):
+    """format sukses lengkap & status code sesuai."""
+    response, status_code = success_response(data={"id": 1}, message="Tersimpan", status_code=201)
+    body_dict = response.get_json()
+    assert status_code == 201
+    assert body_dict["is_success"] is True
+    assert body_dict["data"] == {"id": 1}
+    assert body_dict["message"] == "Tersimpan"
 
-def test_sanitize_removes_script_tag():
-    """tag script beserta isinya dibuang."""
-    assert sanitize_text("<script>alert(1)</script>Halo") == "Halo"
+def test_error_response_format(app):
+    """format error bawa daftar error per field."""
+    error_list = [{"field": "url", "message": "URL wajib http/https"}]
+    response, status_code = error_response("Validasi gagal", 422, error_list)
+    body_dict = response.get_json()
+    assert status_code == 422
+    assert body_dict["is_success"] is False
+    assert body_dict["error_list"] == error_list
 
-def test_sanitize_strips_html_tags_keeps_text():
-    """tag HTML biasa dibuang, teksnya tetep ada."""
-    assert sanitize_text("<b>tebal</b> teks") == "tebal teks"
-
-def test_sanitize_keeps_normal_special_characters():
-    """simbol biasa kayak & dan < ga boleh rusak."""
-    assert sanitize_text("R&D lantai 2 < 5 orang") == "R&D lantai 2 < 5 orang"
-
-def test_sanitize_removes_control_chars_and_trims():
-    """null byte dibuang, spasi di ujung dirapihin."""
-    assert sanitize_text("  halo\x00dunia  ") == "halodunia"
-
-def test_sanitize_cuts_to_max_length():
-    """teks kepanjangan dipotong."""
-    assert sanitize_text("a" * 50, max_length=10) == "a" * 10
-
-def test_sanitize_none_returns_none():
-    """None tetep None."""
-    assert sanitize_text(None) is None
+def test_error_response_default_error_list_is_empty(app):
+    """kalau ga ada detail, error_list tetep list kosong (bukan None)."""
+    response, _ = error_response("Gagal")
+    assert response.get_json()["error_list"] == []

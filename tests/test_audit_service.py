@@ -10,7 +10,7 @@ from app.utils.exceptions import ImmutableRecordError
 
 def create_user():
     """bikin user contoh di DB."""
-    user = User(email="audit.test@spindo.com", full_name="Audit Test", department="ICT", job_title="Staff")
+    user = User(email="audit.test@spindo.com", full_name="Audit Test", department="ICT", job_title="Staff", password_hash="hash-dummy")
     db.session.add(user)
     db.session.commit()
     return user
