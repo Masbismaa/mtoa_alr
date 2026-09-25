@@ -18,3 +18,7 @@ argon2-cffi>=23.1
 nh3>=0.2.17
 # unit test
 pytest>=8.0
+# untuk autentikasi
+Flask-Login>=0.6.3
+# untuk membatasi akses user
+Flask-Limiter>=3.5

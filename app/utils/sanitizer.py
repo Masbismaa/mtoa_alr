@@ -10,7 +10,7 @@ from app.utils.constants import MAX_TEXT_LENGTH
 # karakter kontrol aneh (null byte dkk), tab & enter tetep dibiarin
 CONTROL_CHAR_PATTERN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
-# jaga-jaga input yg di-encode berlapis (&amp;lt;script&amp;gt;)
+# jaga-jaga input yg di-encode berlapis
 MAX_CLEAN_ROUND = 3
 
 def sanitize_text(value, max_length=MAX_TEXT_LENGTH):
