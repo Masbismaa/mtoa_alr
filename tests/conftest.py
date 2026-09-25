@@ -55,3 +55,40 @@ def logged_in_client(client, registered_user, fixed_otp_code):
     client.post("/auth/login", data={"email": registered_user.email, "password": USER_PASSWORD})
     client.post("/auth/otp", data={"otp_code": fixed_otp_code})
     return client
+
+@pytest.fixture()
+def category_dict(app):
+    """Kategori default udah di-seed. Bentuknya dict: nama -> objek Category."""
+    from app.models import Category
+    from app.services.seed_service import seed_default_categories
+
+    seed_default_categories()
+    category_list = db.session.execute(db.select(Category)).scalars().all()
+    return {category.name: category for category in category_list}
+
+
+@pytest.fixture()
+def other_user(app):
+    """User kedua (buat ngetes data milik orang lain)."""
+    return auth_service.register_user(
+        email="user.lain@spindo.com",
+        password=USER_PASSWORD,
+        full_name="User Lain",
+        department="Finance",
+        job_title="Staff",
+    )
+
+
+@pytest.fixture()
+def admin_user(app):
+    """User ber-role admin."""
+    from app.utils.constants import ROLE_ADMIN
+
+    return auth_service.register_user(
+        email="admin.fixture@spindo.com",
+        password=USER_PASSWORD,
+        full_name="Admin Fixture",
+        department="ICT",
+        job_title="Manager",
+        role=ROLE_ADMIN,
+    )
