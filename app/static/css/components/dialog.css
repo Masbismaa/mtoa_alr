@@ -1,0 +1,43 @@
+/* dialog konfirmasi (hapus, dll) */
+
+.confirm-dialog {
+  width: min(440px, 92vw);
+  padding: 0;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--nb-border-width) solid var(--color-border);
+  border-radius: var(--nb-radius);
+  box-shadow: 8px 8px 0 var(--color-shadow);
+}
+
+.confirm-dialog[open] {
+  animation: nb-pop-in 200ms both;
+}
+
+/* area gelap di belakang dialog */
+.confirm-dialog::backdrop {
+  background: rgba(17, 17, 17, 0.5);
+}
+
+.confirm-dialog-body {
+  padding: var(--space-5);
+}
+
+.confirm-dialog h2 {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: 20px;
+}
+
+.confirm-dialog p {
+  margin: 0 0 var(--space-5);
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}

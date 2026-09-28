@@ -1,0 +1,28 @@
+{% extends "layouts/base.html" %}
+{% from "components/icon.html" import icon %}
+
+{% block styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/auth.css') }}">
+{% endblock %}
+
+{% block body_class %}auth-body{% endblock %}
+
+{% block body %}
+  <button type="button" class="btn-icon auth-theme-toggle" data-theme-toggle aria-label="Ganti mode terang/gelap">
+    {{ icon("moon", "theme-icon-moon") }}{{ icon("sun", "theme-icon-sun") }}
+  </button>
+
+  <main class="card auth-card">
+    <div class="auth-brand">
+      <span class="brand-logo">ALR</span>
+      <div>
+        <h1 class="auth-title">MTOA ALR</h1>
+        <p class="auth-subtitle">Access Link Register</p>
+      </div>
+    </div>
+    
+    {% include "components/flash_messages.html" %}
+
+    {% block content %}{% endblock %}
+  </main>
+{% endblock %}

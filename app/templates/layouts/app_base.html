@@ -1,0 +1,39 @@
+{% extends "layouts/base.html" %}
+
+{% block styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/layout.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/sidebar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/customizer.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/dialog.css') }}">
+  {% block page_styles %}{% endblock %}
+{% endblock %}
+
+{% block body_class %}app-body{% endblock %}
+
+{% block body %}
+  <a href="#main_content" class="skip-link">Lewati ke konten</a>
+
+  <div class="app-shell" data-sidebar-shell>
+    {% include "components/sidebar.html" %}
+    <div class="sidebar-backdrop" data-sidebar-close></div>
+
+    <div class="app-main">
+      {% include "components/topbar.html" %}
+      <main class="app-content" id="main_content" tabindex="-1">
+        {% include "components/flash_messages.html" %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  {% include "components/theme_customizer.html" %}
+  {% include "components/confirm_dialog.html" %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/components/sidebar.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/theme_customizer.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/confirm_dialog.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/copy_button.js') }}" defer></script>
+  {% block page_scripts %}{% endblock %}
+{% endblock %}

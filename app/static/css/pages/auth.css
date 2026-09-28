@@ -1,0 +1,98 @@
+/* halaman login, register, OTP */
+
+.auth-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-6) var(--space-4);
+  /* background titik-titik khas neobrutalism */
+  background-color: var(--color-bg);
+  background-image: radial-gradient(var(--color-dot) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  padding: var(--space-6) var(--space-5);
+  animation: nb-pop-in 300ms both;
+}
+
+.auth-theme-toggle {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.auth-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 20px;
+}
+
+.auth-subtitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+/* label "Langkah 1 dari 2" */
+.auth-step {
+  display: inline-block;
+  margin: 0 0 var(--space-2);
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border: 2px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.auth-heading {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-heading);
+  font-size: 26px;
+}
+
+.auth-hint {
+  margin: 0 0 var(--space-5);
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.auth-footer {
+  margin: var(--space-5) 0 0;
+  font-size: 14px;
+  text-align: center;
+}
+
+.auth-footer a {
+  font-weight: 800;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+/* kolom OTP dibikin gede & renggang biar gampang dibaca */
+#otp_code {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  letter-spacing: 0.5em;
+  text-align: center;
+}
+
+.resend-form {
+  margin-top: var(--space-3);
+  text-align: center;
+}

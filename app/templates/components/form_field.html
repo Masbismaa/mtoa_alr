@@ -1,0 +1,10 @@
+{# satu macro buat nampilin label + input + pesan error, dipake semua form #}
+{% macro render_field(field) %}
+  <div class="form-group">
+    {{ field.label(class_="form-label") }}
+    {{ field(class_="form-input" ~ (" is-invalid" if field.errors else ""), **kwargs) }}
+    {% for error in field.errors %}
+      <p class="form-error">{{ error }}</p>
+    {% endfor %}
+  </div>
+{% endmacro %}

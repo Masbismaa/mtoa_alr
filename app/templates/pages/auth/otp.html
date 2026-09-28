@@ -1,0 +1,27 @@
+{% extends "layouts/auth_base.html" %}
+{% from "components/form_field.html" import render_field %}
+
+{% block title %}Verifikasi OTP - MTOA ALR{% endblock %}
+
+{% block content %}
+  <p class="auth-step">Langkah 2 dari 2</p>
+  <h2 class="auth-heading">Verifikasi OTP</h2>
+  <p class="auth-hint">Masukkan {{ otp_length }} digit kode OTP yang dikirim ke <strong>{{ masked_email }}</strong>.</p>
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.otp_code, placeholder="000000", autocomplete="one-time-code", inputmode="numeric", maxlength=otp_length) }}
+    {{ form.submit(class_="btn btn-primary btn-block") }}
+  </form>
+
+  <form method="post" action="{{ url_for('auth.resend_otp') }}" class="resend-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-link" id="resend_button" data-cooldown-seconds="{{ resend_cooldown_seconds }}">Kirim ulang OTP</button>
+  </form>
+
+  <p class="auth-footer"><a href="{{ url_for('auth.login') }}">Kembali ke login</a></p>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/pages/otp.js') }}"></script>
+{% endblock %}

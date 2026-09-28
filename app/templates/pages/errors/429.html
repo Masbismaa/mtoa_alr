@@ -1,0 +1,9 @@
+{% extends "layouts/auth_base.html" %}
+
+{% block title %}Terlalu Banyak Percobaan - MTOA ALR{% endblock %}
+
+{% block content %}
+  <h2 class="auth-heading">Terlalu banyak percobaan</h2>
+  <p class="auth-hint">Demi keamanan, tunggu sekitar 1 menit sebelum mencoba lagi.</p>
+  <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-block">Kembali ke login</a>
+{% endblock %}
