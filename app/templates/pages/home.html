@@ -41,6 +41,7 @@
               <th scope="col">Judul</th>
               <th scope="col">Kategori</th>
               <th scope="col">Visibilitas</th>
+              <th scope="col">Lampiran</th>
               <th scope="col">Dibuat Oleh</th>
               <th scope="col">Dibuat</th>
               <th scope="col"><span class="visually-hidden">Aksi</span></th>
@@ -52,6 +53,13 @@
                 <td><a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="table-title-link">{{ entry.title }}</a></td>
                 <td><span class="badge">{{ entry.category.name }}</span></td>
                 <td><span class="badge badge-{{ entry.visibility }}">{{ entry.visibility | visibility_label }}</span></td>
+                <td>
+                  {% if entry.attachment_list %} 
+                  {{ icon("paperclip") }} {{ entry.attachment_list | length }} 
+                  {% else %}
+                  <span class="text-muted">-</span>
+                  {% endif %}
+                </td>
                 <td>{{ entry.owner.full_name }}</td>
                 <td class="table-nowrap">{{ entry.created_at | local_datetime }}</td>
                 <td class="table-action"><a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="btn btn-secondary btn-small">{{ icon("eye") }} View</a></td>
