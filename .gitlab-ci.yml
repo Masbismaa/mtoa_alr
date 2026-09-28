@@ -8,27 +8,57 @@
 default:
   tags:
     - build
+
 stages:
-- build
-- test
-- deploy
-- review
-- dast
-- staging
-- canary
-- production
-- incremental rollout 10%
-- incremental rollout 25%
-- incremental rollout 50%
-- incremental rollout 100%
-- performance
-- cleanup
-- secret-detection
-sast:
-  stage: test
-include:
-- template: Auto-DevOps.gitlab-ci.yml
+  - build
+  - test
+  - deploy
+  - review
+  - dast
+  - staging
+  - canary
+  - production
+  - incremental rollout 10%
+  - incremental rollout 25%
+  - incremental rollout 50%
+  - incremental rollout 100%
+  - performance
+  - cleanup
+  - secret-detection
+
 variables:
   SECRET_DETECTION_ENABLED: 'true'
+  # fitur auto devops yg butuh docker-in-docker, runner kantor belum support
+  BUILD_DISABLED: 'true'
+  TEST_DISABLED: 'true'
+  CODE_QUALITY_DISABLED: 'true'
+  # belum ada deploy, jadi dimatiin sekalian
+  AUTO_DEVOPS_PLATFORM_TARGET: ''
+  REVIEW_DISABLED: 'true'
+  STAGING_ENABLED: ''
+  PERFORMANCE_DISABLED: 'true'
+  DAST_DISABLED: 'true'
+  CONTAINER_SCANNING_DISABLED: 'true'
+  BROWSER_PERFORMANCE_DISABLED: 'true'
+
+sast:
+  stage: test
+
 secret_detection:
   stage: secret-detection
+
+# jalanin semua unit test project
+unit_test:
+  stage: test
+  image: python:3.13-slim
+  script:
+    - python --version
+    - python -m pip install -r requirements.txt
+    - python -m pytest -q --junitxml=report.xml
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+
+include:
+  - template: Auto-DevOps.gitlab-ci.yml
