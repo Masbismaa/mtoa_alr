@@ -510,3 +510,10 @@ textarea.form-input {
 select.form-input {
   cursor: pointer;
 }
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}

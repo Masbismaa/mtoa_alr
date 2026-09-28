@@ -21,6 +21,11 @@
   <form method="post" action="{{ form_action }}" class="entry-form" enctype="multipart/form-data" novalidate data-entry-form>
     {{ form.hidden_tag() }}
 
+    {% if target_group %}
+      <input type="hidden" name="group_id" value="{{ target_group.id }}">
+      <p class="flash flash-info">Link ini bakal langsung masuk ke group <strong>{{ target_group.name }}</strong>.</p>
+    {% endif %}
+
     <section class="card">
       <h2 class="section-title">{{ icon("link") }} Data Link</h2>
 

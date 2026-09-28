@@ -56,7 +56,7 @@
       <select name="visibility" class="form-input" aria-label="Filter visibilitas" data-filter-auto>
         <option value="">Semua visibilitas</option>
         <option value="public"{% if filter_dict.visibility == "public" %} selected{% endif %}>Public</option>
-        <option value="private"{% if filter_dict.visibility == "private" %} selected{% endif %}>Private (milikmu)</option>
+        <option value="private"{% if filter_dict.visibility == "private" %} selected{% endif %}>Private</option>
       </select>
       <button type="submit" class="btn btn-primary">{{ icon("search") }} Cari</button>
       {% if is_filtered %}
