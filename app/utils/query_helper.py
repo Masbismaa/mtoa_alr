@@ -10,3 +10,10 @@ def parse_positive_int(raw_value, default=None):
     except (TypeError, ValueError):
         return default
     return number if number > 0 else default
+
+def parse_positive_int(raw_value, default=None):
+    try:
+        number = int(raw_value)
+    except (TypeError, ValueError):
+        return default
+    return number if number > 0 else default
