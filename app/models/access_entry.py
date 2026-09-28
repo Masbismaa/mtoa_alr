@@ -48,6 +48,12 @@ class AccessEntry(TimestampMixin, db.Model):
         cascade="all, delete-orphan",
     )
 
+    group_entry_list = db.relationship(
+        "GroupEntry",
+        back_populates="access_entry",
+        cascade="all, delete-orphan",
+    )
+
     __table_args__ = (
         db.CheckConstraint(f"visibility IN ({build_sql_in_list(VISIBILITY_LIST)})", name="visibility_valid"),
         db.CheckConstraint(f"status IN ({build_sql_in_list(LINK_STATUS_LIST)})", name="status_valid"),
