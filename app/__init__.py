@@ -70,6 +70,7 @@ def register_blueprints(app):
     from app.routes.health_routes import health_bp
     from app.routes.main_routes import main_bp
     from app.routes.settings_routes import settings_bp
+    from app.routes.group_routes import groups_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
@@ -77,6 +78,7 @@ def register_blueprints(app):
     app.register_blueprint(settings_bp)
     app.register_blueprint(entries_bp)
     app.register_blueprint(attachments_bp)
+    app.register_blueprint(groups_bp)
 
 def build_error_handler(error_code, error_title, error_message):
     """Bikin handler buat satu kode error (biar ga nulis ulang)."""

@@ -20,6 +20,8 @@ from app.utils.constants import (
     CUSTOM_FIELD_MAX_COUNT,
 )
 from app.utils.exceptions import ValidationError
+from app.services.group_service import add_group_entry, get_member_group
+from app.utils.query_helper import parse_positive_int
 
 entries_bp = Blueprint("entries", __name__, url_prefix="/entries")
 
@@ -61,7 +63,7 @@ def attach_error_list(form, error_list):
     return attachment_error_list
 
 def render_entry_form(form, category_list, custom_field_pair_list, page_title, form_action, cancel_url,
-                      is_owner=True, entry=None, attachment_error_list=None):
+                      is_owner=True, entry=None, attachment_error_list=None, target_group=None):
     """Render form (dipake tambah & edit)."""
     form.category_id.choices = [(category.id, category.name) for category in category_list]
     existing_attachment_list = entry.attachment_list if entry else []
@@ -80,19 +82,22 @@ def render_entry_form(form, category_list, custom_field_pair_list, page_title, f
         attachment_max_count=ATTACHMENT_MAX_COUNT,
         attachment_max_size=ATTACHMENT_MAX_SIZE_BYTES,
         attachment_extension_list=ATTACHMENT_EXTENSION_LIST,
+        target_group=target_group,
     )
 
 @entries_bp.route("/new", methods=["GET", "POST"])
 @login_required
 def create():
-    """Tambah data link."""
+    """Tambah data link, bisa langsung masuk ke group kalau dibuka dari halaman group."""
     user = get_user()
     category_list = get_active_category_list()
     form = AccessEntryForm()
     form.category_id.choices = [(category.id, category.name) for category in category_list]
     custom_field_pair_list = read_custom_field_pair_list() if request.method == "POST" else []
     attachment_error_list = []
-
+    # group tujuan, dicuekin kalau user bukan anggota aktifnya
+    group_id = parse_positive_int(request.values.get("group_id"))
+    target_group = get_member_group(user, group_id) if group_id else None
     if form.validate_on_submit():
         try:
             entry = create_access_entry(
@@ -102,13 +107,17 @@ def create():
         except ValidationError as error:
             attachment_error_list = attach_error_list(form, error.error_list)
         else:
+            if target_group is not None:
+                add_group_entry(user, target_group, entry.id)
+                flash(f'Data link disimpan & masuk ke group "{target_group.name}"', "success")
+                return redirect(url_for("groups.detail", group_id=target_group.id))
             flash("Data link berhasil disimpan", "success")
             return redirect(url_for("entries.detail", entry_id=entry.id))
-
+    cancel_url = url_for("groups.detail", group_id=target_group.id) if target_group else url_for("main.home")
     return render_entry_form(
         form, category_list, custom_field_pair_list,
-        page_title="Tambah Link", form_action=url_for("entries.create"), cancel_url=url_for("main.home"),
-        attachment_error_list=attachment_error_list,
+        page_title="Tambah Link", form_action=url_for("entries.create"), cancel_url=cancel_url,
+        attachment_error_list=attachment_error_list, target_group=target_group,
     )
 
 @entries_bp.get("/<int:entry_id>")

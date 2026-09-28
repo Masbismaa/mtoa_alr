@@ -2,6 +2,7 @@
 from flask import Blueprint, render_template, request
 from flask_login import current_user, login_required
 from app.services.access_entry_service import count_visible_entry_summary, get_active_category_list, search_visible_entries
+from app.services.group_service import count_user_group
 from app.utils.constants import DASHBOARD_PER_PAGE, MAX_SEARCH_KEYWORD_LENGTH, VISIBILITY_LIST
 from app.utils.query_helper import parse_positive_int
 
@@ -17,13 +18,13 @@ def read_dashboard_filter():
         "page": parse_positive_int(request.args.get("page"), default=1),
     }
 
-def build_stat_card_list(summary_dict):
+def build_stat_card_list(summary_dict, group_count):
     """Kartu ringkasan di atas dashboard."""
     return [
         {"label": "Total Link", "value": summary_dict["total"], "icon": "link"},
         {"label": "Link Public", "value": summary_dict["public"], "icon": "globe"},
         {"label": "Link Private (milikmu)", "value": summary_dict["private"], "icon": "lock"},
-        {"label": "Group", "value": "—", "icon": "group"},
+        {"label": "Group", "value": group_count, "icon": "group"},
     ]
 
 @main_bp.get("/")
@@ -49,7 +50,7 @@ def home():
     return render_template(
         "pages/home.html",
         page_title="Dashboard",
-        stat_card_list=build_stat_card_list(count_visible_entry_summary(user)),
+        stat_card_list=build_stat_card_list(count_visible_entry_summary(user), count_user_group(user)),
         pagination=pagination,
         pagination_query_dict=pagination_query_dict,
         filter_dict=filter_dict,
