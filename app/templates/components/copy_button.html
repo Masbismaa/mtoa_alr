@@ -1,5 +1,5 @@
-{# tombol copy: pake text (langsung) atau target_id (ambil dari elemen lain, misal access note) #}
-{% macro copy_button(text="", target_id="", label="Copy") %}
+{# tombol copy: pake text langsung atau target_id (ambil dari elemen lain). is_icon_only buat di tabel #}
+{% macro copy_button(text="", target_id="", label="Copy", is_icon_only=false) %}
   {% from "components/icon.html" import icon %}
-  <button type="button" class="btn btn-secondary btn-small copy-button"{% if target_id %} data-copy-target="{{ target_id }}"{% else %} data-copy-text="{{ text }}"{% endif %} aria-label="{{ label }}">{{ icon("copy") }}<span data-copy-label>{{ label }}</span></button>
+  <button type="button" class="btn btn-secondary btn-small copy-button{% if is_icon_only %} btn-icon-only{% endif %}"{% if target_id %} data-copy-target="{{ target_id }}"{% else %} data-copy-text="{{ text }}"{% endif %} aria-label="{{ label }}" title="{{ label }}">{{ icon("copy") }}<span data-copy-label{% if is_icon_only %} class="visually-hidden"{% endif %}>{{ label }}</span></button>
 {% endmacro %}
