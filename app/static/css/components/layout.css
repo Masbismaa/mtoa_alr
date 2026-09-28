@@ -1,0 +1,82 @@
+/* kerangka halaman setelah login: sidebar kiri + area konten */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* sidebar diciutin (desktop) */
+:root[data-sidebar="collapsed"] .app-shell {
+  grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
+}
+
+/* animasi lebar sidebar cuma aktif setelah halaman siap (biar ga "loncat" pas load) */
+.is-ready .app-shell {
+  transition: grid-template-columns var(--nb-transition-medium);
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-bg);
+  border-bottom: var(--nb-border-width) solid var(--color-border);
+}
+
+.topbar-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.app-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1280px;
+  padding: var(--space-5);
+}
+
+.app-content:focus {
+  outline: none;
+}
+
+/* layar kecil: sidebar jadi laci yg muncul dari kiri */
+@media (max-width: 960px) {
+  .app-shell,
+  :root[data-sidebar="collapsed"] .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .topbar {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .topbar-title {
+    font-size: 18px;
+  }
+
+  .app-content {
+    padding: var(--space-4);
+  }
+}

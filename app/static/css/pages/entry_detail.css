@@ -1,0 +1,128 @@
+/* halaman detail data link */
+.detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.back-link {
+  margin-bottom: var(--space-2);
+}
+
+.detail-title {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: 28px;
+  overflow-wrap: anywhere;
+}
+
+.detail-badge-list,
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.detail-actions {
+  gap: var(--space-3);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.detail-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.detail-grid .card {
+  animation: nb-pop-in 300ms both;
+}
+
+@media (max-width: 900px) {
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.detail-item dt {
+  margin-bottom: var(--space-1);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.detail-item dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.detail-text {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* nilai + tombol copy sejajar */
+.copy-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.copy-value {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--color-surface-muted);
+  border: 2px solid var(--color-border);
+  border-radius: var(--nb-radius);
+}
+
+.secret-action-list {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* field tambahan (General) */
+.custom-field-view-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.custom-field-view {
+  padding: var(--space-4);
+  background: var(--color-surface-muted);
+  border: 2px solid var(--color-border);
+  border-radius: var(--nb-radius);
+}
+
+.custom-field-view h4 {
+  margin: 0 0 var(--space-2);
+  font-size: 16px;
+  font-weight: 900;
+}
