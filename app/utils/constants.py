@@ -137,3 +137,20 @@ ALLOWED_URL_SCHEME_SET = {"http", "https"}
 
 # tag HTML yg boleh dari editor teks, sisanya dibuang
 RICH_TEXT_ALLOWED_TAG_SET = {"p", "div", "br", "b", "strong", "i", "em", "u", "ul", "ol", "li", "code", "pre", "a"}
+
+ATTACHMENT_MAX_COUNT = 5
+ATTACHMENT_MAX_SIZE_BYTES = 10 * 1024 * 1024
+MAX_FILENAME_LENGTH = 255
+
+# ekstensi yg boleh + content type yg dipake pas download
+ATTACHMENT_CONTENT_TYPE_BY_EXTENSION_DICT = {
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "pdf": "application/pdf",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "doc": "application/msword",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "txt": "text/plain",
+}
+ATTACHMENT_EXTENSION_LIST = list(ATTACHMENT_CONTENT_TYPE_BY_EXTENSION_DICT)

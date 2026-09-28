@@ -31,3 +31,12 @@ def get_visibility_label(visibility):
 def get_link_status_label(status):
     """Ubah kode status link jadi label, misal 'unknown' -> 'Belum dicek'."""
     return LINK_STATUS_LABEL_DICT.get(status, status)
+
+def format_file_size(size_bytes):
+    if size_bytes is None:
+        return "-"
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    if size_bytes < 1024 * 1024:
+        return f"{size_bytes/1024:.1f} KB"
+    return f"{size_bytes/(1024*1024):.1f} MB"

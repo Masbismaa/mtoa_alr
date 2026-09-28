@@ -5,6 +5,13 @@ from app.extensions import db
 from app.models import AccessEntry, AccessEntryField, Category
 from app.security.access_policy import build_visible_entry_filter, can_edit_entry, is_entry_owner
 from app.security.encryption_service import decrypt_credential, encrypt_credential
+from app.services.attachment_service import (
+    pick_entry_attachment_list,
+    prepare_upload_list,
+    remove_file_path_list,
+    remove_stored_file_list,
+    store_prepared_attachment_list,
+)
 from app.services.audit_service import log_audit
 from app.utils.constants import (
     AUDIT_ACTION_CREATE,
@@ -23,7 +30,7 @@ from app.utils.constants import (
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
 )
-from app.utils.exceptions import InvalidCredentialError, PermissionDeniedError, ValidationError
+from app.utils.exceptions import InvalidCredentialError, PermissionDeniedError, ValidationError, build_error
 from app.utils.sanitizer import get_plain_text, sanitize_rich_text, sanitize_text
 from app.utils.url_helper import normalize_address, normalize_url, parse_port
 
@@ -32,28 +39,20 @@ AUDIT_ENTITY_TYPE = "access_entries"
 # kolom yg langsung disalin dari data bersih ke model
 ENTRY_COLUMN_FIELD_LIST = ["category_id", "title", "url", "address", "port", "username", "description", "visibility"]
 
-# fungsi validasi buat tiap field khusus kategori
+# fungsi validasi tiap field khusus kategori
 FIELD_NORMALIZER_DICT = {"url": normalize_url, "address": normalize_address, "port": parse_port}
-
-
-def build_error(field, message):
-    """Bikin satu item error (formatnya sama kayak error_list di response)."""
-    return {"field": field, "message": message}
-
 
 # KATEGORI
 def get_category_rule(category_name):
-    """Aturan field untuk kategori tertentu."""
+    """Aturan field buat kategori tertentu."""
     return CATEGORY_FIELD_RULE_DICT.get(category_name, DEFAULT_CATEGORY_FIELD_RULE)
 
-
 def get_active_category_list():
-    """Semua kategori aktif, urut sesuai id (Web, Application, Network, General)."""
+    """Kategori aktif, urut id (Web, Application, Network, General)."""
     return db.session.execute(db.select(Category).filter_by(is_active=True).order_by(Category.id)).scalars().all()
 
-
 def get_category_from_id(raw_category_id):
-    """Ambil kategori aktif dari id. None kalau ga ada / nonaktif / id ngaco."""
+    """Ambil kategori aktif dari id, None kalau ga valid."""
     try:
         category_id = int(raw_category_id)
     except (TypeError, ValueError):
@@ -63,9 +62,8 @@ def get_category_from_id(raw_category_id):
         return None
     return category
 
-
 def build_category_option_list(category_list):
-    """Data dropdown kategori + aturan field-nya (dipake JS buat nampilin/nyembunyiin field)."""
+    """Data dropdown kategori + aturan field-nya (dipake JS)."""
     option_list = []
     for category in category_list:
         rule = get_category_rule(category.name)
@@ -78,9 +76,7 @@ def build_category_option_list(category_list):
         })
     return option_list
 
-
 # VALIDASI
-
 def validate_entry_data(data_dict):
     """Cek & bersihin data utama. Return (clean_dict, category, error_list)."""
     category = get_category_from_id(data_dict.get("category_id"))
@@ -91,12 +87,11 @@ def validate_entry_data(data_dict):
     error_list = []
     clean_dict = {"category_id": category.id}
 
-    # judul
     clean_dict["title"] = sanitize_text(data_dict.get("title"), max_length=MAX_TITLE_LENGTH)
     if not clean_dict["title"]:
         error_list.append(build_error("title", "Judul wajib diisi"))
 
-    # field khusus kategori: yg ga dipake kategori ini otomatis dikosongin
+    # field yg ga dipake kategori ini dikosongin
     for field_name in CATEGORY_SPECIFIC_FIELD_LIST:
         clean_dict[field_name] = None
         if field_name not in rule["field_list"]:
@@ -110,13 +105,12 @@ def validate_entry_data(data_dict):
         except ValueError as error:
             error_list.append(build_error(field_name, str(error)))
 
-    # field umum
     clean_dict["username"] = sanitize_text(data_dict.get("username"), max_length=MAX_USERNAME_LENGTH) or None
 
     raw_access_note = data_dict.get("access_note") or ""
     if len(raw_access_note) > MAX_ACCESS_NOTE_LENGTH:
         error_list.append(build_error("access_note", f"Access note maksimal {MAX_ACCESS_NOTE_LENGTH} karakter"))
-    # sengaja ga di-sanitize biar karakter password ga berubah (nanti dienkripsi)
+    # ga di-sanitize biar password utuh, nanti dienkripsi
     clean_dict["access_note"] = raw_access_note if raw_access_note.strip() else None
 
     clean_dict["description"] = sanitize_text(data_dict.get("description")) or None
@@ -128,9 +122,8 @@ def validate_entry_data(data_dict):
 
     return clean_dict, category, error_list
 
-
 def validate_custom_field_list(category, custom_field_pair_list):
-    """Cek field tambahan (cuma buat kategori yg punya 'Add field'). Return (clean_list, error_list)."""
+    """Cek field tambahan (khusus kategori General). Return (clean_list, error_list)."""
     rule = get_category_rule(category.name)
     if not rule["has_custom_field"]:
         return [], []
@@ -155,15 +148,8 @@ def validate_custom_field_list(category, custom_field_pair_list):
         clean_list.append({"field_label": clean_label, "field_content": clean_content, "sort_order": field_number})
     return clean_list, error_list
 
-
 def find_duplicate_entry(user, clean_dict, exclude_entry_id=None):
-    """Cari data yg URL / Address+Port-nya sama.
-
-    Cuma dibandingin sama data yg boleh dilihat user (punya sendiri + Public),
-    biar data Private orang lain ga bocor lewat pesan 'duplikat'.
-
-    Return (nama_field, entry) atau (None, None).
-    """
+    """Cari data dgn URL / Address+Port sama, cuma di data sendiri + Public. Return (field, entry)."""
     base_query = db.select(AccessEntry).where(build_visible_entry_filter(user))
     if exclude_entry_id is not None:
         base_query = base_query.where(AccessEntry.id != exclude_entry_id)
@@ -186,8 +172,9 @@ def find_duplicate_entry(user, clean_dict, exclude_entry_id=None):
 
     return None, None
 
-def prepare_entry_data(user, data_dict, custom_field_pair_list, exclude_entry_id=None):
-    """Gabungan semua validasi (dipake create & update). Lempar ValidationError kalau ada yg salah."""
+def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list=None,
+                       existing_attachment_count=0, exclude_entry_id=None):
+    """Semua validasi jadi satu (create & update). Return (clean_dict, custom_list, upload_list)."""
     clean_dict, category, error_list = validate_entry_data(data_dict)
 
     clean_custom_field_list = []
@@ -195,7 +182,11 @@ def prepare_entry_data(user, data_dict, custom_field_pair_list, exclude_entry_id
         clean_custom_field_list, custom_error_list = validate_custom_field_list(category, custom_field_pair_list)
         error_list.extend(custom_error_list)
 
-    # cek duplikat cuma kalau data lain udah bener (hemat query)
+    # lampiran dicek sekalian biar semua error keluar barengan
+    prepared_upload_list, upload_error_list = prepare_upload_list(upload_file_list, existing_attachment_count)
+    error_list.extend(upload_error_list)
+
+    # cek duplikat kalau yg lain udah beres aja (hemat query)
     if not error_list:
         duplicate_field, duplicate_entry = find_duplicate_entry(user, clean_dict, exclude_entry_id)
         if duplicate_entry is not None:
@@ -203,19 +194,19 @@ def prepare_entry_data(user, data_dict, custom_field_pair_list, exclude_entry_id
 
     if error_list:
         raise ValidationError(error_list)
-    return clean_dict, clean_custom_field_list
+    return clean_dict, clean_custom_field_list, prepared_upload_list
+
 
 # SIMPAN
 def apply_entry_data(entry, clean_dict, clean_custom_field_list):
-    """Salin data bersih ke objek entry (access note dienkripsi, field tambahan diganti semua)."""
+    """Salin data bersih ke entry (access note dienkripsi, field tambahan diganti semua)."""
     for field_name in ENTRY_COLUMN_FIELD_LIST:
         setattr(entry, field_name, clean_dict[field_name])
     entry.encrypted_access_note = encrypt_credential(clean_dict["access_note"])
-    # ganti list = field lama otomatis kehapus (delete-orphan)
     entry.custom_field_list = [AccessEntryField(**field_dict) for field_dict in clean_custom_field_list]
 
 def build_entry_audit_dict(entry):
-    """Data yg dicatat ke audit log. Isi access note ga ikut, cuma tanda ada/nggak."""
+    """Data buat audit log. Isi access note ga ikut, cuma tanda ada/nggak."""
     return {
         "title": entry.title,
         "category_id": entry.category_id,
@@ -227,29 +218,51 @@ def build_entry_audit_dict(entry):
         "description": entry.description,
         "visibility": entry.visibility,
         "custom_field_label_list": [field.field_label for field in entry.custom_field_list],
+        "attachment_name_list": [attachment.original_filename for attachment in entry.attachment_list],
     }
 
-def create_access_entry(user, data_dict, custom_field_pair_list=None):
-    """Bikin data link baru milik user."""
-    clean_dict, clean_custom_field_list = prepare_entry_data(user, data_dict, custom_field_pair_list)
+def save_entry_change(user, entry, prepared_upload_list, action, old_data_dict=None):
+    """Tulis lampiran + catat audit + commit. Kalau gagal, file yg udah ketulis dihapus lagi."""
+    written_path_list = []
+    try:
+        # flush dulu biar entry.id keisi
+        db.session.flush()
+        written_path_list = store_prepared_attachment_list(entry, user, prepared_upload_list)
+        log_audit(
+            action, AUDIT_ENTITY_TYPE, entity_id=entry.id,
+            old_data_dict=old_data_dict, new_data_dict=build_entry_audit_dict(entry), user=user,
+        )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        remove_file_path_list(written_path_list)
+        raise
+
+def create_access_entry(user, data_dict, custom_field_pair_list=None, upload_file_list=None):
+    """Bikin data link baru (+ lampiran kalau ada)."""
+    clean_dict, clean_custom_field_list, prepared_upload_list = prepare_entry_data(
+        user, data_dict, custom_field_pair_list, upload_file_list,
+    )
 
     entry = AccessEntry(user_id=user.id)
     apply_entry_data(entry, clean_dict, clean_custom_field_list)
     db.session.add(entry)
-    # flush biar entry.id udah keisi buat audit
-    db.session.flush()
-
-    log_audit(AUDIT_ACTION_CREATE, AUDIT_ENTITY_TYPE, entity_id=entry.id, new_data_dict=build_entry_audit_dict(entry), user=user)
-    db.session.commit()
+    save_entry_change(user, entry, prepared_upload_list, AUDIT_ACTION_CREATE)
     return entry
 
-def update_access_entry(user, entry, data_dict, custom_field_pair_list=None):
-    """Ubah data link. Dicek dulu haknya (lapis kedua setelah route)."""
+def update_access_entry(user, entry, data_dict, custom_field_pair_list=None,
+                        upload_file_list=None, delete_attachment_id_list=None):
+    """Ubah data link, bisa sekalian nambah & hapus lampiran."""
     if not can_edit_entry(user, entry):
         raise PermissionDeniedError("Kamu tidak punya akses mengubah data ini")
 
-    clean_dict, clean_custom_field_list = prepare_entry_data(
-        user, data_dict, custom_field_pair_list, exclude_entry_id=entry.id,
+    # lampiran yg mau dihapus (cuma yg emang punya entry ini)
+    delete_attachment_list = pick_entry_attachment_list(entry, delete_attachment_id_list)
+    existing_attachment_count = len(entry.attachment_list) - len(delete_attachment_list)
+
+    clean_dict, clean_custom_field_list, prepared_upload_list = prepare_entry_data(
+        user, data_dict, custom_field_pair_list, upload_file_list,
+        existing_attachment_count=existing_attachment_count, exclude_entry_id=entry.id,
     )
     # visibilitas cuma boleh diganti pemiliknya
     if not is_entry_owner(user, entry):
@@ -257,51 +270,60 @@ def update_access_entry(user, entry, data_dict, custom_field_pair_list=None):
 
     old_data_dict = build_entry_audit_dict(entry)
     apply_entry_data(entry, clean_dict, clean_custom_field_list)
-    new_data_dict = build_entry_audit_dict(entry)
 
-    log_audit(
-        AUDIT_ACTION_UPDATE, AUDIT_ENTITY_TYPE, entity_id=entry.id,
-        old_data_dict=old_data_dict, new_data_dict=new_data_dict, user=user,
-    )
-    db.session.commit()
+    removed_filename_list = [attachment.stored_filename for attachment in delete_attachment_list]
+    for attachment in delete_attachment_list:
+        entry.attachment_list.remove(attachment)
+
+    save_entry_change(user, entry, prepared_upload_list, AUDIT_ACTION_UPDATE, old_data_dict)
+    # file lama baru dihapus setelah DB aman
+    remove_stored_file_list(removed_filename_list)
     return entry
 
 def delete_access_entry(user, entry):
-    """Hapus data link (field tambahan ikut kehapus)."""
+    """Hapus data link + field tambahan + lampiran (DB & file)."""
     if not can_edit_entry(user, entry):
         raise PermissionDeniedError("Kamu tidak punya akses menghapus data ini")
 
     old_data_dict = build_entry_audit_dict(entry)
+    stored_filename_list = [attachment.stored_filename for attachment in entry.attachment_list]
     entry_id = entry.id
+
     db.session.delete(entry)
     log_audit(AUDIT_ACTION_DELETE, AUDIT_ENTITY_TYPE, entity_id=entry_id, old_data_dict=old_data_dict, user=user)
     db.session.commit()
+    remove_stored_file_list(stored_filename_list)
 
 # AMBIL DATA
 def get_visible_entry(user, entry_id):
-    """Ambil satu data kalau user boleh liat. None kalau ga ada / ga boleh (dua-duanya jadi 404)."""
+    """Satu data kalau boleh diliat, None kalau nggak (dua-duanya jadi 404)."""
     return db.session.execute(
         db.select(AccessEntry)
         .options(
             joinedload(AccessEntry.category),
             joinedload(AccessEntry.owner),
             selectinload(AccessEntry.custom_field_list),
+            selectinload(AccessEntry.attachment_list),
         )
         .where(AccessEntry.id == entry_id, build_visible_entry_filter(user))
     ).scalar_one_or_none()
 
 def list_visible_entries(user, limit=20):
-    """Data terbaru yg boleh dilihat user. Kategori & pembuat diambil sekalian (anti query berulang)."""
+    """Data terbaru yg boleh diliat. Relasi diambil sekalian biar ga query berulang."""
     return db.session.execute(
         db.select(AccessEntry)
-        .options(joinedload(AccessEntry.category), joinedload(AccessEntry.owner))
+        .options(
+            joinedload(AccessEntry.category),
+            joinedload(AccessEntry.owner),
+            selectinload(AccessEntry.attachment_list),
+        )
         .where(build_visible_entry_filter(user))
         .order_by(AccessEntry.updated_at.desc(), AccessEntry.id.desc())
         .limit(limit)
     ).scalars().all()
 
 def count_visible_entry_summary(user):
-    """Jumlah data per visibilitas dalam SATU query: total, public, private (punya sendiri)."""
+    """Jumlah data per visibilitas dalam 1 query."""
     row_list = db.session.execute(
         db.select(AccessEntry.visibility, db.func.count(AccessEntry.id))
         .where(build_visible_entry_filter(user))
@@ -315,7 +337,7 @@ def count_visible_entry_summary(user):
     }
 
 def read_access_note(entry):
-    """Buka access note. Return (isi, is_error). is_error True kalau key enkripsi beda/data rusak."""
+    """Buka access note. Return (isi, is_error)."""
     try:
         return decrypt_credential(entry.encrypted_access_note), False
     except InvalidCredentialError:

@@ -1,5 +1,4 @@
 """Route data link: tambah, detail, edit, hapus."""
-
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
@@ -14,56 +13,58 @@ from app.services.access_entry_service import (
     read_access_note,
     update_access_entry,
 )
-from app.utils.constants import CUSTOM_FIELD_MAX_COUNT
+from app.utils.constants import (
+    ATTACHMENT_EXTENSION_LIST,
+    ATTACHMENT_MAX_COUNT,
+    ATTACHMENT_MAX_SIZE_BYTES,
+    CUSTOM_FIELD_MAX_COUNT,
+)
 from app.utils.exceptions import ValidationError
 
 entries_bp = Blueprint("entries", __name__, url_prefix="/entries")
 
-# field form yg dikirim ke service (namanya sama persis)
 FORM_FIELD_NAME_LIST = [
     "category_id", "title", "url", "address", "port",
     "username", "access_note", "description", "visibility",
 ]
 
-
 def get_user():
-    """Objek user asli (bukan proxy current_user)."""
+    """User asli (bukan proxy)."""
     return current_user._get_current_object()
 
-
 def get_entry_or_404(user, entry_id):
-    """Ambil data yg boleh dilihat. Ga ada / Private orang lain -> 404 (biar ga ketauan ada)."""
+    """Ga ada / private orang lain -> 404."""
     entry = get_visible_entry(user, entry_id)
     if entry is None:
         abort(404)
     return entry
 
-
 def build_form_data_dict(form):
-    """Ambil isi form jadi dict buat service."""
+    """Isi form jadi dict buat service."""
     return {field_name: getattr(form, field_name).data for field_name in FORM_FIELD_NAME_LIST}
 
-
 def read_custom_field_pair_list():
-    """Field tambahan dari form, urut sesuai tampilan: [(judul, isi), ...]."""
-    label_list = request.form.getlist("custom_field_label")
-    content_list = request.form.getlist("custom_field_content")
-    return list(zip(label_list, content_list))
-
+    """Field tambahan dari form: [(judul, isi), ...]."""
+    return list(zip(request.form.getlist("custom_field_label"), request.form.getlist("custom_field_content")))
 
 def attach_error_list(form, error_list):
-    """Tempel error dari service ke field form-nya. Error lain dimunculin sebagai flash."""
+    """Tempel error ke field form. Error lampiran dibalikin, sisanya jadi flash."""
+    attachment_error_list = []
     for error_dict in error_list:
         field_name = error_dict.get("field")
         if field_name in FORM_FIELD_NAME_LIST:
             getattr(form, field_name).errors.append(error_dict["message"])
+        elif field_name == "attachments":
+            attachment_error_list.append(error_dict["message"])
         else:
             flash(error_dict["message"], "danger")
+    return attachment_error_list
 
-
-def render_entry_form(form, category_list, custom_field_pair_list, page_title, form_action, cancel_url, is_owner=True):
-    """Render halaman form (dipake tambah & edit)."""
+def render_entry_form(form, category_list, custom_field_pair_list, page_title, form_action, cancel_url,
+                      is_owner=True, entry=None, attachment_error_list=None):
+    """Render form (dipake tambah & edit)."""
     form.category_id.choices = [(category.id, category.name) for category in category_list]
+    existing_attachment_list = entry.attachment_list if entry else []
     return render_template(
         "pages/entries/form.html",
         form=form,
@@ -74,6 +75,11 @@ def render_entry_form(form, category_list, custom_field_pair_list, page_title, f
         category_option_list=build_category_option_list(category_list),
         custom_field_list=[{"field_label": label, "field_content": content} for label, content in custom_field_pair_list],
         custom_field_max_count=CUSTOM_FIELD_MAX_COUNT,
+        existing_attachment_list=existing_attachment_list,
+        attachment_error_list=attachment_error_list or [],
+        attachment_max_count=ATTACHMENT_MAX_COUNT,
+        attachment_max_size=ATTACHMENT_MAX_SIZE_BYTES,
+        attachment_extension_list=ATTACHMENT_EXTENSION_LIST,
     )
 
 @entries_bp.route("/new", methods=["GET", "POST"])
@@ -85,12 +91,16 @@ def create():
     form = AccessEntryForm()
     form.category_id.choices = [(category.id, category.name) for category in category_list]
     custom_field_pair_list = read_custom_field_pair_list() if request.method == "POST" else []
+    attachment_error_list = []
 
     if form.validate_on_submit():
         try:
-            entry = create_access_entry(user, build_form_data_dict(form), custom_field_pair_list)
+            entry = create_access_entry(
+                user, build_form_data_dict(form), custom_field_pair_list,
+                upload_file_list=request.files.getlist("attachments"),
+            )
         except ValidationError as error:
-            attach_error_list(form, error.error_list)
+            attachment_error_list = attach_error_list(form, error.error_list)
         else:
             flash("Data link berhasil disimpan", "success")
             return redirect(url_for("entries.detail", entry_id=entry.id))
@@ -98,6 +108,7 @@ def create():
     return render_entry_form(
         form, category_list, custom_field_pair_list,
         page_title="Tambah Link", form_action=url_for("entries.create"), cancel_url=url_for("main.home"),
+        attachment_error_list=attachment_error_list,
     )
 
 @entries_bp.get("/<int:entry_id>")
@@ -120,15 +131,15 @@ def detail(entry_id):
 @entries_bp.route("/<int:entry_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit(entry_id):
-    """Edit data link (pemilik, atau admin untuk data Public)."""
+    """Edit data link (pemilik, atau admin buat data Public)."""
     user = get_user()
     entry = get_entry_or_404(user, entry_id)
     if not can_edit_entry(user, entry):
         abort(403)
 
     category_list = get_active_category_list()
+    attachment_error_list = []
     if request.method == "GET":
-        # isi form dari data yg ada
         form = AccessEntryForm(obj=entry)
         access_note, is_note_error = read_access_note(entry)
         form.access_note.data = access_note
@@ -142,9 +153,13 @@ def edit(entry_id):
     form.category_id.choices = [(category.id, category.name) for category in category_list]
     if form.validate_on_submit():
         try:
-            update_access_entry(user, entry, build_form_data_dict(form), custom_field_pair_list)
+            update_access_entry(
+                user, entry, build_form_data_dict(form), custom_field_pair_list,
+                upload_file_list=request.files.getlist("attachments"),
+                delete_attachment_id_list=request.form.getlist("delete_attachment_id"),
+            )
         except ValidationError as error:
-            attach_error_list(form, error.error_list)
+            attachment_error_list = attach_error_list(form, error.error_list)
         else:
             flash("Perubahan berhasil disimpan", "success")
             return redirect(url_for("entries.detail", entry_id=entry.id))
@@ -155,18 +170,19 @@ def edit(entry_id):
         form_action=url_for("entries.edit", entry_id=entry.id),
         cancel_url=url_for("entries.detail", entry_id=entry.id),
         is_owner=is_entry_owner(user, entry),
+        entry=entry,
+        attachment_error_list=attachment_error_list,
     )
 
 @entries_bp.post("/<int:entry_id>/delete")
 @login_required
 def delete(entry_id):
-    """Hapus data link (dialog konfirmasi muncul di sisi browser)."""
+    """Hapus data link (konfirmasinya di browser)."""
     user = get_user()
     entry = get_entry_or_404(user, entry_id)
     if not can_edit_entry(user, entry):
         abort(403)
 
-    # judul disimpen dulu, abis dihapus objeknya udah ga bisa dibaca
     entry_title = entry.title
     delete_access_entry(user, entry)
     flash(f'Data "{entry_title}" berhasil dihapus', "success")

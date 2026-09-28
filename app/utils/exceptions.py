@@ -17,3 +17,6 @@ class ValidationError(Exception):
 
 class PermissionDeniedError(Exception):
     """Dilempar kalau user nyoba ngubah/hapus data yg bukan haknya."""
+
+def build_error(field, message):
+        return{"field": field, "message": message}
