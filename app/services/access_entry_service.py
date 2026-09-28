@@ -1,5 +1,6 @@
 """Logika CRUD Access Entry. Route tinggal manggil fungsi di sini."""
 from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy import or_
 
 from app.extensions import db
 from app.models import AccessEntry, AccessEntryField, Category
@@ -29,10 +30,13 @@ from app.utils.constants import (
     VISIBILITY_LIST,
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
+    DASHBOARD_PER_PAGE,
+    MAX_SEARCH_KEYWORD_LENGTH,
 )
 from app.utils.exceptions import InvalidCredentialError, PermissionDeniedError, ValidationError, build_error
 from app.utils.sanitizer import get_plain_text, sanitize_rich_text, sanitize_text
 from app.utils.url_helper import normalize_address, normalize_url, parse_port
+from app.utils.query_helper import escape_like_pattern
 
 AUDIT_ENTITY_TYPE = "access_entries"
 
@@ -308,9 +312,9 @@ def get_visible_entry(user, entry_id):
         .where(AccessEntry.id == entry_id, build_visible_entry_filter(user))
     ).scalar_one_or_none()
 
-def list_visible_entries(user, limit=20):
-    """Data terbaru yg boleh diliat. Relasi diambil sekalian biar ga query berulang."""
-    return db.session.execute(
+def search_visible_entries(user, keyword=None, category_id=None, visibility=None, page=1, per_page=DASHBOARD_PER_PAGE):
+    """Cari data yg boleh diliat user, hasilnya per halaman."""
+    query = (
         db.select(AccessEntry)
         .options(
             joinedload(AccessEntry.category),
@@ -318,9 +322,23 @@ def list_visible_entries(user, limit=20):
             selectinload(AccessEntry.attachment_list),
         )
         .where(build_visible_entry_filter(user))
-        .order_by(AccessEntry.updated_at.desc(), AccessEntry.id.desc())
-        .limit(limit)
-    ).scalars().all()
+    )
+    clean_keyword = sanitize_text(keyword, max_length=MAX_SEARCH_KEYWORD_LENGTH)
+    if clean_keyword:
+        # % dan _ di-escape biar ga jadi wildcard
+        like_pattern = f"%{escape_like_pattern(clean_keyword)}%"
+        query = query.where(or_(
+            AccessEntry.title.ilike(like_pattern, escape="\\"),
+            AccessEntry.url.ilike(like_pattern, escape="\\"),
+            AccessEntry.address.ilike(like_pattern, escape="\\"),
+            AccessEntry.description.ilike(like_pattern, escape="\\"),
+        ))
+    if category_id:
+        query = query.where(AccessEntry.category_id == category_id)
+    if visibility in VISIBILITY_LIST:
+        query = query.where(AccessEntry.visibility == visibility)
+    query = query.order_by(AccessEntry.updated_at.desc(), AccessEntry.id.desc())
+    return db.paginate(query, page=page, per_page=per_page, error_out=False)
 
 def count_visible_entry_summary(user):
     """Jumlah data per visibilitas dalam 1 query."""
