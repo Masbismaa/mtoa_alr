@@ -4,169 +4,198 @@
 
 {% block title %}{{ group.name }} - MTOA ALR{% endblock %}
 
-{% block page_styles %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/table.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/groups.css') }}">
+{% set is_owner = group.user_id == current_user.id %}
+
+{% block page_pretitle %}<a href="{{ url_for('groups.index') }}" class="text-reset">{{ icon("arrow_left") }} Semua Group</a>{% endblock %}
+
+{% block page_heading %}{{ group.name }}{% endblock %}
+
+{% block page_subtitle %}
+  {% if group.description %}
+    <div class="text-secondary mt-1">{{ group.description }}</div>
+  {% endif %}
+  <div class="small text-secondary mt-1">Dibuat oleh <strong>{{ group.owner.full_name }}</strong></div>
+{% endblock %}
+
+{% block page_actions %}
+  {% if is_owner %}
+    <a href="{{ url_for('groups.edit', group_id=group.id) }}" class="btn">{{ icon("edit") }} Edit</a>
+    <form method="post" action="{{ url_for('groups.delete', group_id=group.id) }}" data-confirm-title="Hapus group?" data-confirm-message="Group &quot;{{ group.name }}&quot; beserta daftar anggota & link-nya bakal dihapus. Data link aslinya tetap aman." data-confirm-ok="Ya, hapus">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger">{{ icon("trash") }} Hapus</button>
+    </form>
+  {% else %}
+    <form method="post" action="{{ url_for('groups.leave', group_id=group.id) }}" data-confirm-title="Keluar dari group?" data-confirm-message="Link yang kamu bagikan di group ini bakal ikut dicabut." data-confirm-ok="Ya, keluar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn">{{ icon("logout") }} Keluar Group</button>
+    </form>
+  {% endif %}
 {% endblock %}
 
 {% block content %}
-  {% set is_owner = group.user_id == current_user.id %}
   {% set active_member_list = group.member_list | selectattr("status", "equalto", "active") | list %}
   {% set invited_member_list = group.member_list | selectattr("status", "equalto", "invited") | list %}
 
-  <div class="group-header">
-    <div class="group-heading">
-      <a href="{{ url_for('groups.index') }}" class="btn btn-link">{{ icon("arrow_left") }} Semua Group</a>
-      <h2 class="group-title">{{ group.name }}</h2>
-      {% if group.description %}
-        <p class="group-description">{{ group.description }}</p>
-      {% endif %}
-      <p class="text-muted">Dibuat oleh <strong>{{ group.owner.full_name }}</strong></p>
-    </div>
-    <div class="group-actions">
-      {% if is_owner %}
-        <a href="{{ url_for('groups.edit', group_id=group.id) }}" class="btn btn-secondary">{{ icon("edit") }} Edit</a>
-        <form method="post" action="{{ url_for('groups.delete', group_id=group.id) }}" data-confirm-title="Hapus group?" data-confirm-message="Group &quot;{{ group.name }}&quot; beserta daftar anggota & link-nya bakal dihapus. Data link aslinya tetap aman." data-confirm-ok="Ya, hapus">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-danger">{{ icon("trash") }} Hapus</button>
-        </form>
-      {% else %}
-        <form method="post" action="{{ url_for('groups.leave', group_id=group.id) }}" data-confirm-title="Keluar dari group?" data-confirm-message="Link yang kamu bagikan di group ini bakal ikut dicabut." data-confirm-ok="Ya, keluar">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-secondary">{{ icon("logout") }} Keluar Group</button>
-        </form>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="group-layout">
-    <section class="card group-main">
-      <div class="group-section-header">
-        <h3 class="section-title">{{ icon("link") }} Link ({{ group.group_entry_list | length }})</h3>
-        <a href="{{ url_for('entries.create', group_id=group.id) }}" class="btn btn-primary btn-small">{{ icon("plus") }} Link Baru</a>
-      </div>
-
-      <form method="post" action="{{ url_for('groups.add_entry', group_id=group.id) }}" class="group-add-entry">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label class="visually-hidden" for="entry_id">Pilih link yang sudah ada</label>
-        <select name="entry_id" id="entry_id" class="form-input" required>
-          <option value="">Pilih link yang sudah ada...</option>
-          {% for entry in addable_entry_list %}
-            <option value="{{ entry.id }}">{{ entry.title }} ({{ entry.category.name }})</option>
-          {% endfor %}
-        </select>
-        <button type="submit" class="btn btn-secondary">{{ icon("plus") }} Tambah</button>
-      </form>
-      <p class="form-hint">{{ icon("info") }} Yang bisa ditambah cuma link milikmu atau link Public. Link Private milikmu bakal bisa dilihat semua anggota group.</p>
-
-      {% if group.group_entry_list %}
-        <div class="table-wrapper is-responsive">
-          <table class="data-table is-responsive">
-            <thead>
-              <tr>
-                <th scope="col">Judul</th>
-                <th scope="col">Kategori</th>
-                <th scope="col">URL / Address</th>
-                <th scope="col">Ditambah Oleh</th>
-                <th scope="col"><span class="visually-hidden">Aksi</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for group_entry in group.group_entry_list %}
-                {% set entry = group_entry.access_entry %}
-                {% set access_text = entry.url or ((entry.address ~ (":" ~ entry.port if entry.port else "")) if entry.address else "") %}
-                <tr>
-                  <td class="cell-title" data-label="Judul">
-                    <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="table-title-link" title="{{ entry.title }}">{{ entry.title | truncate(50, true, "…", 0) }}</a>
-                  </td>
-                  <td data-label="Kategori"><span class="badge">{{ entry.category.name }}</span></td>
-                  <td data-label="URL / Address">
-                    {% if access_text %}
-                      <div class="cell-copy">
-                        <code class="cell-url" title="{{ access_text }}">{{ access_text }}</code>
-                        {{ copy_button(access_text, label="Copy link", is_icon_only=true) }}
-                      </div>
-                    {% else %}
-                      <span class="text-muted">-</span>
-                    {% endif %}
-                  </td>
-                  <td data-label="Ditambah Oleh">{{ group_entry.added_by.full_name }}</td>
-                  <td class="table-action">
-                    <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="btn btn-secondary btn-small">{{ icon("eye") }} View</a>
-                    {% if can_remove_group_entry(current_user, group, group_entry) %}
-                      <form method="post" action="{{ url_for('groups.remove_entry', group_id=group.id, group_entry_id=group_entry.id) }}" class="inline-form" data-confirm-title="Cabut link dari group?" data-confirm-message="Link &quot;{{ entry.title }}&quot; dicabut dari group ini. Data link aslinya tetap aman." data-confirm-ok="Ya, cabut">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn-icon btn-icon-small btn-icon-danger" aria-label="Cabut {{ entry.title }}" title="Cabut dari group">{{ icon("trash") }}</button>
-                      </form>
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <div class="empty-state">
-          <p>Belum ada link di group ini.</p>
-        </div>
-      {% endif %}
-    </section>
-
-    <aside class="card group-side">
-      <h3 class="section-title">{{ icon("user") }} Anggota ({{ active_member_list | length }})</h3>
-      <ul class="member-list">
-        {% for member in active_member_list %}
-          <li class="member-item">
-            <span class="avatar" aria-hidden="true">{{ member.user.full_name | initials }}</span>
-            <div class="member-text">
-              <strong title="{{ member.user.full_name }}">{{ member.user.full_name }}</strong>
-              <small>{{ member.user.job_title }} · {{ member.user.department }}</small>
-            </div>
-            {% if member.role == "owner" %}
-              <span class="badge badge-owner">Pemilik</span>
-            {% elif is_owner %}
-              <form method="post" action="{{ url_for('groups.remove_group_member', group_id=group.id, member_id=member.id) }}" data-confirm-title="Keluarkan anggota?" data-confirm-message="{{ member.user.full_name }} dikeluarkan dari group, link yang dia bagikan ikut dicabut." data-confirm-ok="Ya, keluarkan">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn-icon btn-icon-small btn-icon-danger" aria-label="Keluarkan {{ member.user.full_name }}" title="Keluarkan">{{ icon("trash") }}</button>
-              </form>
-            {% endif %}
-          </li>
-        {% endfor %}
-      </ul>
-
-      {% if invited_member_list %}
-        <h4 class="member-subtitle">Menunggu konfirmasi</h4>
-        <ul class="member-list">
-          {% for member in invited_member_list %}
-            <li class="member-item is-invited">
-              <span class="avatar" aria-hidden="true">{{ member.user.full_name | initials }}</span>
-              <div class="member-text">
-                <strong title="{{ member.user.full_name }}">{{ member.user.full_name }}</strong>
-                <small>{{ member.user.email }}</small>
-              </div>
-              {% if is_owner %}
-                <form method="post" action="{{ url_for('groups.remove_group_member', group_id=group.id, member_id=member.id) }}">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="btn btn-secondary btn-small" title="Batalkan undangan">Batal</button>
-                </form>
-              {% else %}
-                <span class="badge">Diundang</span>
-              {% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-
-      {% if is_owner %}
-        <form method="post" action="{{ url_for('groups.invite', group_id=group.id) }}" class="invite-form">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <label class="form-label" for="invite_email">Undang anggota</label>
-          <div class="invite-row">
-            <input type="email" id="invite_email" name="email" class="form-input" placeholder="nama@spindo.com" maxlength="255" autocomplete="off" required>
-            <button type="submit" class="btn btn-primary">Undang</button>
+  <div class="row row-cards">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("link") }} Link</h3>
+          <div class="card-actions btn-list">
+            <span class="badge bg-secondary-lt align-self-center">{{ group.group_entry_list | length }}</span>
+            <a href="{{ url_for('entries.create', group_id=group.id) }}" class="btn btn-primary btn-sm">{{ icon("plus") }} Link Baru</a>
           </div>
-        </form>
-      {% endif %}
-    </aside>
+        </div>
+
+        <div class="card-body border-bottom">
+          <form method="post" action="{{ url_for('groups.add_entry', group_id=group.id) }}" class="row g-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="col">
+              <label class="visually-hidden" for="entry_id">Pilih link yang sudah ada</label>
+              <select name="entry_id" id="entry_id" class="form-select" required>
+                <option value="">Pilih link yang sudah ada...</option>
+                {% for entry in addable_entry_list %}
+                  <option value="{{ entry.id }}">{{ entry.title }} ({{ entry.category.name }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-auto">
+              <button type="submit" class="btn">{{ icon("plus") }} Tambah</button>
+            </div>
+          </form>
+          <div class="form-text">{{ icon("info") }} Yang bisa ditambah cuma link milikmu atau link Public. Link Private milikmu bakal bisa dilihat semua anggota group.</div>
+        </div>
+
+        {% if group.group_entry_list %}
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table table-stack">
+              <thead>
+                <tr>
+                  <th>Judul</th>
+                  <th>Kategori</th>
+                  <th>URL / Address</th>
+                  <th>Ditambah Oleh</th>
+                  <th class="w-1"><span class="visually-hidden">Aksi</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for group_entry in group.group_entry_list %}
+                  {% set entry = group_entry.access_entry %}
+                  {% set access_text = entry.url or ((entry.address ~ (":" ~ entry.port if entry.port else "")) if entry.address else "") %}
+                  <tr>
+                    <td class="cell-title" data-label="Judul">
+                      <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="text-reset fw-bold" title="{{ entry.title }}">{{ entry.title | truncate(50, true, "…", 0) }}</a>
+                    </td>
+                    <td data-label="Kategori"><span class="badge bg-secondary-lt">{{ entry.category.name }}</span></td>
+                    <td data-label="URL / Address">
+                      {% if access_text %}
+                        <div class="cell-copy">
+                          <code class="cell-url" title="{{ access_text }}">{{ access_text }}</code>
+                          {{ copy_button(access_text, label="Copy link", is_icon_only=true) }}
+                        </div>
+                      {% else %}
+                        <span class="text-secondary">-</span>
+                      {% endif %}
+                    </td>
+                    <td data-label="Ditambah Oleh">{{ group_entry.added_by.full_name }}</td>
+                    <td class="cell-action">
+                      <div class="btn-list flex-nowrap">
+                        <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="btn btn-sm">{{ icon("eye") }} View</a>
+                        {% if can_remove_group_entry(current_user, group, group_entry) %}
+                          <form method="post" action="{{ url_for('groups.remove_entry', group_id=group.id, group_entry_id=group_entry.id) }}" data-confirm-title="Cabut link dari group?" data-confirm-message="Link &quot;{{ entry.title }}&quot; dicabut dari group ini. Data link aslinya tetap aman." data-confirm-ok="Ya, cabut">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-icon btn-ghost-danger" aria-label="Cabut {{ entry.title }}" title="Cabut dari group">{{ icon("trash") }}</button>
+                          </form>
+                        {% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty">
+            <div class="empty-icon">{{ icon("link") }}</div>
+            <p class="empty-title">Belum ada link di group ini</p>
+            <p class="empty-subtitle text-secondary">Pilih link yang sudah ada di atas, atau bikin link baru.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("user") }} Anggota</h3>
+          <div class="card-actions"><span class="badge bg-secondary-lt">{{ active_member_list | length }}</span></div>
+        </div>
+        <div class="list-group list-group-flush">
+          {% for member in active_member_list %}
+            <div class="list-group-item">
+              <div class="row align-items-center g-2">
+                <div class="col-auto"><span class="avatar avatar-sm bg-primary-lt">{{ member.user.full_name | initials }}</span></div>
+                <div class="col text-truncate">
+                  <div class="text-truncate" title="{{ member.user.full_name }}">{{ member.user.full_name }}</div>
+                  <div class="small text-secondary text-truncate">{{ member.user.job_title }} · {{ member.user.department }}</div>
+                </div>
+                <div class="col-auto">
+                  {% if member.role == "owner" %}
+                    <span class="badge bg-primary-lt">Pemilik</span>
+                  {% elif is_owner %}
+                    <form method="post" action="{{ url_for('groups.remove_group_member', group_id=group.id, member_id=member.id) }}" data-confirm-title="Keluarkan anggota?" data-confirm-message="{{ member.user.full_name }} dikeluarkan dari group, link yang dia bagikan ikut dicabut." data-confirm-ok="Ya, keluarkan">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-sm btn-icon btn-ghost-danger" aria-label="Keluarkan {{ member.user.full_name }}" title="Keluarkan">{{ icon("trash") }}</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if invited_member_list %}
+          <div class="card-body border-top pb-0">
+            <div class="subheader mb-2">Menunggu konfirmasi</div>
+          </div>
+          <div class="list-group list-group-flush">
+            {% for member in invited_member_list %}
+              <div class="list-group-item">
+                <div class="row align-items-center g-2">
+                  <div class="col-auto"><span class="avatar avatar-sm bg-secondary-lt">{{ member.user.full_name | initials }}</span></div>
+                  <div class="col text-truncate">
+                    <div class="text-truncate" title="{{ member.user.full_name }}">{{ member.user.full_name }}</div>
+                    <div class="small text-secondary text-truncate">{{ member.user.email }}</div>
+                  </div>
+                  <div class="col-auto">
+                    {% if is_owner %}
+                      <form method="post" action="{{ url_for('groups.remove_group_member', group_id=group.id, member_id=member.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm" title="Batalkan undangan">Batal</button>
+                      </form>
+                    {% else %}
+                      <span class="badge bg-yellow-lt">Diundang</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% if is_owner %}
+          <div class="card-footer">
+            <form method="post" action="{{ url_for('groups.invite', group_id=group.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <label class="form-label" for="invite_email">Undang anggota</label>
+              <div class="input-group">
+                <input type="email" id="invite_email" name="email" class="form-control" placeholder="nama@spindo.com" maxlength="255" autocomplete="off" required>
+                <button type="submit" class="btn btn-primary">Undang</button>
+              </div>
+            </form>
+          </div>
+        {% endif %}
+      </div>
+    </div>
   </div>
 {% endblock %}

@@ -72,7 +72,7 @@
 
       const removeButton = document.createElement("button");
       removeButton.type = "button";
-      removeButton.className = "btn-icon btn-icon-small btn-icon-danger";
+      removeButton.className = "btn btn-icon btn-sm btn-ghost-danger";
       removeButton.setAttribute("aria-label", "Batal pilih " + file.name);
       removeButton.textContent = "\u00d7";
       removeButton.addEventListener("click", function () {

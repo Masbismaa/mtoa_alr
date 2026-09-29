@@ -1,9 +1,9 @@
 {# selalu dirender (walau kosong) biar JS bisa nambahin pesan baru ke sini #}
 <div class="flash-list" data-flash-list aria-live="polite">
   {% for category, message in get_flashed_messages(with_categories=true) %}
-    <div class="flash flash-{{ category }}" role="alert" data-flash>
-      <span class="flash-text">{{ message }}</span>
-      <button type="button" class="flash-close" data-flash-close aria-label="Tutup pesan">&times;</button>
+    <div class="alert alert-{{ category }} alert-dismissible flash-item" role="alert" data-flash data-flash-category="{{ category }}">
+      <div class="flash-text">{{ message }}</div>
+      <button type="button" class="btn-close" data-flash-close aria-label="Tutup pesan"></button>
     </div>
   {% endfor %}
 </div>

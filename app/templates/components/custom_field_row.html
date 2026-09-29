@@ -2,24 +2,24 @@
 {% macro custom_field_row(label="", content="") %}
   {% from "components/icon.html" import icon %}
   {% from "components/rich_text_editor.html" import rich_text_editor %}
-  <div class="card custom-field" data-custom-field>
-    <div class="custom-field-header">
-      <span class="custom-field-number" data-custom-field-number>Field</span>
-      <div class="custom-field-actions">
-        <button type="button" class="btn-icon btn-icon-small" data-custom-field-move="up" aria-label="Pindah ke atas" title="Pindah ke atas">{{ icon("arrow_up") }}</button>
-        <button type="button" class="btn-icon btn-icon-small" data-custom-field-move="down" aria-label="Pindah ke bawah" title="Pindah ke bawah">{{ icon("arrow_down") }}</button>
-        <button type="button" class="btn-icon btn-icon-small btn-icon-danger" data-custom-field-remove aria-label="Hapus field" title="Hapus field">{{ icon("trash") }}</button>
+  <div class="card card-sm custom-field" data-custom-field>
+    <div class="card-header">
+      <span class="badge bg-primary-lt" data-custom-field-number>Field</span>
+      <div class="card-actions btn-list">
+        <button type="button" class="btn btn-icon btn-sm btn-ghost-secondary" data-custom-field-move="up" aria-label="Pindah ke atas" title="Pindah ke atas">{{ icon("arrow_up") }}</button>
+        <button type="button" class="btn btn-icon btn-sm btn-ghost-secondary" data-custom-field-move="down" aria-label="Pindah ke bawah" title="Pindah ke bawah">{{ icon("arrow_down") }}</button>
+        <button type="button" class="btn btn-icon btn-sm btn-ghost-danger" data-custom-field-remove aria-label="Hapus field" title="Hapus field">{{ icon("trash") }}</button>
       </div>
     </div>
-
-    <label class="form-group custom-field-label">
-      <span class="form-label">Judul Field</span>
-      <input type="text" name="custom_field_label" class="form-input" maxlength="100" value="{{ label }}" placeholder="Contoh: Cara akses VPN" autocomplete="off">
-    </label>
-
-    <div class="form-group">
-      <span class="form-label">Isi</span>
-      {{ rich_text_editor("custom_field_content", content, "Isi field", "Contoh: 1. Buka PortClient 2. Isi server...") }}
+    <div class="card-body">
+      <label class="d-block mb-3">
+        <span class="form-label">Judul Field</span>
+        <input type="text" name="custom_field_label" class="form-control" maxlength="100" value="{{ label }}" placeholder="Contoh: Cara akses VPN" autocomplete="off">
+      </label>
+      <div>
+        <span class="form-label">Isi</span>
+        {{ rich_text_editor("custom_field_content", content, "Isi field", "Contoh: 1. Buka FortiClient 2. Isi server...") }}
+      </div>
     </div>
   </div>
 {% endmacro %}

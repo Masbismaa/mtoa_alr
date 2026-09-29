@@ -4,16 +4,20 @@
 {% block title %}Login - MTOA ALR{% endblock %}
 
 {% block content %}
-  <p class="auth-step">Langkah 1 dari 2</p>
-  <h2 class="auth-heading">Masuk</h2>
-  <p class="auth-hint">Isi email korporat dan password kamu.</p>
+  <div class="text-secondary small text-uppercase fw-bold mb-1">Langkah 1 dari 2</div>
+  <h2 class="h2 mb-2">Masuk</h2>
+  <p class="text-secondary mb-4">Isi email korporat dan password kamu.</p>
 
   <form method="post" novalidate>
     {{ form.hidden_tag() }}
     {{ render_field(form.email, placeholder="nama@spindo.com", autocomplete="username") }}
     {{ render_field(form.password, placeholder="Password", autocomplete="current-password") }}
-    {{ form.submit(class_="btn btn-primary btn-block") }}
+    <div class="form-footer">
+      {{ form.submit(class_="btn btn-primary w-100") }}
+    </div>
   </form>
+{% endblock %}
 
-  <p class="auth-footer">Belum punya akun? <a href="{{ url_for('auth.register') }}">Daftar di sini</a></p>
+{% block after_card %}
+  <div class="text-center text-secondary mt-3">Belum punya akun? <a href="{{ url_for('auth.register') }}">Daftar di sini</a></div>
 {% endblock %}

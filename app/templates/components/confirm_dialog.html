@@ -1,11 +1,18 @@
+{% from "components/icon.html" import icon %}
 {# dialog konfirmasi global. Dipake form yg punya atribut data-confirm-message #}
 <dialog class="confirm-dialog" id="confirm_dialog" aria-labelledby="confirm_dialog_title" aria-describedby="confirm_dialog_message">
-  <div class="confirm-dialog-body">
-    <h2 id="confirm_dialog_title" data-confirm-title>Yakin?</h2>
-    <p id="confirm_dialog_message" data-confirm-message></p>
-    <div class="confirm-dialog-actions">
-      <button type="button" class="btn btn-secondary" data-confirm-cancel>Batal</button>
-      <button type="button" class="btn btn-danger" data-confirm-ok>Ya, lanjutkan</button>
+  <div class="modal-content">
+    <div class="modal-status bg-danger"></div>
+    <div class="modal-body text-center py-4">
+      <span class="text-danger confirm-dialog-icon">{{ icon("alert_triangle") }}</span>
+      <h3 id="confirm_dialog_title" data-confirm-title>Yakin?</h3>
+      <div class="text-secondary" id="confirm_dialog_message" data-confirm-message></div>
+    </div>
+    <div class="modal-footer">
+      <div class="row w-100 g-2">
+        <div class="col"><button type="button" class="btn w-100" data-confirm-cancel>Batal</button></div>
+        <div class="col"><button type="button" class="btn btn-danger w-100" data-confirm-ok>Ya, lanjutkan</button></div>
+      </div>
     </div>
   </div>
 </dialog>

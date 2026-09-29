@@ -35,7 +35,10 @@
       }, TRANSITION_MS);
     }
 
-    if (uiDict.theme_mode) root.dataset.theme = uiDict.theme_mode;
+    if (uiDict.theme_mode) {
+      root.dataset.theme = uiDict.theme_mode;
+      root.dataset.bsTheme = uiDict.theme_mode;
+    }
     if (uiDict.accent_key) root.dataset.accent = uiDict.accent_key;
     if (typeof uiDict.is_compact_view === "boolean") root.dataset.density = uiDict.is_compact_view ? "compact" : "comfortable";
     if (uiDict.font_family) root.dataset.font = uiDict.font_family;
