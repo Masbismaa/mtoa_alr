@@ -1,0 +1,87 @@
+/* baris search + filter (dashboard, audit log), otomatis turun ke bawah kalau tempatnya sempit */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  transition: opacity var(--nb-transition-fast);
+}
+
+.filter-bar.is-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.filter-search {
+  position: relative;
+  display: block;
+  flex: 2 1 260px;
+  min-width: 0;
+}
+
+.filter-bar select.form-input {
+  flex: 1 1 160px;
+  min-width: 0;
+  width: auto;
+}
+
+.filter-bar .btn {
+  flex: 0 0 auto;
+}
+
+.filter-search .icon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  z-index: 1;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.filter-search .form-input {
+  padding-left: 40px;
+}
+
+/* input tanggal + label kecil di depannya */
+.filter-date {
+  display: flex;
+  flex: 1 1 200px;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.filter-date span {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.filter-date .form-input {
+  min-width: 0;
+}
+
+/* HP kecil */
+@media (max-width: 600px) {
+  .filter-bar {
+    flex-direction: column;
+  }
+
+  .filter-search,
+  .filter-date,
+  .filter-bar select.form-input {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .filter-date span {
+    width: 56px;
+  }
+
+  .filter-bar .btn {
+    width: 100%;
+  }
+}

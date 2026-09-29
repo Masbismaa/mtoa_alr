@@ -7,6 +7,7 @@
 
 {% block page_styles %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/table.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/filter_bar.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
 {% endblock %}
 
@@ -133,5 +134,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', filename='js/pages/dashboard.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/pages/filter_form.js') }}" defer></script>
 {% endblock %}

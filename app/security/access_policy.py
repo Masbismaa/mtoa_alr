@@ -2,8 +2,7 @@
 from sqlalchemy import or_
 from app.extensions import db
 from app.models import AccessEntry, GroupEntry, GroupMember
-from app.utils.constants import GROUP_MEMBER_STATUS_ACTIVE, ROLE_ADMIN, VISIBILITY_PUBLIC
-
+from app.utils.constants import GROUP_MEMBER_STATUS_ACTIVE, ROLE_ADMIN, VISIBILITY_PUBLIC, VISIBILITY_PRIVATE
 
 def is_entry_owner(user, entry):
     """True kalau user yg bikin data ini."""
@@ -60,3 +59,20 @@ def is_active_group_member(user, group):
     """True kalau user anggota yg udah nerima undangan."""
     membership = get_group_membership(user, group)
     return membership is not None and membership.status == GROUP_MEMBER_STATUS_ACTIVE
+
+def is_admin(user):
+    """True kalau user ber-role admin."""
+    return user.role == ROLE_ADMIN
+
+def is_private_audit_data(audit_log):
+    """True kalau isi audit log ini data Private (sebelum atau sesudah berubah)."""
+    return any(
+        (data_dict or {}).get("visibility") == VISIBILITY_PRIVATE
+        for data_dict in (audit_log.old_data, audit_log.new_data)
+    )
+
+def can_view_audit_data(user, audit_log):
+    """Admin boleh liat isi perubahan, kecuali data Private punya orang lain."""
+    if not is_admin(user):
+        return False
+    return audit_log.user_id == user.id or not is_private_audit_data(audit_log)

@@ -1,0 +1,84 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+
+{% block title %}Audit Log #{{ audit_log.id }} - MTOA ALR{% endblock %}
+
+{% block page_styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/table.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/entry_detail.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/audit_log.css') }}">
+{% endblock %}
+
+{% block content %}
+  <div class="detail-header">
+    <div class="detail-heading">
+      <a href="{{ url_for('audit.index') }}" class="btn btn-link back-link">{{ icon("arrow_left") }} Kembali</a>
+      <h2 class="detail-title">Audit Log #{{ audit_log.id }}</h2>
+      <div class="detail-badge-list">
+        <span class="badge audit-action-{{ audit_log.action }}">{{ audit_log.action | audit_action_label }}</span>
+        <span class="badge">{{ audit_log.entity_type | audit_entity_label }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <section class="card audit-change-card">
+      <h3 class="section-title">{{ icon("edit") }} Perubahan Data</h3>
+      {% if not is_data_visible %}
+        <p class="audit-hidden-note">{{ icon("lock") }} Isi data disembunyikan karena ini data Private milik user lain.</p>
+      {% elif change_list %}
+        <div class="table-wrapper is-responsive">
+          <table class="data-table is-responsive audit-change-table">
+            <thead>
+              <tr>
+                <th scope="col">Field</th>
+                {% if audit_log.old_data %}<th scope="col">Sebelum</th>{% endif %}
+                {% if audit_log.new_data %}<th scope="col">Sesudah</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for change in change_list %}
+                <tr class="{% if change.is_changed %}is-changed{% endif %}{% if change.is_masked %} is-masked{% endif %}">
+                  <td class="cell-field" data-label="Field"><code>{{ change.field }}</code></td>
+                  {% if audit_log.old_data %}<td data-label="Sebelum">{{ change.old_value }}</td>{% endif %}
+                  {% if audit_log.new_data %}<td data-label="Sesudah">{{ change.new_value }}</td>{% endif %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if audit_log.old_data and audit_log.new_data %}
+          <p class="audit-legend"><span class="audit-legend-swatch" aria-hidden="true"></span> Baris berwarna = field yang berubah.</p>
+        {% endif %}
+      {% else %}
+        <p class="text-muted">Tidak ada isi data yang dicatat untuk aktivitas ini.</p>
+      {% endif %}
+    </section>
+
+    <aside class="card">
+      <h3 class="section-title">{{ icon("info") }} Info</h3>
+      <dl class="detail-list">
+        <div class="detail-item">
+          <dt>Waktu</dt>
+          <dd>{{ audit_log.created_at | local_datetime("%d %b %Y, %H:%M:%S") }}</dd>
+        </div>
+        <div class="detail-item">
+          <dt>Pelaku</dt>
+          <dd>{{ audit_log.actor_email or "Sistem" }}</dd>
+        </div>
+        <div class="detail-item">
+          <dt>ID Data</dt>
+          <dd>{{ audit_log.entity_id or "-" }}</dd>
+        </div>
+        <div class="detail-item">
+          <dt>IP Address</dt>
+          <dd class="cell-mono">{{ audit_log.ip_address or "-" }}</dd>
+        </div>
+        <div class="detail-item">
+          <dt>Perangkat</dt>
+          <dd class="audit-user-agent">{{ audit_log.user_agent or "-" }}</dd>
+        </div>
+      </dl>
+    </aside>
+  </div>
+{% endblock %}

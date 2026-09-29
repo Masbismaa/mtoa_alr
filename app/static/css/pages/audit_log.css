@@ -1,0 +1,111 @@
+/* halaman audit log */
+.audit-table-card {
+  margin-top: 0;
+}
+
+.audit-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+/* warna badge per aksi */
+.audit-action-create { background: var(--color-success-soft); }
+.audit-action-update { background: var(--color-info-soft); }
+.audit-action-delete { background: var(--color-danger-soft); }
+.audit-action-login_failed { background: var(--color-warning-soft); }
+.audit-action-logout { background: var(--color-surface-muted); }
+
+.audit-action-login {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.cell-actor {
+  max-width: 260px;
+  overflow-wrap: anywhere;
+}
+
+.cell-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+/* detail */
+.audit-change-card {
+  min-width: 0;
+  animation: nb-pop-in 300ms both;
+}
+
+.audit-change-table td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.audit-change-table .cell-field {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.audit-change-table .cell-field code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* field yg berubah disorot */
+.audit-change-table tr.is-changed td {
+  background: var(--color-warning-soft);
+}
+
+.audit-change-table tr.is-masked td:not(.cell-field) {
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+}
+
+.audit-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.audit-legend-swatch {
+  width: 16px;
+  height: 16px;
+  background: var(--color-warning-soft);
+  border: 2px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.audit-hidden-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-4);
+  font-weight: 600;
+  background: var(--color-info-soft);
+  border: 2px solid var(--color-border);
+  border-radius: var(--nb-radius);
+}
+
+.audit-user-agent {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  color: var(--color-muted);
+}
+
+@media (max-width: 760px) {
+  .audit-change-table .cell-field {
+    width: 100%;
+    white-space: normal;
+  }
+}

@@ -1,6 +1,5 @@
 """Logika CRUD Access Entry. Route tinggal manggil fungsi di sini."""
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import or_
 
 from app.extensions import db
 from app.models import AccessEntry, AccessEntryField, Category
@@ -37,6 +36,7 @@ from app.utils.exceptions import InvalidCredentialError, PermissionDeniedError, 
 from app.utils.sanitizer import get_plain_text, sanitize_rich_text, sanitize_text
 from app.utils.url_helper import normalize_address, normalize_url, parse_port
 from app.utils.query_helper import escape_like_pattern
+from app.utils.query_helper import build_keyword_filter
 
 AUDIT_ENTITY_TYPE = "access_entries"
 
@@ -325,14 +325,8 @@ def search_visible_entries(user, keyword=None, category_id=None, visibility=None
     )
     clean_keyword = sanitize_text(keyword, max_length=MAX_SEARCH_KEYWORD_LENGTH)
     if clean_keyword:
-        # % dan _ di-escape biar ga jadi wildcard
-        like_pattern = f"%{escape_like_pattern(clean_keyword)}%"
-        query = query.where(or_(
-            AccessEntry.title.ilike(like_pattern, escape="\\"),
-            AccessEntry.url.ilike(like_pattern, escape="\\"),
-            AccessEntry.address.ilike(like_pattern, escape="\\"),
-            AccessEntry.description.ilike(like_pattern, escape="\\"),
-        ))
+        search_column_list = [AccessEntry.title, AccessEntry.url, AccessEntry.address, AccessEntry.description]
+        query = query.where(build_keyword_filter(search_column_list, clean_keyword))
     if category_id:
         query = query.where(AccessEntry.category_id == category_id)
     if visibility in VISIBILITY_LIST:
