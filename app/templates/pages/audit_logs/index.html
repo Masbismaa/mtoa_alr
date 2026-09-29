@@ -1,0 +1,103 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+{% from "components/pagination.html" import render_pagination %}
+
+{% block title %}Audit Logs - MTOA ALR{% endblock %}
+
+{% block page_styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/table.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/filter_bar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/audit_log.css') }}">
+{% endblock %}
+
+{% block content %}
+  {% set is_filtered = filter_dict.keyword or filter_dict.action or filter_dict.entity_type or filter_dict.date_from or filter_dict.date_to %}
+
+  <section class="card table-card audit-table-card">
+    <div class="table-card-header">
+      <h2 class="section-title">{{ icon("audit") }} Audit Logs</h2>
+      <span class="badge">{{ pagination.total }} catatan</span>
+    </div>
+    <p class="audit-note">{{ icon("lock") }} Catatan aktivitas cuma bisa dibaca, tidak bisa diubah atau dihapus siapa pun.</p>
+
+    <form method="get" action="{{ url_for('audit.index') }}" class="filter-bar" role="search" data-filter-form>
+      <label class="filter-search">
+        <span class="visually-hidden">Cari audit log</span>
+        {{ icon("search") }}
+        <input type="search" name="q" value="{{ filter_dict.keyword }}" class="form-input" placeholder="Cari email pelaku, ID data, IP... (tekan /)" maxlength="100" autocomplete="off" data-filter-search>
+      </label>
+      <select name="action" class="form-input" aria-label="Filter aksi" data-filter-auto>
+        <option value="">Semua aksi</option>
+        {% for action_key, action_label in action_label_dict.items() %}
+          <option value="{{ action_key }}"{% if filter_dict.action == action_key %} selected{% endif %}>{{ action_label }}</option>
+        {% endfor %}
+      </select>
+      <select name="entity_type" class="form-input" aria-label="Filter jenis data" data-filter-auto>
+        <option value="">Semua data</option>
+        {% for entity_key, entity_label in entity_label_dict.items() %}
+          <option value="{{ entity_key }}"{% if filter_dict.entity_type == entity_key %} selected{% endif %}>{{ entity_label }}</option>
+        {% endfor %}
+      </select>
+      <label class="filter-date">
+        <span>Dari</span>
+        <input type="date" name="date_from" value="{{ filter_dict.date_from or '' }}" class="form-input" data-filter-auto>
+      </label>
+      <label class="filter-date">
+        <span>Sampai</span>
+        <input type="date" name="date_to" value="{{ filter_dict.date_to or '' }}" class="form-input" data-filter-auto>
+      </label>
+      <button type="submit" class="btn btn-primary">{{ icon("search") }} Cari</button>
+      {% if is_filtered %}
+        <a href="{{ url_for('audit.index') }}" class="btn btn-secondary">Reset</a>
+      {% endif %}
+    </form>
+
+    {% if pagination.items %}
+      <div class="table-wrapper is-responsive">
+        <table class="data-table is-responsive">
+          <thead>
+            <tr>
+              <th scope="col">Waktu</th>
+              <th scope="col">Pelaku</th>
+              <th scope="col">Aksi</th>
+              <th scope="col">Data</th>
+              <th scope="col">IP Address</th>
+              <th scope="col"><span class="visually-hidden">Detail</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for audit_log in pagination.items %}
+              <tr>
+                <td class="table-nowrap" data-label="Waktu">{{ audit_log.created_at | local_datetime("%d %b %Y, %H:%M:%S") }}</td>
+                <td class="cell-actor" data-label="Pelaku">{% if audit_log.actor_email %}{{ audit_log.actor_email }}{% else %}<span class="text-muted">Sistem</span>{% endif %}</td>
+                <td data-label="Aksi"><span class="badge audit-action-{{ audit_log.action }}">{{ audit_log.action | audit_action_label }}</span></td>
+                <td data-label="Data">
+                  {{ audit_log.entity_type | audit_entity_label }}
+                  {% if audit_log.entity_id %}<span class="text-muted">#{{ audit_log.entity_id }}</span>{% endif %}
+                </td>
+                <td class="cell-mono" data-label="IP Address">{{ audit_log.ip_address or "-" }}</td>
+                <td class="table-action">
+                  <a href="{{ url_for('audit.detail', log_id=audit_log.id) }}" class="btn btn-secondary btn-small">{{ icon("eye") }} Detail</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ render_pagination(pagination, "audit.index", pagination_query_dict) }}
+    {% elif is_filtered %}
+      <div class="empty-state">
+        <p>Tidak ada catatan yang cocok dengan filter ini.</p>
+        <a href="{{ url_for('audit.index') }}" class="btn btn-secondary">Reset filter</a>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <p>Belum ada catatan aktivitas.</p>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', filename='js/components/filter_form.js') }}" defer></script>
+{% endblock %}
