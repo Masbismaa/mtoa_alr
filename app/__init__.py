@@ -71,6 +71,7 @@ def register_blueprints(app):
     from app.routes.main_routes import main_bp
     from app.routes.settings_routes import settings_bp
     from app.routes.group_routes import groups_bp
+    from app.routes.audit_routes import audit_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
@@ -79,6 +80,7 @@ def register_blueprints(app):
     app.register_blueprint(entries_bp)
     app.register_blueprint(attachments_bp)
     app.register_blueprint(groups_bp)
+    app.register_blueprint(audit_bp)
 
 def build_error_handler(error_code, error_title, error_message):
     """Bikin handler buat satu kode error (biar ga nulis ulang)."""
@@ -120,6 +122,8 @@ def register_template_helpers(app):
         get_link_status_label,
         get_role_label,
         get_visibility_label,
+        get_audit_action_label,
+        get_audit_entity_label,
     )
 
     app.add_template_filter(get_initials, "initials")
@@ -129,6 +133,8 @@ def register_template_helpers(app):
     app.add_template_filter(format_local_datetime, "local_datetime")
     app.add_template_filter(render_rich_text, "rich_text")
     app.add_template_filter(format_file_size, "file_size")
+    app.add_template_filter(get_audit_action_label, "audit_action_label")
+    app.add_template_filter(get_audit_entity_label, "audit_entity_label")
 
     @app.context_processor
     def inject_layout_context():

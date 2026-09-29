@@ -169,3 +169,23 @@ GROUP_MEMBER_STATUS_LIST = [GROUP_MEMBER_STATUS_INVITED, GROUP_MEMBER_STATUS_ACT
 MAX_GROUP_NAME_LENGTH = 100
 MAX_GROUP_DESCRIPTION_LENGTH = 500
 GROUP_ENTRY_OPTION_LIMIT = 200
+
+# halaman audit log
+AUDIT_LOG_PER_PAGE = 25
+AUDIT_ACTION_LABEL_DICT = {
+    AUDIT_ACTION_CREATE: "Tambah",
+    AUDIT_ACTION_UPDATE: "Ubah",
+    AUDIT_ACTION_DELETE: "Hapus",
+    AUDIT_ACTION_LOGIN: "Login",
+    AUDIT_ACTION_LOGIN_FAILED: "Login Gagal",
+    AUDIT_ACTION_LOGOUT: "Logout",
+}
+# nama tabel yg dicatat di audit log -> label di UI
+AUDIT_ENTITY_LABEL_DICT = {
+    "users": "User",
+    "user_preferences": "Preferensi Tampilan",
+    "access_entries": "Data Link",
+    "groups": "Group",
+    "group_members": "Anggota Group",
+    "group_entries": "Link di Group",
+}
