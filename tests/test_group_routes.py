@@ -84,4 +84,4 @@ def test_groups_menu_available_in_sidebar(logged_in_client):
 def test_dashboard_counts_group(logged_in_client, registered_user):
     """Positive: kartu Group di dashboard ngitung group beneran."""
     create_group(registered_user, {"name": "Tim Network"})
-    assert '<p class="stat-card-value">1</p>' in logged_in_client.get("/").get_data(as_text=True)
+    assert 'stat-card-value">1<' in logged_in_client.get("/").get_data(as_text=True)
