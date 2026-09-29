@@ -189,3 +189,7 @@ AUDIT_ENTITY_LABEL_DICT = {
     "group_members": "Anggota Group",
     "group_entries": "Link di Group",
 }
+
+# dashboard (grafik & aktivitas)
+DASHBOARD_CHART_DAY_COUNT = 7
+DASHBOARD_RECENT_ACTIVITY_LIMIT = 5

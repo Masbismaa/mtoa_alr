@@ -1,0 +1,29 @@
+{# menu profil user. is_compact = cuma avatar (navbar HP), selain itu avatar + nama (bawah sidebar) #}
+{% macro user_menu(is_compact=false) %}
+  {% from "components/icon.html" import icon %}
+  <div class="{{ 'nav-item dropdown' if is_compact else 'dropup sidebar-user' }}">
+    <a href="#" class="{{ 'nav-link p-0' if is_compact else 'sidebar-user-toggle' }} d-flex align-items-center text-reset text-decoration-none" data-bs-toggle="dropdown" aria-label="Buka menu profil" aria-expanded="false">
+      <span class="avatar avatar-sm bg-primary-lt">{{ current_user.full_name | initials }}</span>
+      {% if not is_compact %}
+        <span class="flex-fill text-truncate ps-2">
+          <span class="d-block fw-medium text-truncate">{{ current_user.full_name }}</span>
+          <span class="d-block small text-secondary text-truncate">{{ current_user.job_title }}</span>
+        </span>
+        {{ icon("chevron_down", "text-secondary") }}
+      {% endif %}
+    </a>
+    <div class="dropdown-menu dropdown-menu-end">
+      <div class="dropdown-header">
+        <div class="fw-bold text-body">{{ current_user.full_name }}</div>
+        <div>{{ current_user.job_title }} · {{ current_user.department }}</div>
+      </div>
+      <a href="{{ url_for('settings.index') }}" class="dropdown-item">{{ icon("settings", "dropdown-item-icon") }} Settings</a>
+      <button type="button" class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer">{{ icon("palette", "dropdown-item-icon") }} Tampilan</button>
+      <div class="dropdown-divider"></div>
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="dropdown-item text-danger">{{ icon("logout", "dropdown-item-icon") }} Logout</button>
+      </form>
+    </div>
+  </div>
+{% endmacro %}

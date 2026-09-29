@@ -1,45 +1,89 @@
 {% from "components/icon.html" import icon %}
-<div class="customizer-backdrop" data-customizer-close hidden></div>
-
-<aside class="customizer" id="theme_customizer" role="dialog" aria-modal="true" aria-labelledby="customizer_title" data-customizer inert>
-  <div class="customizer-header">
-    <h2 id="customizer_title">Tampilan</h2>
-    <button type="button" class="btn-icon" data-customizer-close aria-label="Tutup pengaturan tampilan">{{ icon("close") }}</button>
+{# panel "atur tampilan". Default = pilihan pertama di tiap daftar (biru & font sistem) #}
+{% set default_accent = accent_color_option_list | first %}
+{% set default_font = font_family_option_list | first %}
+<div class="offcanvas offcanvas-start customizer" tabindex="-1" id="theme_customizer" aria-labelledby="customizer_title" data-customizer
+     data-default-theme="light" data-default-accent-key="{{ default_accent.key }}" data-default-font="{{ default_font.key }}">
+  <div class="offcanvas-header pb-0">
+    <button type="button" class="btn-close ms-auto" data-bs-dismiss="offcanvas" aria-label="Tutup pengaturan tampilan"></button>
   </div>
 
-  <section class="customizer-section">
-    <h3>Mode</h3>
-    <div class="segmented" role="radiogroup" aria-label="Mode tampilan">
-      <button type="button" class="btn segmented-option" role="radio" aria-checked="false" data-pref-option data-pref-key="theme_mode" data-pref-value="light">{{ icon("sun") }} Terang</button>
-      <button type="button" class="btn segmented-option" role="radio" aria-checked="false" data-pref-option data-pref-key="theme_mode" data-pref-value="dark">{{ icon("moon") }} Gelap</button>
+  <div class="offcanvas-body pt-0">
+    <div class="text-center customizer-intro">
+      <span class="avatar avatar-xl bg-primary-lt mb-3">{{ icon("palette") }}</span>
+      <h2 class="h3 mb-1" id="customizer_title">Atur tampilan sesukamu</h2>
+      <p class="text-secondary mb-0">Pilih mode, warna, font, dan kerapatan. Klik <strong>Simpan</strong> biar kesimpen ke akunmu.</p>
     </div>
-  </section>
 
-  <section class="customizer-section">
-    <h3>Warna Aksen</h3>
-    <div class="swatch-list" role="radiogroup" aria-label="Warna aksen">
-      {% for option in accent_color_option_list %}
-        <button type="button" class="swatch swatch-{{ option.key }}" role="radio" aria-checked="false" aria-label="{{ option.label }}" title="{{ option.label }}" data-pref-option data-pref-key="accent_color" data-pref-value="{{ option.hex }}" data-accent-key="{{ option.key }}"></button>
-      {% endfor %}
+    <hr>
+
+    <div class="subheader mb-3">Tampilan</div>
+
+    <div class="mb-4">
+      <div class="fw-medium">Mode warna</div>
+      <div class="small text-secondary mb-2">Halaman dan menu ikut berubah sekaligus.</div>
+      <div class="row g-2" role="radiogroup" aria-label="Mode warna">
+        {% for mode_key, mode_label in [("light", "Terang"), ("dark", "Gelap")] %}
+          <div class="col-6">
+            <button type="button" class="option-card scheme-option scheme-option-{{ mode_key }}" role="radio" aria-checked="false" data-pref-option data-pref-key="theme_mode" data-pref-value="{{ mode_key }}">
+              <span class="option-card-check"></span>
+              <span class="scheme-preview" aria-hidden="true">
+                <span class="scheme-preview-nav"></span>
+                <span class="scheme-preview-body"><span></span><span></span><span></span></span>
+              </span>
+              <span class="option-card-label">{{ mode_label }}</span>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
     </div>
-  </section>
 
-  <section class="customizer-section">
-    <h3>Kerapatan</h3>
-    <div class="segmented" role="radiogroup" aria-label="Kerapatan tampilan">
-      <button type="button" class="btn segmented-option" role="radio" aria-checked="false" data-pref-option data-pref-key="is_compact_view" data-pref-value="false">Nyaman</button>
-      <button type="button" class="btn segmented-option" role="radio" aria-checked="false" data-pref-option data-pref-key="is_compact_view" data-pref-value="true">Rapat</button>
+    <div class="mb-4">
+      <div class="fw-medium">Warna aksen</div>
+      <div class="small text-secondary mb-2">Dipake di tombol, link, dan menu yang aktif.</div>
+      <div class="d-flex flex-wrap gap-2" role="radiogroup" aria-label="Warna aksen">
+        {% for option in accent_color_option_list %}
+          <button type="button" class="accent-swatch accent-swatch-{{ option.key }}" role="radio" aria-checked="false" aria-label="{{ option.label }}" title="{{ option.label }}" data-pref-option data-pref-key="accent_color" data-pref-value="{{ option.hex }}" data-accent-key="{{ option.key }}"></button>
+        {% endfor %}
+      </div>
     </div>
-  </section>
 
-  <section class="customizer-section">
-    <h3>Font</h3>
-    <div class="segmented" role="radiogroup" aria-label="Jenis font">
-      {% for option in font_family_option_list %}
-        <button type="button" class="btn segmented-option font-option-{{ option.key }}" role="radio" aria-checked="false" data-pref-option data-pref-key="font_family" data-pref-value="{{ option.key }}">{{ option.label }}</button>
-      {% endfor %}
+    <div class="mb-4">
+      <div class="fw-medium">Font</div>
+      <div class="small text-secondary mb-2">Jenis huruf di seluruh aplikasi.</div>
+      <div class="row g-2" role="radiogroup" aria-label="Jenis font">
+        {% for option in font_family_option_list %}
+          <div class="col-4">
+            <button type="button" class="option-card font-option-{{ option.key }}" role="radio" aria-checked="false" data-pref-option data-pref-key="font_family" data-pref-value="{{ option.key }}">
+              <span class="option-card-check"></span>
+              <span class="font-option-sample" aria-hidden="true">Aa</span>
+              <span class="option-card-label">{{ option.label }}</span>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
     </div>
-  </section>
 
-  <p class="customizer-status" data-customizer-status aria-live="polite"></p>
-</aside>
+    <div class="mb-2">
+      <div class="fw-medium">Kerapatan</div>
+      <div class="small text-secondary mb-2">Mode rapat muat lebih banyak data di layar.</div>
+      <div class="row g-2" role="radiogroup" aria-label="Kerapatan tampilan">
+        {% for density_value, density_label in [("false", "Nyaman"), ("true", "Rapat")] %}
+          <div class="col-6">
+            <button type="button" class="option-card" role="radio" aria-checked="false" data-pref-option data-pref-key="is_compact_view" data-pref-value="{{ density_value }}">
+              <span class="option-card-check"></span>
+              <span class="density-preview density-preview-{{ 'compact' if density_value == 'true' else 'comfortable' }}" aria-hidden="true"><span></span><span></span><span></span></span>
+              <span class="option-card-label">{{ density_label }}</span>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="customizer-footer">
+    <p class="small text-secondary text-center mb-2 customizer-status" data-customizer-status aria-live="polite"></p>
+    <button type="button" class="btn w-100 mb-2" data-customizer-reset>{{ icon("arrow_left") }} Reset ke default</button>
+    <button type="button" class="btn btn-primary w-100" data-customizer-save>Simpan</button>
+  </div>
+</div>

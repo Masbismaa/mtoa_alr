@@ -114,7 +114,7 @@ def register_template_helpers(app):
     from app.services.preference_service import build_ui_preference_dict, get_or_create_preference
     from app.utils.constants import ACCENT_COLOR_OPTION_LIST, FONT_FAMILY_OPTION_LIST
     from app.utils.datetime_helper import format_local_datetime
-    from app.utils.navigation import build_sidebar_nav_list
+    from app.utils.navigation import build_sidebar_section_list
     from app.utils.sanitizer import render_rich_text
     from app.utils.text_helper import (
         format_file_size,
@@ -140,13 +140,13 @@ def register_template_helpers(app):
     def inject_layout_context():
         """Data yg otomatis ada di semua template."""
         if not current_user.is_authenticated:
-            return {"ui_preference_dict": None, "sidebar_nav_list": []}
+            return {"ui_preference_dict": None, "sidebar_section_list": []}
 
         user = current_user._get_current_object()
         preference = get_or_create_preference(user)
         return {
             "ui_preference_dict": build_ui_preference_dict(preference),
-            "sidebar_nav_list": build_sidebar_nav_list(user, request.endpoint),
+            "sidebar_section_list": build_sidebar_section_list(user, request.endpoint),
             "accent_color_option_list": ACCENT_COLOR_OPTION_LIST,
             "font_family_option_list": FONT_FAMILY_OPTION_LIST,
         }

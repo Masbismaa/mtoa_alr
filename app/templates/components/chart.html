@@ -1,0 +1,46 @@
+{# grafik mini SVG buat dashboard. Titiknya udah dihitung di chart_helper.py #}
+{% macro sparkline(chart, is_area=true) %}
+  <svg class="sparkline" viewBox="0 0 {{ chart.width }} {{ chart.height }}" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    {% if is_area %}<path class="sparkline-area" d="{{ chart.area_path }}"/>{% endif %}
+    <path class="sparkline-line" d="{{ chart.line_path }}"/>
+  </svg>
+{% endmacro %}
+
+{% macro bar_chart(bar_list) %}
+  {% set bar_width = 10 %}
+  <svg class="bar-chart" viewBox="0 0 {{ bar_list | length * bar_width }} 40" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    {% for bar in bar_list %}
+      {% set bar_height = [bar.height_percent * 0.4, 1.5] | max %}
+      <rect class="bar-chart-bar{% if not bar.value %} is-empty{% endif %}" x="{{ loop.index0 * bar_width + 2 }}" y="{{ 40 - bar_height }}" width="{{ bar_width - 4 }}" height="{{ bar_height }}" rx="1"><title>{{ bar.value }}</title></rect>
+    {% endfor %}
+  </svg>
+{% endmacro %}
+
+{# setengah lingkaran lebih dikit (270 derajat), mirip gauge di preview Tabler #}
+{% macro gauge(percent, label) %}
+  {% set circumference = 251.33 %}
+  {% set arc_length = circumference * 0.75 %}
+  <div class="gauge">
+    <svg class="gauge-svg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <circle class="gauge-track" cx="50" cy="50" r="40" stroke-dasharray="{{ arc_length }} {{ circumference }}" transform="rotate(135 50 50)"/>
+      <circle class="gauge-value" cx="50" cy="50" r="40" stroke-dasharray="{{ arc_length * percent / 100 }} {{ circumference }}" transform="rotate(135 50 50)"/>
+    </svg>
+    <div class="gauge-text">
+      <div class="subheader">{{ label }}</div>
+      <div class="h1 mb-0">{{ percent }}%</div>
+    </div>
+  </div>
+{% endmacro %}
+
+{# naik/turun dibanding periode sebelumnya #}
+{% macro change_badge(percent) %}
+  {% if percent is not none %}
+    {% if percent > 0 %}
+      <span class="text-green fw-medium small ms-1">{{ percent }}% &uarr;</span>
+    {% elif percent < 0 %}
+      <span class="text-red fw-medium small ms-1">{{ percent }}% &darr;</span>
+    {% else %}
+      <span class="text-secondary fw-medium small ms-1">0% &ndash;</span>
+    {% endif %}
+  {% endif %}
+{% endmacro %}

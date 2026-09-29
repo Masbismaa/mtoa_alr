@@ -4,19 +4,25 @@
 
 {% block title %}{{ page_title }} - MTOA ALR{% endblock %}
 
-{% block page_styles %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/groups.css') }}">
-{% endblock %}
+{% block page_pretitle %}Workspace{% endblock %}
 
 {% block content %}
-  <form method="post" class="card group-form" novalidate>
-    {{ form.hidden_tag() }}
-    <h2 class="section-title">{{ icon("group") }} {{ page_title }}</h2>
-    {{ render_field(form.name, placeholder="Contoh: Tim Network", autocomplete="off") }}
-    {{ render_field(form.description, placeholder="Group ini buat apa (opsional)", rows=3) }}
-    <div class="form-actions">
-      <a href="{{ cancel_url }}" class="btn btn-secondary">Batal</a>
-      <button type="submit" class="btn btn-primary">{{ icon("check") }} Simpan</button>
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <form method="post" class="card" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("group") }} {{ page_title }}</h3>
+        </div>
+        <div class="card-body">
+          {{ render_field(form.name, placeholder="Contoh: Tim Network", autocomplete="off") }}
+          {{ render_field(form.description, placeholder="Group ini buat apa (opsional)", rows=3) }}
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <a href="{{ cancel_url }}" class="btn">Batal</a>
+          <button type="submit" class="btn btn-primary">{{ icon("check") }} Simpan</button>
+        </div>
+      </form>
     </div>
-  </form>
+  </div>
 {% endblock %}

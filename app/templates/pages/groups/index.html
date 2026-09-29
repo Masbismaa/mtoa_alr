@@ -3,65 +3,82 @@
 
 {% block title %}Groups - MTOA ALR{% endblock %}
 
-{% block page_styles %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/groups.css') }}">
+{% block page_pretitle %}Workspace{% endblock %}
+
+{% block page_actions %}
+  <a href="{{ url_for('groups.create') }}" class="btn btn-primary">{{ icon("plus") }} Buat Group</a>
 {% endblock %}
 
 {% block content %}
-  <div class="page-actions">
-    <a href="{{ url_for('groups.create') }}" class="btn btn-primary">{{ icon("plus") }} Buat Group</a>
-  </div>
-
   {% if invitation_list %}
-    <section class="card invitation-card">
-      <h2 class="section-title">{{ icon("group") }} Undangan ({{ invitation_list | length }})</h2>
-      <ul class="invitation-list">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title">{{ icon("mail") }} Undangan</h3>
+        <div class="card-actions"><span class="badge bg-primary-lt">{{ invitation_list | length }}</span></div>
+      </div>
+      <div class="list-group list-group-flush">
         {% for invitation in invitation_list %}
-          <li class="invitation-item">
-            <div class="invitation-text">
-              <strong>{{ invitation.group.name }}</strong>
-              <small>dari {{ invitation.group.owner.full_name }}</small>
+          <div class="list-group-item">
+            <div class="row align-items-center g-2">
+              <div class="col-auto"><span class="avatar bg-primary-lt">{{ invitation.group.name | initials }}</span></div>
+              <div class="col text-truncate">
+                <div class="fw-bold text-truncate">{{ invitation.group.name }}</div>
+                <div class="small text-secondary">dari {{ invitation.group.owner.full_name }}</div>
+              </div>
+              <div class="col-12 col-sm-auto">
+                <div class="btn-list">
+                  <form method="post" action="{{ url_for('groups.accept', member_id=invitation.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary btn-sm">{{ icon("check") }} Terima</button>
+                  </form>
+                  <form method="post" action="{{ url_for('groups.decline', member_id=invitation.id) }}" data-confirm-title="Tolak undangan?" data-confirm-message="Kamu tidak akan jadi anggota group &quot;{{ invitation.group.name }}&quot;." data-confirm-ok="Ya, tolak">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm">Tolak</button>
+                  </form>
+                </div>
+              </div>
             </div>
-            <div class="invitation-actions">
-              <form method="post" action="{{ url_for('groups.accept', member_id=invitation.id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-primary btn-small">{{ icon("check") }} Terima</button>
-              </form>
-              <form method="post" action="{{ url_for('groups.decline', member_id=invitation.id) }}" data-confirm-title="Tolak undangan?" data-confirm-message="Kamu tidak akan jadi anggota group &quot;{{ invitation.group.name }}&quot;." data-confirm-ok="Ya, tolak">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-secondary btn-small">Tolak</button>
-              </form>
-            </div>
-          </li>
+          </div>
         {% endfor %}
-      </ul>
-    </section>
+      </div>
+    </div>
   {% endif %}
 
   {% if group_list %}
-    <section class="group-grid" aria-label="Daftar group">
+    <div class="row row-cards" aria-label="Daftar group">
       {% for group in group_list %}
         {% set is_owner = group.user_id == current_user.id %}
         {% set active_member_count = group.member_list | selectattr("status", "equalto", "active") | list | length %}
-        <a href="{{ url_for('groups.detail', group_id=group.id) }}" class="card group-card">
-          <div class="group-card-header">
-            <h2 title="{{ group.name }}">{{ group.name }}</h2>
-            <span class="badge{% if is_owner %} badge-owner{% endif %}">{{ "Pemilik" if is_owner else "Anggota" }}</span>
-          </div>
-          <p class="group-card-description">{{ group.description | truncate(100, true, "…", 0) if group.description else "Belum ada deskripsi." }}</p>
-          <div class="group-card-meta">
-            <span>{{ icon("user") }} {{ active_member_count }} anggota</span>
-            <span>{{ icon("link") }} {{ group.group_entry_list | length }} link</span>
-          </div>
-        </a>
+        <div class="col-md-6 col-xl-4">
+          <a href="{{ url_for('groups.detail', group_id=group.id) }}" class="card card-link card-link-pop h-100 text-reset">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-3">
+                <span class="avatar bg-primary-lt me-3">{{ group.name | initials }}</span>
+                <div class="text-truncate">
+                  <h3 class="card-title mb-0 text-truncate" title="{{ group.name }}">{{ group.name }}</h3>
+                  <span class="badge {{ 'bg-primary-lt' if is_owner else 'bg-secondary-lt' }} mt-1">{{ "Pemilik" if is_owner else "Anggota" }}</span>
+                </div>
+              </div>
+              <p class="text-secondary mb-0">{{ group.description | truncate(100, true, "…", 0) if group.description else "Belum ada deskripsi." }}</p>
+            </div>
+            <div class="card-footer d-flex gap-3 text-secondary small">
+              <span>{{ icon("user") }} {{ active_member_count }} anggota</span>
+              <span>{{ icon("link") }} {{ group.group_entry_list | length }} link</span>
+            </div>
+          </a>
+        </div>
       {% endfor %}
-    </section>
+    </div>
   {% else %}
-    <section class="card">
-      <div class="empty-state">
-        <p>Kamu belum punya group. Bikin group buat ngumpulin link tim kamu!</p>
-        <a href="{{ url_for('groups.create') }}" class="btn btn-primary">{{ icon("plus") }} Buat Group</a>
+    <div class="card">
+      <div class="empty">
+        <div class="empty-icon">{{ icon("group") }}</div>
+        <p class="empty-title">Kamu belum punya group</p>
+        <p class="empty-subtitle text-secondary">Bikin group buat ngumpulin link tim kamu!</p>
+        <div class="empty-action">
+          <a href="{{ url_for('groups.create') }}" class="btn btn-primary">{{ icon("plus") }} Buat Group</a>
+        </div>
       </div>
-    </section>
+    </div>
   {% endif %}
 {% endblock %}

@@ -1,16 +1,22 @@
 {# editor teks + toolbar format. Isinya otomatis disalin ke textarea tersembunyi #}
 {% macro rich_text_editor(name, value="", label="Isi", placeholder="Ketik di sini...") %}
   <div class="rte" data-rte>
-    <div class="rte-toolbar" role="toolbar" aria-label="Format teks">
-      <button type="button" class="rte-button" data-rte-command="bold" title="Tebal (Ctrl+B)" aria-label="Tebal"><b>B</b></button>
-      <button type="button" class="rte-button" data-rte-command="italic" title="Miring (Ctrl+I)" aria-label="Miring"><i>I</i></button>
-      <button type="button" class="rte-button" data-rte-command="underline" title="Garis bawah (Ctrl+U)" aria-label="Garis bawah"><u>U</u></button>
-      <button type="button" class="rte-button" data-rte-command="insertUnorderedList" title="Bullet list" aria-label="Bullet list">&bull; List</button>
-      <button type="button" class="rte-button" data-rte-command="insertOrderedList" title="Numbered list" aria-label="Numbered list">1. List</button>
-      <button type="button" class="rte-button" data-rte-command="createLink" title="Sisipkan link" aria-label="Sisipkan link">Link</button>
-      <button type="button" class="rte-button" data-rte-command="code" title="Kode" aria-label="Kode">&lt;/&gt;</button>
+    <div class="btn-toolbar rte-toolbar" role="toolbar" aria-label="Format teks">
+      <div class="btn-group btn-group-sm me-1">
+        <button type="button" class="btn rte-button" data-rte-command="bold" title="Tebal (Ctrl+B)" aria-label="Tebal"><b>B</b></button>
+        <button type="button" class="btn rte-button" data-rte-command="italic" title="Miring (Ctrl+I)" aria-label="Miring"><i>I</i></button>
+        <button type="button" class="btn rte-button" data-rte-command="underline" title="Garis bawah (Ctrl+U)" aria-label="Garis bawah"><u>U</u></button>
+      </div>
+      <div class="btn-group btn-group-sm me-1">
+        <button type="button" class="btn rte-button" data-rte-command="insertUnorderedList" title="Bullet list" aria-label="Bullet list">&bull; List</button>
+        <button type="button" class="btn rte-button" data-rte-command="insertOrderedList" title="Numbered list" aria-label="Numbered list">1. List</button>
+      </div>
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn rte-button" data-rte-command="createLink" title="Sisipkan link" aria-label="Sisipkan link">Link</button>
+        <button type="button" class="btn rte-button" data-rte-command="code" title="Kode" aria-label="Kode">&lt;/&gt;</button>
+      </div>
     </div>
-    <div class="form-input rte-content" contenteditable="true" role="textbox" aria-multiline="true" aria-label="{{ label }}" data-placeholder="{{ placeholder }}" data-rte-content>{{ value | rich_text }}</div>
+    <div class="form-control rte-content" contenteditable="true" role="textbox" aria-multiline="true" aria-label="{{ label }}" data-placeholder="{{ placeholder }}" data-rte-content>{{ value | rich_text }}</div>
     <textarea name="{{ name }}" hidden data-rte-input>{{ value | rich_text | forceescape }}</textarea>
   </div>
 {% endmacro %}

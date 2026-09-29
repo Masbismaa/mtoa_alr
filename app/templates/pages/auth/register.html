@@ -4,19 +4,25 @@
 {% block title %}Daftar - MTOA ALR{% endblock %}
 
 {% block content %}
-  <h2 class="auth-heading">Daftar Akun</h2>
-  <p class="auth-hint">Gunakan email korporat. Password minimal 8 karakter berisi huruf dan angka.</p>
+  <h2 class="h2 mb-2">Daftar Akun</h2>
+  <p class="text-secondary mb-4">Gunakan email korporat. Password minimal 8 karakter berisi huruf dan angka.</p>
 
   <form method="post" novalidate>
     {{ form.hidden_tag() }}
     {{ render_field(form.email, placeholder="nama@spindo.com", autocomplete="username") }}
     {{ render_field(form.full_name, placeholder="Nama lengkap", autocomplete="name") }}
-    {{ render_field(form.department, placeholder="Contoh: ICT") }}
-    {{ render_field(form.job_title, placeholder="Contoh: Staff") }}
+    <div class="row g-2">
+      <div class="col-sm-6">{{ render_field(form.department, placeholder="Contoh: ICT") }}</div>
+      <div class="col-sm-6">{{ render_field(form.job_title, placeholder="Contoh: Staff") }}</div>
+    </div>
     {{ render_field(form.password, placeholder="Password", autocomplete="new-password") }}
     {{ render_field(form.confirm_password, placeholder="Ulangi password", autocomplete="new-password") }}
-    {{ form.submit(class_="btn btn-primary btn-block") }}
+    <div class="form-footer">
+      {{ form.submit(class_="btn btn-primary w-100") }}
+    </div>
   </form>
+{% endblock %}
 
-  <p class="auth-footer">Sudah punya akun? <a href="{{ url_for('auth.login') }}">Masuk</a></p>
+{% block after_card %}
+  <div class="text-center text-secondary mt-3">Sudah punya akun? <a href="{{ url_for('auth.login') }}">Masuk</a></div>
 {% endblock %}
