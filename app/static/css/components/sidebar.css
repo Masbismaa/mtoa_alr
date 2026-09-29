@@ -1,0 +1,209 @@
+/* sidebar navigasi kiri */
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100vh;
+  padding: var(--space-4);
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border-right: var(--nb-border-width) solid var(--color-border);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.sidebar-brand-text strong {
+  font-family: var(--font-heading);
+  font-size: 16px;
+}
+
+.sidebar-brand-text small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.sidebar-close {
+  display: none;
+  margin-left: auto;
+}
+
+.sidebar-nav ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  font-weight: 800;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--color-text);
+  border: var(--nb-border-width) solid transparent;
+  border-radius: var(--nb-radius);
+  transition:
+    transform var(--nb-transition-fast),
+    box-shadow var(--nb-transition-fast),
+    background-color var(--nb-transition-fast),
+    border-color var(--nb-transition-fast);
+}
+
+/* hover menu: muncul kotak + keangkat dikit */
+.nav-link[href]:hover {
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-small);
+  transform: translate(-2px, -2px);
+}
+
+/* menu yg lagi dibuka */
+.nav-link.is-active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow);
+}
+
+.nav-link.is-active:hover {
+  background: var(--color-accent);
+}
+
+.nav-link.is-disabled {
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.nav-badge {
+  margin-left: auto;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  text-transform: uppercase;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+}
+
+/* profil ringkas di bawah sidebar */
+.sidebar-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  margin-top: auto;
+  padding: var(--space-3);
+  background: var(--color-surface-muted);
+  border: var(--nb-border-width) solid var(--color-border);
+  border-radius: var(--nb-radius);
+  box-shadow: var(--shadow-small);
+}
+
+.sidebar-profile-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebar-profile-text strong,
+.sidebar-profile-text small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sidebar-profile-text small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* desktop: sidebar bisa diciutin jadi ikon doang */
+@media (min-width: 961px) {
+  :root[data-sidebar="collapsed"] .sidebar-brand-text,
+  :root[data-sidebar="collapsed"] .nav-label,
+  :root[data-sidebar="collapsed"] .nav-badge,
+  :root[data-sidebar="collapsed"] .sidebar-profile-text {
+    display: none;
+  }
+
+  :root[data-sidebar="collapsed"] .sidebar-brand,
+  :root[data-sidebar="collapsed"] .nav-link,
+  :root[data-sidebar="collapsed"] .sidebar-profile {
+    justify-content: center;
+  }
+
+  :root[data-sidebar="collapsed"] .nav-link {
+    padding: 0;
+  }
+
+  :root[data-sidebar="collapsed"] .sidebar-profile {
+    padding: var(--space-2);
+  }
+}
+
+/* HP/tablet: sidebar jadi laci dari kiri */
+@media (max-width: 960px) {
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(300px, 85vw);
+    transform: translateX(-105%);
+  }
+
+  .is-ready .sidebar {
+    transition: transform var(--nb-transition-medium), box-shadow var(--nb-transition-medium);
+  }
+
+  .is-sidebar-open .sidebar {
+    transform: translateX(0);
+    box-shadow: 8px 0 0 var(--color-shadow);
+  }
+
+  .sidebar-close {
+    display: inline-flex;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: var(--color-overlay);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--nb-transition-medium);
+  }
+
+  .is-sidebar-open .sidebar-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

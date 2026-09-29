@@ -1,0 +1,24 @@
+# framework web utama
+Flask>=3.0
+# ORM, query otomatis pake parameter jadi aman dari SQL Injection
+Flask-SQLAlchemy>=3.1
+# migrasi skema database
+Flask-Migrate>=4.0
+# proteksi CSRF buat form
+Flask-WTF>=1.2
+# driver PostgreSQL
+psycopg[binary]>=3.1
+# baca file .env
+python-dotenv>=1.0
+# enkripsi kredensial (Fernet/AES)
+cryptography>=42.0
+# hash password login (Argon2id)
+argon2-cffi>=23.1
+# buang tag HTML dari input (anti XSS)
+nh3>=0.2.17
+# unit test
+pytest>=8.0
+# untuk autentikasi
+Flask-Login>=0.6.3
+# untuk membatasi akses user
+Flask-Limiter>=3.5

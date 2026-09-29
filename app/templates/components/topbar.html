@@ -1,0 +1,17 @@
+{% from "components/icon.html" import icon %}
+<header class="topbar">
+  <button type="button" class="btn-icon" data-sidebar-toggle aria-label="Buka/tutup menu" aria-controls="app_sidebar" aria-expanded="true">
+    {{ icon("menu") }}
+  </button>
+
+  <h1 class="topbar-title">{{ page_title or "MTOA ALR" }}</h1>
+
+  <div class="topbar-actions">
+    <button type="button" class="btn-icon" data-theme-toggle aria-label="Ganti mode terang/gelap">
+      {{ icon("moon", "theme-icon-moon") }}{{ icon("sun", "theme-icon-sun") }}
+    </button>
+    <button type="button" class="btn-icon" data-customizer-open aria-label="Buka pengaturan tampilan" aria-controls="theme_customizer">
+      {{ icon("palette") }}
+    </button>
+  </div>
+</header>

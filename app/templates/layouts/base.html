@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="id"
+  {% if ui_preference_dict %}
+    data-pref-source="server"
+    data-pref-url="{{ url_for('settings.update_preferences') }}"
+    data-theme="{{ ui_preference_dict.theme_mode }}"
+    data-accent="{{ ui_preference_dict.accent_key }}"
+    data-density="{{ 'compact' if ui_preference_dict.is_compact_view else 'comfortable' }}"
+    data-font="{{ ui_preference_dict.font_family }}"
+  {% else %}
+    data-pref-source="local"
+    data-theme="light"
+    data-accent="blue"
+    data-density="comfortable"
+    data-font="system"
+  {% endif %}>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}MTOA ALR{% endblock %}</title>
+
+  {# dipasang paling awal (tanpa defer) biar tema langsung kepake sebelum halaman tampil #}
+  <script src="{{ url_for('static', filename='js/theme_boot.js') }}"></script>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/neobrutalism.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  {% block styles %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  {% block body %}{% endblock %}
+
+  <script src="{{ url_for('static', filename='js/components/ui_preference.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/flash.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/theme_toggle.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/form_submit.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

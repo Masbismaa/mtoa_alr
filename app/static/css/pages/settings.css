@@ -1,0 +1,47 @@
+/* halaman settings */
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.settings-grid .card {
+  animation: nb-pop-in 300ms both;
+}
+
+.settings-grid .card:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.profile-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.profile-list div {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px dashed var(--color-border);
+}
+
+.profile-list div:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.profile-list dt {
+  font-weight: 800;
+  color: var(--color-muted);
+}
+
+.profile-list dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

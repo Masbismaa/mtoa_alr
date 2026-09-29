@@ -1,0 +1,11 @@
+{# dialog konfirmasi global. Dipake form yg punya atribut data-confirm-message #}
+<dialog class="confirm-dialog" id="confirm_dialog" aria-labelledby="confirm_dialog_title" aria-describedby="confirm_dialog_message">
+  <div class="confirm-dialog-body">
+    <h2 id="confirm_dialog_title" data-confirm-title>Yakin?</h2>
+    <p id="confirm_dialog_message" data-confirm-message></p>
+    <div class="confirm-dialog-actions">
+      <button type="button" class="btn btn-secondary" data-confirm-cancel>Batal</button>
+      <button type="button" class="btn btn-danger" data-confirm-ok>Ya, lanjutkan</button>
+    </div>
+  </div>
+</dialog>
