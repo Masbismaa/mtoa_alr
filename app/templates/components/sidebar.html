@@ -54,14 +54,13 @@
         {% endfor %}
       </ul>
 
-      {# bawah sidebar: tombol Customize + profil #}
+      {# bawah sidebar: tombol Customize #}
       <div class="sidebar-footer">
         <div class="d-flex align-items-center">
           <button type="button" class="nav-link sidebar-customize flex-fill" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer">
             <span class="nav-link-icon">{{ icon("palette") }}</span>
             <span class="nav-link-title">Customize</span>
           </button>
-          <span class="d-none d-lg-inline-flex">{% include "components/theme_toggle_button.html" %}</span>
         </div>
       </div>
     </div>

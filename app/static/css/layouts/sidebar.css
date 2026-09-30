@@ -71,7 +71,7 @@
     margin-top: auto;
   }
 
-  .app-sidebar .navbar-brand {
+  .app-sidebar.navbar-vertical .navbar-brand {
     justify-content: flex-start;
     width: 100%;
     padding: 0.5rem 0.75rem;
