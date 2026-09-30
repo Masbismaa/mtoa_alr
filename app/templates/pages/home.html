@@ -1,8 +1,9 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
-{% from "components/copy_button.html" import copy_button %}
 {% from "components/pagination.html" import render_pagination %}
-{% from "components/badge.html" import audit_action_badge, visibility_badge %}
+{% from "components/badge.html" import audit_action_badge %}
+{% from "components/category_forum.html" import category_forum %}
+{% from "components/entry_table.html" import entry_table %}
 {% from "components/chart.html" import bar_chart, change_badge, gauge, sparkline %}
 
 {% block title %}Dashboard - MTOA ALR{% endblock %}
@@ -17,7 +18,6 @@
 {% block content %}
   {% set is_filtered = filter_dict.keyword or filter_dict.category_id or filter_dict.visibility %}
   {% set summary = dashboard_dict.summary %}
-  {% set category_style_dict = {"Web": ("globe", "bg-blue"), "Application": ("apps", "bg-green"), "Network": ("network", "bg-orange"), "General": ("file", "bg-purple")} %}
 
   <div class="row row-deck row-cards mb-3">
     <div class="col-lg-6">
@@ -131,25 +131,20 @@
     </div>
   </div>
 
-  <div class="row row-cards mb-3">
-    {% for category_card in dashboard_dict.category_card_list %}
-      {% set icon_name, icon_class = category_style_dict.get(category_card.name, ("category", "bg-secondary")) %}
-      <div class="col-sm-6 col-lg-3">
-        <a href="{{ url_for('main.home', category_id=category_card.id) }}#daftar_link" class="card card-sm card-link card-link-pop text-reset">
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col-auto">
-                <span class="{{ icon_class }} text-white avatar">{{ icon(icon_name) }}</span>
-              </div>
-              <div class="col">
-                <div class="fw-medium">{{ category_card.count }} Data {{ category_card.name }}</div>
-                <div class="text-secondary">{{ category_card.percent }}% dari total</div>
-              </div>
-            </div>
-          </div>
-        </a>
-      </div>
-    {% endfor %}
+  <div class="card mb-3" id="kategori">
+    <div class="card-header">
+      <h3 class="card-title">{{ icon("category") }} Kategori</h3>
+      {% if current_user.role == "admin" %}
+        <div class="card-actions">
+          <a href="{{ url_for('categories.index') }}" class="btn btn-sm">{{ icon("settings") }} Kelola</a>
+        </div>
+      {% endif %}
+    </div>
+    {% if dashboard_dict.forum_row_list %}
+      {{ category_forum(dashboard_dict.forum_row_list) }}
+    {% else %}
+      <div class="card-body text-secondary">Belum ada kategori aktif.</div>
+    {% endif %}
   </div>
 
   <div class="card" id="daftar_link">
@@ -173,7 +168,7 @@
           <select name="category_id" class="form-select" aria-label="Filter kategori" data-filter-auto>
             <option value="">Semua kategori</option>
             {% for category in category_list %}
-              <option value="{{ category.id }}"{% if filter_dict.category_id == category.id %} selected{% endif %}>{{ category.name }}</option>
+              <option value="{{ category.id }}"{% if filter_dict.category_id == category.id %} selected{% endif %}>{{ category | category_label }}</option>
             {% endfor %}
           </select>
         </div>
@@ -196,58 +191,7 @@
     </div>
 
     {% if pagination.items %}
-      <div class="table-responsive">
-        <table class="table table-vcenter card-table table-stack">
-          <thead>
-            <tr>
-              <th>Judul</th>
-              <th>Kategori</th>
-              <th>URL / Address</th>
-              <th>Deskripsi</th>
-              <th>Visibilitas</th>
-              <th>Lampiran</th>
-              <th>Dibuat Oleh</th>
-              <th>Dibuat</th>
-              <th class="w-1"><span class="visually-hidden">Aksi</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for entry in pagination.items %}
-              {% set access_text = entry.url or ((entry.address ~ (":" ~ entry.port if entry.port else "")) if entry.address else "") %}
-              <tr>
-                <td class="cell-title" data-label="Judul">
-                  <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="text-reset fw-bold" title="{{ entry.title }}">{{ entry.title | truncate(50, true, "…", 0) }}</a>
-                </td>
-                <td data-label="Kategori"><span class="badge bg-secondary-lt">{{ entry.category.name }}</span></td>
-                <td data-label="URL / Address">
-                  {% if access_text %}
-                    <div class="cell-copy">
-                      <code class="cell-url" title="{{ access_text }}">{{ access_text }}</code>
-                      {{ copy_button(access_text, label="Copy link", is_icon_only=true) }}
-                    </div>
-                  {% else %}
-                    <span class="text-secondary">-</span>
-                  {% endif %}
-                </td>
-                <td class="cell-description text-secondary" data-label="Deskripsi">
-                  {% if entry.description %}
-                    <span title="{{ entry.description }}">{{ entry.description | truncate(60, true, "…", 0) }}</span>
-                  {% else %}
-                    -
-                  {% endif %}
-                </td>
-                <td data-label="Visibilitas">{{ visibility_badge(entry.visibility) }}</td>
-                <td data-label="Lampiran">{% if entry.attachment_list %}{{ icon("paperclip") }} {{ entry.attachment_list | length }}{% else %}<span class="text-secondary">-</span>{% endif %}</td>
-                <td data-label="Dibuat Oleh">{{ entry.owner.full_name }}</td>
-                <td class="text-nowrap text-secondary" data-label="Dibuat">{{ entry.created_at | local_datetime }}</td>
-                <td class="cell-action">
-                  <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="btn btn-sm">{{ icon("eye") }} View</a>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+      {{ entry_table(pagination.items) }}
       {{ render_pagination(pagination, "main.home", pagination_query_dict) }}
     {% elif is_filtered %}
       <div class="empty">

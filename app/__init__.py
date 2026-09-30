@@ -115,7 +115,8 @@ def register_template_helpers(app):
     """Filter & data global buat semua template."""
     from app.services.preference_service import build_ui_preference_dict, get_or_create_preference
     from app.utils.constants import ACCENT_COLOR_OPTION_LIST, FONT_FAMILY_OPTION_LIST
-    from app.utils.datetime_helper import format_local_datetime
+    from app.services.category_service import build_category_label
+    from app.utils.datetime_helper import format_local_datetime, format_time_ago
     from app.utils.navigation import build_sidebar_section_list
     from app.utils.sanitizer import render_rich_text
     from app.utils.text_helper import (
@@ -137,6 +138,8 @@ def register_template_helpers(app):
     app.add_template_filter(format_file_size, "file_size")
     app.add_template_filter(get_audit_action_label, "audit_action_label")
     app.add_template_filter(get_audit_entity_label, "audit_entity_label")
+    app.add_template_filter(build_category_label, "category_label")
+    app.add_template_filter(format_time_ago, "time_ago")
 
     @app.context_processor
     def inject_layout_context():

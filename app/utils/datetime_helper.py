@@ -27,3 +27,18 @@ def build_utc_range_from_local_date(date_from=None, date_to=None):
     start_at = datetime.combine(date_from, time.min, DISPLAY_TIMEZONE).astimezone(timezone.utc) if date_from else None
     end_at = datetime.combine(date_to + timedelta(days=1), time.min, DISPLAY_TIMEZONE).astimezone(timezone.utc) if date_to else None
     return start_at, end_at
+
+def format_time_ago(value):
+    # Waktu forum
+    if value is None:
+        return "-"
+    second_count = int((utc_now() - to_utc_aware(value)).total_seconds())
+    if second_count < 60:
+        return "Baru saja"
+    if second_count < 3600:
+        return f"{second_count // 60} menit lalu"
+    if second_count < 86400:
+        return f"{second_count // 3600} jam lalu"
+    if second_count < 7 * 86400:
+        return f"{second_count // 86400} hari lalu"
+    return to_utc_aware(value).astimezone(DISPLAY_TIMEZONE).strftime("%d %b %Y, %H:%M") + " WIB"

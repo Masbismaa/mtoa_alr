@@ -31,7 +31,7 @@ def test_dashboard_category_and_activity(app, registered_user, category_dict):
     """Positive: jumlah per kategori & aktivitas sendiri kehitung."""
     create_entry(registered_user, category_dict["Web"], "Portal HR", VISIBILITY_PUBLIC)
     dashboard_dict = build_dashboard_dict(registered_user)
-    count_by_name_dict = {card["name"]: card["count"] for card in dashboard_dict["category_card_list"]}
+    count_by_name_dict = {row["category"].name: row["entry_count"] for row in dashboard_dict["forum_row_list"]}
     assert count_by_name_dict["Web"] == 1
     assert count_by_name_dict["Network"] == 0
     assert dashboard_dict["activity_count"] >= 1
