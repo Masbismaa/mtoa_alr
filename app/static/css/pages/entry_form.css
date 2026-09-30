@@ -1,0 +1,12 @@
+/* halaman form link */
+
+/* form link: badge "Wajib" di pojok kanan label */
+.category-field {
+  position: relative;
+}
+
+.required-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+}

@@ -1,0 +1,30 @@
+/* navigasi atas: tombol Home + menu user di kanan atas */
+
+/* navigasi atas: Home di kiri, menu user di kanan */
+.app-topbar {
+  min-height: 3.5rem;
+  border-bottom: var(--tblr-border-width, 1px) solid var(--tblr-border-color);
+}
+
+.app-topbar-home.active {
+  color: var(--tblr-primary);
+  background: var(--tblr-primary-lt);
+}
+
+.user-menu-name {
+  max-width: 14rem;
+  overflow: hidden;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.user-menu .dropdown-menu.show {
+  animation: app-pop-in 150ms ease both;
+}
+
+.user-menu .dropdown-header {
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  text-transform: none;
+}

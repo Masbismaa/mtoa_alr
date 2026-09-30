@@ -1,0 +1,49 @@
+/* editor teks bertoolbar + tampilan hasilnya */
+
+/* editor teks bertoolbar */
+.rte-toolbar {
+  margin-bottom: 0.5rem;
+}
+
+.rte-button.is-active {
+  color: var(--tblr-primary);
+  background: var(--tblr-primary-lt);
+  border-color: var(--tblr-primary);
+}
+
+.rte-content {
+  min-height: 8.5rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+
+.rte-content:empty::before {
+  content: attr(data-placeholder);
+  color: var(--tblr-secondary);
+  pointer-events: none;
+}
+
+.rte-content p,
+.rte-content div,
+.rich-text-view p,
+.rich-text-view div {
+  margin: 0 0 0.5rem;
+}
+
+.rte-content ul,
+.rte-content ol,
+.rich-text-view ul,
+.rich-text-view ol {
+  margin: 0 0 0.5rem;
+  padding-left: 1.5rem;
+}
+
+.rich-text-view {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.rich-text-view > :last-child {
+  margin-bottom: 0;
+}

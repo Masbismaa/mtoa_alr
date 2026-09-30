@@ -1,0 +1,38 @@
+/* halaman audit log */
+
+/* audit log */
+.audit-change-table td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.audit-change-table .cell-field {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.audit-change-table tr.is-changed td {
+  background: var(--tblr-yellow-lt, rgba(245, 159, 0, 0.12));
+}
+
+.audit-change-table tr.is-masked td:not(.cell-field) {
+  letter-spacing: 0.1em;
+  color: var(--tblr-secondary);
+}
+
+.audit-legend-swatch {
+  display: inline-block;
+  width: 0.875rem;
+  height: 0.875rem;
+  vertical-align: middle;
+  background: var(--tblr-yellow-lt, rgba(245, 159, 0, 0.15));
+  border: 1px solid var(--tblr-yellow, #f59f00);
+  border-radius: 0.25rem;
+}
+
+@media (max-width: 767.98px) {
+  .audit-change-table .cell-field {
+    width: 100%;
+    white-space: normal;
+  }
+}

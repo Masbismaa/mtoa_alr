@@ -1,0 +1,32 @@
+/* halaman detail link */
+
+/* nilai yg bisa dicopy di halaman detail */
+.copy-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.copy-value {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0.45rem 0.75rem;
+  font-family: var(--tblr-font-monospace);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--tblr-body-color);
+  background: var(--tblr-bg-surface-secondary, rgba(128, 128, 128, 0.08));
+  border: var(--tblr-border-width, 1px) solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius);
+}
+
+.secret-value {
+  letter-spacing: 0.08em;
+}
+
+.detail-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

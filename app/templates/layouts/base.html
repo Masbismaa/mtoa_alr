@@ -27,7 +27,19 @@
   <script src="{{ url_for('static', filename='js/theme_boot.js') }}"></script>
 
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/css/tabler.min.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  {# CSS app dipisah per bagian. urutannya penting: dasar dulu, animasi paling akhir #}
+  {% set css_file_list = [
+    "base/theme", "base/page",
+    "components/brand", "components/avatar", "components/chart", "components/flash", "components/table",
+    "components/rich_text_editor", "components/custom_field", "components/attachment",
+    "components/theme_customizer", "components/confirm_dialog",
+    "layouts/sidebar", "layouts/topbar",
+    "pages/dashboard", "pages/entry_form", "pages/entry_detail", "pages/auth", "pages/audit_log",
+    "base/animation",
+  ] %}
+  {% for css_file in css_file_list %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/' ~ css_file ~ '.css') }}">
+  {% endfor %}
   {% block styles %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
