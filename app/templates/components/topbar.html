@@ -1,0 +1,13 @@
+{% from "components/icon.html" import icon %}
+{% from "components/user_menu.html" import user_menu with context %}
+{# navigasi atas (layar besar): tombol Home di kiri, menu user di kanan #}
+<header class="navbar navbar-expand-md d-none d-lg-flex d-print-none app-topbar">
+  <div class="container-xl">
+    <a href="{{ url_for('main.home') }}" class="btn btn-ghost-secondary app-topbar-home{% if request.endpoint == 'main.home' and not request.args %} active{% endif %}">
+      {{ icon("home") }} Home
+    </a>
+    <div class="navbar-nav flex-row ms-auto">
+      {{ user_menu() }}
+    </div>
+  </div>
+</header>
