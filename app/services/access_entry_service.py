@@ -55,14 +55,23 @@ def get_active_category_list():
     """Kategori aktif, urut id (Web, Application, Network, General)."""
     return db.session.execute(db.select(Category).filter_by(is_active=True).order_by(Category.id)).scalars().all()
 
-def get_category_from_id(raw_category_id):
-    """Ambil kategori aktif dari id, None kalau ga valid."""
+def get_form_category_list(current_category=None):
+    """Pilihan kategori di form. Pas edit, kategori lama tetep ikut walau udah dinonaktifin admin."""
+    category_list = list(get_active_category_list())
+    if current_category is not None and not current_category.is_active:
+        category_list.append(current_category)
+    return category_list
+
+def get_category_from_id(raw_category_id, current_category_id=None):
+    """Ambil kategori dari id, None kalau ga valid. Kategori nonaktif cuma boleh kalau itu kategori lama data-nya."""
     try:
         category_id = int(raw_category_id)
     except (TypeError, ValueError):
         return None
     category = db.session.get(Category, category_id)
-    if category is None or not category.is_active:
+    if category is None:
+        return None
+    if not category.is_active and category.id != current_category_id:
         return None
     return category
 
@@ -81,9 +90,9 @@ def build_category_option_list(category_list):
     return option_list
 
 # VALIDASI
-def validate_entry_data(data_dict):
+def validate_entry_data(data_dict, current_category_id=None):
     """Cek & bersihin data utama. Return (clean_dict, category, error_list)."""
-    category = get_category_from_id(data_dict.get("category_id"))
+    category = get_category_from_id(data_dict.get("category_id"), current_category_id)
     if category is None:
         return {}, None, [build_error("category_id", "Kategori tidak valid")]
 
@@ -177,9 +186,9 @@ def find_duplicate_entry(user, clean_dict, exclude_entry_id=None):
     return None, None
 
 def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list=None,
-                       existing_attachment_count=0, exclude_entry_id=None):
+                       existing_attachment_count=0, exclude_entry_id=None, current_category_id=None):
     """Semua validasi jadi satu (create & update). Return (clean_dict, custom_list, upload_list)."""
-    clean_dict, category, error_list = validate_entry_data(data_dict)
+    clean_dict, category, error_list = validate_entry_data(data_dict, current_category_id)
 
     clean_custom_field_list = []
     if category is not None:
@@ -200,6 +209,8 @@ def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list
         raise ValidationError(error_list)
     return clean_dict, clean_custom_field_list, prepared_upload_list
 
+
+# ================= SIMPAN =================
 
 # SIMPAN
 def apply_entry_data(entry, clean_dict, clean_custom_field_list):
@@ -267,6 +278,7 @@ def update_access_entry(user, entry, data_dict, custom_field_pair_list=None,
     clean_dict, clean_custom_field_list, prepared_upload_list = prepare_entry_data(
         user, data_dict, custom_field_pair_list, upload_file_list,
         existing_attachment_count=existing_attachment_count, exclude_entry_id=entry.id,
+        current_category_id=entry.category_id,
     )
     # visibilitas cuma boleh diganti pemiliknya
     if not is_entry_owner(user, entry):

@@ -19,6 +19,12 @@ DEFAULT_CATEGORY_LIST = [
     {"name": "General", "description": "Akses lain yang tidak masuk kategori di atas"},
 ]
 
+# nama kategori bawaan: ga bisa di ganti nama, dinonaktifkan, atau dihapus (Aturan formnya nempel ke nama)
+DEFAULT_CATEGORY_NAME_SET = {category["name"] for category in DEFAULT_CATEGORY_LIST}
+MIN_CATEGORY_NAME_LENGTH = 2
+MAX_CATEGORY_NAME_LENGTH = 50
+MAX_CATEGORY_DESCRIPTION_LENGTH = 255
+
 # Audit log
 # jenis aksi yg boleh dicatat, di luar ini ditolak
 AUDIT_ACTION_CREATE = "create"
@@ -188,6 +194,7 @@ AUDIT_ENTITY_LABEL_DICT = {
     "groups": "Group",
     "group_members": "Anggota Group",
     "group_entries": "Link di Group",
+    "categories": "Kategori",
 }
 
 # dashboard (grafik & aktivitas)
