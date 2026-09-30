@@ -3,7 +3,8 @@ from datetime import timedelta
 from app.extensions import db
 from app.models import AccessEntry, Attachment, AuditLog
 from app.security.access_policy import build_visible_entry_filter
-from app.services.access_entry_service import count_visible_entry_summary, get_active_category_list
+from app.services.access_entry_service import count_visible_entry_summary
+from app.services.category_service import build_forum_row_list
 from app.services.group_service import list_pending_invitation, list_user_group
 from app.utils.chart_helper import build_bar_list, build_sparkline, calculate_change_percent, calculate_percent
 from app.utils.constants import DASHBOARD_CHART_DAY_COUNT, DASHBOARD_RECENT_ACTIVITY_LIMIT
@@ -44,25 +45,6 @@ def count_visible_entry_with_attachment(user):
         .join(AccessEntry, AccessEntry.id == Attachment.access_entry_id)
         .where(build_visible_entry_filter(user))
     ).scalar()
-
-
-def build_category_card_list(user, total_count):
-    """Jumlah link per kategori aktif."""
-    row_list = db.session.execute(
-        db.select(AccessEntry.category_id, db.func.count(AccessEntry.id))
-        .where(build_visible_entry_filter(user))
-        .group_by(AccessEntry.category_id)
-    ).all()
-    count_by_category_dict = dict(row_list)
-    return [
-        {
-            "id": category.id,
-            "name": category.name,
-            "count": count_by_category_dict.get(category.id, 0),
-            "percent": calculate_percent(count_by_category_dict.get(category.id, 0), total_count),
-        }
-        for category in get_active_category_list()
-    ]
 
 
 def list_recent_own_activity(user):
@@ -116,6 +98,6 @@ def build_dashboard_dict(user):
         "activity_bar_list": build_bar_list(activity_count_list),
         "group_list": list_user_group(user),
         "invitation_count": len(list_pending_invitation(user)),
-        "category_card_list": build_category_card_list(user, total_count),
+        "forum_row_list": build_forum_row_list(user),
         "recent_activity_list": list_recent_own_activity(user),
     }

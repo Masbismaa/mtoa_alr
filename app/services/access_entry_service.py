@@ -13,6 +13,14 @@ from app.services.attachment_service import (
     store_prepared_attachment_list,
 )
 from app.services.audit_service import log_audit
+from app.services.category_service import (
+    build_category_label,
+    get_category,
+    get_root_category,
+    is_category_usable,
+    list_descendant_id,
+    list_usable_category,
+)
 from app.utils.constants import (
     AUDIT_ACTION_CREATE,
     AUDIT_ACTION_DELETE,
@@ -47,18 +55,18 @@ ENTRY_COLUMN_FIELD_LIST = ["category_id", "title", "url", "address", "port", "us
 FIELD_NORMALIZER_DICT = {"url": normalize_url, "address": normalize_address, "port": parse_port}
 
 # KATEGORI
-def get_category_rule(category_name):
-    """Aturan field buat kategori tertentu."""
-    return CATEGORY_FIELD_RULE_DICT.get(category_name, DEFAULT_CATEGORY_FIELD_RULE)
+def get_category_rule(category):
+    """Aturan field ngikut kategori utamanya (Web › SAP tetep wajib URL kayak Web)."""
+    return CATEGORY_FIELD_RULE_DICT.get(get_root_category(category).name, DEFAULT_CATEGORY_FIELD_RULE)
 
 def get_active_category_list():
-    """Kategori aktif, urut id (Web, Application, Network, General)."""
-    return db.session.execute(db.select(Category).filter_by(is_active=True).order_by(Category.id)).scalars().all()
+    """Kategori yg bisa dipilih (dia & induknya aktif), urut kayak pohon."""
+    return list_usable_category()
 
 def get_form_category_list(current_category=None):
     """Pilihan kategori di form. Pas edit, kategori lama tetep ikut walau udah dinonaktifin admin."""
     category_list = list(get_active_category_list())
-    if current_category is not None and not current_category.is_active:
+    if current_category is not None and not is_category_usable(current_category):
         category_list.append(current_category)
     return category_list
 
@@ -71,7 +79,7 @@ def get_category_from_id(raw_category_id, current_category_id=None):
     category = db.session.get(Category, category_id)
     if category is None:
         return None
-    if not category.is_active and category.id != current_category_id:
+    if not is_category_usable(category) and category.id != current_category_id:
         return None
     return category
 
@@ -79,10 +87,10 @@ def build_category_option_list(category_list):
     """Data dropdown kategori + aturan field-nya (dipake JS)."""
     option_list = []
     for category in category_list:
-        rule = get_category_rule(category.name)
+        rule = get_category_rule(category)
         option_list.append({
             "id": category.id,
-            "name": category.name,
+            "name": build_category_label(category),
             "field_list": ",".join(rule["field_list"]),
             "required_field_list": ",".join(rule["required_field_list"]),
             "has_custom_field": "true" if rule["has_custom_field"] else "false",
@@ -96,7 +104,7 @@ def validate_entry_data(data_dict, current_category_id=None):
     if category is None:
         return {}, None, [build_error("category_id", "Kategori tidak valid")]
 
-    rule = get_category_rule(category.name)
+    rule = get_category_rule(category)
     error_list = []
     clean_dict = {"category_id": category.id}
 
@@ -137,7 +145,7 @@ def validate_entry_data(data_dict, current_category_id=None):
 
 def validate_custom_field_list(category, custom_field_pair_list):
     """Cek field tambahan (khusus kategori General). Return (clean_list, error_list)."""
-    rule = get_category_rule(category.name)
+    rule = get_category_rule(category)
     if not rule["has_custom_field"]:
         return [], []
 
@@ -324,8 +332,9 @@ def get_visible_entry(user, entry_id):
         .where(AccessEntry.id == entry_id, build_visible_entry_filter(user))
     ).scalar_one_or_none()
 
-def search_visible_entries(user, keyword=None, category_id=None, visibility=None, page=1, per_page=DASHBOARD_PER_PAGE):
-    """Cari data yg boleh diliat user, hasilnya per halaman."""
+def search_visible_entries(user, keyword=None, category_id=None, visibility=None, page=1, per_page=DASHBOARD_PER_PAGE,
+                           is_include_sub=True):
+    """Cari data yg boleh diliat user, hasilnya per halaman. Filter kategori ikut ngambil isi sub-nya."""
     query = (
         db.select(AccessEntry)
         .options(
@@ -340,7 +349,9 @@ def search_visible_entries(user, keyword=None, category_id=None, visibility=None
         search_column_list = [AccessEntry.title, AccessEntry.url, AccessEntry.address, AccessEntry.description]
         query = query.where(build_keyword_filter(search_column_list, clean_keyword))
     if category_id:
-        query = query.where(AccessEntry.category_id == category_id)
+        category = get_category(category_id)
+        category_id_list = list_descendant_id(category) if category is not None and is_include_sub else [category_id]
+        query = query.where(AccessEntry.category_id.in_(category_id_list))
     if visibility in VISIBILITY_LIST:
         query = query.where(AccessEntry.visibility == visibility)
     query = query.order_by(AccessEntry.updated_at.desc(), AccessEntry.id.desc())

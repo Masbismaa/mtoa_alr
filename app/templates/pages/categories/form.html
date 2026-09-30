@@ -4,7 +4,7 @@
 
 {% block title %}{{ page_title }} - MTOA ALR{% endblock %}
 
-{% block page_pretitle %}Admin{% endblock %}
+{% block page_pretitle %}Kategori{% endblock %}
 
 {% block content %}
   <div class="row justify-content-center">
@@ -15,19 +15,25 @@
           <h3 class="card-title">{{ icon("category") }} {{ page_title }}</h3>
         </div>
         <div class="card-body">
+          {% if parent_label %}
+            <div class="mb-3">
+              <div class="form-label">Di dalam</div>
+              <span class="badge bg-secondary-lt text-wrap">{{ parent_label }}</span>
+            </div>
+          {% endif %}
           {% if is_name_locked %}
             {{ render_field(form.name, readonly=true) }}
             <div class="form-hint mt-n2 mb-3">{{ icon("lock") }} Nama kategori bawaan dikunci karena aturan form link-nya nempel ke nama ini.</div>
           {% else %}
-            {{ render_field(form.name, placeholder="Contoh: Database", autocomplete="off") }}
+            {{ render_field(form.name, placeholder="Contoh: SAP", autocomplete="off") }}
           {% endif %}
           {{ render_field(form.description, placeholder="Kategori ini buat link apa (opsional)", rows=3) }}
           {% if not is_name_locked %}
-            <div class="text-secondary small">{{ icon("info") }} Form link untuk kategori baru bakal nampilin field URL, Address, dan Port (semuanya opsional).</div>
+            <div class="text-secondary small">{{ icon("info") }} Field form link (URL, Address, Port) ngikut kategori utamanya.</div>
           {% endif %}
         </div>
         <div class="card-footer d-flex justify-content-end gap-2">
-          <a href="{{ url_for('categories.index') }}" class="btn">Batal</a>
+          <a href="{{ cancel_url }}" class="btn">Batal</a>
           <button type="submit" class="btn btn-primary">{{ icon("check") }} Simpan</button>
         </div>
       </form>

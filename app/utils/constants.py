@@ -25,6 +25,19 @@ MIN_CATEGORY_NAME_LENGTH = 2
 MAX_CATEGORY_NAME_LENGTH = 50
 MAX_CATEGORY_DESCRIPTION_LENGTH = 255
 
+# kategori bertingkat: utama + 3 tingkat sub
+MAX_CATEGORY_DEPTH = 4
+CATEGORY_PATH_SEPARATOR = " › "
+# ikon & warna kategori utama di tampilan forum, kategori lain pake gaya default
+CATEGORY_STYLE_DICT = {
+    "Web": {"icon": "globe", "color_class": "bg-blue"},
+    "Application": {"icon": "apps", "color_class": "bg-green"},
+    "Network": {"icon": "network", "color_class": "bg-orange"},
+    "General": {"icon": "file", "color_class": "bg-purple"},
+}
+DEFAULT_CATEGORY_STYLE = {"icon": "category", "color_class": "bg-secondary"}
+CATEGORY_ENTRY_PER_PAGE = 20
+
 # Audit log
 # jenis aksi yg boleh dicatat, di luar ini ditolak
 AUDIT_ACTION_CREATE = "create"

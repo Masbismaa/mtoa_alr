@@ -1,0 +1,46 @@
+{# daftar kategori ala forum: ikon, nama, sub-kategori, jumlah link, link terbaru #}
+{% macro category_forum(row_list) %}
+  {% from "components/icon.html" import icon %}
+  <div class="list-group list-group-flush category-forum">
+    {% for row in row_list %}
+      <div class="list-group-item">
+        <div class="row align-items-center g-3">
+          <div class="col-auto">
+            <span class="avatar avatar-md {{ row.style.color_class }} text-white" aria-hidden="true">{{ icon(row.style.icon) }}</span>
+          </div>
+          <div class="col category-forum-info">
+            <a href="{{ url_for('categories.browse', category_id=row.category.id) }}" class="category-forum-title">{{ row.category.name }}</a>
+            {% if row.sub_category_list %}
+              <div class="category-forum-sub">
+                <span class="text-secondary" aria-hidden="true">└</span>
+                {% for sub_category in row.sub_category_list %}
+                  <span><a href="{{ url_for('categories.browse', category_id=sub_category.id) }}">{{ sub_category.name }}</a>{% if not loop.last %},{% endif %}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if row.category.description %}
+              <div class="small text-secondary mt-1">{{ row.category.description }}</div>
+            {% endif %}
+          </div>
+          <div class="col-auto category-forum-count">
+            <div class="h2 mb-0">{{ row.entry_count }}</div>
+            <div class="small text-secondary">link</div>
+          </div>
+          <div class="col-12 col-md-4 col-xl-3 category-forum-latest">
+            {% if row.latest_entry %}
+              <div class="d-flex align-items-center gap-2">
+                <span class="avatar avatar-sm bg-primary-lt">{{ row.latest_entry.owner.full_name | initials }}</span>
+                <div class="text-truncate">
+                  <a href="{{ url_for('entries.detail', entry_id=row.latest_entry.id) }}" class="category-forum-latest-title" title="{{ row.latest_entry.title }}">{{ row.latest_entry.title }}</a>
+                  <div class="small text-secondary text-truncate">Oleh {{ row.latest_entry.owner.full_name }}, {{ row.latest_entry.created_at | time_ago }}</div>
+                </div>
+              </div>
+            {% else %}
+              <span class="small text-secondary">Belum ada link</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endmacro %}
