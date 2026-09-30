@@ -1,0 +1,23 @@
+/* halaman dashboard */
+
+/* dashboard */
+.welcome-card {
+  background: linear-gradient(180deg, var(--tblr-primary-lt), transparent 70%), var(--tblr-bg-surface);
+}
+
+.welcome-illustration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 6.5rem;
+  height: 6.5rem;
+  color: var(--tblr-primary);
+  background: var(--tblr-primary-lt);
+  border-radius: 50%;
+}
+
+.welcome-illustration .icon {
+  width: 3rem;
+  height: 3rem;
+  stroke-width: 1.5;
+}

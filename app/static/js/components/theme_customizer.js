@@ -68,7 +68,6 @@
       uiDict[prefKey] = optionEl.dataset.prefValue;
     }
     preference.apply(uiDict, true);
-    syncSelected();
   }
 
   function handleReset() {
@@ -78,7 +77,6 @@
       is_compact_view: false,
       font_family: panelEl.dataset.defaultFont
     }, true);
-    syncSelected();
     showStatus("Balik ke default, klik Simpan biar kesimpen");
   }
 
@@ -122,11 +120,10 @@
   panelEl.addEventListener("hidden.bs.offcanvas", function () {
     if (!isSameDict(preference.readCurrent(), savedDict)) {
       preference.apply(savedDict, true);
-      syncSelected();
     }
   });
 
-  // mode diganti dari tombol tema di sidebar -> pilihan di panel ikut update
+  // tiap preferensi berubah (dari panel ini atau tombol tema) -> pilihan di panel ikut update
   document.addEventListener("alr:preference-changed", syncSelected);
 
   syncSelected();

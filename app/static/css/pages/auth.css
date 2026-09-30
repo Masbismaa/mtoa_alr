@@ -1,0 +1,9 @@
+/* halaman login/register/OTP */
+
+/* OTP biar gede & gampang dibaca */
+#otp_code {
+  font-family: var(--tblr-font-monospace);
+  font-size: 1.5rem;
+  letter-spacing: 0.5em;
+  text-align: center;
+}

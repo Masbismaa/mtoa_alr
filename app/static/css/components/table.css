@@ -1,0 +1,125 @@
+/* tabel: filter, sel, tombol copy, versi HP jadi kartu */
+
+/* filter tabel lagi loading */
+.filter-bar {
+  transition: opacity 150ms ease;
+}
+
+.filter-bar.is-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* sel tabel */
+.cell-title {
+  min-width: 140px;
+}
+
+.cell-copy {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.cell-url {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.cell-description {
+  max-width: 260px;
+}
+
+.cell-actor {
+  max-width: 260px;
+  overflow-wrap: anywhere;
+}
+
+.cell-action {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.copy-button.is-copied {
+  color: var(--tblr-green);
+  border-color: var(--tblr-green);
+}
+
+/* HP: tiap baris tabel jadi kartu kecil */
+@media (max-width: 767.98px) {
+  .table-stack thead {
+    display: none;
+  }
+
+  .table-stack,
+  .table-stack tbody,
+  .table-stack tr,
+  .table-stack td {
+    display: block;
+    width: 100%;
+  }
+
+  .table-stack tr {
+    padding: 0.75rem 1rem;
+    border-bottom: var(--tblr-border-width, 1px) solid var(--tblr-border-color);
+  }
+
+  .table-stack td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.35rem 0 !important;
+    text-align: right;
+    border: 0 !important;
+  }
+
+  .table-stack td > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .table-stack td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-align: left;
+    text-transform: uppercase;
+    color: var(--tblr-secondary);
+  }
+
+  .table-stack td:not([data-label])::before,
+  .table-stack td.cell-title::before {
+    content: none;
+  }
+
+  .table-stack td.cell-title,
+  .table-stack td.cell-action {
+    display: block;
+    text-align: left;
+  }
+
+  .table-stack td.cell-title {
+    font-size: 1rem;
+  }
+
+  .table-stack td.cell-action .btn {
+    flex: 1;
+  }
+
+  .table-stack .cell-url {
+    max-width: 170px;
+  }
+
+  .table-stack .cell-description,
+  .table-stack .cell-actor {
+    max-width: none;
+  }
+}

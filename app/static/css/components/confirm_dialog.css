@@ -1,0 +1,44 @@
+/* dialog konfirmasi */
+
+/* dialog konfirmasi (pake <dialog> bawaan browser, gaya ngikut modal Tabler) */
+.confirm-dialog {
+  width: min(420px, calc(100% - 2rem));
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  overflow: visible;
+}
+
+.confirm-dialog::backdrop {
+  background: rgba(24, 36, 51, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.confirm-dialog[open] {
+  animation: app-pop-in 200ms ease both;
+}
+
+.confirm-dialog .modal-content {
+  overflow: hidden;
+  color: var(--tblr-body-color);
+  background: var(--tblr-bg-surface);
+  border: var(--tblr-border-width, 1px) solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius-lg, 8px);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.2);
+}
+
+.confirm-dialog .modal-body {
+  padding: 1.5rem;
+}
+
+.confirm-dialog .modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: var(--tblr-border-width, 1px) solid var(--tblr-border-color);
+}
+
+.confirm-dialog-icon .icon {
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 0.75rem;
+}
