@@ -8,10 +8,12 @@ from app.schemas.auth_schema import LoginForm, OtpForm, RegisterForm
 from app.services.audit_service import log_audit
 from app.services.auth_service import (
     authenticate_user,
+    can_continue_login,
     register_user,
     resend_otp_challenge,
     start_otp_challenge,
     verify_otp_code,
+    authenticate_user,
 )
 from app.utils.constants import (
     AUDIT_ACTION_LOGOUT,
@@ -30,6 +32,11 @@ def get_pending_user():
     if not pending_user_id:
         return None
     return db.session.get(User, pending_user_id)
+
+def end_pending_login(message):
+    session.pop(SESSION_PENDING_USER_KEY, None)
+    flash(message, "danger")
+    return redirect(url_for("auth.login"))
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 @limiter.limit("5 per minute", methods=["POST"])
@@ -94,6 +101,8 @@ def verify_otp():
         try:
             verify_otp_code(pending_user, form.otp_code.data)
         except AuthError as error:
+            if not can_continue_login(pending_user):
+                return end_pending_login(str(error))
             flash(str(error), "danger")
         else:
             # ganti ke session baru yg bersih, baru login-in user
@@ -122,6 +131,8 @@ def resend_otp():
     try:
         resend_otp_challenge(pending_user)
     except AuthError as error:
+        if not can_continue_login(pending_user):
+            return end_pending_login(str(error))
         flash(str(error), "warning")
     else:
         flash("OTP baru sudah dikirim", "success")

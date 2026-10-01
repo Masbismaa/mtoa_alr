@@ -28,6 +28,8 @@ from app.utils.text_helper import normalize_email
 
 # pesan login gagal dibikin sama semua, biar orang ga bisa nebak email mana yg terdaftar
 GENERIC_LOGIN_ERROR = "Email atau password salah"
+ACCOUNT_LOCKED_ERROR = f"Akun dikunci sementara karena terlalu banyak percobaan. Coba lagi dalam {LOGIN_LOCK_MINUTES} menit."
+INACTIVE_ACCOUNT_ERROR = "Akun ini sudah tidak aktif, hubungi admin untuk mengaktifkan kembali."
 
 
 # REGISTER
@@ -137,7 +139,7 @@ def authenticate_user(email, password):
             AUDIT_ACTION_LOGIN_FAILED, "users", entity_id=user.id, user=user,
             new_data_dict={"reason": "account_locked"}, is_commit=True,
         )
-        raise AuthError(f"Akun dikunci sementara karena terlalu banyak percobaan. Coba lagi dalam {LOGIN_LOCK_MINUTES} menit")
+        raise AuthError(ACCOUNT_LOCKED_ERROR)
 
     # akun nonaktif atau password salah -> pesannya tetep sama
     if not user.is_active or not verify_password(user.password_hash, password):
@@ -151,6 +153,17 @@ def authenticate_user(email, password):
 
 
 # LOGIN LANGKAH 2: OTP
+def can_continue_login(user):
+    # Bisa lanjut ke OTP alau akun aktif + ga dikunci.
+    return user.is_active and not is_account_locked(user)
+
+def ensure_can_continue_login(user):
+    # Dicek ulang di langkah OTP, bisa aja aunnya dikunci/dinonatifkan setelah lolos password
+    if not user.is_active:
+        raise AuthError(INACTIVE_ACCOUNT_ERROR)
+    if is_account_locked(user):
+        raise AuthError(ACCOUNT_LOCKED_ERROR)
+
 def get_latest_otp(user_id, is_unused_only=False):
     """Ambil OTP paling baru milik user (opsional: yg belum kepake aja)."""
     query = db.select(OtpCode).filter_by(user_id=user_id)
@@ -182,6 +195,7 @@ def start_otp_challenge(user):
 
 def resend_otp_challenge(user):
     """Kirim ulang OTP, tapi harus nunggu jeda dulu biar ga di-spam."""
+    ensure_can_continue_login(user)
     latest_otp = get_latest_otp(user.id)
     if latest_otp is not None:
         next_allowed_at = to_utc_aware(latest_otp.created_at) + timedelta(seconds=OTP_RESEND_COOLDOWN_SECONDS)
@@ -192,21 +206,27 @@ def resend_otp_challenge(user):
 
 def verify_otp_code(user, otp_code):
     """Cek OTP. Kalau bener, OTP ditandai kepake & login dicatat. Kalau salah, lempar AuthError."""
+    ensure_can_continue_login(user)
     active_otp = get_latest_otp(user.id, is_unused_only=True)
 
     # ga ada OTP aktif atau udah lewat waktunya
     if active_otp is None or to_utc_aware(active_otp.expires_at) < utc_now():
         raise AuthError("OTP sudah kedaluwarsa, silakan minta OTP baru")
 
-    # OTP salah
+    # OTP salah: dihitung per OTP & ikut nambah hitungan gagal akun,
+    # biar ga bisa nebak OTP terus-terusan cuma modal minta OTP baru
     if not is_otp_code_match(otp_code, active_otp.code_hash):
         active_otp.attempt_count += 1
+        register_failed_login(user)
+        is_locked = is_account_locked(user)
         is_attempt_exhausted = active_otp.attempt_count >= OTP_MAX_ATTEMPT_COUNT
-        if is_attempt_exhausted:
+        if is_attempt_exhausted or is_locked:
             # kebanyakan salah -> OTP hangus
             active_otp.is_used = True
         log_audit(AUDIT_ACTION_LOGIN_FAILED, "users", entity_id=user.id, user=user, new_data_dict={"reason": "wrong_otp"})
         db.session.commit()
+        if is_locked:
+            raise AuthError(ACCOUNT_LOCKED_ERROR)
         if is_attempt_exhausted:
             raise AuthError("Terlalu banyak percobaan OTP, silakan minta OTP baru")
         raise AuthError("Kode OTP salah")
