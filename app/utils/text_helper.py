@@ -1,5 +1,12 @@
 """Helper olah teks yg dipake di banyak tempat."""
-from app.utils.constants import LINK_STATUS_LABEL_DICT, ROLE_LABEL_DICT, VISIBILITY_LABEL_DICT
+from app.utils.constants import (
+    AUDIT_ACTION_LABEL_DICT,
+    AUDIT_ENTITY_LABEL_DICT,
+    LINK_STATUS_LABEL_DICT,
+    ROLE_LABEL_DICT,
+    USER_STATUS_LABEL_DICT,
+    VISIBILITY_LABEL_DICT,
+)
 
 def normalize_email(value):
     """Rapihin email: hapus spasi di ujung + huruf kecil semua."""
@@ -40,3 +47,15 @@ def format_file_size(size_bytes):
     if size_bytes < 1024 * 1024:
         return f"{size_bytes/1024:.1f} KB"
     return f"{size_bytes/(1024*1024):.1f} MB"
+
+def get_audit_action_label(action):
+    """Ubah kode aksi audit jadi label, misal 'login_failed' -> 'Login Gagal'."""
+    return AUDIT_ACTION_LABEL_DICT.get(action, action)
+
+def get_audit_entity_label(entity_type):
+    """Ubah nama tabel di audit log jadi label, misal 'access_entries' -> 'Data Link'."""
+    return AUDIT_ENTITY_LABEL_DICT.get(entity_type, entity_type)
+
+def get_user_status_label(status):
+    # ubah code status akun jdi label contoh "active" -> "Aktif"
+    return USER_STATUS_LABEL_DICT.get(status, status)

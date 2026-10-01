@@ -1,0 +1,211 @@
+"""Halaman kategori: jelajah ala forum (semua user) + kelola kategori (admin)."""
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
+from app.schemas.category_schema import CategoryForm
+from app.security.access_policy import is_admin
+from app.security.role_guard import admin_required
+from app.services.access_entry_service import search_visible_entries
+from app.services.category_service import (
+    build_category_label,
+    build_forum_row_list,
+    can_add_sub_category,
+    can_manage_category,
+    create_category,
+    create_sub_category,
+    delete_category,
+    get_category,
+    get_category_path_list,
+    is_category_usable,
+    is_default_category,
+    list_category_summary,
+    toggle_category_active,
+    update_category,
+)
+from app.utils.constants import CATEGORY_ENTRY_PER_PAGE, MAX_CATEGORY_DEPTH
+from app.utils.exceptions import ValidationError
+from app.utils.query_helper import parse_positive_int
+
+categories_bp = Blueprint("categories", __name__, url_prefix="/categories")
+
+def get_user():
+    """User asli (bukan proxy)."""
+    return current_user._get_current_object()
+
+def get_category_or_404(category_id):
+    """Kategori ga ada -> 404."""
+    category = get_category(category_id)
+    if category is None:
+        abort(404)
+    return category
+
+def get_visible_category_or_404(user, category_id):
+    category = get_category_or_404(category_id)
+    if not is_category_usable(category) and not is_admin(user):
+        abort(404)
+    return category
+
+def build_form_data(form):
+    """Isi form kategori jadi dict."""
+    return {"name": form.name.data, "description": form.description.data}
+
+def attach_error_list(form, error_list):
+    """Error nama nempel di field-nya, sisanya jadi flash."""
+    for error_dict in error_list:
+        if error_dict["field"] == "name":
+            form.name.errors.append(error_dict["message"])
+        else:
+            flash(error_dict["message"], "danger")
+
+def build_back_url(user, parent_id):
+    """Balik ke halaman induknya. Kategori utama balik ke tabel admin (atau Home buat user biasa)."""
+    if parent_id is not None:
+        return url_for("categories.browse", category_id=parent_id)
+    return url_for("categories.index") if is_admin(user) else url_for("main.home")
+
+def render_category_form(form, page_title, form_action, cancel_url, parent=None, is_name_locked=False):
+    """Render form tambah/edit kategori (utama maupun sub)."""
+    return render_template(
+        "pages/categories/form.html",
+        form=form,
+        page_title=page_title,
+        form_action=form_action,
+        cancel_url=cancel_url,
+        parent_label=build_category_label(parent) if parent is not None else None,
+        is_name_locked=is_name_locked,
+    )
+
+@categories_bp.get("/")
+@login_required
+@admin_required
+def index():
+    """Tabel semua kategori (bentuk pohon) + jumlah link-nya."""
+    return render_template(
+        "pages/categories/index.html",
+        page_title="Categories",
+        category_summary_list=list_category_summary(),
+        max_category_depth=MAX_CATEGORY_DEPTH,
+    )
+
+@categories_bp.route("/new", methods=["GET", "POST"])
+@login_required
+@admin_required
+def create():
+    """Tambah kategori utama, khusus admin."""
+    form = CategoryForm()
+    if form.validate_on_submit():
+        try:
+            category = create_category(get_user(), build_form_data(form))
+        except ValidationError as error:
+            attach_error_list(form, error.error_list)
+        else:
+            flash(f'Kategori "{category.name}" berhasil ditambahkan', "success")
+            return redirect(url_for("categories.index"))
+    return render_category_form(form, "Tambah Kategori", url_for("categories.create"), url_for("categories.index"))
+
+@categories_bp.get("/<int:category_id>")
+@login_required
+def browse(category_id):
+    """Isi satu kategori ala forum: sub-kategori + link yg ada langsung di kategori ini."""
+    user = get_user()
+    category = get_visible_category_or_404(user, category_id)
+    pagination = search_visible_entries(
+        user,
+        category_id=category.id,
+        page=parse_positive_int(request.args.get("page"), default=1),
+        per_page=CATEGORY_ENTRY_PER_PAGE,
+        is_include_sub=False,
+    )
+    return render_template(
+        "pages/categories/browse.html",
+        page_title=category.name,
+        category=category,
+        path_list=get_category_path_list(category),
+        forum_row_list=build_forum_row_list(user, parent=category),
+        pagination=pagination,
+        pagination_query_dict={"category_id": category.id},
+        can_add_sub=can_add_sub_category(category),
+        can_manage=can_manage_category(user, category),
+        is_default=is_default_category(category),
+    )
+
+@categories_bp.route("/<int:category_id>/sub/new", methods=["GET", "POST"])
+@login_required
+def create_sub(category_id):
+    """Tambah sub-kategori, semua user boleh (maksimal 4 tingkat)."""
+    user = get_user()
+    parent = get_visible_category_or_404(user, category_id)
+    if not can_add_sub_category(parent):
+        flash(f"Kategori ini udah tingkat paling dalam (maksimal {MAX_CATEGORY_DEPTH} tingkat)", "warning")
+        return redirect(url_for("categories.browse", category_id=parent.id))
+
+    form = CategoryForm()
+    if form.validate_on_submit():
+        try:
+            category = create_sub_category(user, parent, build_form_data(form))
+        except ValidationError as error:
+            attach_error_list(form, error.error_list)
+        else:
+            flash(f'Sub-kategori "{category.name}" berhasil ditambahkan', "success")
+            return redirect(url_for("categories.browse", category_id=category.id))
+    return render_category_form(
+        form, "Tambah Sub-kategori", url_for("categories.create_sub", category_id=parent.id),
+        url_for("categories.browse", category_id=parent.id), parent=parent,
+    )
+
+@categories_bp.route("/<int:category_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit(category_id):
+    """Edit kategori: admin semua, user biasa cuma sub bikinannya. Nama kategori bawaan dikunci."""
+    user = get_user()
+    category = get_category_or_404(category_id)
+    if not can_manage_category(user, category):
+        abort(403)
+
+    form = CategoryForm(obj=category)
+    if form.validate_on_submit():
+        try:
+            update_category(user, category, build_form_data(form))
+        except ValidationError as error:
+            attach_error_list(form, error.error_list)
+        else:
+            flash(f'Kategori "{category.name}" berhasil diperbarui', "success")
+            return redirect(url_for("categories.browse", category_id=category.id))
+    return render_category_form(
+        form, "Edit Kategori", url_for("categories.edit", category_id=category.id),
+        url_for("categories.browse", category_id=category.id),
+        parent=category.parent, is_name_locked=is_default_category(category),
+    )
+
+@categories_bp.post("/<int:category_id>/toggle")
+@login_required
+@admin_required
+def toggle(category_id):
+    """Aktifin / nonaktifin kategori, khusus admin."""
+    category = get_category_or_404(category_id)
+    try:
+        toggle_category_active(get_user(), category)
+    except ValidationError as error:
+        flash(error.error_list[0]["message"], "danger")
+    else:
+        status_text = "diaktifkan" if category.is_active else "dinonaktifkan"
+        flash(f'Kategori "{category.name}" {status_text}', "success")
+    return redirect(url_for("categories.index"))
+
+@categories_bp.post("/<int:category_id>/delete")
+@login_required
+def delete(category_id):
+    """Hapus kategori kosong (konfirmasinya di browser). Admin, atau pembuat sub-kategori itu."""
+    user = get_user()
+    category = get_category_or_404(category_id)
+    if not can_manage_category(user, category):
+        abort(403)
+
+    category_name = category.name
+    parent_id = category.parent_id
+    try:
+        delete_category(user, category)
+    except ValidationError as error:
+        flash(error.error_list[0]["message"], "danger")
+        return redirect(url_for("categories.browse", category_id=category.id))
+    flash(f'Kategori "{category_name}" berhasil dihapus', "success")
+    return redirect(build_back_url(user, parent_id))

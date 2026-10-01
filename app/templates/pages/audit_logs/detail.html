@@ -1,0 +1,91 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+{% from "components/badge.html" import audit_action_badge %}
+
+{% block title %}Audit Log #{{ audit_log.id }} - MTOA ALR{% endblock %}
+
+{% block page_pretitle %}<a href="{{ url_for('audit.index') }}" class="text-reset">{{ icon("arrow_left") }} Audit Logs</a>{% endblock %}
+
+{% block page_heading %}Audit Log #{{ audit_log.id }}{% endblock %}
+
+{% block page_subtitle %}
+  <div class="d-flex flex-wrap gap-2 mt-2">
+    {{ audit_action_badge(audit_log.action) }}
+    <span class="badge bg-secondary-lt">{{ audit_log.entity_type | audit_entity_label }}</span>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div class="row row-cards">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("edit") }} Perubahan Data</h3>
+        </div>
+        {% if not is_data_visible %}
+          <div class="card-body">
+            <div class="alert alert-info mb-0">{{ icon("lock") }} Isi data disembunyikan karena ini data Private milik user lain.</div>
+          </div>
+        {% elif change_list %}
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table table-stack audit-change-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  {% if audit_log.old_data %}<th>Sebelum</th>{% endif %}
+                  {% if audit_log.new_data %}<th>Sesudah</th>{% endif %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for change in change_list %}
+                  <tr class="{% if change.is_changed %}is-changed{% endif %}{% if change.is_masked %} is-masked{% endif %}">
+                    <td class="cell-field" data-label="Field"><code>{{ change.field }}</code></td>
+                    {% if audit_log.old_data %}<td data-label="Sebelum">{{ change.old_value }}</td>{% endif %}
+                    {% if audit_log.new_data %}<td data-label="Sesudah">{{ change.new_value }}</td>{% endif %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if audit_log.old_data and audit_log.new_data %}
+            <div class="card-footer text-secondary small"><span class="audit-legend-swatch me-1" aria-hidden="true"></span> Baris berwarna = field yang berubah.</div>
+          {% endif %}
+        {% else %}
+          <div class="card-body text-secondary">Tidak ada isi data yang dicatat untuk aktivitas ini.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("info") }} Info</h3>
+        </div>
+        <div class="card-body">
+          <div class="datagrid">
+            <div class="datagrid-item">
+              <div class="datagrid-title">Waktu</div>
+              <div class="datagrid-content">{{ audit_log.created_at | local_datetime("%d %b %Y, %H:%M:%S") }}</div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">Pelaku</div>
+              <div class="datagrid-content text-break">{{ audit_log.actor_email or "Sistem" }}</div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">ID Data</div>
+              <div class="datagrid-content">{{ audit_log.entity_id or "-" }}</div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">IP Address</div>
+              <div class="datagrid-content font-monospace">{{ audit_log.ip_address or "-" }}</div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">Perangkat</div>
+              <div class="datagrid-content small text-secondary text-break">{{ audit_log.user_agent or "-" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

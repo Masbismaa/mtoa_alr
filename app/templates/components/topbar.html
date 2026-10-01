@@ -1,17 +1,14 @@
 {% from "components/icon.html" import icon %}
-<header class="topbar">
-  <button type="button" class="btn-icon" data-sidebar-toggle aria-label="Buka/tutup menu" aria-controls="app_sidebar" aria-expanded="true">
-    {{ icon("menu") }}
-  </button>
-
-  <h1 class="topbar-title">{{ page_title or "MTOA ALR" }}</h1>
-
-  <div class="topbar-actions">
-    <button type="button" class="btn-icon" data-theme-toggle aria-label="Ganti mode terang/gelap">
-      {{ icon("moon", "theme-icon-moon") }}{{ icon("sun", "theme-icon-sun") }}
-    </button>
-    <button type="button" class="btn-icon" data-customizer-open aria-label="Buka pengaturan tampilan" aria-controls="theme_customizer">
-      {{ icon("palette") }}
-    </button>
+{% from "components/user_menu.html" import user_menu with context %}
+{# navigasi atas (layar besar): tombol Home di kiri, tombol tema + menu user di kanan #}
+<header class="navbar navbar-expand-md d-none d-lg-flex d-print-none app-topbar">
+  <div class="container-xl">
+    <a href="{{ url_for('main.home') }}" class="btn btn-ghost-secondary app-topbar-home{% if request.endpoint == 'main.home' and not request.args %} active{% endif %}">
+      {{ icon("home") }} Home
+    </a>
+    <div class="navbar-nav flex-row align-items-center gap-2 ms-auto">
+      {% include "components/theme_toggle_button.html" %}
+      {{ user_menu() }}
+    </div>
   </div>
 </header>

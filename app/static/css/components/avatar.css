@@ -1,0 +1,14 @@
+/* avatar inisial user */
+
+/* inisial 3 huruf (MBP) biar muat di avatar kecil */
+.avatar {
+  letter-spacing: -0.02em;
+}
+
+.avatar-sm {
+  font-size: 0.6875rem;
+}
+
+.avatar-xs {
+  font-size: 0.5rem;
+}

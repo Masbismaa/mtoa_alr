@@ -1,28 +1,29 @@
 {% extends "layouts/base.html" %}
 {% from "components/icon.html" import icon %}
 
-{% block styles %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/auth.css') }}">
-{% endblock %}
-
-{% block body_class %}auth-body{% endblock %}
+{% block body_class %}d-flex flex-column{% endblock %}
 
 {% block body %}
-  <button type="button" class="btn-icon auth-theme-toggle" data-theme-toggle aria-label="Ganti mode terang/gelap">
-    {{ icon("moon", "theme-icon-moon") }}{{ icon("sun", "theme-icon-sun") }}
-  </button>
-
-  <main class="card auth-card">
-    <div class="auth-brand">
-      <span class="brand-logo">ALR</span>
-      <div>
-        <h1 class="auth-title">MTOA ALR</h1>
-        <p class="auth-subtitle">Access Link Register</p>
+  <div class="page page-center">
+    <div class="container container-tight py-4">
+      <div class="d-flex justify-content-end">
+        {% include "components/theme_toggle_button.html" %}
       </div>
-    </div>
-    
-    {% include "components/flash_messages.html" %}
 
-    {% block content %}{% endblock %}
-  </main>
+      <div class="text-center mb-4 auth-brand">
+        {% include "components/brand_logo.html" %}
+        <h1 class="h3 mt-3 mb-0">Access Link Register</h1>
+        <div class="text-secondary small">ICT Spindo</div>
+      </div>
+
+      <div class="card card-md auth-card">
+        <div class="card-body">
+          {% include "components/flash_messages.html" %}
+          {% block content %}{% endblock %}
+        </div>
+      </div>
+
+      {% block after_card %}{% endblock %}
+    </div>
+  </div>
 {% endblock %}

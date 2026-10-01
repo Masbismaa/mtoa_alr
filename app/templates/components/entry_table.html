@@ -1,0 +1,60 @@
+{# tabel data link, dipake di Home & halaman kategori #}
+{% macro entry_table(entry_list, is_category_shown=true) %}
+  {% from "components/icon.html" import icon %}
+  {% from "components/copy_button.html" import copy_button %}
+  {% from "components/badge.html" import visibility_badge %}
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table table-stack">
+      <thead>
+        <tr>
+          <th>Judul</th>
+          {% if is_category_shown %}<th>Kategori</th>{% endif %}
+          <th>URL / Address</th>
+          <th>Deskripsi</th>
+          <th>Visibilitas</th>
+          <th>Lampiran</th>
+          <th>Dibuat Oleh</th>
+          <th>Dibuat</th>
+          <th class="w-1"><span class="visually-hidden">Aksi</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in entry_list %}
+          {% set access_text = entry.url or ((entry.address ~ (":" ~ entry.port if entry.port else "")) if entry.address else "") %}
+          <tr>
+            <td class="cell-title" data-label="Judul">
+              <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="text-reset fw-bold" title="{{ entry.title }}">{{ entry.title | truncate(50, true, "…", 0) }}</a>
+            </td>
+            {% if is_category_shown %}
+              <td data-label="Kategori"><a href="{{ url_for('categories.browse', category_id=entry.category_id) }}" class="badge bg-secondary-lt text-wrap text-start">{{ entry.category | category_label }}</a></td>
+            {% endif %}
+            <td data-label="URL / Address">
+              {% if access_text %}
+                <div class="cell-copy">
+                  <code class="cell-url" title="{{ access_text }}">{{ access_text }}</code>
+                  {{ copy_button(access_text, label="Copy link", is_icon_only=true) }}
+                </div>
+              {% else %}
+                <span class="text-secondary">-</span>
+              {% endif %}
+            </td>
+            <td class="cell-description text-secondary" data-label="Deskripsi">
+              {% if entry.description %}
+                <span title="{{ entry.description }}">{{ entry.description | truncate(60, true, "…", 0) }}</span>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td data-label="Visibilitas">{{ visibility_badge(entry.visibility) }}</td>
+            <td data-label="Lampiran">{% if entry.attachment_list %}{{ icon("paperclip") }} {{ entry.attachment_list | length }}{% else %}<span class="text-secondary">-</span>{% endif %}</td>
+            <td data-label="Dibuat Oleh">{{ entry.owner.full_name }}</td>
+            <td class="text-nowrap text-secondary" data-label="Dibuat">{{ entry.created_at | local_datetime }}</td>
+            <td class="cell-action">
+              <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="btn btn-sm">{{ icon("eye") }} View</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endmacro %}

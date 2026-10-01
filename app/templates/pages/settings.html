@@ -3,27 +3,49 @@
 
 {% block title %}Settings - MTOA ALR{% endblock %}
 
-{% block page_styles %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/settings.css') }}">
-{% endblock %}
-
 {% block content %}
-  <div class="settings-grid">
-    <section class="card">
-      <h2 class="section-title">{{ icon("user") }} Profil</h2>
-      <dl class="profile-list">
-        <div><dt>Nama Lengkap</dt><dd>{{ current_user.full_name }}</dd></div>
-        <div><dt>Email</dt><dd>{{ current_user.email }}</dd></div>
-        <div><dt>Departemen</dt><dd>{{ current_user.department }}</dd></div>
-        <div><dt>Jabatan</dt><dd>{{ current_user.job_title }}</dd></div>
-        <div><dt>Role</dt><dd><span class="badge">{{ current_user.role | role_label }}</span></dd></div>
-      </dl>
-    </section>
+  <div class="row row-cards">
+    <div class="col-lg-7">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("user") }} Profil</h3>
+        </div>
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-4">
+            <span class="avatar avatar-lg bg-primary-lt me-3">{{ current_user.full_name | initials }}</span>
+            <div>
+              <div class="h3 mb-1">{{ current_user.full_name }}</div>
+              <div class="text-secondary">{{ current_user.email }}</div>
+            </div>
+          </div>
+          <div class="datagrid">
+            <div class="datagrid-item">
+              <div class="datagrid-title">Departemen</div>
+              <div class="datagrid-content">{{ current_user.department }}</div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">Jabatan</div>
+              <div class="datagrid-content">{{ current_user.job_title }}</div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">Role</div>
+              <div class="datagrid-content"><span class="badge bg-primary-lt">{{ current_user.role | role_label }}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <section class="card">
-      <h2 class="section-title">{{ icon("palette") }} Tampilan</h2>
-      <p class="text-muted">Atur mode terang/gelap, warna aksen, kerapatan, dan font. Perubahan langsung kepake dan tersimpan otomatis ke akunmu.</p>
-      <button type="button" class="btn btn-primary" data-customizer-open>{{ icon("palette") }} Buka UI Customizer</button>
-    </section>
+    <div class="col-lg-5">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("palette") }} Tampilan</h3>
+        </div>
+        <div class="card-body">
+          <p class="text-secondary">Atur mode terang/gelap, warna aksen, kerapatan, dan font. Perubahan langsung kepake dan tersimpan otomatis ke akunmu.</p>
+          <button type="button" class="btn btn-primary" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer">{{ icon("palette") }} Buka UI Customizer</button>
+        </div>
+      </div>
+    </div>
   </div>
 {% endblock %}

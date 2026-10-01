@@ -1,100 +1,42 @@
 /* editor teks bertoolbar + tampilan hasilnya */
 
-.rte {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
+/* editor teks bertoolbar */
 .rte-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  padding: var(--space-2);
-  background: var(--color-surface-muted);
-  border: var(--nb-border-width) solid var(--color-border);
-  border-radius: var(--nb-radius);
+  margin-bottom: 0.5rem;
 }
 
-.rte-button {
-  min-width: 34px;
-  height: 32px;
-  padding: 0 var(--space-2);
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 2px solid var(--color-border);
-  border-radius: 4px;
-  cursor: pointer;
-  transition:
-    transform var(--nb-transition-fast),
-    box-shadow var(--nb-transition-fast),
-    background-color var(--nb-transition-fast);
-}
-
-.rte-button:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: var(--shadow-small);
-}
-
-.rte-button:active {
-  transform: translate(1px, 1px);
-  box-shadow: none;
-}
-
-/* tombol format yg lagi aktif (misal kursor di teks tebal) */
 .rte-button.is-active {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  color: var(--tblr-primary);
+  background: var(--tblr-primary-lt);
+  border-color: var(--tblr-primary);
 }
 
-.rte-content.form-input {
-  min-height: 140px;
-  padding: var(--space-3);
+.rte-content {
+  min-height: 8.5rem;
   line-height: 1.6;
   overflow-wrap: anywhere;
   cursor: text;
 }
 
-/* tulisan contoh pas editor masih kosong */
 .rte-content:empty::before {
   content: attr(data-placeholder);
-  color: var(--color-muted);
+  color: var(--tblr-secondary);
   pointer-events: none;
 }
 
-/* gaya isi editor & tampilan hasilnya dibikin sama */
 .rte-content p,
 .rte-content div,
 .rich-text-view p,
 .rich-text-view div {
-  margin: 0 0 var(--space-2);
+  margin: 0 0 0.5rem;
 }
 
 .rte-content ul,
 .rte-content ol,
 .rich-text-view ul,
 .rich-text-view ol {
-  margin: 0 0 var(--space-2);
-  padding-left: var(--space-5);
-}
-
-.rte-content code,
-.rich-text-view code {
-  padding: 1px 6px;
-  font-family: var(--font-mono);
-  font-size: 0.92em;
-  background: var(--color-surface-muted);
-  border: 2px solid var(--color-border);
-  border-radius: 4px;
-}
-
-.rte-content a,
-.rich-text-view a {
-  font-weight: 700;
-  text-decoration-thickness: 2px;
+  margin: 0 0 0.5rem;
+  padding-left: 1.5rem;
 }
 
 .rich-text-view {

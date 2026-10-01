@@ -1,0 +1,23 @@
+{# badge warna-warni yg dipake di banyak halaman #}
+{% macro visibility_badge(visibility) %}
+  <span class="badge {{ 'bg-green-lt' if visibility == 'public' else 'bg-orange-lt' }}">{{ visibility | visibility_label }}</span>
+{% endmacro %}
+
+{% macro link_status_badge(status) %}
+  {% set status_class_dict = {"up": "bg-green-lt", "down": "bg-red-lt"} %}
+  <span class="badge {{ status_class_dict.get(status, 'bg-secondary-lt') }}">{{ status | link_status_label }}</span>
+{% endmacro %}
+
+{% macro audit_action_badge(action) %}
+  {% set action_class_dict = {"create": "bg-green-lt", "update": "bg-azure-lt", "delete": "bg-red-lt", "login": "bg-primary-lt", "login_failed": "bg-yellow-lt", "logout": "bg-secondary-lt"} %}
+  <span class="badge audit-action-{{ action }} {{ action_class_dict.get(action, 'bg-secondary-lt') }}">{{ action | audit_action_label }}</span>
+{% endmacro %}
+
+{% macro role_badge(role) %}
+  <span class="badge {{ 'bg-azure-lt' if role == 'admin' else 'bg-secondary-lt' }}">{{ role | role_label }}</span>
+{% endmacro %}
+
+{% macro user_status_badge(status) %}
+  {% set status_class_dict = {"active": "bg-green-lt", "locked": "bg-yellow-lt", "inactive": "bg-secondary-lt"} %}
+  <span class="badge user-status-{{ status }} {{ status_class_dict.get(status, 'bg-secondary-lt') }}">{{ status | user_status_label }}</span>
+{% endmacro %}

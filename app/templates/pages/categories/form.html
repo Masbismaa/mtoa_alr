@@ -1,0 +1,42 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/form_field.html" import render_field %}
+{% from "components/icon.html" import icon %}
+
+{% block title %}{{ page_title }} - MTOA ALR{% endblock %}
+
+{% block page_pretitle %}Kategori{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <form method="post" action="{{ form_action }}" class="card" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("category") }} {{ page_title }}</h3>
+        </div>
+        <div class="card-body">
+          {% if parent_label %}
+            <div class="mb-3">
+              <div class="form-label">Di dalam</div>
+              <span class="badge bg-secondary-lt text-wrap">{{ parent_label }}</span>
+            </div>
+          {% endif %}
+          {% if is_name_locked %}
+            {{ render_field(form.name, readonly=true) }}
+            <div class="form-hint mt-n2 mb-3">{{ icon("lock") }} Nama kategori bawaan dikunci karena aturan form link-nya nempel ke nama ini.</div>
+          {% else %}
+            {{ render_field(form.name, placeholder="Contoh: SAP", autocomplete="off") }}
+          {% endif %}
+          {{ render_field(form.description, placeholder="Kategori ini buat link apa (opsional)", rows=3) }}
+          {% if not is_name_locked %}
+            <div class="text-secondary small">{{ icon("info") }} Field form link (URL, Address, Port) ngikut kategori utamanya.</div>
+          {% endif %}
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <a href="{{ cancel_url }}" class="btn">Batal</a>
+          <button type="submit" class="btn btn-primary">{{ icon("check") }} Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

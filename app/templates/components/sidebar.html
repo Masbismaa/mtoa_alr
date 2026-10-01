@@ -1,45 +1,68 @@
 {% from "components/icon.html" import icon %}
-<aside class="sidebar" id="app_sidebar" data-sidebar>
-  <div class="sidebar-brand">
-    <span class="brand-logo">ALR</span>
-    <div class="sidebar-brand-text">
-      <strong>MTOA ALR</strong>
-      <small>Access Link Register</small>
-    </div>
-    <button type="button" class="btn-icon sidebar-close" data-sidebar-close aria-label="Tutup menu">{{ icon("close") }}</button>
-  </div>
-
-  <nav class="sidebar-nav" aria-label="Navigasi utama">
-    <ul>
-      {% for nav_item in sidebar_nav_list %}
-        <li>
-          {% if nav_item.is_available %}
-            <a href="{{ nav_item.url }}" class="nav-link{% if nav_item.is_active %} is-active{% endif %}" title="{{ nav_item.label }}"{% if nav_item.is_active %} aria-current="page"{% endif %}>
-              {{ icon(nav_item.icon) }}<span class="nav-label">{{ nav_item.label }}</span>
-            </a>
-          {% else %}
-            <span class="nav-link is-disabled" aria-disabled="true" title="{{ nav_item.label }} (segera hadir)">
-              {{ icon(nav_item.icon) }}<span class="nav-label">{{ nav_item.label }}</span><em class="nav-badge">Segera</em>
-            </span>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  </nav>
-
-  <div class="sidebar-profile" title="{{ current_user.full_name }}">
-    <span class="avatar" aria-hidden="true">{{ current_user.full_name | initials }}</span>
-    <div class="sidebar-profile-text">
-      <strong>{{ current_user.full_name }}</strong>
-      <small>{{ current_user.job_title }}</small>
-      <small>{{ current_user.department }}</small>
-    </div>
-  </div>
-
-  <form method="post" action="{{ url_for('auth.logout') }}" class="sidebar-logout">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="btn btn-secondary btn-block" title="Logout">
-      {{ icon("logout") }}<span class="nav-label">Logout</span>
+{% from "components/user_menu.html" import user_menu with context %}
+<aside class="navbar navbar-vertical navbar-expand-lg app-sidebar" id="app_sidebar">
+  <div class="container-fluid">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar_menu" aria-controls="sidebar_menu" aria-expanded="false" aria-label="Buka/tutup menu">
+      <span class="navbar-toggler-icon"></span>
     </button>
-  </form>
+
+    <a href="{{ url_for('main.home') }}" class="navbar-brand app-brand" aria-label="Spindo - Access Link Register">
+      {% include "components/brand_logo.html" %}
+      <span class="app-brand-text">Access Link<br>Register</span>
+    </a>
+
+    {# versi HP: tombol tema + avatar di pojok kanan atas #}
+    <div class="navbar-nav flex-row d-lg-none gap-2">
+      {% include "components/theme_toggle_button.html" %}
+      {{ user_menu(is_compact=true) }}
+    </div>
+
+    <div class="collapse navbar-collapse" id="sidebar_menu">
+      <ul class="navbar-nav pt-lg-2">
+        {% for section in sidebar_section_list %}
+          <li class="nav-item sidebar-heading">{{ section.title }}</li>
+          {% for nav_item in section.item_list %}
+            {% if nav_item.child_list %}
+              <li class="nav-item dropdown{% if nav_item.is_open %} active{% endif %}">
+                <a class="nav-link dropdown-toggle{% if nav_item.is_open %} show{% endif %}" href="#" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="{{ 'true' if nav_item.is_open else 'false' }}">
+                  <span class="nav-link-icon d-md-none d-lg-inline-block">{{ icon(nav_item.icon) }}</span>
+                  <span class="nav-link-title">{{ nav_item.label }}</span>
+                </a>
+                <div class="dropdown-menu{% if nav_item.is_open %} show{% endif %}">
+                  {% for child_item in nav_item.child_list if child_item.is_available %}
+                    <a class="dropdown-item{% if child_item.is_active %} active{% endif %}" href="{{ child_item.url }}"{% if child_item.is_active %} aria-current="page"{% endif %}>{{ child_item.label }}</a>
+                  {% endfor %}
+                </div>
+              </li>
+            {% else %}
+              <li class="nav-item{% if nav_item.is_active %} active{% endif %}">
+                {% if nav_item.is_available %}
+                  <a class="nav-link" href="{{ nav_item.url }}"{% if nav_item.is_active %} aria-current="page"{% endif %}>
+                    <span class="nav-link-icon d-md-none d-lg-inline-block">{{ icon(nav_item.icon) }}</span>
+                    <span class="nav-link-title">{{ nav_item.label }}</span>
+                  </a>
+                {% else %}
+                  <span class="nav-link disabled" aria-disabled="true" title="{{ nav_item.label }} (segera hadir)">
+                    <span class="nav-link-icon d-md-none d-lg-inline-block">{{ icon(nav_item.icon) }}</span>
+                    <span class="nav-link-title">{{ nav_item.label }}</span>
+                    <span class="badge bg-secondary-lt ms-auto">Segera</span>
+                  </span>
+                {% endif %}
+              </li>
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      </ul>
+
+      {# bawah sidebar: tombol Customize #}
+      <div class="sidebar-footer">
+        <div class="d-flex align-items-center">
+          <button type="button" class="nav-link sidebar-customize flex-fill" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer">
+            <span class="nav-link-icon">{{ icon("palette") }}</span>
+            <span class="nav-link-title">Customize</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </aside>

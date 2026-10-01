@@ -1,133 +1,161 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
 {% from "components/copy_button.html" import copy_button %}
+{% from "components/badge.html" import link_status_badge, visibility_badge %}
 
 {% block title %}{{ entry.title }} - MTOA ALR{% endblock %}
 
-{% block page_styles %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/rich_text_editor.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/entry_detail.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/attachment.css')}}">
+{% block page_pretitle %}<a href="{{ url_for('main.home') }}" class="text-reset">{{ icon("arrow_left") }} Dashboard</a>{% endblock %}
+
+{% block page_heading %}{{ entry.title }}{% endblock %}
+
+{% block page_subtitle %}
+  <div class="d-flex flex-wrap gap-2 mt-2">
+    <span class="badge bg-secondary-lt">{{ entry.category | category_label }}</span>
+    {{ visibility_badge(entry.visibility) }}
+  </div>
+{% endblock %}
+
+{% block page_actions %}
+  {% if can_edit %}
+    <a href="{{ url_for('entries.edit', entry_id=entry.id) }}" class="btn">{{ icon("edit") }} Edit</a>
+    <form method="post" action="{{ url_for('entries.delete', entry_id=entry.id) }}" data-confirm-title="Hapus data link?" data-confirm-message="Data &quot;{{ entry.title }}&quot; beserta field tambahannya bakal dihapus permanen." data-confirm-ok="Ya, hapus">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger">{{ icon("trash") }} Hapus</button>
+    </form>
+  {% endif %}
 {% endblock %}
 
 {% block content %}
-  <div class="detail-header">
-    <div class="detail-heading">
-      <a href="{{ url_for('main.home') }}" class="btn btn-link back-link">{{ icon("arrow_left") }} Kembali</a>
-      <h2 class="detail-title">{{ entry.title }}</h2>
-      <div class="detail-badge-list">
-        <span class="badge">{{ entry.category.name }}</span>
-        <span class="badge badge-{{ entry.visibility }}">{{ entry.visibility | visibility_label }}</span>
-      </div>
-    </div>
-
-    {% if can_edit %}
-      <div class="detail-actions">
-        <a href="{{ url_for('entries.edit', entry_id=entry.id) }}" class="btn btn-secondary">{{ icon("edit") }} Edit</a>
-        <form method="post" action="{{ url_for('entries.delete', entry_id=entry.id) }}" data-confirm-title="Hapus data link?" data-confirm-message="Data &quot;{{ entry.title }}&quot; beserta field tambahannya bakal dihapus permanen." data-confirm-ok="Ya, hapus">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-danger">{{ icon("trash") }} Hapus</button>
-        </form>
-      </div>
-    {% endif %}
-  </div>
-
-  <div class="detail-grid">
-    <div class="detail-main">
-      <section class="card">
-        <h3 class="section-title">{{ icon("link") }} Akses</h3>
-        <dl class="detail-list">
+  <div class="row row-cards">
+    <div class="col-lg-8">
+      <div class="card mb-3">
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("link") }} Akses</h3>
+        </div>
+        <div class="card-body">
           {% if entry.url %}
-            <div class="detail-item">
-              <dt>URL</dt>
-              <dd class="copy-row"><code class="copy-value">{{ entry.url }}</code>{{ copy_button(entry.url) }}</dd>
+            <div class="mb-3">
+              <div class="form-label">URL</div>
+              <div class="copy-row"><code class="copy-value">{{ entry.url }}</code>{{ copy_button(entry.url) }}</div>
             </div>
           {% endif %}
 
           {% if entry.address %}
             {% set address_text = entry.address ~ (":" ~ entry.port if entry.port else "") %}
-            <div class="detail-item">
-              <dt>Address</dt>
-              <dd class="copy-row"><code class="copy-value">{{ address_text }}</code>{{ copy_button(address_text) }}</dd>
+            <div class="mb-3">
+              <div class="form-label">Address</div>
+              <div class="copy-row"><code class="copy-value">{{ address_text }}</code>{{ copy_button(address_text) }}</div>
             </div>
           {% endif %}
 
           {% if entry.username %}
-            <div class="detail-item">
-              <dt>Username</dt>
-              <dd class="copy-row"><code class="copy-value">{{ entry.username }}</code>{{ copy_button(entry.username) }}</dd>
+            <div class="mb-3">
+              <div class="form-label">Username</div>
+              <div class="copy-row"><code class="copy-value">{{ entry.username }}</code>{{ copy_button(entry.username) }}</div>
             </div>
           {% endif %}
 
           {% if access_note %}
-            <div class="detail-item">
-              <dt>Access Note / Password</dt>
-              <dd class="copy-row">
+            <div class="mb-3">
+              <div class="form-label">Access Note / Password</div>
+              <div class="copy-row">
                 <pre class="copy-value secret-value" id="access_note_value" data-secret-value="{{ access_note }}">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</pre>
-                <div class="secret-action-list">
-                  <button type="button" class="btn btn-secondary btn-small" data-secret-toggle="access_note_value" aria-pressed="false">{{ icon("eye") }}<span data-secret-label>Tampilkan</span></button>
+                <div class="btn-list flex-nowrap">
+                  <button type="button" class="btn btn-sm" data-secret-toggle="access_note_value" aria-pressed="false">{{ icon("eye") }}<span data-secret-label>Tampilkan</span></button>
                   {{ copy_button(target_id="access_note_value") }}
                 </div>
-              </dd>
+              </div>
             </div>
           {% endif %}
 
           {% if entry.description %}
-            <div class="detail-item">
-              <dt>Deskripsi</dt>
-              <dd class="detail-text">{{ entry.description }}</dd>
+            <div class="mb-3">
+              <div class="form-label">Deskripsi</div>
+              <div class="text-secondary detail-text">{{ entry.description }}</div>
             </div>
           {% endif %}
 
           {% if not (entry.url or entry.address or entry.username or access_note or entry.description) %}
-            <p class="text-muted">Belum ada data akses.</p>
+            <p class="text-secondary mb-0">Belum ada data akses.</p>
           {% endif %}
-        </dl>
-      </section>
+        </div>
+      </div>
 
       {% if entry.custom_field_list %}
-        <section class="card">
-          <h3 class="section-title">{{ icon("plus") }} Field Tambahan</h3>
-          <div class="custom-field-view-list">
+        <div class="card mb-3">
+          <div class="card-header">
+            <h3 class="card-title">{{ icon("plus") }} Field Tambahan</h3>
+          </div>
+          <div class="list-group list-group-flush">
             {% for custom_field in entry.custom_field_list %}
-              <article class="custom-field-view">
-                <h4>{{ custom_field.field_label }}</h4>
+              <div class="list-group-item">
+                <div class="fw-bold mb-2">{{ custom_field.field_label }}</div>
                 <div class="rich-text-view">{{ custom_field.field_content | rich_text }}</div>
-              </article>
+              </div>
             {% endfor %}
           </div>
-        </section>
+        </div>
       {% endif %}
 
       {% if entry.attachment_list %}
-        <section class="card">
-          <h3 class="section-title">{{ icon("paperclip") }} Lampiran ({{ entry.attachment_list | length }})</h3>
-          <ul class="attachment-list">
+        <div class="card mb-3">
+          <div class="card-header">
+            <h3 class="card-title">{{ icon("paperclip") }} Lampiran ({{ entry.attachment_list | length }})</h3>
+          </div>
+          <div class="list-group list-group-flush">
             {% for attachment in entry.attachment_list %}
-              <li class="attachment-item">
-                {{ icon("file") }}
-                <span class="attachment-name" title="{{ attachment.original_filename }}">{{ attachment.original_filename }}</span>
-                <small>{{ attachment.file_size | file_size }} · {{ attachment.created_at | local_datetime }}</small>
-                <a href="{{ url_for('attachments.download', attachment_id=attachment.id) }}" class="btn btn-secondary btn-small">{{ icon("download") }} Download</a>
-              </li>
+              <div class="list-group-item">
+                <div class="row align-items-center g-2">
+                  <div class="col-auto"><span class="avatar avatar-sm bg-secondary-lt">{{ icon("file") }}</span></div>
+                  <div class="col text-truncate">
+                    <div class="text-truncate" title="{{ attachment.original_filename }}">{{ attachment.original_filename }}</div>
+                    <div class="small text-secondary">{{ attachment.file_size | file_size }} · {{ attachment.created_at | local_datetime }}</div>
+                  </div>
+                  <div class="col-auto">
+                    <a href="{{ url_for('attachments.download', attachment_id=attachment.id) }}" class="btn btn-sm">{{ icon("download") }} Download</a>
+                  </div>
+                </div>
+              </div>
             {% endfor %}
-          </ul>
-        </section>
+          </div>
+        </div>
       {% endif %}
     </div>
 
-    <aside class="card detail-side">
-      <h3 class="section-title">{{ icon("info") }} Info</h3>
-      <dl class="detail-list">
-        <div class="detail-item">
-          <dt>Dibuat Oleh</dt>
-          <dd>{{ entry.owner.full_name }}<br><small class="text-muted">{{ entry.owner.job_title }} · {{ entry.owner.department }}</small></dd>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("info") }} Info</h3>
         </div>
-        <div class="detail-item"><dt>Dibuat</dt><dd>{{ entry.created_at | local_datetime }}</dd></div>
-        <div class="detail-item"><dt>Terakhir Diubah</dt><dd>{{ entry.updated_at | local_datetime }}</dd></div>
-        <div class="detail-item"><dt>Status Link</dt><dd><span class="badge badge-status-{{ entry.status }}">{{ entry.status | link_status_label }}</span></dd></div>
-      </dl>
-    </aside>
+        <div class="card-body">
+          <div class="datagrid">
+            <div class="datagrid-item">
+              <div class="datagrid-title">Dibuat Oleh</div>
+              <div class="datagrid-content">
+                <div class="d-flex align-items-center">
+                  <span class="avatar avatar-xs me-2 bg-primary-lt">{{ entry.owner.full_name | initials }}</span>
+                  {{ entry.owner.full_name }}
+                </div>
+                <div class="small text-secondary mt-1">{{ entry.owner.job_title }} · {{ entry.owner.department }}</div>
+              </div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">Dibuat</div>
+              <div class="datagrid-content">{{ entry.created_at | local_datetime }}</div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">Terakhir Diubah</div>
+              <div class="datagrid-content">{{ entry.updated_at | local_datetime }}</div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">Status Link</div>
+              <div class="datagrid-content">{{ link_status_badge(entry.status) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 {% endblock %}
 

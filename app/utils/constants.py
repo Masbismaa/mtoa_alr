@@ -19,6 +19,25 @@ DEFAULT_CATEGORY_LIST = [
     {"name": "General", "description": "Akses lain yang tidak masuk kategori di atas"},
 ]
 
+# nama kategori bawaan: ga bisa di ganti nama, dinonaktifkan, atau dihapus (Aturan formnya nempel ke nama)
+DEFAULT_CATEGORY_NAME_SET = {category["name"] for category in DEFAULT_CATEGORY_LIST}
+MIN_CATEGORY_NAME_LENGTH = 2
+MAX_CATEGORY_NAME_LENGTH = 50
+MAX_CATEGORY_DESCRIPTION_LENGTH = 255
+
+# kategori bertingkat: utama + 3 tingkat sub
+MAX_CATEGORY_DEPTH = 4
+CATEGORY_PATH_SEPARATOR = " › "
+# ikon & warna kategori utama di tampilan forum, kategori lain pake gaya default
+CATEGORY_STYLE_DICT = {
+    "Web": {"icon": "globe", "color_class": "bg-blue"},
+    "Application": {"icon": "apps", "color_class": "bg-green"},
+    "Network": {"icon": "network", "color_class": "bg-orange"},
+    "General": {"icon": "file", "color_class": "bg-purple"},
+}
+DEFAULT_CATEGORY_STYLE = {"icon": "category", "color_class": "bg-secondary"}
+CATEGORY_ENTRY_PER_PAGE = 20
+
 # Audit log
 # jenis aksi yg boleh dicatat, di luar ini ditolak
 AUDIT_ACTION_CREATE = "create"
@@ -169,3 +188,39 @@ GROUP_MEMBER_STATUS_LIST = [GROUP_MEMBER_STATUS_INVITED, GROUP_MEMBER_STATUS_ACT
 MAX_GROUP_NAME_LENGTH = 100
 MAX_GROUP_DESCRIPTION_LENGTH = 500
 GROUP_ENTRY_OPTION_LIMIT = 200
+
+# halaman audit log
+AUDIT_LOG_PER_PAGE = 25
+AUDIT_ACTION_LABEL_DICT = {
+    AUDIT_ACTION_CREATE: "Tambah",
+    AUDIT_ACTION_UPDATE: "Ubah",
+    AUDIT_ACTION_DELETE: "Hapus",
+    AUDIT_ACTION_LOGIN: "Login",
+    AUDIT_ACTION_LOGIN_FAILED: "Login Gagal",
+    AUDIT_ACTION_LOGOUT: "Logout",
+}
+# nama tabel yg dicatat di audit log -> label di UI
+AUDIT_ENTITY_LABEL_DICT = {
+    "users": "User",
+    "user_preferences": "Preferensi Tampilan",
+    "access_entries": "Data Link",
+    "groups": "Group",
+    "group_members": "Anggota Group",
+    "group_entries": "Link di Group",
+    "categories": "Kategori",
+}
+
+# dashboard (grafik & aktivitas)
+DASHBOARD_CHART_DAY_COUNT = 7
+DASHBOARD_RECENT_ACTIVITY_LIMIT = 5
+
+# kelola user
+USER_PER_PAGE = 25
+USER_STATUS_ACTIVE = "active"
+USER_STATUS_LOCKED = "locked"
+USER_STATUS_INACTIVE = "inactive"
+USER_STATUS_LABEL_DICT = {
+    USER_STATUS_ACTIVE: "Aktif",
+    USER_STATUS_LOCKED: "Terkunci",
+    USER_STATUS_INACTIVE: "Nonaktif",
+}
