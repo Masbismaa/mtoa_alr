@@ -1,14 +1,14 @@
 {% extends "layouts/auth_base.html" %}
 
-{% block title %}Terlalu Banyak Percobaan - MTOA ALR{% endblock %}
+{% block title %}{{ error_title }} - MTOA ALR{% endblock %}
 
 {% block content %}
   <div class="empty p-0">
-    <div class="empty-header">429</div>
-    <p class="empty-title">Terlalu banyak percobaan</p>
-    <p class="empty-subtitle text-secondary">Demi keamanan, tunggu sekitar 1 menit sebelum mencoba lagi.</p>
+    <div class="empty-header">{{ error_code }}</div>
+    <p class="empty-title">{{ error_title }}</p>
+    <p class="empty-subtitle text-secondary">{{ error_message }}</p>
     <div class="empty-action">
-      <a href="{{ url_for('auth.login') }}" class="btn btn-primary">Kembali ke login</a>
+      <a href="{{ url_for('main.home') }}" class="btn btn-primary">Kembali ke Dashboard</a>
     </div>
   </div>
 {% endblock %}
