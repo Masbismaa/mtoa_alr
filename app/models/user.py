@@ -40,6 +40,14 @@ class User(UserMixin, TimestampMixin, db.Model):
         cascade="all, delete-orphan",
     )
 
+    # akses tambahan yg di-grant admin
+    permission_list = db.relationship(
+        "UserPermission",
+        foreign_keys="UserPermission.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
     # Constraint database: role hanya boleh nilai yang terdaftar di ROLE_LIST
     __table_args__ = (
         db.CheckConstraint(f"role IN ({build_sql_in_list(ROLE_LIST)})", name="role_valid"),

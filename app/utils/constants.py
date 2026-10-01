@@ -108,6 +108,26 @@ FONT_FAMILY_KEY_LIST = [option["key"] for option in FONT_FAMILY_OPTION_LIST]
 # label role yg tampil di UI
 ROLE_LABEL_DICT = {ROLE_ADMIN: "Admin", ROLE_USER_ENTRY: "User Entry"}
 
+# hak akses yg bisa di-grant admin ke user biasa (admin otomatis punya semua)
+PERMISSION_MANAGE_CATEGORIES = "manage_categories"
+PERMISSION_VIEW_AUDIT_LOGS = "view_audit_logs"
+PERMISSION_EDIT_PUBLIC_ENTRIES = "edit_public_entries"
+PERMISSION_LIST = [PERMISSION_MANAGE_CATEGORIES, PERMISSION_VIEW_AUDIT_LOGS, PERMISSION_EDIT_PUBLIC_ENTRIES]
+PERMISSION_INFO_DICT = {
+    PERMISSION_MANAGE_CATEGORIES: {
+        "label": "Kelola kategori", "short_label": "Kategori",
+        "description": "Tambah, edit, nonaktifkan, dan hapus kategori di menu Categories.",
+    },
+    PERMISSION_VIEW_AUDIT_LOGS: {
+        "label": "Lihat audit log", "short_label": "Audit Log",
+        "description": "Buka menu Audit Logs. Isi data Private milik orang lain tetap tersembunyi.",
+    },
+    PERMISSION_EDIT_PUBLIC_ENTRIES: {
+        "label": "Edit link Public orang lain", "short_label": "Edit Public",
+        "description": "Ubah dan hapus link Public milik user lain. Link Private tetap tidak bisa.",
+    },
+}
+
 # Access Entry
 VISIBILITY_PUBLIC = "public"
 VISIBILITY_PRIVATE = "private"

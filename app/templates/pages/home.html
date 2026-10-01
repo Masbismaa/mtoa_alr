@@ -134,7 +134,7 @@
   <div class="card mb-3" id="kategori">
     <div class="card-header">
       <h3 class="card-title">{{ icon("category") }} Kategori</h3>
-      {% if current_user.role == "admin" %}
+      {% if has_permission(current_user, PERMISSION_MANAGE_CATEGORIES) %}
         <div class="card-actions">
           <a href="{{ url_for('categories.index') }}" class="btn btn-sm">{{ icon("settings") }} Kelola</a>
         </div>

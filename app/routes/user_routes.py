@@ -5,14 +5,15 @@ from flask_login import current_user, login_required
 from app.security.role_guard import admin_required
 from app.services.user_service import (
     build_user_summary,
-    change_user_role,
+    get_permission_key_list,
     get_user,
     get_user_status,
     search_users,
+    set_user_permissions,
     toggle_user_active,
     unlock_user,
 )
-from app.utils.constants import ROLE_LABEL_DICT, USER_PER_PAGE, USER_STATUS_LABEL_DICT
+from app.utils.constants import PERMISSION_INFO_DICT, ROLE_ADMIN, ROLE_LABEL_DICT, USER_PER_PAGE, USER_STATUS_LABEL_DICT
 from app.utils.exceptions import ValidationError
 from app.utils.query_helper import clean_keyword_arg, drop_empty_value, parse_positive_int
 
@@ -20,6 +21,10 @@ users_bp = Blueprint("users", __name__, url_prefix="/users")
 
 # filter tabel yg ikut dibawa balik setelah ubah akun
 USER_FILTER_KEY_LIST = ["q", "role", "status", "page"]
+
+def build_back_param_dict():
+    """Filter yg lagi kepake di tabel, dikasih awalan back_ buat dibawa ke halaman/form aksi."""
+    return {f"back_{key}": request.args[key] for key in USER_FILTER_KEY_LIST if request.args.get(key)}
 
 def read_user_filter():
     """Baca filter dari URL, nilai yg ngaco dicuekin aja."""
@@ -49,7 +54,10 @@ def index():
         "pages/users/index.html",
         page_title="Users",
         pagination=pagination,
-        user_row_list=[{"user": user, "status": get_user_status(user)} for user in pagination.items],
+        user_row_list=[
+            {"user": user, "status": get_user_status(user), "permission_key_list": get_permission_key_list(user)}
+            for user in pagination.items
+        ],
         pagination_query_dict=drop_empty_value({
             "q": filter_dict["keyword"],
             "role": filter_dict["role"],
@@ -59,6 +67,8 @@ def index():
         summary_dict=build_user_summary(),
         role_label_dict=ROLE_LABEL_DICT,
         status_label_dict=USER_STATUS_LABEL_DICT,
+        permission_info_dict=PERMISSION_INFO_DICT,
+        back_param_dict=build_back_param_dict(),
     )
 
 def get_target_user_or_404(user_id):
@@ -70,7 +80,7 @@ def get_target_user_or_404(user_id):
 
 def build_back_url():
     """Balik ke tabel user dgn filter yg tadi lagi kepake (dikirim lewat input hidden)."""
-    filter_dict = drop_empty_value({key: request.form.get(f"back_{key}", "") for key in USER_FILTER_KEY_LIST})
+    filter_dict = drop_empty_value({key: request.values.get(f"back_{key}", "") for key in USER_FILTER_KEY_LIST})
     return url_for("users.index") + (f"?{urlencode(filter_dict)}" if filter_dict else "")
 
 def run_user_action(action_function, success_message, *arg_list):
@@ -83,15 +93,34 @@ def run_user_action(action_function, success_message, *arg_list):
         flash(success_message, "success")
     return redirect(build_back_url())
 
-@users_bp.post("/<int:user_id>/role")
+
+@users_bp.route("/<int:user_id>/access", methods=["GET", "POST"])
 @login_required
 @admin_required
-def change_role(user_id):
-    """Ganti role user."""
+def access(user_id):
+    """Atur akses user: centang akses yg dikasih, hapus centang buat nyabut."""
     target = get_target_user_or_404(user_id)
-    new_role = request.form.get("role", "")
-    role_label = ROLE_LABEL_DICT.get(new_role, new_role)
-    return run_user_action(change_user_role, f"Role {target.full_name} sekarang {role_label}", target, new_role)
+    if target.role == ROLE_ADMIN:
+        flash("Admin otomatis punya semua akses, perubahan admin lewat command", "info")
+        return redirect(url_for("users.index"))
+
+    if request.method == "POST":
+        try:
+            set_user_permissions(current_user._get_current_object(), target, request.form.getlist("permission"))
+        except ValidationError as error:
+            flash(error.error_list[0]["message"], "danger")
+        else:
+            flash(f"Akses {target.full_name} sudah disimpan", "success")
+            return redirect(build_back_url())
+
+    return render_template(
+        "pages/users/access.html",
+        page_title="Atur Akses",
+        target=target,
+        owned_key_list=get_permission_key_list(target),
+        permission_info_dict=PERMISSION_INFO_DICT,
+        back_url=build_back_url(),
+    )
 
 @users_bp.post("/<int:user_id>/toggle-active")
 @login_required

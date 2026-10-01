@@ -1,6 +1,7 @@
 """Logika kelola user (khusus admin): daftar, cari, filter, ganti role, aktif/nonaktif, buka kunci."""
+from sqlalchemy.orm import selectinload
 from app.extensions import db
-from app.models import User
+from app.models import User, UserPermission
 from app.services.audit_service import log_audit
 from app.utils.constants import (
     AUDIT_ACTION_UPDATE,
@@ -11,6 +12,7 @@ from app.utils.constants import (
     USER_STATUS_ACTIVE,
     USER_STATUS_INACTIVE,
     USER_STATUS_LOCKED,
+    PERMISSION_LIST,
 )
 from app.utils.datetime_helper import to_utc_aware, utc_now
 from app.utils.exceptions import ValidationError, build_error
@@ -41,7 +43,7 @@ def build_status_condition(status):
 
 def search_users(keyword=None, role=None, status=None, page=1, per_page=USER_PER_PAGE):
     """Cari user buat tabel admin, urut nama."""
-    query = db.select(User)
+    query = db.select(User).options(selectinload(User.permission_list))
     clean_keyword = sanitize_text(keyword, max_length=MAX_SEARCH_KEYWORD_LENGTH)
     if clean_keyword:
         search_column_list = [User.email, User.full_name, User.department, User.job_title]
@@ -77,9 +79,14 @@ def build_user_admin_audit_dict(user):
     return {"role": user.role, "is_active": user.is_active, "is_locked": get_user_status(user) == USER_STATUS_LOCKED}
 
 def ensure_not_self(actor, target, message):
-    """Admin ga boleh ngubah akunnya sendiri dari halaman ini (biar ga ngunci diri sendiri)."""
-    if actor.id == target.id:
+    """Admin ga boleh ngubah akunnya sendiri dari panel. actor None = dari command (CLI)."""
+    if actor is not None and actor.id == target.id:
         raise ValidationError([build_error("user", message)])
+
+def ensure_not_admin(target):
+    """Akun admin cuma bisa diubah lewat command, bukan dari panel."""
+    if target.role == ROLE_ADMIN:
+        raise ValidationError([build_error("user", "Akun admin cuma bisa diubah lewat command")])
 
 def ensure_other_admin_left(target):
     """Minimal harus nyisa 1 admin aktif selain target."""
@@ -97,7 +104,7 @@ def save_user_change(actor, target, old_data_dict):
     return target
 
 def change_user_role(actor, target, new_role):
-    """Ganti role user. Ga bisa ganti role sendiri & ga bisa nurunin admin aktif terakhir."""
+    """Ganti role user, cuma dipanggil dari command set-admin/unset-admin (actor None)."""
     if new_role not in ROLE_LIST:
         raise ValidationError([build_error("role", "Role tidak valid")])
     if new_role == target.role:
@@ -112,17 +119,47 @@ def change_user_role(actor, target, new_role):
 def toggle_user_active(actor, target):
     """Aktif <-> nonaktif. User nonaktif langsung ke-logout di request berikutnya & ga bisa login."""
     ensure_not_self(actor, target, "Kamu tidak bisa menonaktifkan akunmu sendiri")
-    if target.is_active and target.role == ROLE_ADMIN:
-        ensure_other_admin_left(target)
+    ensure_not_admin(target)
     old_data_dict = build_user_admin_audit_dict(target)
     target.is_active = not target.is_active
     return save_user_change(actor, target, old_data_dict)
 
 def unlock_user(actor, target):
     """Buka kunci akun yg kekunci gara-gara kebanyakan salah password/OTP."""
+    ensure_not_admin(target)
     if get_user_status(target) != USER_STATUS_LOCKED:
         raise ValidationError([build_error("user", "Akun ini tidak sedang terkunci")])
     old_data_dict = build_user_admin_audit_dict(target)
     target.locked_until = None
     target.failed_login_count = 0
     return save_user_change(actor, target, old_data_dict)
+
+# HAK AKSES (GRANT)
+def get_permission_key_list(user):
+    """Akses yg dipunya user, urut sesuai PERMISSION_LIST."""
+    owned_key_set = {permission.permission_key for permission in user.permission_list}
+    return [permission_key for permission_key in PERMISSION_LIST if permission_key in owned_key_set]
+
+def set_user_permissions(actor, target, permission_key_list):
+    """Simpan akses user persis sesuai yg dicentang: yg baru ditambah, yg dicabut dihapus."""
+    ensure_not_admin(target)
+    new_key_set = set(permission_key_list or [])
+    if not new_key_set.issubset(PERMISSION_LIST):
+        raise ValidationError([build_error("permission", "Ada akses yang tidak dikenal")])
+    old_key_list = get_permission_key_list(target)
+    if new_key_set == set(old_key_list):
+        return target
+    target.permission_list = [
+        permission for permission in target.permission_list if permission.permission_key in new_key_set
+    ] + [
+        UserPermission(permission_key=permission_key, granted_by_user_id=actor.id)
+        for permission_key in PERMISSION_LIST
+        if permission_key in new_key_set and permission_key not in old_key_list
+    ]
+    log_audit(
+        AUDIT_ACTION_UPDATE, AUDIT_USER, entity_id=target.id,
+        old_data_dict={"permission_list": old_key_list},
+        new_data_dict={"permission_list": get_permission_key_list(target)}, user=actor,
+    )
+    db.session.commit()
+    return target

@@ -1,0 +1,50 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+
+{% block title %}Atur Akses {{ target.full_name }} - MTOA ALR{% endblock %}
+
+{% block page_pretitle %}Admin › Users{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <form method="post" class="card" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% for back_key in ["back_q", "back_role", "back_status", "back_page"] %}
+          {% if request.values.get(back_key) %}<input type="hidden" name="{{ back_key }}" value="{{ request.values.get(back_key) }}">{% endif %}
+        {% endfor %}
+
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-3">
+            <span class="avatar bg-primary-lt">{{ target.full_name | initials }}</span>
+            <div>
+              <h3 class="card-title mb-1">{{ target.full_name }}</h3>
+              <div class="small text-secondary">{{ target.email }} · {{ target.job_title }}, {{ target.department }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <p class="text-secondary">Centang akses yang boleh dipakai user ini. Akses yang tidak dicentang langsung dicabut setelah disimpan.</p>
+          <div class="list-group list-group-flush border rounded">
+            {% for permission_key, permission_info in permission_info_dict.items() %}
+              <label class="list-group-item d-flex align-items-start gap-3">
+                <input type="checkbox" class="form-check-input mt-1" name="permission" value="{{ permission_key }}"{% if permission_key in owned_key_list %} checked{% endif %}>
+                <span>
+                  <span class="d-block fw-medium">{{ permission_info.label }}</span>
+                  <span class="d-block small text-secondary">{{ permission_info.description }}</span>
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+          <div class="small text-secondary mt-3">{{ icon("info") }} Akses <strong>Kelola user</strong> dan <strong>Admin</strong> tidak bisa diberikan dari sini. Admin dibuat lewat command.</div>
+        </div>
+
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <a href="{{ back_url }}" class="btn">Batal</a>
+          <button type="submit" class="btn btn-primary">{{ icon("check") }} Simpan Akses</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
