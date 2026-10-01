@@ -1,0 +1,143 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+{% from "components/pagination.html" import render_pagination %}
+{% from "components/badge.html" import role_badge, user_status_badge %}
+
+{% block title %}Users - MTOA ALR{% endblock %}
+
+{% block page_pretitle %}Admin{% endblock %}
+
+{% block page_subtitle %}
+  <div class="text-secondary mt-1">Daftar semua akun yang terdaftar. Password dan data Private tiap user tidak pernah ditampilkan di sini.</div>
+{% endblock %}
+
+{% block content %}
+  {% set is_filtered = filter_dict.keyword or filter_dict.role or filter_dict.status %}
+
+  {% set summary_card_list = [
+    ("Total user", summary_dict.total, "user", "bg-primary", url_for("users.index")),
+    ("Admin", summary_dict.admin, "lock", "bg-azure", url_for("users.index", role="admin")),
+    ("Terkunci", summary_dict.locked, "alert_triangle", "bg-yellow", url_for("users.index", status="locked")),
+    ("Nonaktif", summary_dict.inactive, "eye_off", "bg-secondary", url_for("users.index", status="inactive")),
+  ] %}
+  <div class="row row-cards mb-3">
+    {% for card_label, card_count, card_icon, card_color, card_url in summary_card_list %}
+      <div class="col-6 col-lg-3">
+        <a href="{{ card_url }}" class="card card-sm card-link card-link-pop text-reset">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col-auto"><span class="avatar {{ card_color }} text-white">{{ icon(card_icon) }}</span></div>
+              <div class="col">
+                <div class="h3 mb-0">{{ card_count }}</div>
+                <div class="text-secondary">{{ card_label }}</div>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">{{ icon("user") }} Daftar User</h3>
+      <div class="card-actions">
+        <span class="badge bg-secondary-lt">{{ pagination.total }} user</span>
+      </div>
+    </div>
+
+    <div class="card-body border-bottom py-3">
+      <form method="get" action="{{ url_for('users.index') }}" class="row g-2 align-items-center filter-bar" role="search" data-filter-form>
+        <div class="col-12 col-md">
+          <label class="visually-hidden" for="filter_keyword">Cari user</label>
+          <div class="input-icon">
+            <span class="input-icon-addon">{{ icon("search") }}</span>
+            <input type="search" id="filter_keyword" name="q" value="{{ filter_dict.keyword }}" class="form-control" placeholder="Cari nama, email, departemen, jabatan... (tekan /)" maxlength="100" autocomplete="off" data-filter-search>
+          </div>
+        </div>
+        <div class="col-6 col-md-auto">
+          <select name="role" class="form-select" aria-label="Filter role" data-filter-auto>
+            <option value="">Semua role</option>
+            {% for role_key, role_label in role_label_dict.items() %}
+              <option value="{{ role_key }}"{% if filter_dict.role == role_key %} selected{% endif %}>{{ role_label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-auto">
+          <select name="status" class="form-select" aria-label="Filter status" data-filter-auto>
+            <option value="">Semua status</option>
+            {% for status_key, status_label in status_label_dict.items() %}
+              <option value="{{ status_key }}"{% if filter_dict.status == status_key %} selected{% endif %}>{{ status_label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary">{{ icon("search") }} Cari</button>
+        </div>
+        {% if is_filtered %}
+          <div class="col-auto">
+            <a href="{{ url_for('users.index') }}" class="btn">Reset</a>
+          </div>
+        {% endif %}
+      </form>
+    </div>
+
+    {% if user_row_list %}
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table table-stack">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Departemen</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Login Terakhir</th>
+              <th>Terdaftar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in user_row_list %}
+              {% set user = row.user %}
+              <tr>
+                <td class="cell-title">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar avatar-sm bg-primary-lt">{{ user.full_name | initials }}</span>
+                    <div class="text-truncate">
+                      <div class="fw-medium text-truncate">
+                        {{ user.full_name }}
+                        {% if user.id == current_user.id %}<span class="badge bg-primary-lt ms-1">Kamu</span>{% endif %}
+                      </div>
+                      <div class="small text-secondary text-truncate">{{ user.email }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Departemen">
+                  <div>{{ user.department }}</div>
+                  <div class="small text-secondary">{{ user.job_title }}</div>
+                </td>
+                <td data-label="Role">{{ role_badge(user.role) }}</td>
+                <td data-label="Status">{{ user_status_badge(row.status) }}</td>
+                <td class="text-nowrap text-secondary" data-label="Login Terakhir">{{ user.last_login_at | time_ago if user.last_login_at else "Belum pernah" }}</td>
+                <td class="text-nowrap text-secondary" data-label="Terdaftar">{{ user.created_at | local_datetime("%d %b %Y") }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ render_pagination(pagination, "users.index", pagination_query_dict) }}
+    {% else %}
+      <div class="empty">
+        <div class="empty-icon">{{ icon("search") }}</div>
+        <p class="empty-title">Tidak ada user yang cocok</p>
+        <p class="empty-subtitle text-secondary">Coba ubah kata kunci atau filternya.</p>
+        <div class="empty-action">
+          <a href="{{ url_for('users.index') }}" class="btn">Reset filter</a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', filename='js/components/filter_form.js') }}" defer></script>
+{% endblock %}

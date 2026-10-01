@@ -19,8 +19,9 @@ SIDEBAR_SECTION_LIST = [
         {"label": "Groups", "endpoint": "groups.index", "icon": "group"},
     ]},
     {"title": "Admin", "is_admin_only": True, "item_list": [
-        {"label": "Categories", "endpoint": "categories.index", "icon": "category"},
-        {"label": "Audit Logs", "endpoint": "audit.index", "icon": "audit"},
+            {"label": "Users", "endpoint": "users.index", "icon": "user"},
+            {"label": "Categories", "endpoint": "categories.index", "icon": "category"},
+            {"label": "Audit Logs", "endpoint": "audit.index", "icon": "audit"},
     ]},
     {"title": "Akun", "is_admin_only": False, "item_list": [
         {"label": "Settings", "endpoint": "settings.index", "icon": "settings"},

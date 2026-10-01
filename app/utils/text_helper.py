@@ -4,6 +4,7 @@ from app.utils.constants import (
     AUDIT_ENTITY_LABEL_DICT,
     LINK_STATUS_LABEL_DICT,
     ROLE_LABEL_DICT,
+    USER_STATUS_LABEL_DICT,
     VISIBILITY_LABEL_DICT,
 )
 
@@ -54,3 +55,7 @@ def get_audit_action_label(action):
 def get_audit_entity_label(entity_type):
     """Ubah nama tabel di audit log jadi label, misal 'access_entries' -> 'Data Link'."""
     return AUDIT_ENTITY_LABEL_DICT.get(entity_type, entity_type)
+
+def get_user_status_label(status):
+    # ubah code status akun jdi label contoh "active" -> "Aktif"
+    return USER_STATUS_LABEL_DICT.get(status, status)
