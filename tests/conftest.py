@@ -52,12 +52,16 @@ def fixed_otp_code(monkeypatch):
     monkeypatch.setattr(auth_service, "generate_otp_code", lambda: FIXED_OTP_CODE)
     return FIXED_OTP_CODE
 
+def login_client(client, email, otp_code):
+    """Helper: login 2 langkah (password + OTP)."""
+    client.post("/auth/login", data={"email": email, "password": USER_PASSWORD})
+    client.post("/auth/otp", data={"otp_code": otp_code})
+    return client
+
 @pytest.fixture()
 def logged_in_client(client, registered_user, fixed_otp_code):
     """Client yg udah login sebagai registered_user."""
-    client.post("/auth/login", data={"email": registered_user.email, "password": USER_PASSWORD})
-    client.post("/auth/otp", data={"otp_code": fixed_otp_code})
-    return client
+    return login_client(client, registered_user.email, fixed_otp_code)
 
 @pytest.fixture()
 def category_dict(app):
@@ -125,3 +129,8 @@ def make_file_storage():
         return FileStorage(stream=io.BytesIO(content_bytes), filename=filename)
 
     return build_file_storage
+
+@pytest.fixture()
+def admin_client(client, admin_user, fixed_otp_code):
+    """Client yg udah login sebagai admin_user."""
+    return login_client(client, admin_user.email, fixed_otp_code)

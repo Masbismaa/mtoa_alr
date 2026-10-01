@@ -1,0 +1,292 @@
+/* halaman group */
+.badge-owner {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* undangan */
+.invitation-card {
+  margin-bottom: var(--space-5);
+  animation: nb-pop-in 300ms both;
+}
+
+.invitation-list,
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.invitation-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface-muted);
+  border: 2px solid var(--color-border);
+  border-radius: var(--nb-radius);
+}
+
+.invitation-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.invitation-text small {
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.invitation-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* kartu group */
+.group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.group-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  text-decoration: none;
+  color: var(--color-text);
+  animation: nb-pop-in 300ms both;
+  transition: transform var(--nb-transition-fast), box-shadow var(--nb-transition-fast);
+}
+
+.group-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.group-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.group-card-header h2 {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.group-card-description {
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.group-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.group-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* form bikin/edit */
+.group-form {
+  max-width: 640px;
+  animation: nb-pop-in 300ms both;
+}
+
+/* detail group */
+.group-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.group-title {
+  margin: var(--space-2) 0;
+  font-family: var(--font-heading);
+  font-size: 28px;
+  overflow-wrap: anywhere;
+}
+
+.group-description {
+  margin: 0 0 var(--space-2);
+  font-weight: 600;
+  white-space: pre-line;
+}
+
+.group-heading .text-muted {
+  margin: 0;
+}
+
+.group-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.group-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.group-main,
+.group-side {
+  min-width: 0;
+  animation: nb-pop-in 300ms both;
+}
+
+.group-side {
+  animation-delay: 80ms;
+}
+
+.group-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.group-section-header .section-title {
+  margin-bottom: 0;
+}
+
+.group-add-entry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.group-add-entry select {
+  flex: 1 1 240px;
+  min-width: 0;
+  width: auto;
+}
+
+.group-main .form-hint {
+  margin: calc(var(--space-2) * -1) 0 var(--space-4);
+}
+
+.inline-form {
+  display: inline-block;
+  margin-left: var(--space-2);
+  vertical-align: middle;
+}
+
+/* anggota */
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border: 2px solid transparent;
+  border-radius: var(--nb-radius);
+  transition: background-color var(--nb-transition-fast), border-color var(--nb-transition-fast);
+}
+
+.member-item:hover {
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+}
+
+.member-item.is-invited {
+  opacity: 0.75;
+}
+
+.member-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.member-text strong,
+.member-text small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.member-text small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.member-subtitle {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.invite-form {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 2px dashed var(--color-border);
+}
+
+.invite-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.invite-row .form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .group-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .group-actions,
+  .group-actions form,
+  .group-actions .btn,
+  .group-add-entry .btn {
+    width: 100%;
+  }
+
+  .invite-row {
+    flex-direction: column;
+  }
+
+  .data-table.is-responsive .inline-form {
+    display: block;
+    margin: var(--space-2) 0 0;
+  }
+
+  .data-table.is-responsive .inline-form .btn-icon {
+    width: 100%;
+  }
+}

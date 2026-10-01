@@ -7,6 +7,7 @@
 
 {% block page_styles %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/table.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/filter_bar.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
 {% endblock %}
 
@@ -56,7 +57,7 @@
       <select name="visibility" class="form-input" aria-label="Filter visibilitas" data-filter-auto>
         <option value="">Semua visibilitas</option>
         <option value="public"{% if filter_dict.visibility == "public" %} selected{% endif %}>Public</option>
-        <option value="private"{% if filter_dict.visibility == "private" %} selected{% endif %}>Private (milikmu)</option>
+        <option value="private"{% if filter_dict.visibility == "private" %} selected{% endif %}>Private</option>
       </select>
       <button type="submit" class="btn btn-primary">{{ icon("search") }} Cari</button>
       {% if is_filtered %}
@@ -133,5 +134,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', filename='js/pages/dashboard.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/pages/filter_form.js') }}" defer></script>
 {% endblock %}

@@ -257,3 +257,22 @@ a.pagination-link:hover {
     max-width: none;
   }
 }
+
+/* kartu pembungkus tabel + judulnya */
+.table-card {
+  margin-top: var(--space-5);
+  animation: nb-pop-in 300ms 200ms both;
+}
+
+.table-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.table-card-header .section-title {
+  margin-bottom: 0;
+}

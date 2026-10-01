@@ -1,4 +1,4 @@
-// filter dashboard: pilih dropdown langsung nyari, ngetik keyword nunggu bentar baru nyari
+// filter tabel (dashboard, audit log): pilih dropdown/tanggal langsung nyari, ngetik keyword nunggu bentar baru nyari
 (function () {
   "use strict";
   const DEBOUNCE_MS = 500;

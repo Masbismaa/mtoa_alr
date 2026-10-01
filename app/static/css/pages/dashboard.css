@@ -72,93 +72,10 @@
   font-size: 32px;
 }
 
-/* kartu tabel */
-.table-card {
-  margin-top: var(--space-5);
-  animation: nb-pop-in 300ms 200ms both;
-}
-
-.table-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.table-card-header .section-title {
-  margin-bottom: 0;
-}
-
-/* baris search + filter, otomatis turun ke bawah kalau tempatnya sempit */
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-  transition: opacity var(--nb-transition-fast);
-}
-
-.filter-bar.is-loading {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.filter-search {
-  position: relative;
-  display: block;
-  flex: 2 1 260px;
-  min-width: 0;
-}
-
-.filter-bar select.form-input {
-  flex: 1 1 160px;
-  min-width: 0;
-  width: auto;
-}
-
-.filter-bar .btn {
-  flex: 0 0 auto;
-}
-
-.filter-search .icon {
-  position: absolute;
-  top: 50%;
-  left: var(--space-3);
-  z-index: 1;
-  transform: translateY(-50%);
-  pointer-events: none;
-}
-
-.filter-search .form-input {
-  padding-left: 40px;
-}
-
-/* tablet */
-@media (max-width: 900px) {
-  .filter-bar {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .filter-search {
-    grid-column: 1 / -1;
-  }
-}
-
 /* HP kecil */
 @media (max-width: 600px) {
-  .filter-bar {
-    flex-direction: column;
-  }
-
-  .filter-search,
-  .filter-bar select.form-input {
-    flex: 1 1 auto;
+  .page-actions .btn {
     width: 100%;
-  }
-
-  .table-card-header {
-    flex-wrap: wrap;
   }
 
   .welcome-card h2 {
