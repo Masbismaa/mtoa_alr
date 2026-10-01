@@ -1,7 +1,9 @@
-"""Logika kelola user (khusus admin). Bagian 1: daftar, cari, filter, ringkasan."""
+"""Logika kelola user (khusus admin): daftar, cari, filter, ganti role, aktif/nonaktif, buka kunci."""
 from app.extensions import db
 from app.models import User
+from app.services.audit_service import log_audit
 from app.utils.constants import (
+    AUDIT_ACTION_UPDATE,
     MAX_SEARCH_KEYWORD_LENGTH,
     ROLE_ADMIN,
     ROLE_LIST,
@@ -11,8 +13,11 @@ from app.utils.constants import (
     USER_STATUS_LOCKED,
 )
 from app.utils.datetime_helper import to_utc_aware, utc_now
+from app.utils.exceptions import ValidationError, build_error
 from app.utils.query_helper import build_keyword_filter
 from app.utils.sanitizer import sanitize_text
+
+AUDIT_USER = "users"
 
 def get_user_status(user):
     """Status akun buat ditampilin: nonaktif > terkunci > aktif."""
@@ -61,3 +66,63 @@ def build_user_summary():
         "locked": count_user(build_status_condition(USER_STATUS_LOCKED)),
         "inactive": count_user(build_status_condition(USER_STATUS_INACTIVE)),
     }
+
+# ganti role aun
+def get_user(user_id):
+    """Satu user, None kalau ga ada."""
+    return db.session.get(User, user_id)
+
+def build_user_admin_audit_dict(user):
+    """Data akun yg diubah admin, buat audit log."""
+    return {"role": user.role, "is_active": user.is_active, "is_locked": get_user_status(user) == USER_STATUS_LOCKED}
+
+def ensure_not_self(actor, target, message):
+    """Admin ga boleh ngubah akunnya sendiri dari halaman ini (biar ga ngunci diri sendiri)."""
+    if actor.id == target.id:
+        raise ValidationError([build_error("user", message)])
+
+def ensure_other_admin_left(target):
+    """Minimal harus nyisa 1 admin aktif selain target."""
+    other_admin_count = count_user(User.role == ROLE_ADMIN, User.is_active.is_(True), User.id != target.id)
+    if other_admin_count == 0:
+        raise ValidationError([build_error("user", "Minimal harus ada 1 admin aktif")])
+
+def save_user_change(actor, target, old_data_dict):
+    """Catat perubahan ke audit log terus simpan."""
+    log_audit(
+        AUDIT_ACTION_UPDATE, AUDIT_USER, entity_id=target.id,
+        old_data_dict=old_data_dict, new_data_dict=build_user_admin_audit_dict(target), user=actor,
+    )
+    db.session.commit()
+    return target
+
+def change_user_role(actor, target, new_role):
+    """Ganti role user. Ga bisa ganti role sendiri & ga bisa nurunin admin aktif terakhir."""
+    if new_role not in ROLE_LIST:
+        raise ValidationError([build_error("role", "Role tidak valid")])
+    if new_role == target.role:
+        return target
+    ensure_not_self(actor, target, "Kamu tidak bisa mengubah role akunmu sendiri")
+    if target.role == ROLE_ADMIN and target.is_active:
+        ensure_other_admin_left(target)
+    old_data_dict = build_user_admin_audit_dict(target)
+    target.role = new_role
+    return save_user_change(actor, target, old_data_dict)
+
+def toggle_user_active(actor, target):
+    """Aktif <-> nonaktif. User nonaktif langsung ke-logout di request berikutnya & ga bisa login."""
+    ensure_not_self(actor, target, "Kamu tidak bisa menonaktifkan akunmu sendiri")
+    if target.is_active and target.role == ROLE_ADMIN:
+        ensure_other_admin_left(target)
+    old_data_dict = build_user_admin_audit_dict(target)
+    target.is_active = not target.is_active
+    return save_user_change(actor, target, old_data_dict)
+
+def unlock_user(actor, target):
+    """Buka kunci akun yg kekunci gara-gara kebanyakan salah password/OTP."""
+    if get_user_status(target) != USER_STATUS_LOCKED:
+        raise ValidationError([build_error("user", "Akun ini tidak sedang terkunci")])
+    old_data_dict = build_user_admin_audit_dict(target)
+    target.locked_until = None
+    target.failed_login_count = 0
+    return save_user_change(actor, target, old_data_dict)

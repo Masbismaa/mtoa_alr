@@ -1,11 +1,26 @@
-"""Test logika kelola user bagian 1: cari, filter, status, ringkasan."""
+"""Test logika kelola user: cari, filter, status, ringkasan, ganti role, aktif/nonaktif, buka kunci."""
 from datetime import timedelta
+import pytest
 from app.extensions import db
-from app.services.auth_service import register_user
-from app.services.user_service import build_user_summary, get_user_status, search_users
-from app.utils.constants import ROLE_ADMIN, USER_STATUS_ACTIVE, USER_STATUS_INACTIVE, USER_STATUS_LOCKED
+from app.models import AuditLog
+from app.services.auth_service import authenticate_user, register_user
+from app.services.user_service import (
+    build_user_summary,
+    change_user_role,
+    get_user_status,
+    search_users,
+    toggle_user_active,
+    unlock_user,
+)
+from app.utils.constants import (
+    ROLE_ADMIN,
+    ROLE_USER_ENTRY,
+    USER_STATUS_ACTIVE,
+    USER_STATUS_INACTIVE,
+    USER_STATUS_LOCKED,
+)
 from app.utils.datetime_helper import utc_now
-
+from app.utils.exceptions import AuthError, ValidationError
 def create_user(email, full_name, department="ICT", job_title="Staff", role=None):
     """Helper: daftarin user contoh."""
     extra_dict = {"role": role} if role else {}
@@ -76,3 +91,66 @@ def test_pagination(app):
     assert first_page.total == 3
     assert get_email_list(first_page) == ["user0@spindo.com", "user1@spindo.com"]
     assert get_email_list(search_users(page=2, per_page=2)) == ["user2@spindo.com"]
+
+def test_change_role_logged(app, admin_user, registered_user):
+    """Positive: admin ganti role user lain, kecatat di audit log."""
+    change_user_role(admin_user, registered_user, ROLE_ADMIN)
+    assert registered_user.role == ROLE_ADMIN
+    audit_log = db.session.execute(
+        db.select(AuditLog).filter_by(entity_type="users", entity_id=str(registered_user.id), action="update")
+    ).scalar_one()
+    assert audit_log.old_data["role"] == ROLE_USER_ENTRY
+    assert audit_log.new_data["role"] == ROLE_ADMIN
+
+def test_cannot_change_own_role(app, admin_user):
+    """Negative: admin ga bisa nurunin role-nya sendiri."""
+    with pytest.raises(ValidationError):
+        change_user_role(admin_user, admin_user, ROLE_USER_ENTRY)
+    assert admin_user.role == ROLE_ADMIN
+
+def test_invalid_role_rejected(app, admin_user, registered_user):
+    """Negative: role ngasal ditolak."""
+    with pytest.raises(ValidationError):
+        change_user_role(admin_user, registered_user, "superadmin")
+    assert registered_user.role == ROLE_USER_ENTRY
+
+def test_last_active_admin_cannot_be_demoted(app, admin_user, registered_user):
+    """Negative: admin aktif terakhir ga bisa diturunin/dinonaktifin (jaga-jaga dipanggil dari luar halaman admin)."""
+    with pytest.raises(ValidationError) as role_error:
+        change_user_role(registered_user, admin_user, ROLE_USER_ENTRY)
+    assert role_error.value.error_list == [{"field": "user", "message": "Minimal harus ada 1 admin aktif"}]
+    with pytest.raises(ValidationError) as active_error:
+        toggle_user_active(registered_user, admin_user)
+    assert active_error.value.error_list == [{"field": "user", "message": "Minimal harus ada 1 admin aktif"}]
+    assert admin_user.role == ROLE_ADMIN
+    assert admin_user.is_active is True
+
+def test_deactivated_user_cannot_login(app, admin_user, registered_user, user_password):
+    """Positive & negative: user dinonaktifin ga bisa login, diaktifin lagi bisa."""
+    toggle_user_active(admin_user, registered_user)
+    assert registered_user.is_active is False
+    with pytest.raises(AuthError):
+        authenticate_user(registered_user.email, user_password)
+    toggle_user_active(admin_user, registered_user)
+    assert authenticate_user(registered_user.email, user_password).id == registered_user.id
+
+def test_cannot_deactivate_self(app, admin_user):
+    """Negative: admin ga bisa nonaktifin akunnya sendiri."""
+    with pytest.raises(ValidationError):
+        toggle_user_active(admin_user, admin_user)
+    assert admin_user.is_active is True
+
+def test_unlock_user(app, admin_user, registered_user):
+    """Positive: buka kunci akun -> status aktif lagi, hitungan gagal di-reset."""
+    registered_user.locked_until = utc_now() + timedelta(minutes=10)
+    registered_user.failed_login_count = 3
+    db.session.commit()
+    unlock_user(admin_user, registered_user)
+    assert get_user_status(registered_user) == USER_STATUS_ACTIVE
+    assert registered_user.failed_login_count == 0
+
+def test_unlock_not_locked_rejected(app, admin_user, registered_user):
+    """Negative: akun yg ga kekunci ga bisa dibuka kuncinya."""
+    with pytest.raises(ValidationError) as error:
+        unlock_user(admin_user, registered_user)
+    assert error.value.error_list == [{"field": "user", "message": "Akun ini tidak sedang terkunci"}]
