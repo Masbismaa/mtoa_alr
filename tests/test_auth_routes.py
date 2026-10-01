@@ -3,6 +3,7 @@ from app import create_app
 from app.config import TestingConfig
 from app.extensions import db
 from app.models import User
+from app.utils.constants import LOGIN_MAX_FAILED_COUNT
 
 def build_register_form_dict(confirm_password="PasswordKuat123"):
     """Helper: isi form register."""
@@ -90,3 +91,13 @@ def test_login_rate_limit_returns_429(monkeypatch):
     status_code_list = [limited_client.post("/auth/login", data={}).status_code for _ in range(11)]
     assert status_code_list[:10] == [200] * 10
     assert status_code_list[10] == 429
+
+def test_locked_during_otp_goes_back_to_login(client, registered_user, user_password, fixed_otp_code):
+    """Negative (security): akun kekunci di langkah OTP -> sesi OTP diputus, balik ke login."""
+    client.post("/auth/login", data={"email": registered_user.email, "password": user_password})
+    for _ in range(LOGIN_MAX_FAILED_COUNT - 1):
+        client.post("/auth/otp", data={"otp_code": "000000"})
+    response = client.post("/auth/otp", data={"otp_code": "000000"})
+    assert response.status_code == 302
+    assert "/auth/login" in response.location
+    assert "/auth/login" in client.get("/auth/otp").location
