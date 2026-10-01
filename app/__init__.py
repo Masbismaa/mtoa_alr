@@ -11,12 +11,16 @@ from app.utils.constants import OTP_DELIVERY_CONSOLE
 # config yg wajib diisi, kalau kosong app langsung nolak jalan
 REQUIRED_CONFIG_KEY_LIST = ["SECRET_KEY", "SQLALCHEMY_DATABASE_URI", "ENCRYPTION_KEY"]
 
-# isi halaman error: kode -> (judul, pesan)
+# isi halaman error
 ERROR_PAGE_DICT = {
     403: ("Akses ditolak", "Kamu tidak punya izin untuk membuka atau mengubah data ini."),
     404: ("Tidak ditemukan", "Halaman atau data yang kamu cari tidak ada, atau kamu tidak punya akses."),
+    405: ("Aksi tidak diizinkan", "Cara membuka halaman ini tidak didukung. Kembali lalu coba lewat tombol yang tersedia."),
     413: ("File terlalu besar", "Total upload kebesaran. Maksimal 5 file, masing-masing 10MB."),
+    500: ("Terjadi kesalahan", "Ada yang error di server. Coba lagi sebentar lagi, kalau masih muncul hubungi tim ICT."),
 }
+# token form (CSRF) kedaluwarsa / ga ada, biasanya gara-gara halaman kebuka kelamaan
+CSRF_ERROR_PAGE = ("Sesi form kedaluwarsa", "Halaman ini kebuka terlalu lama. Muat ulang halaman, lalu kirim lagi.")
 
 
 def create_app(config_name=None):
@@ -88,6 +92,10 @@ def build_error_handler(error_code, error_title, error_message):
     """Bikin handler buat satu kode error (biar ga nulis ulang)."""
 
     def handle_error(error):
+        if error_code >= 500:
+            # Handler ini dipanggil saat ada request, jadi application context
+            # dan session SQLAlchemy sudah tersedia di sini.
+            db.session.rollback()
         return render_template(
             "pages/errors/error.html",
             error_code=error_code,
@@ -99,6 +107,7 @@ def build_error_handler(error_code, error_title, error_message):
 
 def register_error_handlers(app):
     """Halaman error custom."""
+    from flask_wtf.csrf import CSRFError
     from app.utils.exceptions import PermissionDeniedError
 
     for error_code, (error_title, error_message) in ERROR_PAGE_DICT.items():
@@ -106,6 +115,7 @@ def register_error_handlers(app):
 
     forbidden_title, forbidden_message = ERROR_PAGE_DICT[403]
     app.register_error_handler(PermissionDeniedError, build_error_handler(403, forbidden_title, forbidden_message))
+    app.register_error_handler(CSRFError, build_error_handler(400, *CSRF_ERROR_PAGE))
 
     @app.errorhandler(429)
     def handle_too_many_requests(error):
