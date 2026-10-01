@@ -1,0 +1,43 @@
+/* semua animasi app + mode kurangi animasi (dimuat paling akhir) */
+
+/* animasi */
+@keyframes app-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes app-pop-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+/* grafik garis kebuka dari kiri ke kanan */
+@keyframes app-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes app-grow-up {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+/* busur gauge mulai dari kosong, terus naik ke nilai aslinya (dari atribut di HTML) */
+@keyframes app-gauge-fill {
+  from { stroke-dasharray: 0 251.33; }
+}
+
+@keyframes app-fade-out {
+  to { opacity: 0; transform: translateX(12px); }
+}
+
+/* user yg minta animasi dikurangin */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

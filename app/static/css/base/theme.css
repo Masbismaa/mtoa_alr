@@ -1,0 +1,49 @@
+/* tema dari UI Customizer: warna aksen, font, kerapatan, efek ganti tema */
+
+/* warna aksen dari UI Customizer -> jadi warna primary Tabler */
+:root[data-accent="blue"] { --app-accent: #066fd1; --app-accent-rgb: 6, 111, 209; --app-accent-fg: #ffffff; }
+:root[data-accent="yellow"] { --app-accent: #f59f00; --app-accent-rgb: 245, 159, 0; --app-accent-fg: #1d273b; }
+:root[data-accent="pink"] { --app-accent: #d6336c; --app-accent-rgb: 214, 51, 108; --app-accent-fg: #ffffff; }
+:root[data-accent="lime"] { --app-accent: #74b816; --app-accent-rgb: 116, 184, 22; --app-accent-fg: #1d273b; }
+:root[data-accent="teal"] { --app-accent: #0ca678; --app-accent-rgb: 12, 166, 120; --app-accent-fg: #ffffff; }
+:root[data-accent="purple"] { --app-accent: #ae3ec9; --app-accent-rgb: 174, 62, 201; --app-accent-fg: #ffffff; }
+
+:root[data-accent] {
+  --tblr-primary: var(--app-accent);
+  --tblr-primary-rgb: var(--app-accent-rgb);
+  --tblr-primary-fg: var(--app-accent-fg);
+  --tblr-primary-text: var(--app-accent);
+  --tblr-primary-darken: color-mix(in srgb, var(--app-accent) 85%, #000000);
+  --tblr-primary-lt: color-mix(in srgb, var(--app-accent) 12%, transparent);
+  --tblr-link-color: var(--app-accent);
+  --tblr-link-color-rgb: var(--app-accent-rgb);
+  --tblr-link-hover-color: color-mix(in srgb, var(--app-accent) 85%, #000000);
+}
+
+/* pilihan font */
+:root[data-font="mono"] { --tblr-body-font-family: var(--tblr-font-monospace); }
+:root[data-font="serif"] { --tblr-body-font-family: Georgia, Cambria, "Times New Roman", serif; }
+
+body {
+  font-family: var(--tblr-body-font-family);
+}
+
+/* mode rapat: jarak diperkecil */
+:root[data-density="compact"] .page-header { margin-top: 0.75rem; }
+:root[data-density="compact"] .page-body { margin-top: 0.75rem; margin-bottom: 0.75rem; }
+:root[data-density="compact"] .card-body { padding: 0.75rem 1rem; }
+:root[data-density="compact"] .card-header { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+:root[data-density="compact"] .table > :not(caption) > * > * { padding-top: 0.4rem; padding-bottom: 0.4rem; }
+:root[data-density="compact"] .list-group-item { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+
+/* ganti tema kerasa halus: tampilan lama & baru di-crossfade (lihat ui_preference.js) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 300ms;
+  animation-timing-function: ease;
+}
+
+/* ikon tombol tema: bulan pas terang, matahari pas gelap */
+.theme-icon-sun { display: none; }
+[data-bs-theme="dark"] .theme-icon-sun { display: inline-block; }
+[data-bs-theme="dark"] .theme-icon-moon { display: none; }

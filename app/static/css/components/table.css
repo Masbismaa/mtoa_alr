@@ -1,278 +1,125 @@
-/* tabel data (dashboard, nanti audit log & group juga) */
-.table-wrapper {
-  overflow-x: auto;
-  border: var(--nb-border-width) solid var(--color-border);
-  border-radius: var(--nb-radius);
+/* tabel: filter, sel, tombol copy, versi HP jadi kartu */
+
+/* filter tabel lagi loading */
+.filter-bar {
+  transition: opacity 150ms ease;
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
+.filter-bar.is-loading {
+  opacity: 0.6;
+  pointer-events: none;
 }
 
-.data-table th {
-  padding: var(--space-3);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-align: left;
-  text-transform: uppercase;
-  white-space: nowrap;
-  background: var(--color-surface-muted);
-  border-bottom: var(--nb-border-width) solid var(--color-border);
-}
-
-.data-table td {
-  padding: var(--space-3);
-  vertical-align: middle;
-  border-bottom: 2px solid var(--color-surface-muted);
-}
-
-/* baris disorot pas di-hover */
-.data-table tbody tr {
-  transition: background-color var(--nb-transition-fast);
-}
-
-.data-table tbody tr:hover {
-  background: var(--color-surface-muted);
-}
-
-.data-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-/* mode rapat: baris lebih pendek */
-:root[data-density="compact"] .data-table th,
-:root[data-density="compact"] .data-table td {
-  padding: var(--space-2) var(--space-3);
-}
-
-.table-title-link {
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.table-title-link:hover {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-}
-
-.table-nowrap {
-  white-space: nowrap;
-}
-
-.table-action {
-  text-align: right;
-  white-space: nowrap;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-6) var(--space-4);
-  font-weight: 600;
-  text-align: center;
-  color: var(--color-muted);
-}
-
-.empty-state p {
-  margin: 0;
-}
-
-/* kolom khusus dashboard */
+/* sel tabel */
 .cell-title {
-  min-width: 180px;
+  min-width: 140px;
 }
 
 .cell-copy {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 0.5rem;
+  min-width: 0;
 }
 
 .cell-url {
   display: inline-block;
-  max-width: 240px;
-  padding: 2px 6px;
+  max-width: 200px;
   overflow: hidden;
-  font-family: var(--font-mono);
-  font-size: 13px;
   white-space: nowrap;
   text-overflow: ellipsis;
   vertical-align: middle;
-  background: var(--color-surface-muted);
-  border: 2px solid var(--color-border);
-  border-radius: 4px;
 }
 
 .cell-description {
   max-width: 260px;
-  color: var(--color-muted);
 }
 
-.btn-icon-only {
-  width: 34px;
-  padding: 0;
+.cell-actor {
+  max-width: 260px;
+  overflow-wrap: anywhere;
+}
+
+.cell-action {
+  text-align: right;
+  white-space: nowrap;
 }
 
 .copy-button.is-copied {
-  background: var(--color-success-soft);
+  color: var(--tblr-green);
+  border-color: var(--tblr-green);
 }
 
-/* pagination */
-.pagination {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-}
-
-.pagination-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 38px;
-  height: 38px;
-  padding: 0 var(--space-2);
-  font-weight: 800;
-  text-decoration: none;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 2px solid var(--color-border);
-  border-radius: var(--nb-radius);
-  box-shadow: var(--shadow-small);
-  transition: transform var(--nb-transition-fast), box-shadow var(--nb-transition-fast);
-}
-
-a.pagination-link:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow);
-}
-
-.pagination-link.is-active {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-}
-
-.pagination-link.is-disabled {
-  opacity: 0.4;
-  box-shadow: none;
-}
-
-.pagination-gap {
-  padding: 0 var(--space-1);
-  font-weight: 800;
-}
-
-/* layar HP: tiap baris tabel jadi kartu */
-@media (max-width: 760px) {
-  .table-wrapper.is-responsive {
-    overflow: visible;
-    border: none;
-  }
-
-  .data-table.is-responsive thead {
+/* HP: tiap baris tabel jadi kartu kecil */
+@media (max-width: 767.98px) {
+  .table-stack thead {
     display: none;
   }
 
-  .data-table.is-responsive,
-  .data-table.is-responsive tbody,
-  .data-table.is-responsive tr,
-  .data-table.is-responsive td {
+  .table-stack,
+  .table-stack tbody,
+  .table-stack tr,
+  .table-stack td {
     display: block;
     width: 100%;
   }
 
-  .data-table.is-responsive tr {
-    margin-bottom: var(--space-3);
-    padding: var(--space-3);
-    background: var(--color-surface);
-    border: var(--nb-border-width) solid var(--color-border);
-    border-radius: var(--nb-radius);
-    box-shadow: var(--shadow-small);
-    animation: nb-pop-in 250ms both;
+  .table-stack tr {
+    padding: 0.75rem 1rem;
+    border-bottom: var(--tblr-border-width, 1px) solid var(--tblr-border-color);
   }
 
-  .data-table.is-responsive tbody tr:hover {
-    background: var(--color-surface);
-  }
-
-  .data-table.is-responsive td {
+  .table-stack td {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-3);
-    padding: var(--space-2) 0;
+    gap: 1rem;
+    padding: 0.35rem 0 !important;
     text-align: right;
-    border-bottom: 2px dashed var(--color-surface-muted);
+    border: 0 !important;
   }
 
-  /* label kecil di kiri tiap data */
-  .data-table.is-responsive td::before {
+  .table-stack td > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .table-stack td::before {
     content: attr(data-label);
     flex-shrink: 0;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
     text-align: left;
     text-transform: uppercase;
-    color: var(--color-muted);
+    color: var(--tblr-secondary);
   }
 
-  .data-table.is-responsive td.cell-title,
-  .data-table.is-responsive td.table-action {
+  .table-stack td:not([data-label])::before,
+  .table-stack td.cell-title::before {
+    content: none;
+  }
+
+  .table-stack td.cell-title,
+  .table-stack td.cell-action {
     display: block;
     text-align: left;
   }
 
-  .data-table.is-responsive td.cell-title::before,
-  .data-table.is-responsive td.table-action::before {
-    display: none;
+  .table-stack td.cell-title {
+    font-size: 1rem;
   }
 
-  .data-table.is-responsive td.cell-title {
-    padding-top: 0;
-    font-size: 17px;
+  .table-stack td.cell-action .btn {
+    flex: 1;
   }
 
-  .data-table.is-responsive td.table-action {
-    padding-bottom: 0;
-    border-bottom: none;
-  }
-
-  .data-table.is-responsive .table-action .btn {
-    width: 100%;
-  }
-
-  .data-table.is-responsive .cell-url {
+  .table-stack .cell-url {
     max-width: 170px;
   }
 
-  .data-table.is-responsive .cell-description {
+  .table-stack .cell-description,
+  .table-stack .cell-actor {
     max-width: none;
   }
-}
-
-/* kartu pembungkus tabel + judulnya */
-.table-card {
-  margin-top: var(--space-5);
-  animation: nb-pop-in 300ms 200ms both;
-}
-
-.table-card-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.table-card-header .section-title {
-  margin-bottom: 0;
 }

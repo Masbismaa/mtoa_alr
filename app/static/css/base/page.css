@@ -1,0 +1,60 @@
+/* dasar halaman: anti geser ke samping, jarak konten, skip link, kartu */
+
+/* halaman ga boleh geser ke samping + garis bawah header dibuang */
+body {
+  overflow-x: clip;
+}
+
+.page-wrapper {
+  min-width: 0;
+}
+
+/* elemen "visually-hidden" di tabel posisinya absolute, harus ikut kepotong di dalam kotak scroll tabel */
+.table-responsive {
+  position: relative;
+}
+
+.page-wrapper > .page-header {
+  border-bottom: 0;
+}
+
+/* kasih ruang di bawah biar konten ga ketutup tombol bulat */
+.page-body {
+  padding-bottom: 4rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+.skip-link:focus {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 2000;
+  padding: 0.5rem 1rem;
+  color: var(--tblr-primary-fg, #ffffff);
+  background: var(--tblr-primary);
+  border-radius: var(--tblr-border-radius);
+}
+
+.dropdown-item-icon {
+  margin-right: 0.5rem;
+}
+
+/* kartu yg bisa diklik naik dikit pas di-hover */
+.card {
+  transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
+}
+
+.card-link:hover {
+  transform: translateY(-2px);
+}
+
+/* kartu muncul halus pas halaman dibuka */
+.page-body .card,
+.auth-card {
+  animation: app-fade-up 300ms ease both;
+}

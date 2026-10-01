@@ -29,8 +29,10 @@ def test_dashboard_category_filter(logged_in_client, registered_user, category_d
         category_dict["Network"], "Switch Core", "", address="10.0.0.2", port="22",
     ))
     html_text = logged_in_client.get(f"/?category_id={category_dict['Network'].id}").get_data(as_text=True)
-    assert "Switch Core" in html_text
-    assert "Portal HR" not in html_text
+    # cek tabel Daftar Link aja, daftar kategori di atasnya emang nampilin link terbaru tiap kategori
+    table_html = html_text.split('id="daftar_link"')[1]
+    assert "Switch Core" in table_html
+    assert "Portal HR" not in table_html
 
 def test_dashboard_ignores_invalid_params(logged_in_client, category_dict):
     """Negative: parameter ngaco ga bikin error."""

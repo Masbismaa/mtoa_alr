@@ -151,3 +151,39 @@ def test_cli_create_admin(app):
     assert result.exit_code == 0, result.output
     admin = db.session.execute(db.select(User).filter_by(email="admin.alr@spindo.com")).scalar_one()
     assert admin.role == ROLE_ADMIN
+
+def test_wrong_otp_counts_toward_account_lock(app, registered_user, fixed_otp_code):
+    """Negative (security): salah OTP terus-terusan ikut ngunci akun, OTP bener pun ditolak."""
+    start_otp_challenge(registered_user)
+    for _ in range(LOGIN_MAX_FAILED_COUNT - 1):
+        with pytest.raises(AuthError, match="salah"):
+            verify_otp_code(registered_user, "000000")
+    with pytest.raises(AuthError, match="dikunci"):
+        verify_otp_code(registered_user, "000000")
+    assert registered_user.locked_until is not None
+    with pytest.raises(AuthError, match="dikunci"):
+        verify_otp_code(registered_user, fixed_otp_code)
+
+def test_password_and_otp_failures_add_up(app, registered_user, user_password, fixed_otp_code):
+    """Negative (security): salah password & salah OTP dihitung bareng."""
+    for _ in range(LOGIN_MAX_FAILED_COUNT - 1):
+        with pytest.raises(AuthError):
+            authenticate_user(registered_user.email, "PasswordSalah1")
+    start_otp_challenge(authenticate_user(registered_user.email, user_password))
+    with pytest.raises(AuthError, match="dikunci"):
+        verify_otp_code(registered_user, "000000")
+
+def test_inactive_user_cannot_finish_otp(app, registered_user, fixed_otp_code):
+    """Negative: akun dinonaktifin pas lagi di halaman OTP -> ditolak walau OTP-nya bener."""
+    start_otp_challenge(registered_user)
+    registered_user.is_active = False
+    db.session.commit()
+    with pytest.raises(AuthError, match="tidak aktif"):
+        verify_otp_code(registered_user, fixed_otp_code)
+
+def test_locked_user_cannot_resend_otp(app, registered_user):
+    """Negative: akun yg lagi dikunci ga bisa minta OTP baru."""
+    registered_user.locked_until = utc_now() + timedelta(minutes=5)
+    db.session.commit()
+    with pytest.raises(AuthError, match="dikunci"):
+        resend_otp_challenge(registered_user)

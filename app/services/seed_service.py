@@ -6,13 +6,10 @@ from app.utils.constants import DEFAULT_CATEGORY_LIST
 
 
 def seed_default_categories():
-    """Menambahkan kategori default yang belum ada (aman dijalankan berkali-kali).
-
-    Returns:
-        Jumlah kategori baru yang ditambahkan.
-    """
     # --- 1. Ambil semua nama kategori yang sudah ada dalam SATU query ---
-    existing_name_set = set(db.session.execute(db.select(Category.name)).scalars().all())
+    existing_name_set = set(
+        db.session.execute(db.select(Category.name).where(Category.parent_id.is_(None))).scalars().all()
+        )
 
     # --- 2. Siapkan hanya kategori yang belum ada (hindari duplikasi) ---
     new_category_list = [

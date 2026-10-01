@@ -9,13 +9,21 @@ def login_as(client, email, password, otp_code):
     client.post("/auth/login", data={"email": email, "password": password})
     client.post("/auth/otp", data={"otp_code": otp_code})
 
-def test_dashboard_shows_sidebar_profile(logged_in_client):
-    """Positive: sidebar nampilin nama, jabatan, departemen + preferensi dari server."""
+def test_dashboard_shows_topbar_profile(logged_in_client):
+    """Positive: topbar nampilin nama, jabatan, departemen + preferensi dari server."""
     html_text = logged_in_client.get("/").get_data(as_text=True)
     assert "User Login" in html_text
     assert "Staff" in html_text
     assert "ICT" in html_text
     assert 'data-pref-source="server"' in html_text
+
+def test_topbar_only_has_home_and_user_menu(logged_in_client):
+    """Positive: topbar isinya cuma tombol Home (balik ke dashboard) sama menu user."""
+    html_text = logged_in_client.get("/settings/").get_data(as_text=True)
+    topbar_html = html_text.split("app-topbar\"")[1].split("</header>")[0]
+    assert 'href="/"' in topbar_html
+    assert "Home" in topbar_html
+    assert "user-menu" in topbar_html
 
 def test_user_entry_does_not_see_admin_menu(logged_in_client):
     """Negative (RBAC): user biasa ga liat menu Categories & Audit Logs."""

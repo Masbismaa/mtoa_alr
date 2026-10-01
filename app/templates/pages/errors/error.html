@@ -3,8 +3,12 @@
 {% block title %}{{ error_title }} - MTOA ALR{% endblock %}
 
 {% block content %}
-  <p class="auth-step">Error {{ error_code }}</p>
-  <h2 class="auth-heading">{{ error_title }}</h2>
-  <p class="auth-hint">{{ error_message }}</p>
-  <a href="{{ url_for('main.home') }}" class="btn btn-primary btn-block">Kembali ke Dashboard</a>
+  <div class="empty p-0">
+    <div class="empty-header">{{ error_code }}</div>
+    <p class="empty-title">{{ error_title }}</p>
+    <p class="empty-subtitle text-secondary">{{ error_message }}</p>
+    <div class="empty-action">
+      <a href="{{ url_for('main.home') }}" class="btn btn-primary">Kembali ke Dashboard</a>
+    </div>
+  </div>
 {% endblock %}

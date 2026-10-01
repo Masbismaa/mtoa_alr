@@ -11,12 +11,16 @@ from app.utils.constants import OTP_DELIVERY_CONSOLE
 # config yg wajib diisi, kalau kosong app langsung nolak jalan
 REQUIRED_CONFIG_KEY_LIST = ["SECRET_KEY", "SQLALCHEMY_DATABASE_URI", "ENCRYPTION_KEY"]
 
-# isi halaman error: kode -> (judul, pesan)
+# isi halaman error
 ERROR_PAGE_DICT = {
     403: ("Akses ditolak", "Kamu tidak punya izin untuk membuka atau mengubah data ini."),
     404: ("Tidak ditemukan", "Halaman atau data yang kamu cari tidak ada, atau kamu tidak punya akses."),
+    405: ("Aksi tidak diizinkan", "Cara membuka halaman ini tidak didukung. Kembali lalu coba lewat tombol yang tersedia."),
     413: ("File terlalu besar", "Total upload kebesaran. Maksimal 5 file, masing-masing 10MB."),
+    500: ("Terjadi kesalahan", "Ada yang error di server. Coba lagi sebentar lagi, kalau masih muncul hubungi tim ICT."),
 }
+# token form (CSRF) kedaluwarsa / ga ada, biasanya gara-gara halaman kebuka kelamaan
+CSRF_ERROR_PAGE = ("Sesi form kedaluwarsa", "Halaman ini kebuka terlalu lama. Muat ulang halaman, lalu kirim lagi.")
 
 
 def create_app(config_name=None):
@@ -72,6 +76,7 @@ def register_blueprints(app):
     from app.routes.settings_routes import settings_bp
     from app.routes.group_routes import groups_bp
     from app.routes.audit_routes import audit_bp
+    from app.routes.category_routes import categories_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
@@ -81,11 +86,16 @@ def register_blueprints(app):
     app.register_blueprint(attachments_bp)
     app.register_blueprint(groups_bp)
     app.register_blueprint(audit_bp)
+    app.register_blueprint(categories_bp)
 
 def build_error_handler(error_code, error_title, error_message):
     """Bikin handler buat satu kode error (biar ga nulis ulang)."""
 
     def handle_error(error):
+        if error_code >= 500:
+            # Handler ini dipanggil saat ada request, jadi application context
+            # dan session SQLAlchemy sudah tersedia di sini.
+            db.session.rollback()
         return render_template(
             "pages/errors/error.html",
             error_code=error_code,
@@ -97,6 +107,7 @@ def build_error_handler(error_code, error_title, error_message):
 
 def register_error_handlers(app):
     """Halaman error custom."""
+    from flask_wtf.csrf import CSRFError
     from app.utils.exceptions import PermissionDeniedError
 
     for error_code, (error_title, error_message) in ERROR_PAGE_DICT.items():
@@ -104,6 +115,7 @@ def register_error_handlers(app):
 
     forbidden_title, forbidden_message = ERROR_PAGE_DICT[403]
     app.register_error_handler(PermissionDeniedError, build_error_handler(403, forbidden_title, forbidden_message))
+    app.register_error_handler(CSRFError, build_error_handler(400, *CSRF_ERROR_PAGE))
 
     @app.errorhandler(429)
     def handle_too_many_requests(error):
@@ -113,8 +125,9 @@ def register_template_helpers(app):
     """Filter & data global buat semua template."""
     from app.services.preference_service import build_ui_preference_dict, get_or_create_preference
     from app.utils.constants import ACCENT_COLOR_OPTION_LIST, FONT_FAMILY_OPTION_LIST
-    from app.utils.datetime_helper import format_local_datetime
-    from app.utils.navigation import build_sidebar_nav_list
+    from app.services.category_service import build_category_label
+    from app.utils.datetime_helper import format_local_datetime, format_time_ago
+    from app.utils.navigation import build_sidebar_section_list
     from app.utils.sanitizer import render_rich_text
     from app.utils.text_helper import (
         format_file_size,
@@ -135,18 +148,20 @@ def register_template_helpers(app):
     app.add_template_filter(format_file_size, "file_size")
     app.add_template_filter(get_audit_action_label, "audit_action_label")
     app.add_template_filter(get_audit_entity_label, "audit_entity_label")
+    app.add_template_filter(build_category_label, "category_label")
+    app.add_template_filter(format_time_ago, "time_ago")
 
     @app.context_processor
     def inject_layout_context():
         """Data yg otomatis ada di semua template."""
         if not current_user.is_authenticated:
-            return {"ui_preference_dict": None, "sidebar_nav_list": []}
+            return {"ui_preference_dict": None, "sidebar_section_list": []}
 
         user = current_user._get_current_object()
         preference = get_or_create_preference(user)
         return {
             "ui_preference_dict": build_ui_preference_dict(preference),
-            "sidebar_nav_list": build_sidebar_nav_list(user, request.endpoint),
+            "sidebar_section_list": build_sidebar_section_list(user, request.endpoint),
             "accent_color_option_list": ACCENT_COLOR_OPTION_LIST,
             "font_family_option_list": FONT_FAMILY_OPTION_LIST,
         }

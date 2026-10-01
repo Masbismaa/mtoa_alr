@@ -1,0 +1,39 @@
+/* logo Spindo + tulisan Access Link Register */
+
+/* logo Spindo: versi terang & gelap */
+.app-brand-logo {
+  width: auto;
+  height: 2.75rem;
+}
+
+.app-brand-logo-dark {
+  display: none;
+}
+
+[data-bs-theme="dark"] .app-brand-logo-light {
+  display: none;
+}
+
+[data-bs-theme="dark"] .app-brand-logo-dark {
+  display: inline-block;
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-brand-text {
+  padding-left: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  color: var(--tblr-secondary);
+  border-left: 1px solid var(--tblr-border-color);
+}
+
+.auth-brand .app-brand-logo {
+  height: 4.5rem;
+}

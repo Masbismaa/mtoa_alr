@@ -4,7 +4,6 @@
   "use strict";
 
   const STORAGE_KEY = "alr_ui_pref";
-  const TRANSITION_MS = 350;
   const root = document.documentElement;
 
   // baca preferensi yg lagi kepasang di <html>
@@ -25,17 +24,13 @@
     }
   }
 
-  // pasang preferensi ke halaman (bisa sebagian aja)
-  function apply(uiDict, isAnimated) {
-    if (isAnimated) {
-      // nyalain transisi warna sebentar biar ganti tema kerasa halus
-      root.classList.add("theme-transition");
-      window.setTimeout(function () {
-        root.classList.remove("theme-transition");
-      }, TRANSITION_MS);
+  // ganti atribut di <html>, CSS Tabler & app langsung ngikut
+  function setAttributes(uiDict) {
+    if (uiDict.theme_mode) {
+      // data-theme dipake app, data-bs-theme dipake Tabler
+      root.dataset.theme = uiDict.theme_mode;
+      root.dataset.bsTheme = uiDict.theme_mode;
     }
-
-    if (uiDict.theme_mode) root.dataset.theme = uiDict.theme_mode;
     if (uiDict.accent_key) root.dataset.accent = uiDict.accent_key;
     if (typeof uiDict.is_compact_view === "boolean") root.dataset.density = uiDict.is_compact_view ? "compact" : "comfortable";
     if (uiDict.font_family) root.dataset.font = uiDict.font_family;
@@ -44,6 +39,24 @@
     writeLocal(currentDict);
     // kabarin komponen lain (misal customizer) kalau preferensi berubah
     document.dispatchEvent(new CustomEvent("alr:preference-changed", { detail: currentDict }));
+  }
+
+  function canAnimate() {
+    const isReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return typeof document.startViewTransition === "function" && !isReducedMotion;
+  }
+
+  // pasang preferensi ke halaman (bisa sebagian aja).
+  // animasinya pake View Transition: browser motret tampilan lama & baru terus di-crossfade,
+  // jadi cuma 1x hitung ulang style. Dulu tiap elemen dikasih transition, itu yg bikin patah-patah
+  function apply(uiDict, isAnimated) {
+    if (isAnimated && canAnimate()) {
+      document.startViewTransition(function () {
+        setAttributes(uiDict);
+      });
+      return;
+    }
+    setAttributes(uiDict);
   }
 
   // kirim ke server. Kalau belum login, cukup disimpen lokal

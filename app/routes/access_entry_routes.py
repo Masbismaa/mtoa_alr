@@ -9,6 +9,7 @@ from app.services.access_entry_service import (
     create_access_entry,
     delete_access_entry,
     get_active_category_list,
+    get_form_category_list,
     get_visible_entry,
     read_access_note,
     update_access_entry,
@@ -95,6 +96,8 @@ def create():
     form.category_id.choices = [(category.id, category.name) for category in category_list]
     custom_field_pair_list = read_custom_field_pair_list() if request.method == "POST" else []
     attachment_error_list = []
+    if request.method == "GET":
+        form.category_id.data = parse_positive_int(request.args.get("category_id"))
     # group tujuan, dicuekin kalau user bukan anggota aktifnya
     group_id = parse_positive_int(request.values.get("group_id"))
     target_group = get_member_group(user, group_id) if group_id else None
@@ -146,7 +149,7 @@ def edit(entry_id):
     if not can_edit_entry(user, entry):
         abort(403)
 
-    category_list = get_active_category_list()
+    category_list = get_form_category_list(entry.category)
     attachment_error_list = []
     if request.method == "GET":
         form = AccessEntryForm(obj=entry)

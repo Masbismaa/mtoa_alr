@@ -1,92 +1,23 @@
 /* halaman dashboard */
+
+/* dashboard */
 .welcome-card {
+  background: linear-gradient(180deg, var(--tblr-primary-lt), transparent 70%), var(--tblr-bg-surface);
+}
+
+.welcome-illustration {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  animation: nb-pop-in 300ms both;
-}
-
-.welcome-card h2 {
-  margin: 0 0 var(--space-1);
-  font-family: var(--font-heading);
-  font-size: 26px;
-}
-
-.welcome-card p {
-  margin: 0;
-  font-weight: 700;
-}
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-4);
-  margin-top: var(--space-5);
-}
-
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  animation: nb-pop-in 300ms both;
-  transition: transform var(--nb-transition-fast), box-shadow var(--nb-transition-fast);
-}
-
-/* kartu muncul satu-satu */
-.stat-card:nth-child(2) { animation-delay: 60ms; }
-.stat-card:nth-child(3) { animation-delay: 120ms; }
-.stat-card:nth-child(4) { animation-delay: 180ms; }
-
-.stat-card:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-hover);
-}
-
-.stat-card-icon {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: var(--color-surface-muted);
-  border: var(--nb-border-width) solid var(--color-border);
-  border-radius: var(--nb-radius);
+  width: 6.5rem;
+  height: 6.5rem;
+  color: var(--tblr-primary);
+  background: var(--tblr-primary-lt);
+  border-radius: 50%;
 }
 
-.stat-card-label {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-
-.stat-card-value {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-size: 32px;
-}
-
-/* HP kecil */
-@media (max-width: 600px) {
-  .page-actions .btn {
-    width: 100%;
-  }
-
-  .welcome-card h2 {
-    font-size: 22px;
-  }
-
-  .stat-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .stat-card-value {
-    font-size: 26px;
-  }
+.welcome-illustration .icon {
+  width: 3rem;
+  height: 3rem;
+  stroke-width: 1.5;
 }

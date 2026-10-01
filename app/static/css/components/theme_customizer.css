@@ -1,0 +1,181 @@
+/* panel UI Customizer + tombol bulat pembukanya */
+
+/* UI Customizer (panel kiri, mirip "Make Tabler your own") */
+.customizer {
+  --tblr-offcanvas-width: 380px;
+}
+
+.customizer .offcanvas-header {
+  border-bottom: 0;
+}
+
+.customizer-intro .avatar .icon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.customizer-footer {
+  padding: 1rem 1.25rem;
+  border-top: var(--tblr-border-width, 1px) solid var(--tblr-border-color);
+}
+
+.customizer-status:empty {
+  display: none;
+}
+
+.customizer-status.is-error {
+  color: var(--tblr-danger);
+}
+
+/* kartu pilihan (mode, font, kerapatan) */
+.option-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem;
+  color: var(--tblr-body-color);
+  text-align: left;
+  background: var(--tblr-bg-surface);
+  border: 1px solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius);
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.option-card:hover {
+  border-color: var(--tblr-primary);
+}
+
+.option-card.is-selected {
+  border-color: var(--tblr-primary);
+  box-shadow: 0 0 0 1px var(--tblr-primary);
+}
+
+.option-card-check {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  z-index: 1;
+  width: 1rem;
+  height: 1rem;
+  background: var(--tblr-bg-surface);
+  border: 1px solid var(--tblr-border-color);
+  border-radius: 50%;
+}
+
+.option-card.is-selected .option-card-check {
+  background: var(--tblr-bg-surface);
+  border: 4px solid var(--tblr-primary);
+}
+
+.option-card-label {
+  font-size: 0.8125rem;
+}
+
+/* mini preview mode terang/gelap */
+.scheme-preview {
+  display: flex;
+  height: 3.5rem;
+  overflow: hidden;
+  border: 1px solid var(--tblr-border-color);
+  border-radius: calc(var(--tblr-border-radius) - 2px);
+}
+
+.scheme-preview-nav {
+  width: 30%;
+}
+
+.scheme-preview-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem;
+}
+
+.scheme-preview-body span {
+  height: 0.3rem;
+  border-radius: 999px;
+}
+
+.scheme-preview-body span:nth-child(2) { width: 80%; }
+.scheme-preview-body span:nth-child(3) { width: 55%; }
+
+.scheme-option-light .scheme-preview { background: #f6f8fb; }
+.scheme-option-light .scheme-preview-nav { background: #ffffff; border-right: 1px solid #e6e7e9; }
+.scheme-option-light .scheme-preview-body span { background: #d0d5dd; }
+.scheme-option-dark .scheme-preview { background: #151f2c; }
+.scheme-option-dark .scheme-preview-nav { background: #1d273b; }
+.scheme-option-dark .scheme-preview-body span { background: #3a4859; }
+
+.font-option-sample {
+  display: block;
+  padding-top: 0.75rem;
+  font-size: 1.5rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.font-option-mono .font-option-sample { font-family: var(--tblr-font-monospace); }
+.font-option-serif .font-option-sample { font-family: Georgia, Cambria, "Times New Roman", serif; }
+
+/* mini preview kerapatan */
+.density-preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 3.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--tblr-border-color);
+  border-radius: calc(var(--tblr-border-radius) - 2px);
+}
+
+.density-preview span {
+  height: 0.3rem;
+  background: var(--tblr-border-color);
+  border-radius: 999px;
+}
+
+.density-preview-comfortable { gap: 0.55rem; }
+.density-preview-compact { gap: 0.25rem; }
+
+/* bulatan warna aksen (warnanya sama kayak di atas) */
+.accent-swatch {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 2px solid var(--tblr-bg-surface);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--tblr-border-color);
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.accent-swatch:hover {
+  transform: scale(1.08);
+}
+
+.accent-swatch.is-selected {
+  box-shadow: 0 0 0 2px var(--tblr-body-color);
+}
+
+.accent-swatch-blue { background: #066fd1; }
+.accent-swatch-yellow { background: #f59f00; }
+.accent-swatch-pink { background: #d6336c; }
+.accent-swatch-lime { background: #74b816; }
+.accent-swatch-teal { background: #0ca678; }
+.accent-swatch-purple { background: #ae3ec9; }
+
+/* tombol bulat customize di pojok kanan bawah */
+.btn-floating {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 1030;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--tblr-border-radius-lg, 8px);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.2);
+}

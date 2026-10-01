@@ -1,19 +1,25 @@
-// panel UI Customizer: mode, warna aksen, kerapatan, font. Langsung kepake + auto-save
+// panel "Atur tampilan": klik pilihan = langsung dicoba, Simpan = disimpen ke akun,
+// ditutup tanpa Simpan = balik ke tampilan sebelumnya, Reset = balik ke default
 (function () {
   "use strict";
 
-  const STATUS_CLEAR_MS = 2000;
-  const CLOSE_DELAY_MS = 250;
+  const STATUS_CLEAR_MS = 2500;
   const preference = window.AlrUiPreference;
   const panelEl = document.querySelector("[data-customizer]");
-  const backdropEl = document.querySelector(".customizer-backdrop");
-  if (!preference || !panelEl || !backdropEl) return;
+  if (!preference || !panelEl) return;
 
   const statusEl = panelEl.querySelector("[data-customizer-status]");
-  let lastFocusedEl = null;
+  const saveButton = panelEl.querySelector("[data-customizer-save]");
+  const resetButton = panelEl.querySelector("[data-customizer-reset]");
+  const closeButton = panelEl.querySelector('[data-bs-dismiss="offcanvas"]');
+  let savedDict = preference.readCurrent();
   let statusTimerId = null;
 
-  // tandain pilihan yg lagi aktif
+  function isSameDict(firstDict, secondDict) {
+    return JSON.stringify(firstDict) === JSON.stringify(secondDict);
+  }
+
+  // tandain pilihan yg lagi kepake
   function syncSelected() {
     const currentDict = preference.readCurrent();
     panelEl.querySelectorAll("[data-pref-option]").forEach(function (optionEl) {
@@ -45,72 +51,55 @@
     }
   }
 
-  function openPanel() {
-    lastFocusedEl = document.activeElement;
-    syncSelected();
-    backdropEl.hidden = false;
-    panelEl.inert = false;
-    // tunggu 1 frame biar animasi geser kejalan
-    window.requestAnimationFrame(function () {
-      panelEl.classList.add("is-open");
-      backdropEl.classList.add("is-visible");
-    });
-    const firstOption = panelEl.querySelector("[data-pref-option]");
-    if (firstOption) firstOption.focus();
+  // server nyimpen warna aksen dalam bentuk hex, UI pake key (blue/pink)
+  function findAccentHex(accentKey) {
+    const swatchEl = panelEl.querySelector('[data-pref-key="accent_color"][data-accent-key="' + accentKey + '"]');
+    return swatchEl ? swatchEl.dataset.prefValue : null;
   }
 
-  function closePanel() {
-    panelEl.classList.remove("is-open");
-    backdropEl.classList.remove("is-visible");
-    panelEl.inert = true;
-    window.setTimeout(function () {
-      backdropEl.hidden = true;
-    }, CLOSE_DELAY_MS);
-    if (lastFocusedEl) lastFocusedEl.focus();
-  }
-
-  async function handleOptionClick(optionEl) {
+  function handleOptionClick(optionEl) {
     const prefKey = optionEl.dataset.prefKey;
-    const rawValue = optionEl.dataset.prefValue;
     const uiDict = {};
-    const payloadDict = {};
-
-    // UI pake key (blue/yellow), server nyimpen hex
     if (prefKey === "accent_color") {
       uiDict.accent_key = optionEl.dataset.accentKey;
-      payloadDict.accent_color = rawValue;
     } else if (prefKey === "is_compact_view") {
-      const isCompactView = rawValue === "true";
-      uiDict.is_compact_view = isCompactView;
-      payloadDict.is_compact_view = isCompactView;
+      uiDict.is_compact_view = optionEl.dataset.prefValue === "true";
     } else {
-      uiDict[prefKey] = rawValue;
-      payloadDict[prefKey] = rawValue;
+      uiDict[prefKey] = optionEl.dataset.prefValue;
     }
-
-    const previousDict = preference.readCurrent();
     preference.apply(uiDict, true);
-    syncSelected();
-    showStatus("Menyimpan...");
+  }
 
-    const resultDict = await preference.saveToServer(payloadDict);
+  function handleReset() {
+    preference.apply({
+      theme_mode: panelEl.dataset.defaultTheme,
+      accent_key: panelEl.dataset.defaultAccentKey,
+      is_compact_view: false,
+      font_family: panelEl.dataset.defaultFont
+    }, true);
+    showStatus("Balik ke default, klik Simpan biar kesimpen");
+  }
+
+  async function handleSave() {
+    const currentDict = preference.readCurrent();
+    saveButton.disabled = true;
+    showStatus("Menyimpan...");
+    const resultDict = await preference.saveToServer({
+      theme_mode: currentDict.theme_mode,
+      accent_color: findAccentHex(currentDict.accent_key),
+      is_compact_view: currentDict.is_compact_view,
+      font_family: currentDict.font_family
+    });
+    saveButton.disabled = false;
+
     if (resultDict.is_success) {
-      showStatus("Tersimpan \u2713");
+      savedDict = currentDict;
+      showStatus("Tersimpan ✓");
+      if (closeButton) closeButton.click();
     } else {
-      // gagal -> balikin ke pilihan sebelumnya
-      preference.apply(previousDict, true);
-      syncSelected();
       showStatus(resultDict.message || "Gagal menyimpan", true);
     }
   }
-
-  document.querySelectorAll("[data-customizer-open]").forEach(function (openEl) {
-    openEl.addEventListener("click", openPanel);
-  });
-
-  document.querySelectorAll("[data-customizer-close]").forEach(function (closeEl) {
-    closeEl.addEventListener("click", closePanel);
-  });
 
   panelEl.querySelectorAll("[data-pref-option]").forEach(function (optionEl) {
     optionEl.addEventListener("click", function () {
@@ -118,13 +107,23 @@
     });
   });
 
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape" && panelEl.classList.contains("is-open")) {
-      closePanel();
+  if (resetButton) resetButton.addEventListener("click", handleReset);
+  if (saveButton) saveButton.addEventListener("click", handleSave);
+
+  // panel dibuka: inget tampilan yg lagi kesimpen
+  panelEl.addEventListener("show.bs.offcanvas", function () {
+    savedDict = preference.readCurrent();
+    syncSelected();
+  });
+
+  // panel ditutup tanpa Simpan: balikin tampilannya
+  panelEl.addEventListener("hidden.bs.offcanvas", function () {
+    if (!isSameDict(preference.readCurrent(), savedDict)) {
+      preference.apply(savedDict, true);
     }
   });
 
-  // mode diganti dari tombol topbar -> pilihan di panel ikut update
+  // tiap preferensi berubah (dari panel ini atau tombol tema) -> pilihan di panel ikut update
   document.addEventListener("alr:preference-changed", syncSelected);
 
   syncSelected();

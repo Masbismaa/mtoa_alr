@@ -1,0 +1,20 @@
+/* pesan flash (notif sukses/gagal) */
+
+/* flash message */
+.flash-list:empty {
+  display: none;
+}
+
+.flash-item {
+  animation: app-fade-up 200ms ease both;
+}
+
+.flash-item.is-leaving {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.flash-text {
+  overflow-wrap: anywhere;
+}

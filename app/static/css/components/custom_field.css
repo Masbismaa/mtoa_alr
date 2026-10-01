@@ -1,0 +1,21 @@
+/* field tambahan kategori General */
+
+/* field tambahan kategori General */
+.custom-field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.custom-field-list:empty {
+  margin-bottom: 0;
+}
+
+.custom-field.is-entering {
+  animation: app-pop-in 250ms ease both;
+}
+
+.custom-field.is-leaving {
+  animation: app-fade-out 200ms ease both;
+}

@@ -1,138 +1,277 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
-{% from "components/copy_button.html" import copy_button %}
 {% from "components/pagination.html" import render_pagination %}
+{% from "components/badge.html" import audit_action_badge %}
+{% from "components/category_forum.html" import category_forum %}
+{% from "components/entry_table.html" import entry_table %}
+{% from "components/chart.html" import bar_chart, change_badge, gauge, sparkline %}
 
 {% block title %}Dashboard - MTOA ALR{% endblock %}
 
-{% block page_styles %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/table.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/filter_bar.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
+{% block page_pretitle %}Overview{% endblock %}
+
+{% block page_actions %}
+  <a href="{{ url_for('groups.index') }}" class="btn">{{ icon("group") }} Groups</a>
+  <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
 {% endblock %}
 
 {% block content %}
   {% set is_filtered = filter_dict.keyword or filter_dict.category_id or filter_dict.visibility %}
+  {% set summary = dashboard_dict.summary %}
 
-  <div class="page-actions">
-    <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
+  <div class="row row-deck row-cards mb-3">
+    <div class="col-lg-6">
+      <div class="card welcome-card">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <h3 class="h2 mb-1">Selamat datang, {{ current_user.full_name.split() | first }}</h3>
+              <p class="text-secondary mb-4">
+                {% if dashboard_dict.invitation_count %}
+                  Ada <a href="{{ url_for('groups.index') }}">{{ dashboard_dict.invitation_count }} undangan group</a> yang nunggu jawabanmu.
+                {% else %}
+                  Semua link tim ada di sini. Tinggal cari, copy, beres.
+                {% endif %}
+              </p>
+              <div class="row g-4">
+                <div class="col-sm-6">
+                  <div class="subheader">Link milikmu</div>
+                  <div class="h3 mb-2"><span data-count-up>{{ dashboard_dict.own_count }}</span> <span class="text-secondary small fw-normal">{{ dashboard_dict.own_percent }}%</span></div>
+                  <progress class="app-progress" value="{{ dashboard_dict.own_percent }}" max="100" aria-label="Persentase link milikmu"></progress>
+                </div>
+                <div class="col-sm-6">
+                  <div class="subheader">Punya lampiran</div>
+                  <div class="h3 mb-2"><span data-count-up>{{ dashboard_dict.attachment_entry_count }}</span> <span class="text-secondary small fw-normal">{{ dashboard_dict.attachment_percent }}%</span></div>
+                  <progress class="app-progress app-progress-success" value="{{ dashboard_dict.attachment_percent }}" max="100" aria-label="Persentase link yang punya lampiran"></progress>
+                </div>
+              </div>
+            </div>
+            <div class="col-auto d-none d-md-block">
+              <div class="welcome-illustration" aria-hidden="true">{{ icon("link") }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+      <div class="card">
+        <div class="card-body pb-0">
+          <div class="subheader">Total link</div>
+          <div class="h1 mb-1"><span data-count-up>{{ summary.total }}</span>{{ change_badge(dashboard_dict.new_link_change_percent) }}</div>
+          <div class="text-secondary">{{ dashboard_dict.new_link_count }} link baru dalam 7 hari terakhir</div>
+        </div>
+        <div class="card-chart">{{ sparkline(dashboard_dict.trend_chart) }}</div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="subheader">Link public</div>
+          <div class="h1 mb-2" data-count-up>{{ summary.public }}</div>
+          {{ gauge(dashboard_dict.public_percent, "Public") }}
+        </div>
+      </div>
+    </div>
   </div>
 
-  <section class="card welcome-card">
-    <div>
-      <h2>Halo, {{ current_user.full_name }}!</h2>
-      <p>{{ current_user.job_title }} · {{ current_user.department }}</p>
-    </div>
-    <span class="badge">{{ current_user.role | role_label }}</span>
-  </section>
-
-  <section class="stat-grid" aria-label="Ringkasan">
-    {% for stat in stat_card_list %}
-      <article class="card stat-card">
-        <span class="stat-card-icon">{{ icon(stat.icon) }}</span>
-        <p class="stat-card-label">{{ stat.label }}</p>
-        <p class="stat-card-value">{{ stat.value }}</p>
-      </article>
-    {% endfor %}
-  </section>
-
-  <section class="card table-card">
-    <div class="table-card-header">
-      <h2 class="section-title">{{ icon("link") }} Daftar Link</h2>
-      <span class="badge">{{ pagination.total }} data</span>
+  <div class="row row-deck row-cards mb-3">
+    <div class="col-sm-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="subheader">Link private</div>
+          <div class="h1 mb-3" data-count-up>{{ summary.private }}</div>
+          <div class="d-flex mb-2">
+            <div>Dari total link</div>
+            <div class="ms-auto fw-medium">{{ dashboard_dict.private_percent }}%</div>
+          </div>
+          <progress class="app-progress" value="{{ dashboard_dict.private_percent }}" max="100" aria-label="Persentase link private"></progress>
+        </div>
+      </div>
     </div>
 
-    <form method="get" action="{{ url_for('main.home') }}" class="filter-bar" role="search" data-filter-form>
-      <label class="filter-search">
-        <span class="visually-hidden">Cari link</span>
-        {{ icon("search") }}
-        <input type="search" name="q" value="{{ filter_dict.keyword }}" class="form-input" placeholder="Cari judul, URL, address, deskripsi... (tekan /)" maxlength="100" autocomplete="off" data-filter-search>
-      </label>
-      <select name="category_id" class="form-input" aria-label="Filter kategori" data-filter-auto>
-        <option value="">Semua kategori</option>
-        {% for category in category_list %}
-          <option value="{{ category.id }}"{% if filter_dict.category_id == category.id %} selected{% endif %}>{{ category.name }}</option>
-        {% endfor %}
-      </select>
-      <select name="visibility" class="form-input" aria-label="Filter visibilitas" data-filter-auto>
-        <option value="">Semua visibilitas</option>
-        <option value="public"{% if filter_dict.visibility == "public" %} selected{% endif %}>Public</option>
-        <option value="private"{% if filter_dict.visibility == "private" %} selected{% endif %}>Private</option>
-      </select>
-      <button type="submit" class="btn btn-primary">{{ icon("search") }} Cari</button>
-      {% if is_filtered %}
-        <a href="{{ url_for('main.home') }}" class="btn btn-secondary">Reset</a>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card">
+        <div class="card-body pb-0">
+          <div class="d-flex align-items-center">
+            <div class="subheader">Link baru</div>
+            <div class="ms-auto small text-secondary">7 hari terakhir</div>
+          </div>
+          <div class="h1 mb-0"><span data-count-up>{{ dashboard_dict.new_link_count }}</span>{{ change_badge(dashboard_dict.new_link_change_percent) }}</div>
+        </div>
+        <div class="card-chart">{{ sparkline(dashboard_dict.new_link_chart) }}</div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="subheader">Aktivitas kamu</div>
+            <div class="ms-auto small text-secondary">7 hari terakhir</div>
+          </div>
+          <div class="h1 mb-3" data-count-up>{{ dashboard_dict.activity_count }}</div>
+          {{ bar_chart(dashboard_dict.activity_bar_list) }}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="subheader">Group</div>
+          <div class="h1 mb-0 stat-card-value">{{ dashboard_dict.group_list | length }}</div>
+          <div class="text-secondary mb-3">
+            {% if dashboard_dict.invitation_count %}{{ dashboard_dict.invitation_count }} undangan menunggu{% else %}Tidak ada undangan baru{% endif %}
+          </div>
+          <a href="{{ url_for('groups.index') }}" class="btn btn-sm w-100">{{ icon("group") }} Buka Groups</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3" id="kategori">
+    <div class="card-header">
+      <h3 class="card-title">{{ icon("category") }} Kategori</h3>
+      {% if current_user.role == "admin" %}
+        <div class="card-actions">
+          <a href="{{ url_for('categories.index') }}" class="btn btn-sm">{{ icon("settings") }} Kelola</a>
+        </div>
       {% endif %}
-    </form>
+    </div>
+    {% if dashboard_dict.forum_row_list %}
+      {{ category_forum(dashboard_dict.forum_row_list) }}
+    {% else %}
+      <div class="card-body text-secondary">Belum ada kategori aktif.</div>
+    {% endif %}
+  </div>
+
+  <div class="card" id="daftar_link">
+    <div class="card-header">
+      <h3 class="card-title">{{ icon("link") }} Daftar Link</h3>
+      <div class="card-actions">
+        <span class="badge bg-secondary-lt">{{ pagination.total }} data</span>
+      </div>
+    </div>
+
+    <div class="card-body border-bottom py-3">
+      <form method="get" action="{{ url_for('main.home') }}" class="row g-2 align-items-center filter-bar" role="search" data-filter-form>
+        <div class="col-12 col-md">
+          <label class="visually-hidden" for="filter_keyword">Cari link</label>
+          <div class="input-icon">
+            <span class="input-icon-addon">{{ icon("search") }}</span>
+            <input type="search" id="filter_keyword" name="q" value="{{ filter_dict.keyword }}" class="form-control" placeholder="Cari judul, URL, address, deskripsi... (tekan /)" maxlength="100" autocomplete="off" data-filter-search>
+          </div>
+        </div>
+        <div class="col-6 col-md-auto">
+          <select name="category_id" class="form-select" aria-label="Filter kategori" data-filter-auto>
+            <option value="">Semua kategori</option>
+            {% for category in category_list %}
+              <option value="{{ category.id }}"{% if filter_dict.category_id == category.id %} selected{% endif %}>{{ category | category_label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-auto">
+          <select name="visibility" class="form-select" aria-label="Filter visibilitas" data-filter-auto>
+            <option value="">Semua visibilitas</option>
+            <option value="public"{% if filter_dict.visibility == "public" %} selected{% endif %}>Public</option>
+            <option value="private"{% if filter_dict.visibility == "private" %} selected{% endif %}>Private</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary">{{ icon("search") }} Cari</button>
+        </div>
+        {% if is_filtered %}
+          <div class="col-auto">
+            <a href="{{ url_for('main.home') }}" class="btn">Reset</a>
+          </div>
+        {% endif %}
+      </form>
+    </div>
 
     {% if pagination.items %}
-      <div class="table-wrapper is-responsive">
-        <table class="data-table is-responsive">
-          <thead>
-            <tr>
-              <th scope="col">Judul</th>
-              <th scope="col">Kategori</th>
-              <th scope="col">URL / Address</th>
-              <th scope="col">Deskripsi</th>
-              <th scope="col">Visibilitas</th>
-              <th scope="col">Lampiran</th>
-              <th scope="col">Dibuat Oleh</th>
-              <th scope="col">Dibuat</th>
-              <th scope="col"><span class="visually-hidden">Aksi</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for entry in pagination.items %}
-              {% set access_text = entry.url or ((entry.address ~ (":" ~ entry.port if entry.port else "")) if entry.address else "") %}
-              <tr>
-                <td class="cell-title" data-label="Judul">
-                  <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="table-title-link" title="{{ entry.title }}">{{ entry.title | truncate(50, true, "…", 0) }}</a>
-                </td>
-                <td data-label="Kategori"><span class="badge">{{ entry.category.name }}</span></td>
-                <td data-label="URL / Address">
-                  {% if access_text %}
-                    <div class="cell-copy">
-                      <code class="cell-url" title="{{ access_text }}">{{ access_text }}</code>
-                      {{ copy_button(access_text, label="Copy link", is_icon_only=true) }}
-                    </div>
-                  {% else %}
-                    <span class="text-muted">-</span>
-                  {% endif %}
-                </td>
-                <td class="cell-description" data-label="Deskripsi">
-                  {% if entry.description %}
-                    <span title="{{ entry.description }}">{{ entry.description | truncate(60, true, "…", 0) }}</span>
-                  {% else %}
-                    <span class="text-muted">-</span>
-                  {% endif %}
-                </td>
-                <td data-label="Visibilitas"><span class="badge badge-{{ entry.visibility }}">{{ entry.visibility | visibility_label }}</span></td>
-                <td data-label="Lampiran">{% if entry.attachment_list %}{{ icon("paperclip") }} {{ entry.attachment_list | length }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
-                <td data-label="Dibuat Oleh">{{ entry.owner.full_name }}</td>
-                <td class="table-nowrap" data-label="Dibuat">{{ entry.created_at | local_datetime }}</td>
-                <td class="table-action">
-                  <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="btn btn-secondary btn-small">{{ icon("eye") }} View</a>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+      {{ entry_table(pagination.items) }}
       {{ render_pagination(pagination, "main.home", pagination_query_dict) }}
     {% elif is_filtered %}
-      <div class="empty-state">
-        <p>Tidak ada hasil{% if filter_dict.keyword %} untuk "{{ filter_dict.keyword }}"{% endif %}.</p>
-        <a href="{{ url_for('main.home') }}" class="btn btn-secondary">Reset filter</a>
+      <div class="empty">
+        <div class="empty-icon">{{ icon("search") }}</div>
+        <p class="empty-title">Tidak ada hasil{% if filter_dict.keyword %} untuk "{{ filter_dict.keyword }}"{% endif %}.</p>
+        <p class="empty-subtitle text-secondary">Coba kata kunci lain atau hapus filternya.</p>
+        <div class="empty-action">
+          <a href="{{ url_for('main.home') }}" class="btn">Reset filter</a>
+        </div>
       </div>
     {% else %}
-      <div class="empty-state">
-        <p>Belum ada data link. Yuk tambah yang pertama!</p>
-        <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
+      <div class="empty">
+        <div class="empty-icon">{{ icon("link") }}</div>
+        <p class="empty-title">Belum ada data link</p>
+        <p class="empty-subtitle text-secondary">Yuk tambah link pertama biar tim gampang nyarinya.</p>
+        <div class="empty-action">
+          <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
+        </div>
       </div>
     {% endif %}
-  </section>
+  </div>
+
+  <div class="row row-deck row-cards mt-1">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("audit") }} Aktivitas Terakhir Kamu</h3>
+        </div>
+        {% if dashboard_dict.recent_activity_list %}
+          <div class="list-group list-group-flush">
+            {% for audit_log in dashboard_dict.recent_activity_list %}
+              <div class="list-group-item">
+                <div class="row align-items-center g-2">
+                  <div class="col-auto">{{ audit_action_badge(audit_log.action) }}</div>
+                  <div class="col text-truncate">
+                    {{ audit_log.entity_type | audit_entity_label }}{% if audit_log.entity_id %} <span class="text-secondary">#{{ audit_log.entity_id }}</span>{% endif %}
+                  </div>
+                  <div class="col-auto small text-secondary">{{ audit_log.created_at | local_datetime }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="card-body text-secondary">Belum ada aktivitas.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("group") }} Group Kamu</h3>
+          <div class="card-actions">
+            <a href="{{ url_for('groups.create') }}" class="btn btn-sm">{{ icon("plus") }} Buat Group</a>
+          </div>
+        </div>
+        {% if dashboard_dict.group_list %}
+          <div class="list-group list-group-flush">
+            {% for group in dashboard_dict.group_list %}
+              <a href="{{ url_for('groups.detail', group_id=group.id) }}" class="list-group-item list-group-item-action">
+                <div class="row align-items-center g-2">
+                  <div class="col-auto"><span class="avatar avatar-sm bg-primary-lt">{{ group.name | initials }}</span></div>
+                  <div class="col text-truncate">
+                    <div class="text-truncate">{{ group.name }}</div>
+                    <div class="small text-secondary">{{ group.member_list | selectattr("status", "equalto", "active") | list | length }} anggota · {{ group.group_entry_list | length }} link</div>
+                  </div>
+                  <div class="col-auto">{{ icon("chevron_right", "text-secondary") }}</div>
+                </div>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="card-body text-secondary">Kamu belum gabung group mana pun.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', filename='js/pages/filter_form.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/filter_form.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/count_up.js') }}" defer></script>
 {% endblock %}

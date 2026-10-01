@@ -1,0 +1,78 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+{% from "components/pagination.html" import render_pagination %}
+{% from "components/category_forum.html" import category_forum %}
+{% from "components/entry_table.html" import entry_table %}
+
+{% block title %}{{ path_list | map(attribute="name") | join(" › ") }} - MTOA ALR{% endblock %}
+
+{% block page_pretitle %}
+  <ol class="breadcrumb breadcrumb-arrows category-breadcrumb" aria-label="Jalur kategori">
+    <li class="breadcrumb-item"><a href="{{ url_for('main.home') }}#kategori">Home</a></li>
+    {% for path_category in path_list[:-1] %}
+      <li class="breadcrumb-item"><a href="{{ url_for('categories.browse', category_id=path_category.id) }}">{{ path_category.name }}</a></li>
+    {% endfor %}
+  </ol>
+{% endblock %}
+
+{% block page_heading %}
+  {{ category.name }}
+  {% if is_default %}<span class="badge bg-primary-lt align-middle ms-1">{{ icon("lock") }} Bawaan</span>{% endif %}
+  {% if not category.is_active %}<span class="badge bg-secondary-lt align-middle ms-1">Nonaktif</span>{% endif %}
+{% endblock %}
+
+{% block page_subtitle %}
+  {% if category.description %}<div class="text-secondary mt-1">{{ category.description }}</div>{% endif %}
+{% endblock %}
+
+{% block page_actions %}
+  {% if can_manage %}
+    <a href="{{ url_for('categories.edit', category_id=category.id) }}" class="btn">{{ icon("edit") }} Edit</a>
+    {% if not is_default %}
+      <form method="post" action="{{ url_for('categories.delete', category_id=category.id) }}" data-confirm-title="Hapus kategori?" data-confirm-message="Kategori &quot;{{ category.name }}&quot; bakal dihapus permanen. Cuma bisa kalau udah kosong (ga ada link & sub-kategori)." data-confirm-ok="Ya, hapus">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-ghost-danger">{{ icon("trash") }} Hapus</button>
+      </form>
+    {% endif %}
+  {% endif %}
+  {% if can_add_sub %}
+    <a href="{{ url_for('categories.create_sub', category_id=category.id) }}" class="btn">{{ icon("plus") }} Sub-kategori</a>
+    <a href="{{ url_for('entries.create', category_id=category.id) }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link di sini</a>
+  {% elif category.is_active %}
+    <a href="{{ url_for('entries.create', category_id=category.id) }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link di sini</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  {% if forum_row_list %}
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title">{{ icon("category") }} Sub-kategori</h3>
+        <div class="card-actions"><span class="badge bg-secondary-lt">{{ forum_row_list | length }}</span></div>
+      </div>
+      {{ category_forum(forum_row_list) }}
+    </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">{{ icon("link") }} Link di {{ category.name }}</h3>
+      <div class="card-actions"><span class="badge bg-secondary-lt">{{ pagination.total }} data</span></div>
+    </div>
+    {% if pagination.items %}
+      {{ entry_table(pagination.items, is_category_shown=false) }}
+      {{ render_pagination(pagination, "categories.browse", pagination_query_dict) }}
+    {% else %}
+      <div class="empty">
+        <div class="empty-icon">{{ icon("link") }}</div>
+        <p class="empty-title">Belum ada link langsung di sini</p>
+        <p class="empty-subtitle text-secondary">{% if forum_row_list %}Link lainnya ada di sub-kategori di atas.{% else %}Jadi yang pertama nambahin link di kategori ini.{% endif %}</p>
+        {% if category.is_active %}
+          <div class="empty-action">
+            <a href="{{ url_for('entries.create', category_id=category.id) }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link di sini</a>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
