@@ -51,14 +51,14 @@ def test_export_requires_login(client):
     assert "/auth/login" in response.headers["Location"]
 
 def test_export_returns_xlsx_file(logged_in_client, registered_user, category_dict):
-    """Positive: file kekirim sebagai xlsx dengan nama Laporan_Access_Link_*.xlsx + 2 sheet."""
+    """Positive: file kekirim sebagai xlsx dengan nama ALR_<initials>_<date>.xlsx + 2 sheet."""
     create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr.spindo.com"))
     response = logged_in_client.get("/export")
     assert response.status_code == 200
     assert response.mimetype == XLSX_MIMETYPE
     disposition_text = response.headers["Content-Disposition"]
     assert "attachment" in disposition_text
-    assert "Laporan_Access_Link_" in disposition_text and ".xlsx" in disposition_text
+    assert "ALR_UL_" in disposition_text and ".xlsx" in disposition_text
     assert load_report(response).sheetnames == ["Ringkasan", "Detail"]
     assert read_table_row_list(response)[0][:2] == ["No", "Judul"]
 

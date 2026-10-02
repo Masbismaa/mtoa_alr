@@ -20,7 +20,7 @@ from app.utils.constants import (
 )
 from app.utils.datetime_helper import DISPLAY_TIMEZONE, utc_now
 from app.utils.query_helper import clean_keyword_arg, drop_empty_value, parse_positive_int
-from app.utils.text_helper import get_link_status_label, get_visibility_label
+from app.utils.text_helper import get_link_status_label, get_visibility_label, get_initials
 
 main_bp = Blueprint("main", __name__)
 EXPORT_LABEL_FUNCTION_DICT = {
@@ -38,6 +38,11 @@ def read_dashboard_filter():
         "visibility": visibility if visibility in VISIBILITY_LIST else "",
         "page": parse_positive_int(request.args.get("page"), default=1),
     }
+
+def build_export_filename(user):
+    initial_text = "".join(char for char in get_initials(user.full_name) if char.isalnum()) or "USER"
+    date_text = utc_now().astimezone(DISPLAY_TIMEZONE).strftime("%Y-%m-%d")
+    return f"ALR_{initial_text}_{date_text}.xlsx"
 
 
 @main_bp.get("/")
@@ -110,5 +115,5 @@ def export_entries():
         file_buffer,
         mimetype=XLSX_MIMETYPE,
         as_attachment=True,
-        download_name=f"Laporan_Access_Link_{file_time_text}.xlsx",
+        download_name=build_export_filename(user),
     )
