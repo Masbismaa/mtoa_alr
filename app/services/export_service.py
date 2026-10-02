@@ -17,8 +17,8 @@ from app.utils.datetime_helper import DISPLAY_TIMEZONE, to_utc_aware, utc_now
 
 LOGO_PATH = Path(__file__).resolve().parent.parent / "static" / "images" / "spindo_logo.png"
 LOGO_HEIGHT_PX = 38
-REPORT_TITLE = "Laporan Access Link"
-REPORT_SUBTITLE = "ALR (Access Link Register) · ICT Spindo"
+REPORT_TITLE = "Access Link Register"
+REPORT_SUBTITLE = "ALR · ICT"
 CONFIDENTIAL_TEXT = "RAHASIA · HANYA UNTUK INTERNAL"
 NOTE_TEXT = "Catatan: access note/password tidak ikut diekspor. Waktu dalam WIB."
 
@@ -167,7 +167,7 @@ def setup_print(sheet, last_column, last_row, orientation, title_row=None):
     sheet.print_area = f"A1:{get_column_letter(last_column)}{last_row}"
     if title_row:
         sheet.print_title_rows = f"{title_row}:{title_row}"
-    sheet.oddFooter.left.text = f"ALR · {CONFIDENTIAL_TEXT.title()}"
+    sheet.oddFooter.left.text = f"ICT · {CONFIDENTIAL_TEXT.title()}"
     sheet.oddFooter.left.size = 8
     sheet.oddFooter.right.text = "Halaman &P dari &N"
     sheet.oddFooter.right.size = 8
@@ -340,7 +340,7 @@ def build_detail_sheet(sheet, entry_list, user, filter_text_list, label_function
 
     export_time_text = format_local_text(to_local_naive(utc_now()))
     subtitle = f"{REPORT_SUBTITLE}  |  Diekspor {export_time_text} WIB oleh {user.full_name}"
-    write_letterhead(sheet, 1, last_column, "Detail Access Link", subtitle)
+    write_letterhead(sheet, 1, last_column, "Detail Access Link Register", subtitle)
     write_cell(
         sheet, 4, 1, f"Filter: {', '.join(filter_text_list) or 'Semua data yang dapat diakses'}",
         font=make_font(9, color=COLOR_GRAY_TEXT),
@@ -367,7 +367,7 @@ def build_entry_workbook(entry_list, user, filter_text_list, label_function_dict
     workbook = Workbook()
     workbook.properties.title = REPORT_TITLE
     workbook.properties.subject = REPORT_SUBTITLE
-    workbook.properties.creator = f"ALR · {user.full_name}"
+    workbook.properties.creator = f"ICT · {user.full_name}"
     build_summary_sheet(workbook.active, entry_list, user, filter_text_list, label_function_dict)
     build_detail_sheet(workbook.create_sheet(), entry_list, user, filter_text_list, label_function_dict)
     workbook.active = 0
