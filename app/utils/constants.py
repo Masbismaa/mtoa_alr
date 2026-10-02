@@ -46,6 +46,7 @@ AUDIT_ACTION_DELETE = "delete"
 AUDIT_ACTION_LOGIN = "login"
 AUDIT_ACTION_LOGIN_FAILED = "login_failed"
 AUDIT_ACTION_LOGOUT = "logout"
+AUDIT_ACTION_EXPORT = "export"
 AUDIT_ACTION_LIST = [
     AUDIT_ACTION_CREATE,
     AUDIT_ACTION_UPDATE,
@@ -53,6 +54,7 @@ AUDIT_ACTION_LIST = [
     AUDIT_ACTION_LOGIN,
     AUDIT_ACTION_LOGIN_FAILED,
     AUDIT_ACTION_LOGOUT,
+    AUDIT_ACTION_EXPORT,
 ]
 
 # field yg isinya rahasia, di audit log diganti bintang-bintang
@@ -218,6 +220,7 @@ AUDIT_ACTION_LABEL_DICT = {
     AUDIT_ACTION_LOGIN: "Login",
     AUDIT_ACTION_LOGIN_FAILED: "Login Gagal",
     AUDIT_ACTION_LOGOUT: "Logout",
+    AUDIT_ACTION_EXPORT: "Export",
 }
 # nama tabel yg dicatat di audit log -> label di UI
 AUDIT_ENTITY_LABEL_DICT = {
@@ -244,3 +247,8 @@ USER_STATUS_LABEL_DICT = {
     USER_STATUS_LOCKED: "Terkunci",
     USER_STATUS_INACTIVE: "Nonaktif",
 }
+
+# export kat excel
+EXPORT_MAX_ROW_COUNT = 5000
+EXPORT_FORMULA_PREFIX_TUPLE = ("=", "+", "-", "@", "\t","\r")
+XLSX_MIMETYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
