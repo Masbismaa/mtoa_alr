@@ -167,7 +167,7 @@ def setup_print(sheet, last_column, last_row, orientation, title_row=None):
     sheet.print_area = f"A1:{get_column_letter(last_column)}{last_row}"
     if title_row:
         sheet.print_title_rows = f"{title_row}:{title_row}"
-    sheet.oddFooter.left.text = f"MTOA ALR · {CONFIDENTIAL_TEXT.title()}"
+    sheet.oddFooter.left.text = f"ALR · {CONFIDENTIAL_TEXT.title()}"
     sheet.oddFooter.left.size = 8
     sheet.oddFooter.right.text = "Halaman &P dari &N"
     sheet.oddFooter.right.size = 8
@@ -367,7 +367,7 @@ def build_entry_workbook(entry_list, user, filter_text_list, label_function_dict
     workbook = Workbook()
     workbook.properties.title = REPORT_TITLE
     workbook.properties.subject = REPORT_SUBTITLE
-    workbook.properties.creator = f"MTOA ALR · {user.full_name}"
+    workbook.properties.creator = f"ALR · {user.full_name}"
     build_summary_sheet(workbook.active, entry_list, user, filter_text_list, label_function_dict)
     build_detail_sheet(workbook.create_sheet(), entry_list, user, filter_text_list, label_function_dict)
     workbook.active = 0
