@@ -2,8 +2,7 @@
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from app.schemas.category_schema import CategoryForm
-from app.security.access_policy import is_admin
-from app.security.role_guard import admin_required
+from app.security.role_guard import permission_required
 from app.services.access_entry_service import search_visible_entries
 from app.services.category_service import (
     build_category_label,
@@ -20,8 +19,9 @@ from app.services.category_service import (
     list_category_summary,
     toggle_category_active,
     update_category,
+    can_manage_category_master,
 )
-from app.utils.constants import CATEGORY_ENTRY_PER_PAGE, MAX_CATEGORY_DEPTH
+from app.utils.constants import CATEGORY_ENTRY_PER_PAGE, MAX_CATEGORY_DEPTH, PERMISSION_MANAGE_CATEGORIES
 from app.utils.exceptions import ValidationError
 from app.utils.query_helper import parse_positive_int
 
@@ -40,7 +40,7 @@ def get_category_or_404(category_id):
 
 def get_visible_category_or_404(user, category_id):
     category = get_category_or_404(category_id)
-    if not is_category_usable(category) and not is_admin(user):
+    if not is_category_usable(category) and not can_manage_category_master(user):
         abort(404)
     return category
 
@@ -60,7 +60,7 @@ def build_back_url(user, parent_id):
     """Balik ke halaman induknya. Kategori utama balik ke tabel admin (atau Home buat user biasa)."""
     if parent_id is not None:
         return url_for("categories.browse", category_id=parent_id)
-    return url_for("categories.index") if is_admin(user) else url_for("main.home")
+    return url_for("categories.index") if can_manage_category_master(user) else url_for("main.home")
 
 def render_category_form(form, page_title, form_action, cancel_url, parent=None, is_name_locked=False):
     """Render form tambah/edit kategori (utama maupun sub)."""
@@ -76,7 +76,7 @@ def render_category_form(form, page_title, form_action, cancel_url, parent=None,
 
 @categories_bp.get("/")
 @login_required
-@admin_required
+@permission_required(PERMISSION_MANAGE_CATEGORIES)
 def index():
     """Tabel semua kategori (bentuk pohon) + jumlah link-nya."""
     return render_template(
@@ -88,7 +88,7 @@ def index():
 
 @categories_bp.route("/new", methods=["GET", "POST"])
 @login_required
-@admin_required
+@permission_required(PERMISSION_MANAGE_CATEGORIES)
 def create():
     """Tambah kategori utama, khusus admin."""
     form = CategoryForm()
@@ -178,7 +178,7 @@ def edit(category_id):
 
 @categories_bp.post("/<int:category_id>/toggle")
 @login_required
-@admin_required
+@permission_required(PERMISSION_MANAGE_CATEGORIES)
 def toggle(category_id):
     """Aktifin / nonaktifin kategori, khusus admin."""
     category = get_category_or_404(category_id)

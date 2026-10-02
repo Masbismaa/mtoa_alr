@@ -2,9 +2,9 @@
 from flask import Blueprint, abort, render_template, request
 from flask_login import current_user, login_required
 from app.security.access_policy import can_view_audit_data
-from app.security.role_guard import admin_required
+from app.security.role_guard import permission_required
 from app.services.audit_service import build_audit_change_list, get_audit_log, search_audit_logs
-from app.utils.constants import AUDIT_ACTION_LABEL_DICT, AUDIT_ENTITY_LABEL_DICT, AUDIT_LOG_PER_PAGE
+from app.utils.constants import AUDIT_ACTION_LABEL_DICT, AUDIT_ENTITY_LABEL_DICT, AUDIT_LOG_PER_PAGE, PERMISSION_VIEW_AUDIT_LOGS
 from app.utils.query_helper import clean_keyword_arg, drop_empty_value, parse_date_arg, parse_positive_int
 
 audit_bp = Blueprint("audit", __name__, url_prefix="/audit-logs")
@@ -27,7 +27,7 @@ def read_audit_filter():
 
 @audit_bp.get("/")
 @login_required
-@admin_required
+@permission_required(PERMISSION_VIEW_AUDIT_LOGS)
 def index():
     """Tabel audit log + search, filter, dan pagination."""
     filter_dict = read_audit_filter()
@@ -56,7 +56,7 @@ def index():
 
 @audit_bp.get("/<int:log_id>")
 @login_required
-@admin_required
+@permission_required(PERMISSION_VIEW_AUDIT_LOGS)
 def detail(log_id):
     """Detail satu audit log: info pelaku + data lama vs baru."""
     audit_log = get_audit_log(log_id)

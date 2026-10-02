@@ -1,7 +1,7 @@
 """Decorator buat halaman yg cuma boleh dibuka role tertentu."""
 from functools import wraps
 from flask_login import current_user
-from app.security.access_policy import is_admin
+from app.security.access_policy import is_admin, has_permission
 from app.utils.exceptions import PermissionDeniedError
 
 def admin_required(view_function):
@@ -12,3 +12,14 @@ def admin_required(view_function):
             raise PermissionDeniedError("Halaman ini khusus admin")
         return view_function(*args, **kwargs)
     return wrapper
+
+def permission_required(permission_key):
+    """Halaman khusus user yg punya akses tertentu, user biasa dapet 403. Pasang di bawah @login_required."""
+    def decorator(view_function):
+        @wraps(view_function)
+        def wrapper(*args, **kwargs):
+            if not has_permission(current_user, permission_key):
+                raise PermissionDeniedError("Halaman ini khusus user yg punya akses tertentu")
+            return view_function(*args, **kwargs)
+        return wrapper
+    return decorator

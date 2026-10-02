@@ -1,7 +1,7 @@
 """App factory MTOA ALR: tempat aplikasi Flask dirakit (config, extension, model, blueprint, CLI)."""
 import os
 
-from flask import Flask, render_template, request
+from flask import Flask, app, render_template, request
 from flask_login import current_user
 
 from app.config import CONFIG_BY_NAME_DICT
@@ -77,6 +77,7 @@ def register_blueprints(app):
     from app.routes.group_routes import groups_bp
     from app.routes.audit_routes import audit_bp
     from app.routes.category_routes import categories_bp
+    from app.routes.user_routes import users_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
@@ -87,6 +88,7 @@ def register_blueprints(app):
     app.register_blueprint(groups_bp)
     app.register_blueprint(audit_bp)
     app.register_blueprint(categories_bp)
+    app.register_blueprint(users_bp)
 
 def build_error_handler(error_code, error_title, error_message):
     """Bikin handler buat satu kode error (biar ga nulis ulang)."""
@@ -137,6 +139,7 @@ def register_template_helpers(app):
         get_visibility_label,
         get_audit_action_label,
         get_audit_entity_label,
+        get_user_status_label
     )
 
     app.add_template_filter(get_initials, "initials")
@@ -150,6 +153,12 @@ def register_template_helpers(app):
     app.add_template_filter(get_audit_entity_label, "audit_entity_label")
     app.add_template_filter(build_category_label, "category_label")
     app.add_template_filter(format_time_ago, "time_ago")
+    app.add_template_filter(get_user_status_label, "user_status_label")
+
+    from app.security.access_policy import has_permission
+    from app.utils.constants import PERMISSION_MANAGE_CATEGORIES
+    # dipake template buat nampilin/nyembunyiin tombol sesuai akses
+    app.jinja_env.globals.update(has_permission=has_permission, PERMISSION_MANAGE_CATEGORIES=PERMISSION_MANAGE_CATEGORIES)
 
     @app.context_processor
     def inject_layout_context():
