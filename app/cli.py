@@ -14,6 +14,8 @@ def register_cli_commands(app):
     from app.utils.constants import ROLE_USER_ENTRY
     from app.utils.exceptions import ValidationError
     from app.utils.text_helper import normalize_email
+    from app.services.link_check_service import check_all_entry_status
+    from app.utils.constants import LINK_STATUS_DOWN, LINK_STATUS_UNKNOWN, LINK_STATUS_UP
 
     @app.cli.command("seed-categories")
     def seed_categories_command():
@@ -67,3 +69,14 @@ def register_cli_commands(app):
         """Turunin Admin jadi User Entry. Admin aktif terakhir ga bisa diturunin."""
         user = run_role_command(email, ROLE_USER_ENTRY)
         click.echo(f"{user.email} sekarang User Entry.")
+
+    @app.cli.command("check-links")
+    def check_links_command():
+        """Cek status semua link sekaligus. Bisa dijadwalin tiap pagi (Task Scheduler / cron)."""
+        click.echo("Ngecek semua link, tunggu sebentar...")
+        status_counter = check_all_entry_status()
+        total_count = sum(status_counter.values())
+        click.echo(
+            f"Selesai, {total_count} link dicek: {status_counter[LINK_STATUS_UP]} aktif, "
+            f"{status_counter[LINK_STATUS_DOWN]} tidak aktif, {status_counter[LINK_STATUS_UNKNOWN]} belum bisa dicek."
+        )

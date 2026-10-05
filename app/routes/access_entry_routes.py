@@ -19,10 +19,16 @@ from app.utils.constants import (
     ATTACHMENT_MAX_COUNT,
     ATTACHMENT_MAX_SIZE_BYTES,
     CUSTOM_FIELD_MAX_COUNT,
+    LINK_STATUS_DOWN,
+    LINK_STATUS_UP,
 )
 from app.utils.exceptions import ValidationError
 from app.services.group_service import add_group_entry, get_member_group
 from app.utils.query_helper import parse_positive_int
+
+from app.extensions import limiter
+from app.services.link_check_service import check_entry_status
+from app.utils.text_helper import get_link_status_label
 
 entries_bp = Blueprint("entries", __name__, url_prefix="/entries")
 
@@ -139,6 +145,18 @@ def detail(entry_id):
         access_note=access_note,
         can_edit=can_edit_entry(user, entry),
     )
+
+@entries_bp.post("/<int:entry_id>/check-status")
+@login_required
+@limiter.limit("10 per minute")
+def check_status(entry_id):
+    """Cek status link sekarang juga. Semua yg boleh liat datanya boleh ngecek (cuma update status, ga ngubah data)."""
+    user = get_user()
+    entry = get_entry_or_404(user, entry_id)
+    result = check_entry_status(entry)
+    flash_category = {LINK_STATUS_UP: "success", LINK_STATUS_DOWN: "danger"}.get(result.status, "warning")
+    flash(f"Status link: {get_link_status_label(result.status)} ({result.note})", flash_category)
+    return redirect(url_for("entries.detail", entry_id=entry.id))
 
 @entries_bp.route("/<int:entry_id>/edit", methods=["GET", "POST"])
 @login_required
