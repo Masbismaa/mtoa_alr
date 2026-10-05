@@ -1,4 +1,4 @@
-"""Objek extension Flask yang dibuat SEKALI dan di-import ulang oleh modul lain."""
+"""Extension Flask bersama untuk aplikasi."""
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_login import LoginManager
@@ -31,7 +31,7 @@ login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 login_manager.login_message = "Silakan login dulu untuk membuka halaman ini."
 login_manager.login_message_category = "warning"
-# session langsung dihapus kalau IP/browser tiba-tiba beda (anti bajak session(Bismillah))
+# Hapus sesi jika identitas sesi berubah secara signifikan.
 login_manager.session_protection = "strong"
 
 # pembatas jumlah request, dihitung per IP

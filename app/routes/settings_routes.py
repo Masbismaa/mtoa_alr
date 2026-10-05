@@ -20,12 +20,12 @@ def index():
 @limiter.limit("30 per minute")
 def update_preferences():
     """Simpan preferensi tampilan (dipanggil dari JS, body JSON, token CSRF di header)."""
-    data_dict = request.get_json(silent=True)
-    if not isinstance(data_dict, dict):
+    preference_payload = request.get_json(silent=True)
+    if not isinstance(preference_payload, dict):
         return error_response("Data harus berupa JSON object", 400)
 
     try:
-        preference = update_preference(current_user._get_current_object(), data_dict)
+        preference = update_preference(current_user._get_current_object(), preference_payload)
     except ValidationError as error:
         return error_response("Preferensi tidak valid", 400, error.error_list)
 

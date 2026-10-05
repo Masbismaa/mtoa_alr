@@ -42,8 +42,8 @@ def get_entry_or_404(user, entry_id):
         abort(404)
     return entry
 
-def build_form_data_dict(form):
-    """Isi form jadi dict buat service."""
+def build_entry_payload(form):
+    """Bentuk payload data link dari field formulir."""
     return {field_name: getattr(form, field_name).data for field_name in FORM_FIELD_NAME_LIST}
 
 def read_custom_field_pair_list():
@@ -104,7 +104,7 @@ def create():
     if form.validate_on_submit():
         try:
             entry = create_access_entry(
-                user, build_form_data_dict(form), custom_field_pair_list,
+                user, build_entry_payload(form), custom_field_pair_list,
                 upload_file_list=request.files.getlist("attachments"),
             )
         except ValidationError as error:
@@ -166,7 +166,7 @@ def edit(entry_id):
     if form.validate_on_submit():
         try:
             update_access_entry(
-                user, entry, build_form_data_dict(form), custom_field_pair_list,
+                user, entry, build_entry_payload(form), custom_field_pair_list,
                 upload_file_list=request.files.getlist("attachments"),
                 delete_attachment_id_list=request.form.getlist("delete_attachment_id"),
             )
