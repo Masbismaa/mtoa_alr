@@ -28,8 +28,11 @@ class AccessEntry(TimestampMixin, db.Model):
 
     # default private biar aman kalau lupa milih
     visibility = db.Column(db.String(10), nullable=False, default=VISIBILITY_PRIVATE, server_default=VISIBILITY_PRIVATE)
-    # status link, nanti diisi pengecekan otomatis
+    # status link, diisi lewat tombol cek status
     status = db.Column(db.String(20), nullable=False, default=LINK_STATUS_UNKNOWN, server_default=LINK_STATUS_UNKNOWN)
+    # kapan terakhir dicek + alasannya (misal "HTTP 200", "Timeout")
+    status_checked_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    status_note = db.Column(db.String(255), nullable=True)
 
     # relasi
     owner = db.relationship("User")

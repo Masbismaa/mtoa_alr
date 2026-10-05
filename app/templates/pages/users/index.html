@@ -3,19 +3,19 @@
 {% from "components/pagination.html" import render_pagination %}
 {% from "components/badge.html" import role_badge, user_status_badge %}
 
-{% block title %}Users - MTOA ALR{% endblock %}
+{% block title %}Users - ALR{% endblock %}
 
 {# filter tabel yg lagi kepake, dibawa ke form aksi biar abis klik balik ke tampilan yg sama #}
 {% macro back_field_list() %}
-  {% for filter_key in ["q", "role", "status", "page"] %}
-    {% if request.args.get(filter_key) %}<input type="hidden" name="back_{{ filter_key }}" value="{{ request.args.get(filter_key) }}">{% endif %}
+  {% for back_key, back_value in back_param_dict.items() %}
+    <input type="hidden" name="{{ back_key }}" value="{{ back_value }}">
   {% endfor %}
 {% endmacro %}
 
 {% block page_pretitle %}Admin{% endblock %}
 
 {% block page_subtitle %}
-  <div class="text-secondary mt-1">Daftar semua akun. Perubahan role & status langsung berlaku dan tercatat di Audit Logs. Password dan data Private user tidak pernah ditampilkan di sini.</div>
+  <div class="text-secondary mt-1">Admin cuma bisa dibuat lewat command. User biasa bisa dikasih akses tambahan lewat menu Aksi. Semua perubahan tercatat di Audit Logs.</div>
 {% endblock %}
 
 {% block content %}
@@ -96,7 +96,7 @@
             <tr>
               <th>User</th>
               <th>Departemen</th>
-              <th>Role</th>
+              <th>Role & Akses</th>
               <th>Status</th>
               <th>Login Terakhir</th>
               <th>Terdaftar</th>
@@ -125,25 +125,33 @@
                     <div class="small text-secondary">{{ user.job_title }}</div>
                   </div>
                 </td>
-                <td data-label="Role">{{ role_badge(user.role) }}</td>
+                <td data-label="Role & Akses">
+                  <div class="d-flex flex-wrap gap-1">
+                    {{ role_badge(user.role) }}
+                    {% if user.role == "admin" %}
+                      <span class="badge bg-azure-lt">Semua akses</span>
+                    {% else %}
+                      {% for permission_key in row.permission_key_list %}
+                        <span class="badge bg-green-lt" title="{{ permission_info_dict[permission_key].description }}">{{ permission_info_dict[permission_key].short_label }}</span>
+                      {% endfor %}
+                    {% endif %}
+                  </div>
+                </td>
                 <td data-label="Status">{{ user_status_badge(row.status) }}</td>
                 <td class="text-nowrap text-secondary" data-label="Login Terakhir">{{ user.last_login_at | time_ago if user.last_login_at else "Belum pernah" }}</td>
                 <td class="text-nowrap text-secondary" data-label="Terdaftar">{{ user.created_at | local_datetime("%d %b %Y") }}</td>
                 <td class="cell-action">
                   {% if user.id == current_user.id %}
                     <span class="small text-secondary">Akunmu</span>
-                  {% else %}
-                    {% set next_role = "user_entry" if user.role == "admin" else "admin" %}
+                    {% elif user.role == "admin" %}
+                    <span class="small text-secondary" title="Akun admin diubah lewat command">Lewat command</span>
+                    {% else %}
                     {# strategy fixed biar menunya ga kepotong kotak tabel yg bisa di-scroll #}
                     <div class="dropdown">
                       <button type="button" class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">Aksi</button>
                       <div class="dropdown-menu dropdown-menu-end">
-                        <form method="post" action="{{ url_for('users.change_role', user_id=user.id) }}" data-confirm-title="Ganti role?" data-confirm-message="{{ user.full_name }} bakal jadi {{ next_role | role_label }}." data-confirm-ok="Ya, ganti">
-                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                          <input type="hidden" name="role" value="{{ next_role }}">
-                          {{ back_field_list() }}
-                          <button type="submit" class="dropdown-item">{{ icon("user", "dropdown-item-icon") }} Jadikan {{ next_role | role_label }}</button>
-                        </form>
+                        <a href="{{ url_for('users.access', user_id=user.id, **back_param_dict) }}" class="dropdown-item">{{ icon("settings", "dropdown-item-icon") }} Atur Akses</a>
+                        <div class="dropdown-divider"></div>
                         {% if row.status == "locked" %}
                           <form method="post" action="{{ url_for('users.unlock', user_id=user.id) }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -151,7 +159,6 @@
                             <button type="submit" class="dropdown-item">{{ icon("refresh", "dropdown-item-icon") }} Buka kunci</button>
                           </form>
                         {% endif %}
-                        <div class="dropdown-divider"></div>
                         {% if user.is_active %}
                           <form method="post" action="{{ url_for('users.toggle_active', user_id=user.id) }}" data-confirm-title="Nonaktifkan akun?" data-confirm-message="{{ user.full_name }} langsung ke-logout dan tidak bisa login lagi sampai diaktifkan. Datanya tetap aman." data-confirm-ok="Ya, nonaktifkan">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

@@ -10,8 +10,8 @@ def get_title_list(section_list):
 def test_admin_section_only_for_admin(app, registered_user, admin_user):
     """Positive & negative (RBAC): bagian Admin cuma muncul buat admin."""
     with app.test_request_context("/"):
-        assert "Admin" not in get_title_list(build_sidebar_section_list(registered_user, "main.home"))
-        assert "Admin" in get_title_list(build_sidebar_section_list(admin_user, "main.home"))
+        assert "Kelola" not in get_title_list(build_sidebar_section_list(registered_user, "main.home"))
+        assert "Kelola" in get_title_list(build_sidebar_section_list(admin_user, "main.home"))
 
 
 def test_dropdown_open_when_child_active(app, registered_user):

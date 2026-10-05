@@ -2,7 +2,7 @@
 {% macro entry_table(entry_list, is_category_shown=true) %}
   {% from "components/icon.html" import icon %}
   {% from "components/copy_button.html" import copy_button %}
-  {% from "components/badge.html" import visibility_badge %}
+  {% from "components/badge.html" import link_status_badge, visibility_badge %}
   <div class="table-responsive">
     <table class="table table-vcenter card-table table-stack">
       <thead>
@@ -12,6 +12,7 @@
           <th>URL / Address</th>
           <th>Deskripsi</th>
           <th>Visibilitas</th>
+          <th>Status Link</th>
           <th>Lampiran</th>
           <th>Dibuat Oleh</th>
           <th>Dibuat</th>
@@ -46,6 +47,7 @@
               {% endif %}
             </td>
             <td data-label="Visibilitas">{{ visibility_badge(entry.visibility) }}</td>
+            <td data-label="Status">{{ link_status_badge(entry.status, entry.status_note, entry.status_checked_at) }}</td>
             <td data-label="Lampiran">{% if entry.attachment_list %}{{ icon("paperclip") }} {{ entry.attachment_list | length }}{% else %}<span class="text-secondary">-</span>{% endif %}</td>
             <td data-label="Dibuat Oleh">{{ entry.owner.full_name }}</td>
             <td class="text-nowrap text-secondary" data-label="Dibuat">{{ entry.created_at | local_datetime }}</td>

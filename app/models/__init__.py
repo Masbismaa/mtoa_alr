@@ -7,11 +7,14 @@ from app.models.category import Category
 from app.models.group import Group
 from app.models.group_entry import GroupEntry
 from app.models.group_member import GroupMember
+from app.models.link_monitor_setting import LinkMonitorSetting
 from app.models.otp_code import OtpCode
 from app.models.user import User
 from app.models.user_preference import UserPreference
+from app.models.user_permission import UserPermission
 
 __all__ = [
     "AccessEntry", "AccessEntryField", "Attachment", "AuditLog", "Category",
     "Group", "GroupEntry", "GroupMember", "OtpCode", "User", "UserPreference",
+    "UserPermission", "LinkMonitorSetting"
 ]

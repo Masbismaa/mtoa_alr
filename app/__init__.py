@@ -1,7 +1,7 @@
 """App factory MTOA ALR: tempat aplikasi Flask dirakit (config, extension, model, blueprint, CLI)."""
 import os
 
-from flask import Flask, render_template, request
+from flask import Flask, app, render_template, request
 from flask_login import current_user
 
 from app.config import CONFIG_BY_NAME_DICT
@@ -72,6 +72,7 @@ def register_blueprints(app):
     from app.routes.attachment_routes import attachments_bp
     from app.routes.auth_routes import auth_bp
     from app.routes.health_routes import health_bp
+    from app.routes.link_monitor_routes import link_monitor_bp
     from app.routes.main_routes import main_bp
     from app.routes.settings_routes import settings_bp
     from app.routes.group_routes import groups_bp
@@ -80,6 +81,7 @@ def register_blueprints(app):
     from app.routes.user_routes import users_bp
 
     app.register_blueprint(health_bp)
+    app.register_blueprint(link_monitor_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(settings_bp)
@@ -154,6 +156,11 @@ def register_template_helpers(app):
     app.add_template_filter(build_category_label, "category_label")
     app.add_template_filter(format_time_ago, "time_ago")
     app.add_template_filter(get_user_status_label, "user_status_label")
+
+    from app.security.access_policy import has_permission
+    from app.utils.constants import PERMISSION_MANAGE_CATEGORIES
+    # dipake template buat nampilin/nyembunyiin tombol sesuai akses
+    app.jinja_env.globals.update(has_permission=has_permission, PERMISSION_MANAGE_CATEGORIES=PERMISSION_MANAGE_CATEGORIES)
 
     @app.context_processor
     def inject_layout_context():

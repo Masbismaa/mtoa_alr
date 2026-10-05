@@ -1,4 +1,4 @@
-"""Kirim notifikasi ke user. Sekarang baru OTP, lewat terminal dulu."""
+"""Pengiriman OTP sesuai mode notifikasi yang dikonfigurasi."""
 
 from flask import current_app
 
@@ -8,12 +8,12 @@ def send_otp_code(user, otp_code):
     """Kirim OTP ke user sesuai OTP_DELIVERY_MODE.
 
     console -> dicetak ke terminal (khusus ujicoba).
-    smtp    -> belum dibikin, nyusul kalau info SMTP Intramail udah ada.
+    smtp    -> belum diimplementasikan.
     """
     delivery_mode = current_app.config["OTP_DELIVERY_MODE"]
 
     if delivery_mode == OTP_DELIVERY_CONSOLE:
-        # aku kasih dekorasi biar mencolok + gampang dicari di terminal
+        # Mode development: OTP ditulis ke terminal.
         print(
             f"\n===== [DEV] OTP untuk {user.email}: {otp_code} "
             f"(berlaku {OTP_EXPIRE_MINUTES} menit) =====\n",

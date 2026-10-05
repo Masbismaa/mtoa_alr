@@ -114,16 +114,12 @@ def test_invalid_role_rejected(app, admin_user, registered_user):
         change_user_role(admin_user, registered_user, "superadmin")
     assert registered_user.role == ROLE_USER_ENTRY
 
-def test_last_active_admin_cannot_be_demoted(app, admin_user, registered_user):
-    """Negative: admin aktif terakhir ga bisa diturunin/dinonaktifin (jaga-jaga dipanggil dari luar halaman admin)."""
-    with pytest.raises(ValidationError) as role_error:
-        change_user_role(registered_user, admin_user, ROLE_USER_ENTRY)
-    assert role_error.value.error_list == [{"field": "user", "message": "Minimal harus ada 1 admin aktif"}]
-    with pytest.raises(ValidationError) as active_error:
-        toggle_user_active(registered_user, admin_user)
-    assert active_error.value.error_list == [{"field": "user", "message": "Minimal harus ada 1 admin aktif"}]
+def test_last_active_admin_cannot_be_demoted(app, admin_user):
+    """Negative: admin aktif terakhir ga bisa diturunin lewat command."""
+    with pytest.raises(ValidationError) as error:
+        change_user_role(None, admin_user, ROLE_USER_ENTRY)
+    assert error.value.error_list == [{"field": "user", "message": "Minimal harus ada 1 admin aktif"}]
     assert admin_user.role == ROLE_ADMIN
-    assert admin_user.is_active is True
 
 def test_deactivated_user_cannot_login(app, admin_user, registered_user, user_password):
     """Positive & negative: user dinonaktifin ga bisa login, diaktifin lagi bisa."""

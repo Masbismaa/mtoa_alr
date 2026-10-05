@@ -1,0 +1,44 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+{% from "components/form_field.html" import render_field %}
+
+{% block title %}Link Monitoring - ALR{% endblock %}
+{% block page_pretitle %}Admin{% endblock %}
+{% block page_subtitle %}<div class="text-secondary mt-1">Status link diperbarui otomatis oleh jadwal server.</div>{% endblock %}
+
+{% block page_actions %}
+  <form method="post" action="{{ url_for('link_monitor.run_now') }}" data-confirm-title="Cek semua data?" data-confirm-message="Server akan memeriksa status seluruh link sekarang." data-confirm-ok="Ya, cek sekarang">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-primary">{{ icon("refresh") }} Cek Semua Data Sekarang</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+  <div class="row row-cards">
+    <div class="col-lg-7">
+      <form method="post" action="{{ url_for('link_monitor.save_settings') }}" class="card" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="card-header"><h3 class="card-title">{{ icon("settings") }} Pengaturan Otomatis</h3></div>
+        <div class="card-body">
+          <label class="form-check form-switch mb-4">
+            {{ form.is_enabled(class_="form-check-input") }}
+            <span class="form-check-label">{{ form.is_enabled.label.text }}</span>
+          </label>
+          {{ render_field(form.interval_minutes) }}
+          <div class="form-hint">Jalankan command scheduler setiap 5 menit. Sistem hanya memeriksa saat interval ini sudah jatuh tempo.</div>
+        </div>
+        <div class="card-footer text-end"><button type="submit" class="btn btn-primary">{{ icon("check") }} Simpan Pengaturan</button></div>
+      </form>
+    </div>
+    <div class="col-lg-5">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">{{ icon("activity") }} Status Monitoring</h3></div>
+        <div class="card-body"><dl class="row mb-0">
+          <dt class="col-6">Status</dt><dd class="col-6">{{ icon("check" if settings.is_enabled else "eye_off") }} {{ "Aktif" if settings.is_enabled else "Nonaktif" }}</dd>
+          <dt class="col-6">Interval</dt><dd class="col-6">{{ icon("refresh") }} {{ settings.interval_minutes }} menit</dd>
+          <dt class="col-6">Pemeriksaan terakhir</dt><dd class="col-6">{{ icon("activity") }} {{ settings.last_run_at | local_datetime }}</dd>
+        </dl></div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
