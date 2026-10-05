@@ -8,12 +8,12 @@ from app.services.category_service import build_forum_row_list
 from app.services.group_service import list_pending_invitation, list_user_group
 from app.utils.chart_helper import build_bar_list, build_sparkline, calculate_change_percent, calculate_percent
 from app.utils.constants import DASHBOARD_CHART_DAY_COUNT, DASHBOARD_RECENT_ACTIVITY_LIMIT
-from app.utils.datetime_helper import DISPLAY_TIMEZONE, to_utc_aware, utc_now
+from app.utils.datetime_helper import to_local_time, utc_now
 
 
 def build_local_date_list(day_count):
     """Tanggal (WIB) n hari terakhir, urut dari yg paling lama sampe hari ini."""
-    today = utc_now().astimezone(DISPLAY_TIMEZONE).date()
+    today = to_local_time(utc_now()).date()
     return [today - timedelta(days=offset) for offset in range(day_count - 1, -1, -1)]
 
 
@@ -21,7 +21,7 @@ def count_per_local_date(datetime_list, date_list):
     """Hitung jumlah kejadian per tanggal WIB (dihitung di Python biar sama di PostgreSQL & SQLite)."""
     count_dict = {local_date: 0 for local_date in date_list}
     for value in datetime_list:
-        local_date = to_utc_aware(value).astimezone(DISPLAY_TIMEZONE).date()
+        local_date = to_local_time(value).date()
         if local_date in count_dict:
             count_dict[local_date] += 1
     return [count_dict[local_date] for local_date in date_list]

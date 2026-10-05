@@ -1,6 +1,6 @@
 """Route data link: tambah, detail, edit, hapus."""
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
-from flask_login import current_user, login_required
+from flask_login import login_required
 
 from app.schemas.access_entry_schema import AccessEntryForm
 from app.security.access_policy import can_edit_entry, is_entry_owner
@@ -23,6 +23,8 @@ from app.utils.constants import (
 from app.utils.exceptions import ValidationError
 from app.services.group_service import add_group_entry, get_member_group
 from app.utils.query_helper import parse_positive_int
+from app.utils.form_helper import attach_form_error_list, flash_error_list, read_form_data
+from app.utils.request_helper import get_current_user
 
 entries_bp = Blueprint("entries", __name__, url_prefix="/entries")
 
@@ -31,10 +33,6 @@ FORM_FIELD_NAME_LIST = [
     "username", "access_note", "description", "visibility",
 ]
 
-def get_user():
-    """User asli (bukan proxy)."""
-    return current_user._get_current_object()
-
 def get_entry_or_404(user, entry_id):
     """Ga ada / private orang lain -> 404."""
     entry = get_visible_entry(user, entry_id)
@@ -42,26 +40,15 @@ def get_entry_or_404(user, entry_id):
         abort(404)
     return entry
 
-def build_entry_payload(form):
-    """Bentuk payload data link dari field formulir."""
-    return {field_name: getattr(form, field_name).data for field_name in FORM_FIELD_NAME_LIST}
-
 def read_custom_field_pair_list():
     """Field tambahan dari form: [(judul, isi), ...]."""
     return list(zip(request.form.getlist("custom_field_label"), request.form.getlist("custom_field_content")))
 
 def attach_error_list(form, error_list):
-    """Tempel error ke field form. Error lampiran dibalikin, sisanya jadi flash."""
-    attachment_error_list = []
-    for error_dict in error_list:
-        field_name = error_dict.get("field")
-        if field_name in FORM_FIELD_NAME_LIST:
-            getattr(form, field_name).errors.append(error_dict["message"])
-        elif field_name == "attachments":
-            attachment_error_list.append(error_dict["message"])
-        else:
-            flash(error_dict["message"], "danger")
-    return attachment_error_list
+    """Tempel error ke field form. Error lampiran dibalikin (tampil di kotak lampiran), sisanya jadi flash."""
+    leftover_list = attach_form_error_list(form, error_list)
+    flash_error_list([error_dict for error_dict in leftover_list if error_dict.get("field") != "attachments"])
+    return [error_dict["message"] for error_dict in leftover_list if error_dict.get("field") == "attachments"]
 
 def render_entry_form(form, category_list, custom_field_pair_list, page_title, form_action, cancel_url,
                       is_owner=True, entry=None, attachment_error_list=None, target_group=None):
@@ -90,7 +77,7 @@ def render_entry_form(form, category_list, custom_field_pair_list, page_title, f
 @login_required
 def create():
     """Tambah data link, bisa langsung masuk ke group kalau dibuka dari halaman group."""
-    user = get_user()
+    user = get_current_user()
     category_list = get_active_category_list()
     form = AccessEntryForm()
     form.category_id.choices = [(category.id, category.name) for category in category_list]
@@ -104,7 +91,7 @@ def create():
     if form.validate_on_submit():
         try:
             entry = create_access_entry(
-                user, build_entry_payload(form), custom_field_pair_list,
+                user, read_form_data(form, FORM_FIELD_NAME_LIST), custom_field_pair_list,
                 upload_file_list=request.files.getlist("attachments"),
             )
         except ValidationError as error:
@@ -127,7 +114,7 @@ def create():
 @login_required
 def detail(entry_id):
     """Detail data link."""
-    user = get_user()
+    user = get_current_user()
     entry = get_entry_or_404(user, entry_id)
     access_note, is_note_error = read_access_note(entry)
     if is_note_error:
@@ -144,7 +131,7 @@ def detail(entry_id):
 @login_required
 def edit(entry_id):
     """Edit data link (pemilik, atau admin buat data Public)."""
-    user = get_user()
+    user = get_current_user()
     entry = get_entry_or_404(user, entry_id)
     if not can_edit_entry(user, entry):
         abort(403)
@@ -166,7 +153,7 @@ def edit(entry_id):
     if form.validate_on_submit():
         try:
             update_access_entry(
-                user, entry, build_entry_payload(form), custom_field_pair_list,
+                user, entry, read_form_data(form, FORM_FIELD_NAME_LIST), custom_field_pair_list,
                 upload_file_list=request.files.getlist("attachments"),
                 delete_attachment_id_list=request.form.getlist("delete_attachment_id"),
             )
@@ -190,7 +177,7 @@ def edit(entry_id):
 @login_required
 def delete(entry_id):
     """Hapus data link (konfirmasinya di browser)."""
-    user = get_user()
+    user = get_current_user()
     entry = get_entry_or_404(user, entry_id)
     if not can_edit_entry(user, entry):
         abort(403)

@@ -55,5 +55,4 @@
     }
   });
 
-  window.AlrClipboard = { copyText: copyText };
 })();

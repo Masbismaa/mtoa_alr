@@ -2,7 +2,7 @@
 {% from "components/icon.html" import icon %}
 {% from "components/badge.html" import audit_action_badge %}
 
-{% block title %}Audit Log #{{ audit_log.id }} - MTOA ALR{% endblock %}
+{% block title %}Audit Log #{{ audit_log.id }}{% endblock %}
 
 {% block page_pretitle %}<a href="{{ url_for('audit.index') }}" class="text-reset">{{ icon("arrow_left") }} Audit Logs</a>{% endblock %}
 

@@ -12,7 +12,8 @@
   const emptyEl = formEl.querySelector("[data-custom-field-empty]");
   const addButton = formEl.querySelector("[data-custom-field-add]");
   const templateEl = document.getElementById("custom_field_template");
-  const maxCount = parseInt(customSectionEl.dataset.maxCount, 10) || 20;
+  const credentialEl = formEl.querySelector("[data-credential-field]");
+  const maxCount = parseInt(customSectionEl.dataset.maxCount, 10);
 
   function parseList(text) {
     return (text || "").split(",").filter(Boolean);
@@ -40,6 +41,13 @@
       }
       const markEl = groupEl.querySelector("[data-required-mark]");
       if (markEl) markEl.hidden = !isRequired;
+    });
+
+    // username & access note disembunyiin + ga ikut dikirim buat kategori tanpa kredensial (General)
+    const hasCredentialField = optionEl.dataset.hasCredentialField === "true";
+    credentialEl.hidden = !hasCredentialField;
+    credentialEl.querySelectorAll("input, textarea").forEach(function (inputEl) {
+      inputEl.disabled = !hasCredentialField;
     });
 
     // field tambahan cuma buat kategori yg punya "Add field" (General)

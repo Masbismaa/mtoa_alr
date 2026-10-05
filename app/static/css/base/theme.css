@@ -43,7 +43,66 @@ body {
   animation-timing-function: ease;
 }
 
-/* ikon tombol tema: bulan pas terang, matahari pas gelap */
-.theme-icon-sun { display: none; }
-[data-bs-theme="dark"] .theme-icon-sun { display: inline-block; }
-[data-bs-theme="dark"] .theme-icon-moon { display: none; }
+/* Tombol tema: matahari terbenam saat menuju gelap, bulan terbit saat menuju terang. */
+.theme-toggle {
+  overflow: hidden;
+}
+.theme-toggle-sky {
+  position: relative;
+  display: inline-grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: .375rem;
+  overflow: hidden;
+  vertical-align: middle;
+}
+.theme-toggle-sun,
+.theme-toggle-moon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.theme-toggle-sky .icon { margin: 0; }
+.theme-toggle-sun { opacity: 1; transform: translateY(0); color: #f59f00; }
+.theme-toggle-moon { opacity: 0; transform: translateY(120%); }
+[data-bs-theme="dark"] .theme-toggle-sun { opacity: 0; transform: translateY(120%); }
+[data-bs-theme="dark"] .theme-toggle-moon { opacity: 1; transform: translateY(0); color: #9db9ff; }
+.theme-toggle.is-theme-switching .theme-toggle-sun,
+.theme-toggle.is-theme-switching .theme-toggle-moon {
+  animation-duration: 560ms;
+  animation-timing-function: cubic-bezier(.2, .8, .2, 1);
+  animation-fill-mode: both;
+}
+.theme-toggle.is-theme-switching-to-dark .theme-toggle-sun { animation-name: theme-sun-set; }
+.theme-toggle.is-theme-switching-to-dark .theme-toggle-moon { animation-name: theme-moon-rise; }
+.theme-toggle.is-theme-switching-to-light .theme-toggle-moon { animation-name: theme-moon-set; }
+.theme-toggle.is-theme-switching-to-light .theme-toggle-sun { animation-name: theme-sun-rise; }
+@keyframes theme-sun-set {
+  from { opacity: 1; transform: translateY(0) rotate(0); }
+  to { opacity: 0; transform: translateY(120%) rotate(45deg); }
+}
+@keyframes theme-moon-rise {
+  from { opacity: 0; transform: translateY(120%) rotate(-35deg); }
+  to { opacity: 1; transform: translateY(0) rotate(0); }
+}
+@keyframes theme-moon-set {
+  from { opacity: 1; transform: translateY(0) rotate(0); }
+  to { opacity: 0; transform: translateY(120%) rotate(-35deg); }
+}
+@keyframes theme-sun-rise {
+  from { opacity: 0; transform: translateY(120%) rotate(45deg); }
+  to { opacity: 1; transform: translateY(0) rotate(0); }
+}
+.theme-option {
+  display: inline-flex;
+  align-items: center;
+}
+.theme-option-light { display: none; }
+[data-bs-theme="dark"] .theme-option-light { display: inline-flex; }
+[data-bs-theme="dark"] .theme-option-dark { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle.is-theme-switching .theme-toggle-sun,
+  .theme-toggle.is-theme-switching .theme-toggle-moon { animation: none; }
+}

@@ -8,11 +8,11 @@ from app.utils.constants import (
     MAX_SEARCH_KEYWORD_LENGTH,
     ROLE_ADMIN,
     ROLE_LIST,
-    USER_PER_PAGE,
     USER_STATUS_ACTIVE,
     USER_STATUS_INACTIVE,
     USER_STATUS_LOCKED,
     PERMISSION_LIST,
+    PER_PAGE,
 )
 from app.utils.datetime_helper import to_utc_aware, utc_now
 from app.utils.exceptions import ValidationError, build_error
@@ -41,7 +41,7 @@ def build_status_condition(status):
         return db.and_(User.is_active.is_(True), db.not_(is_locked_condition))
     return None
 
-def search_users(keyword=None, role=None, status=None, page=1, per_page=USER_PER_PAGE):
+def search_users(keyword=None, role=None, status=None, page=1, per_page=PER_PAGE):
     """Cari user buat tabel admin, urut nama."""
     query = db.select(User).options(selectinload(User.permission_list))
     clean_keyword = sanitize_text(keyword, max_length=MAX_SEARCH_KEYWORD_LENGTH)
