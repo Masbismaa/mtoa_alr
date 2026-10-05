@@ -39,6 +39,7 @@ from app.utils.constants import (
     VISIBILITY_PUBLIC,
     DASHBOARD_PER_PAGE,
     MAX_SEARCH_KEYWORD_LENGTH,
+    EXPORT_MAX_ROW_COUNT,
 )
 from app.utils.exceptions import InvalidCredentialError, PermissionDeniedError, ValidationError, build_error
 from app.utils.sanitizer import get_plain_text, sanitize_rich_text, sanitize_text
@@ -332,9 +333,8 @@ def get_visible_entry(user, entry_id):
         .where(AccessEntry.id == entry_id, build_visible_entry_filter(user))
     ).scalar_one_or_none()
 
-def search_visible_entries(user, keyword=None, category_id=None, visibility=None, page=1, per_page=DASHBOARD_PER_PAGE,
-                           is_include_sub=True):
-    """Cari data yg boleh diliat user, hasilnya per halaman. Filter kategori ikut ngambil isi sub-nya."""
+def build_visible_entry_query(user, keyword=None, category_id=None, visibility=None, is_include_sub=True):
+    """Query data yg boleh diliat user + filter (dipake tabel Home & export Excel biar hasilnya sama persis)."""
     query = (
         db.select(AccessEntry)
         .options(
@@ -354,8 +354,19 @@ def search_visible_entries(user, keyword=None, category_id=None, visibility=None
         query = query.where(AccessEntry.category_id.in_(category_id_list))
     if visibility in VISIBILITY_LIST:
         query = query.where(AccessEntry.visibility == visibility)
-    query = query.order_by(AccessEntry.updated_at.desc(), AccessEntry.id.desc())
+    return query.order_by(AccessEntry.updated_at.desc(), AccessEntry.id.desc())
+
+def search_visible_entries(user, keyword=None, category_id=None, visibility=None, page=1, per_page=DASHBOARD_PER_PAGE,
+                           is_include_sub=True):
+    """Cari data yg boleh diliat user, hasilnya per halaman. Filter kategori ikut ngambil isi sub-nya."""
+    query = build_visible_entry_query(user, keyword, category_id, visibility, is_include_sub)
     return db.paginate(query, page=page, per_page=per_page, error_out=False)
+
+def list_visible_entries_for_export(user, keyword=None, category_id=None, visibility=None, max_count=EXPORT_MAX_ROW_COUNT):
+    """Semua data hasil filter buat export (dibatesin biar server ga berat). Return (entry_list, is_truncated)."""
+    query = build_visible_entry_query(user, keyword, category_id, visibility).limit(max_count + 1)
+    entry_list = db.session.execute(query).unique().scalars().all()
+    return entry_list[:max_count], len(entry_list) > max_count
 
 def count_visible_entry_summary(user):
     """Jumlah data per visibilitas dalam 1 query."""

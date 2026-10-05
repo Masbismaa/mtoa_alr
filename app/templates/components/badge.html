@@ -3,13 +3,14 @@
   <span class="badge {{ 'bg-green-lt' if visibility == 'public' else 'bg-orange-lt' }}">{{ visibility | visibility_label }}</span>
 {% endmacro %}
 
-{% macro link_status_badge(status) %}
+{% macro link_status_badge(status, note=none, checked_at=none) %}
   {% set status_class_dict = {"up": "bg-green-lt", "down": "bg-red-lt"} %}
-  <span class="badge {{ status_class_dict.get(status, 'bg-secondary-lt') }}">{{ status | link_status_label }}</span>
+  {% set title_text = (("Dicek " ~ (checked_at | time_ago)) if checked_at else "") ~ ((" · " ~ note) if note else "") %}
+  <span class="badge {{ status_class_dict.get(status, 'bg-secondary-lt') }}"{% if title_text %} title="{{ title_text }}"{% endif %}>{{ status | link_status_label }}</span>
 {% endmacro %}
 
 {% macro audit_action_badge(action) %}
-  {% set action_class_dict = {"create": "bg-green-lt", "update": "bg-azure-lt", "delete": "bg-red-lt", "login": "bg-primary-lt", "login_failed": "bg-yellow-lt", "logout": "bg-secondary-lt"} %}
+  {% set action_class_dict = {"create": "bg-green-lt", "update": "bg-azure-lt", "delete": "bg-red-lt", "login": "bg-primary-lt", "login_failed": "bg-yellow-lt", "logout": "bg-secondary-lt", "export": "bg-purple-lt"} %}
   <span class="badge audit-action-{{ action }} {{ action_class_dict.get(action, 'bg-secondary-lt') }}">{{ action | audit_action_label }}</span>
 {% endmacro %}
 

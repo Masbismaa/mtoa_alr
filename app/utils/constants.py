@@ -46,6 +46,7 @@ AUDIT_ACTION_DELETE = "delete"
 AUDIT_ACTION_LOGIN = "login"
 AUDIT_ACTION_LOGIN_FAILED = "login_failed"
 AUDIT_ACTION_LOGOUT = "logout"
+AUDIT_ACTION_EXPORT = "export"
 AUDIT_ACTION_LIST = [
     AUDIT_ACTION_CREATE,
     AUDIT_ACTION_UPDATE,
@@ -53,6 +54,7 @@ AUDIT_ACTION_LIST = [
     AUDIT_ACTION_LOGIN,
     AUDIT_ACTION_LOGIN_FAILED,
     AUDIT_ACTION_LOGOUT,
+    AUDIT_ACTION_EXPORT,
 ]
 
 # field yg isinya rahasia, di audit log diganti bintang-bintang
@@ -139,7 +141,23 @@ LINK_STATUS_UNKNOWN = "unknown"
 LINK_STATUS_UP = "up"
 LINK_STATUS_DOWN = "down"
 LINK_STATUS_LIST = [LINK_STATUS_UNKNOWN, LINK_STATUS_UP, LINK_STATUS_DOWN]
-LINK_STATUS_LABEL_DICT = {LINK_STATUS_UNKNOWN: "Belum dicek", LINK_STATUS_UP: "Aktif", LINK_STATUS_DOWN: "Tidak aktif"}
+LINK_STATUS_LABEL_DICT = {
+    LINK_STATUS_UNKNOWN: "Belum dicek", 
+    LINK_STATUS_UP: "Aktif", 
+    LINK_STATUS_DOWN: "Tidak aktif",
+    }
+# cek status link
+LINK_CHECK_TIMEOUT_SECONDS = 5
+LINK_CHECK_MAX_WORKER_COUNT = 10
+LINK_CHECK_MAX_REDIRECT_COUNT = 3
+LINK_CHECK_USER_AGENT = "MTOA-ALR-LinkCheck/1.0"
+LINK_STATUS_NOTE_MAX_LENGTH = 255
+
+# Link Monitoring: satu pengaturan global, dijalankan oleh Task Scheduler/cron.
+LINK_MONITOR_SETTING_ID = 1
+LINK_MONITOR_DEFAULT_INTERVAL_MINUTES = 60
+LINK_MONITOR_MIN_INTERVAL_MINUTES = 5
+LINK_MONITOR_MAX_INTERVAL_MINUTES = 1440
 
 # nama kategori default (harus sama dengan DEFAULT_CATEGORY_LIST)
 CATEGORY_NAME_WEB = "Web"
@@ -218,6 +236,7 @@ AUDIT_ACTION_LABEL_DICT = {
     AUDIT_ACTION_LOGIN: "Login",
     AUDIT_ACTION_LOGIN_FAILED: "Login Gagal",
     AUDIT_ACTION_LOGOUT: "Logout",
+    AUDIT_ACTION_EXPORT: "Export",
 }
 # nama tabel yg dicatat di audit log -> label di UI
 AUDIT_ENTITY_LABEL_DICT = {
@@ -228,6 +247,7 @@ AUDIT_ENTITY_LABEL_DICT = {
     "group_members": "Anggota Group",
     "group_entries": "Link di Group",
     "categories": "Kategori",
+    "link_monitor_settings": "Link Monitoring",
 }
 
 # dashboard (grafik & aktivitas)
@@ -244,3 +264,8 @@ USER_STATUS_LABEL_DICT = {
     USER_STATUS_LOCKED: "Terkunci",
     USER_STATUS_INACTIVE: "Nonaktif",
 }
+
+# export kat excel
+EXPORT_MAX_ROW_COUNT = 5000
+EXPORT_FORMULA_PREFIX_TUPLE = ("=", "+", "-", "@", "\t","\r")
+XLSX_MIMETYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
