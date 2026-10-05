@@ -154,10 +154,6 @@
                 {{ link_status_badge(entry.status) }}
                 {% if entry.status_note %}<div class="small text-secondary mt-1">{{ entry.status_note }}</div>{% endif %}
                 <div class="small text-secondary">{{ ("Dicek " ~ (entry.status_checked_at | time_ago)) if entry.status_checked_at else "Belum pernah dicek" }}</div>
-                <form method="post" action="{{ url_for('entries.check_status', entry_id=entry.id) }}" class="mt-2">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="btn btn-sm">{{ icon("refresh") }} Cek Status</button>
-                </form>
               </div>
             </div>
           </div>

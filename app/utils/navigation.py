@@ -23,6 +23,7 @@ SIDEBAR_SECTION_LIST = [
     ]},
     {"title": "Kelola", "item_list": [
         {"label": "Users", "endpoint": "users.index", "icon": "user", "is_admin_only": True},
+        {"label": "Link Monitoring", "endpoint": "link_monitor.index", "icon": "refresh", "is_admin_only": True},
         {"label": "Categories", "endpoint": "categories.index", "icon": "category", "permission": PERMISSION_MANAGE_CATEGORIES},
         {"label": "Audit Logs", "endpoint": "audit.index", "icon": "audit", "permission": PERMISSION_VIEW_AUDIT_LOGS},
     ]},

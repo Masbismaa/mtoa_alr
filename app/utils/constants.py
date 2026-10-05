@@ -149,8 +149,15 @@ LINK_STATUS_LABEL_DICT = {
 # cek status link
 LINK_CHECK_TIMEOUT_SECONDS = 5
 LINK_CHECK_MAX_WORKER_COUNT = 10
+LINK_CHECK_MAX_REDIRECT_COUNT = 3
 LINK_CHECK_USER_AGENT = "MTOA-ALR-LinkCheck/1.0"
 LINK_STATUS_NOTE_MAX_LENGTH = 255
+
+# Link Monitoring: satu pengaturan global, dijalankan oleh Task Scheduler/cron.
+LINK_MONITOR_SETTING_ID = 1
+LINK_MONITOR_DEFAULT_INTERVAL_MINUTES = 60
+LINK_MONITOR_MIN_INTERVAL_MINUTES = 5
+LINK_MONITOR_MAX_INTERVAL_MINUTES = 1440
 
 # nama kategori default (harus sama dengan DEFAULT_CATEGORY_LIST)
 CATEGORY_NAME_WEB = "Web"
@@ -240,6 +247,7 @@ AUDIT_ENTITY_LABEL_DICT = {
     "group_members": "Anggota Group",
     "group_entries": "Link di Group",
     "categories": "Kategori",
+    "link_monitor_settings": "Link Monitoring",
 }
 
 # dashboard (grafik & aktivitas)

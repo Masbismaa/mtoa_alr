@@ -72,6 +72,7 @@ def register_blueprints(app):
     from app.routes.attachment_routes import attachments_bp
     from app.routes.auth_routes import auth_bp
     from app.routes.health_routes import health_bp
+    from app.routes.link_monitor_routes import link_monitor_bp
     from app.routes.main_routes import main_bp
     from app.routes.settings_routes import settings_bp
     from app.routes.group_routes import groups_bp
@@ -80,6 +81,7 @@ def register_blueprints(app):
     from app.routes.user_routes import users_bp
 
     app.register_blueprint(health_bp)
+    app.register_blueprint(link_monitor_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(settings_bp)
