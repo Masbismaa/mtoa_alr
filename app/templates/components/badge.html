@@ -9,7 +9,7 @@
 {% endmacro %}
 
 {% macro audit_action_badge(action) %}
-  {% set action_class_dict = {"create": "bg-green-lt", "update": "bg-azure-lt", "delete": "bg-red-lt", "login": "bg-primary-lt", "login_failed": "bg-yellow-lt", "logout": "bg-secondary-lt"} %}
+  {% set action_class_dict = {"create": "bg-green-lt", "update": "bg-azure-lt", "delete": "bg-red-lt", "login": "bg-primary-lt", "login_failed": "bg-yellow-lt", "logout": "bg-secondary-lt", "export": "bg-purple-lt"} %}
   <span class="badge audit-action-{{ action }} {{ action_class_dict.get(action, 'bg-secondary-lt') }}">{{ action | audit_action_label }}</span>
 {% endmacro %}
 
