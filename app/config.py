@@ -1,4 +1,4 @@
-"""Konfigurasi aplikasi MTOA ALR untuk setiap environment (development, production, testing)."""
+"""Konfigurasi aplikasi ALR untuk setiap environment (development, production, testing)."""
 import os
 from datetime import timedelta
 from pathlib import Path

@@ -1,7 +1,7 @@
 """Halaman kelola user, khusus admin."""
 from urllib.parse import urlencode
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
-from flask_login import current_user, login_required
+from flask_login import login_required
 from app.security.role_guard import admin_required
 from app.services.user_service import (
     build_user_summary,
@@ -13,9 +13,11 @@ from app.services.user_service import (
     toggle_user_active,
     unlock_user,
 )
-from app.utils.constants import PERMISSION_INFO_DICT, ROLE_ADMIN, ROLE_LABEL_DICT, USER_PER_PAGE, USER_STATUS_LABEL_DICT
+from app.utils.constants import PERMISSION_INFO_DICT, ROLE_ADMIN, PER_PAGE, ROLE_LABEL_DICT, USER_STATUS_LABEL_DICT
 from app.utils.exceptions import ValidationError
 from app.utils.query_helper import clean_keyword_arg, drop_empty_value, parse_positive_int
+from app.utils.form_helper import flash_error_list
+from app.utils.request_helper import get_current_user
 
 users_bp = Blueprint("users", __name__, url_prefix="/users")
 
@@ -48,7 +50,7 @@ def index():
         role=filter_dict["role"],
         status=filter_dict["status"],
         page=filter_dict["page"],
-        per_page=USER_PER_PAGE,
+        per_page=PER_PAGE,
     )
     return render_template(
         "pages/users/index.html",
@@ -86,9 +88,9 @@ def build_back_url():
 def run_user_action(action_function, success_message, *arg_list):
     """Jalanin aksi ke user + flash hasilnya, terus balik ke tabel (biar ga nulis try/except berulang)."""
     try:
-        action_function(current_user._get_current_object(), *arg_list)
+        action_function(get_current_user(), *arg_list)
     except ValidationError as error:
-        flash(error.error_list[0]["message"], "danger")
+        flash_error_list(error.error_list)
     else:
         flash(success_message, "success")
     return redirect(build_back_url())
@@ -106,9 +108,9 @@ def access(user_id):
 
     if request.method == "POST":
         try:
-            set_user_permissions(current_user._get_current_object(), target, request.form.getlist("permission"))
+            set_user_permissions(get_current_user(), target, request.form.getlist("permission"))
         except ValidationError as error:
-            flash(error.error_list[0]["message"], "danger")
+            flash_error_list(error.error_list)
         else:
             flash(f"Akses {target.full_name} sudah disimpan", "success")
             return redirect(build_back_url())

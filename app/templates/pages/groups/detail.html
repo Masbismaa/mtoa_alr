@@ -2,7 +2,7 @@
 {% from "components/icon.html" import icon %}
 {% from "components/copy_button.html" import copy_button %}
 
-{% block title %}{{ group.name }} - MTOA ALR{% endblock %}
+{% block title %}{{ group.name }}{% endblock %}
 
 {% set is_owner = group.user_id == current_user.id %}
 

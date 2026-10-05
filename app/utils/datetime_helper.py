@@ -4,6 +4,9 @@ from datetime import datetime, time, timedelta, timezone
 # zona waktu tampilan: WIB (UTC+7). Indonesia ga pake DST jadi aman pake offset tetap
 DISPLAY_TIMEZONE = timezone(timedelta(hours=7), "WIB")
 
+# nama bulan Indonesia, dipake web & Excel biar tampilannya sama ("Okt", bukan "Oct")
+MONTH_NAME_TUPLE = ("Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des")
+
 def utc_now():
     """Waktu sekarang dalam UTC (ada info zona waktunya)."""
     return datetime.now(timezone.utc)
@@ -16,11 +19,19 @@ def to_utc_aware(value):
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
 
-def format_local_datetime(value, pattern="%d %b %Y, %H:%M"):
-    """Format waktu buat ditampilin ke user dalam WIB, misal '25 Sep 2026, 14:30 WIB'."""
+def to_local_time(value):
+    """Waktu UTC jadi WIB. None tetep None."""
     if value is None:
+        return None
+    return to_utc_aware(value).astimezone(DISPLAY_TIMEZONE)
+
+def format_local_datetime(value, pattern="%d %b %Y, %H:%M"):
+    """Format waktu WIB buat ditampilin, misal '05 Okt 2026, 14:30 WIB'. %b otomatis jadi nama bulan Indonesia."""
+    local_time = to_local_time(value)
+    if local_time is None:
         return "-"
-    return to_utc_aware(value).astimezone(DISPLAY_TIMEZONE).strftime(pattern) + " WIB"
+    month_pattern = pattern.replace("%b", MONTH_NAME_TUPLE[local_time.month - 1])
+    return local_time.strftime(month_pattern) + " WIB"
 
 def build_utc_range_from_local_date(date_from=None, date_to=None):
     """Ubah rentang tanggal WIB (dari filter) jadi waktu UTC. date_to kehitung sampe akhir hari."""
@@ -29,7 +40,7 @@ def build_utc_range_from_local_date(date_from=None, date_to=None):
     return start_at, end_at
 
 def format_time_ago(value):
-    # Waktu forum
+    """Waktu relatif ala forum: 'Baru saja', '5 menit lalu', '3 jam lalu', lewat seminggu jadi tanggal."""
     if value is None:
         return "-"
     second_count = int((utc_now() - to_utc_aware(value)).total_seconds())
@@ -41,4 +52,4 @@ def format_time_ago(value):
         return f"{second_count // 3600} jam lalu"
     if second_count < 7 * 86400:
         return f"{second_count // 86400} hari lalu"
-    return to_utc_aware(value).astimezone(DISPLAY_TIMEZONE).strftime("%d %b %Y, %H:%M") + " WIB"
+    return format_local_datetime(value)

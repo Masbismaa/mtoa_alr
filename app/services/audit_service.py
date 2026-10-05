@@ -6,9 +6,9 @@ from app.models import AuditLog
 from app.utils.constants import (
     AUDIT_ACTION_LIST,
     AUDIT_ENTITY_LABEL_DICT,
-    AUDIT_LOG_PER_PAGE,
     MASKED_VALUE,
     MAX_SEARCH_KEYWORD_LENGTH,
+    PER_PAGE,
     SENSITIVE_FIELD_SET,
 )
 from app.utils.datetime_helper import build_utc_range_from_local_date
@@ -57,7 +57,7 @@ def log_audit(
     return audit_log
 
 def search_audit_logs(keyword=None, action=None, entity_type=None, date_from=None, date_to=None,
-                      page=1, per_page=AUDIT_LOG_PER_PAGE):
+                      page=1, per_page=PER_PAGE):
     """Cari audit log buat halaman admin, yg terbaru di atas."""
     query = db.select(AuditLog)
     clean_keyword = sanitize_text(keyword, max_length=MAX_SEARCH_KEYWORD_LENGTH)

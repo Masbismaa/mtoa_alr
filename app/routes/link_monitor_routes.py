@@ -1,12 +1,14 @@
 """Panel admin untuk pengaturan dan pemeriksaan Link Monitoring."""
 from flask import Blueprint, flash, redirect, render_template, url_for
-from flask_login import current_user, login_required
+from flask_login import login_required
 
 from app.extensions import limiter
 from app.schemas.link_monitor_schema import LinkMonitorSettingsForm
 from app.security.role_guard import admin_required
 from app.services.link_monitor_service import get_monitor_settings, run_monitor, update_monitor_settings
 from app.utils.constants import LINK_STATUS_DOWN, LINK_STATUS_UNKNOWN, LINK_STATUS_UP
+from app.utils.form_helper import read_form_data
+from app.utils.request_helper import get_current_user
 
 link_monitor_bp = Blueprint("link_monitor", __name__, url_prefix="/link-monitoring")
 
@@ -31,7 +33,7 @@ def save_settings():
     settings = get_monitor_settings()
     form = LinkMonitorSettingsForm()
     if form.validate_on_submit():
-        update_monitor_settings(current_user._get_current_object(), form)
+        update_monitor_settings(get_current_user(), read_form_data(form, ["is_enabled", "interval_minutes"]))
         flash("Pengaturan Link Monitoring disimpan", "success")
         return redirect(url_for("link_monitor.index"))
     return render_monitor_page(form, settings)
