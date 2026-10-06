@@ -1,0 +1,52 @@
+/* tombol, isian form, badge, pagination ala SAP GUI */
+
+.btn {
+  --tblr-btn-border-radius: var(--tblr-border-radius);
+  font-weight: 400;
+}
+
+.btn-primary {
+  font-weight: 600;
+}
+
+/* tombol biasa (bukan primary/danger/ghost/outline): putih, garis biru, teks biru */
+.btn:not(.btn-primary, .btn-danger, .btn-success, .btn-warning, .btn-info, .btn-secondary, .btn-dark, .btn-light, .btn-link, [class*="btn-ghost"], [class*="btn-outline"]) {
+  --tblr-btn-color: var(--app-text-accent);
+  --tblr-btn-bg: var(--tblr-bg-surface);
+  --tblr-btn-border-color: var(--app-text-accent);
+  --tblr-btn-hover-color: var(--app-text-accent);
+  --tblr-btn-hover-bg: var(--app-selected-bg);
+  --tblr-btn-hover-border-color: var(--app-text-accent);
+  --tblr-btn-active-color: var(--app-text-accent);
+  --tblr-btn-active-bg: var(--tblr-primary-lt);
+  --tblr-btn-active-border-color: var(--tblr-primary);
+  box-shadow: none;
+}
+
+.form-control,
+.form-select {
+  border-color: var(--app-field-border);
+  border-radius: 0.125rem;
+}
+
+.form-control:hover,
+.form-select:hover {
+  border-color: var(--tblr-primary);
+}
+
+.form-label {
+  font-weight: 400;
+  color: var(--app-title-color);
+}
+
+/* status & label: kotak kecil sudut tipis, teks tebal */
+.badge {
+  border-radius: 0.125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.page-link {
+  border-radius: var(--tblr-border-radius) !important;
+}

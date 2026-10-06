@@ -1,9 +1,17 @@
-{# satu macro buat nampilin label + input + pesan error, dipake semua form #}
-{% macro render_field(field) %}
+{# satu macro buat nampilin label + input + pesan error, dipake semua form.
+   suffix = teks nempel di kanan input (misal domain email) #}
+{% macro render_field(field, suffix=None) %}
   {% set input_class = "form-select" if field.type in ("SelectField", "SelectMultipleField") else "form-control" %}
   <div class="mb-3">
     {{ field.label(class_="form-label" ~ (" required" if field.flags.required else "")) }}
-    {{ field(class_=input_class ~ (" is-invalid" if field.errors else ""), **kwargs) }}
+    {% if suffix %}
+      <div class="input-group{{ ' is-invalid' if field.errors else '' }}">
+        {{ field(class_=input_class ~ (" is-invalid" if field.errors else ""), **kwargs) }}
+        <span class="input-group-text">{{ suffix }}</span>
+      </div>
+    {% else %}
+      {{ field(class_=input_class ~ (" is-invalid" if field.errors else ""), **kwargs) }}
+    {% endif %}
     {% for error in field.errors %}
       <div class="invalid-feedback d-block">{{ error }}</div>
     {% endfor %}

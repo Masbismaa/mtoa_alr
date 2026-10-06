@@ -1,20 +1,85 @@
-/* navigasi atas: tombol Home + menu user di kanan atas */
+/* title bar atas ala SAP GUI: biru gelap, logo + Home di kiri, judul halaman di tengah, menu user di kanan */
 
-/* navigasi atas: Home di kiri, menu user di kanan */
 .app-topbar {
-  min-height: 3.5rem;
-  border-bottom: var(--tblr-border-width, 1px) solid var(--tblr-border-color);
+  position: sticky;
+  top: 0;
+  z-index: 1035;
+  grid-template-columns: 1fr minmax(0, auto) 1fr;
+  align-items: center;
+  gap: 1rem;
+  height: var(--app-shell-height);
+  padding: 0 1rem;
+  color: var(--app-shell-color);
+  background: var(--app-shell-bg);
 }
 
-.app-topbar-home.active {
-  color: var(--tblr-primary);
-  background: var(--tblr-primary-lt);
+.app-topbar-side {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.app-topbar-brand {
+  display: flex;
+  align-items: center;
+  margin-right: 0.25rem;
+}
+
+/* di bar gelap selalu pake logo versi putih */
+.app-topbar .app-brand-logo {
+  height: 2rem;
+}
+
+.app-topbar .app-brand-logo-light {
+  display: none;
+}
+
+.app-topbar .app-brand-logo-dark {
+  display: inline-block;
+}
+
+.app-topbar-title {
+  overflow: hidden;
+  font-size: 1.125rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Home, tombol tema, & nama user: teks putih di atas bar gelap */
+.app-topbar-link,
+.app-topbar .theme-toggle,
+.app-topbar .user-menu .nav-link,
+.app-topbar .user-menu .text-secondary {
+  color: var(--app-shell-color) !important;
+}
+
+.app-topbar-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  text-decoration: none;
+  border-radius: var(--tblr-border-radius);
+}
+
+.app-topbar-link:hover,
+.app-topbar-link.active,
+.app-topbar .theme-toggle:hover {
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* avatar: lingkaran putih biar kebaca di bar gelap (bg-primary-lt bawaan pake !important) */
+.app-topbar .user-menu .avatar {
+  color: var(--app-shell-bg) !important;
+  background: #ffffff !important;
 }
 
 .user-menu-name {
   max-width: 14rem;
   overflow: hidden;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -27,4 +92,15 @@
   font-size: 0.8125rem;
   letter-spacing: 0;
   text-transform: none;
+}
+
+/* HP: tombol tema di title bar cukup ikon aja biar judul ga kepotong */
+@media (max-width: 575.98px) {
+  .app-topbar .theme-option {
+    display: none !important;
+  }
+
+  .app-topbar .theme-toggle-sky {
+    margin-right: 0;
+  }
 }

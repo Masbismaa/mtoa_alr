@@ -1,29 +1,48 @@
 {% extends "layouts/base.html" %}
 {% from "components/icon.html" import icon %}
 
-{% block body_class %}d-flex flex-column{% endblock %}
-
+{# halaman sebelum login ala layar logon SAP GUI: title bar gelap, form di kiri, panel informasi di kanan #}
 {% block body %}
-  <div class="page page-center">
-    <div class="container container-tight py-4">
-      <div class="d-flex justify-content-end">
-        {% include "components/theme_toggle_button.html" %}
-      </div>
-
-      <div class="text-center mb-4 auth-brand">
-        {% include "components/brand_logo.html" %}
-        <h1 class="h3 mt-3 mb-0">Access Link Register</h1>
-        <div class="text-secondary small">ICT Spindo</div>
-      </div>
-
-      <div class="card card-md auth-card">
-        <div class="card-body">
-          {% include "components/flash_messages.html" %}
-          {% block content %}{% endblock %}
-        </div>
-      </div>
-
-      {% block after_card %}{% endblock %}
+  {% set auth_info_html = self.auth_info() %}
+  <header class="app-topbar d-grid d-print-none">
+    <div class="app-topbar-side">
+      <span class="app-topbar-brand">{% include "components/brand_logo.html" %}</span>
     </div>
-  </div>
+    <div class="app-topbar-title">Access Link Register</div>
+    <div class="app-topbar-side justify-content-end">
+      {% include "components/theme_toggle_button.html" %}
+    </div>
+  </header>
+
+  <main class="auth-body">
+    <div class="row g-4">
+      <div class="{{ 'col-lg-5' if auth_info_html | trim else 'col-lg-6 mx-auto' }}">
+        <div class="card auth-card">
+          <div class="card-body">
+            {% include "components/flash_messages.html" %}
+            {% block content %}{% endblock %}
+          </div>
+        </div>
+        {% block after_card %}{% endblock %}
+      </div>
+
+      {% if auth_info_html | trim %}
+        <div class="col-lg-7">
+          <section class="card auth-info" aria-labelledby="auth_info_title">
+            <div class="card-header">
+              <h2 class="card-title" id="auth_info_title">Informasi</h2>
+            </div>
+            <div class="list-group list-group-flush">{{ auth_info_html }}</div>
+          </section>
+        </div>
+      {% endif %}
+    </div>
+  </main>
+{% endblock %}
+
+{# isi panel informasi, cuma hal yg memang berlaku di aplikasi. halaman error ngosongin blok ini #}
+{% block auth_info %}
+  <div class="list-group-item auth-info-item">{{ icon("info", "text-primary") }} Access Link Register · ICT Spindo</div>
+  <div class="list-group-item auth-info-item">{{ icon("check", "text-green") }} Login 2 langkah: password, lalu kode OTP</div>
+  <div class="list-group-item auth-info-item">{{ icon("check", "text-green") }} Daftar &amp; login pakai email korporat</div>
 {% endblock %}

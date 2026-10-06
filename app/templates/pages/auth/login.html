@@ -10,7 +10,8 @@
 
   <form method="post" novalidate>
     {{ form.hidden_tag() }}
-    {{ render_field(form.email, placeholder="nama@spindo.com", autocomplete="username") }}
+    {# cukup isi nama depan email, domain kantor nempel di kanan & dilengkapi otomatis di server #}
+    {{ render_field(form.email, suffix="@" ~ config.ALLOWED_EMAIL_DOMAIN, value=(form.email.data or "").split("@")[0], placeholder="nama", autocomplete="username") }}
     {{ render_field(form.password, placeholder="Password", autocomplete="current-password") }}
     <div class="form-footer">
       {{ form.submit(class_="btn btn-primary w-100") }}

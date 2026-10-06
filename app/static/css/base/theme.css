@@ -1,7 +1,7 @@
-/* tema dari UI Customizer: warna aksen, font, kerapatan, efek ganti tema */
+/* tema: warna dasar gaya SAP GUI (Quartz), warna aksen + font + kerapatan dari UI Customizer, efek ganti tema */
 
 /* warna aksen dari UI Customizer -> jadi warna primary Tabler */
-:root[data-accent="blue"] { --app-accent: #066fd1; --app-accent-rgb: 6, 111, 209; --app-accent-fg: #ffffff; }
+:root[data-accent="blue"] { --app-accent: #0a6ed1; --app-accent-rgb: 10, 110, 209; --app-accent-fg: #ffffff; }
 :root[data-accent="yellow"] { --app-accent: #f59f00; --app-accent-rgb: 245, 159, 0; --app-accent-fg: #1d273b; }
 :root[data-accent="pink"] { --app-accent: #d6336c; --app-accent-rgb: 214, 51, 108; --app-accent-fg: #ffffff; }
 :root[data-accent="lime"] { --app-accent: #74b816; --app-accent-rgb: 116, 184, 22; --app-accent-fg: #1d273b; }
@@ -20,7 +20,37 @@
   --tblr-link-hover-color: color-mix(in srgb, var(--app-accent) 85%, #000000);
 }
 
-/* pilihan font */
+/* warna dasar ala SAP GUI tema Quartz. light-dark() otomatis ikut mode terang/gelap */
+html:root {
+  --app-shell-height: 3rem;
+  --app-shell-bg: light-dark(#354a5f, #1c2228);
+  --app-shell-color: #ffffff;
+  --app-title-color: light-dark(#32363a, #fafafa);
+  --app-label-color: light-dark(#6a6d70, #a9b4be);
+  --app-strip-bg: light-dark(#f2f2f2, #232a31);
+  --app-hover-bg: light-dark(#f5f5f5, #323b45);
+  --app-selected-bg: light-dark(#e5f0fa, #1e3a55);
+  --app-field-border: light-dark(#89919a, #6a7480);
+  /* biru buat teks/link: di mode gelap dibikin lebih terang biar kebaca */
+  --app-text-accent: light-dark(var(--app-accent), color-mix(in srgb, var(--app-accent) 55%, #ffffff));
+  --tblr-body-bg: light-dark(#f7f7f7, #1c2228);
+  --tblr-bg-surface: light-dark(#ffffff, #29313a);
+  --tblr-bg-surface-secondary: light-dark(#f7f7f7, #1c2228);
+  --tblr-border-color: light-dark(#d9d9d9, #3d4652);
+  --tblr-body-color: light-dark(#32363a, #fafafa);
+  --tblr-heading-color: var(--app-title-color);
+  --tblr-secondary: var(--app-label-color);
+  --tblr-border-radius: 0.25rem;
+  --tblr-border-radius-lg: 0.25rem;
+}
+
+html:root[data-bs-theme="dark"] {
+  --tblr-link-color: var(--app-text-accent);
+  --tblr-link-hover-color: var(--app-text-accent);
+}
+
+/* pilihan font. "Sistem" pakai font Windows yg mirip tampilan SAP GUI */
+:root[data-font="system"] { --tblr-body-font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; }
 :root[data-font="mono"] { --tblr-body-font-family: var(--tblr-font-monospace); }
 :root[data-font="serif"] { --tblr-body-font-family: Georgia, Cambria, "Times New Roman", serif; }
 
@@ -29,7 +59,7 @@ body {
 }
 
 /* mode rapat: jarak diperkecil */
-:root[data-density="compact"] .page-header { margin-top: 0.75rem; }
+:root[data-density="compact"] .page-wrapper > .page-header { padding-top: 0.5rem; padding-bottom: 0.5rem; }
 :root[data-density="compact"] .page-body { margin-top: 0.75rem; margin-bottom: 0.75rem; }
 :root[data-density="compact"] .card-body { padding: 0.75rem 1rem; }
 :root[data-density="compact"] .card-header { padding-top: 0.5rem; padding-bottom: 0.5rem; }
