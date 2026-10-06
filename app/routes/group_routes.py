@@ -3,7 +3,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import login_required
 from app.extensions import limiter
 from app.schemas.group_schema import GroupForm
-from app.security.access_policy import is_group_owner
+from app.security.access_policy import can_add_group_entry, is_group_owner
 from app.services.group_service import (
     accept_invitation,
     add_group_entry,
@@ -11,6 +11,7 @@ from app.services.group_service import (
     create_group,
     decline_invitation,
     delete_group,
+    get_group_entry,
     get_member_group,
     get_own_invitation,
     invite_member,
@@ -18,8 +19,12 @@ from app.services.group_service import (
     list_addable_entry,
     list_pending_invitation,
     list_user_group,
+    list_viewer_candidate,
+    list_visible_group_entry,
     remove_group_entry,
     remove_member,
+    set_group_entry_viewers,
+    set_member_can_add_entry,
     update_group,
 )
 from app.utils.exceptions import ValidationError
@@ -55,10 +60,13 @@ def render_group_form(form, page_title, cancel_url):
 def index():
     """Daftar group + undangan yg nunggu."""
     user = get_current_user()
+    group_list = list_user_group(user)
     return render_template(
         "pages/groups/index.html",
         page_title="Groups",
-        group_list=list_user_group(user),
+        group_list=group_list,
+        # jumlah link yg boleh diliat (link terbatas buat orang lain ga ikut dihitung)
+        visible_entry_count_dict={group.id: len(list_visible_group_entry(user, group)) for group in group_list},
         invitation_list=list_pending_invitation(user),
     )
 
@@ -82,14 +90,17 @@ def create():
 @groups_bp.get("/<int:group_id>")
 @login_required
 def detail(group_id):
-    """Detail group: link & anggota."""
+    """Detail group: link yg boleh diliat & anggota."""
     user = get_current_user()
     group = get_group_or_404(user, group_id)
+    can_add_entry = can_add_group_entry(user, group)
     return render_template(
         "pages/groups/detail.html",
         page_title="Group",
         group=group,
-        addable_entry_list=list_addable_entry(user, group),
+        group_entry_list=list_visible_group_entry(user, group),
+        can_add_entry=can_add_entry,
+        addable_entry_list=list_addable_entry(user, group) if can_add_entry else [],
         can_remove_group_entry=can_remove_group_entry,
     )
 
@@ -157,6 +168,24 @@ def remove_group_member(group_id, member_id):
         flash_error_list(error.error_list)
     else:
         flash("Anggota berhasil dikeluarkan", "success")
+    return redirect(url_for("groups.detail", group_id=group.id))
+
+
+@groups_bp.post("/<int:group_id>/members/<int:member_id>/permission")
+@login_required
+def update_member_permission(group_id, member_id):
+    """Kasih / cabut izin anggota buat nambah link."""
+    user = get_current_user()
+    group = get_group_or_404(user, group_id)
+    require_group_owner(user, group)
+    can_add_entry = request.form.get("can_add_entry") == "1"
+    try:
+        member = set_member_can_add_entry(user, group, member_id, can_add_entry)
+    except ValidationError as error:
+        flash_error_list(error.error_list)
+    else:
+        status_text = "sekarang boleh menambah link" if can_add_entry else "sekarang hanya bisa melihat"
+        flash(f"{member.user.full_name} {status_text}", "success")
     return redirect(url_for("groups.detail", group_id=group.id))
 
 
@@ -229,3 +258,35 @@ def remove_entry(group_id, group_entry_id):
     else:
         flash("Link dicabut dari group", "success")
     return redirect(url_for("groups.detail", group_id=group.id))
+
+
+@groups_bp.route("/<int:group_id>/entries/<int:group_entry_id>/viewers", methods=["GET", "POST"])
+@login_required
+def entry_viewers(group_id, group_entry_id):
+    """Atur siapa yg bisa liat link ini: semua anggota atau anggota tertentu."""
+    user = get_current_user()
+    group = get_group_or_404(user, group_id)
+    require_group_owner(user, group)
+    try:
+        group_entry = get_group_entry(group, group_entry_id)
+    except ValidationError:
+        abort(404)
+    if request.method == "POST":
+        try:
+            set_group_entry_viewers(
+                user, group, group_entry.id,
+                request.form.get("is_restricted") == "1", request.form.getlist("viewer_user_id"),
+            )
+        except ValidationError as error:
+            flash_error_list(error.error_list)
+        else:
+            flash(f'Pengaturan akses "{group_entry.access_entry.title}" disimpan', "success")
+            return redirect(url_for("groups.detail", group_id=group.id))
+    return render_template(
+        "pages/groups/viewers.html",
+        page_title="Atur Akses Link",
+        group=group,
+        group_entry=group_entry,
+        candidate_member_list=list_viewer_candidate(group),
+        viewer_user_id_set={viewer.user_id for viewer in group_entry.viewer_list},
+    )

@@ -9,9 +9,14 @@ class GroupEntry(CreatedAtMixin, db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey("groups.id", ondelete="CASCADE"), nullable=False, index=True)
     access_entry_id = db.Column(db.Integer, db.ForeignKey("access_entries.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    # True = cuma anggota di viewer_list yg bisa liat, False = semua anggota group
+    is_restricted = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text("false"))
     group = db.relationship("Group", back_populates="group_entry_list")
     access_entry = db.relationship("AccessEntry", back_populates="group_entry_list")
     added_by = db.relationship("User")
+    viewer_list = db.relationship(
+        "GroupEntryViewer", back_populates="group_entry", order_by="GroupEntryViewer.id", cascade="all, delete-orphan",
+    )
     __table_args__ = (
         db.UniqueConstraint("group_id", "access_entry_id"),
     )

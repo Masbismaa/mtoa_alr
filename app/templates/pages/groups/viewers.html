@@ -1,0 +1,72 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+
+{% block title %}Atur Akses {{ group_entry.access_entry.title }}{% endblock %}
+
+{% block page_pretitle %}<a href="{{ url_for('groups.detail', group_id=group.id) }}" class="text-reset">{{ icon("arrow_left") }} {{ group.name }}</a>{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <form method="post" class="card" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="card-header">
+          <div>
+            <h3 class="card-title mb-1">{{ icon("lock") }} {{ group_entry.access_entry.title }}</h3>
+            <div class="small text-secondary">Ditambah oleh {{ group_entry.added_by.full_name }}</div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <label class="form-label">Siapa yang bisa melihat link ini di group?</label>
+          <div class="form-selectgroup form-selectgroup-boxes d-flex flex-column mb-3">
+            <label class="form-selectgroup-item flex-fill">
+              <input type="radio" name="is_restricted" value="0" class="form-selectgroup-input"{% if not group_entry.is_restricted %} checked{% endif %}>
+              <div class="form-selectgroup-label d-flex align-items-center p-3">
+                <div class="me-3"><span class="form-selectgroup-check"></span></div>
+                <div class="text-start">
+                  <div class="fw-medium">Semua anggota</div>
+                  <div class="small text-secondary">Termasuk anggota yang bergabung nanti.</div>
+                </div>
+              </div>
+            </label>
+            <label class="form-selectgroup-item flex-fill">
+              <input type="radio" name="is_restricted" value="1" class="form-selectgroup-input"{% if group_entry.is_restricted %} checked{% endif %}>
+              <div class="form-selectgroup-label d-flex align-items-center p-3">
+                <div class="me-3"><span class="form-selectgroup-check"></span></div>
+                <div class="text-start">
+                  <div class="fw-medium">Anggota tertentu</div>
+                  <div class="small text-secondary">Cuma anggota yang dicentang di bawah. Kamu, yang menambahkan link, dan pemilik link tetap bisa melihat.</div>
+                </div>
+              </div>
+            </label>
+          </div>
+
+          {% if candidate_member_list %}
+            <div class="list-group list-group-flush border rounded">
+              {% for member in candidate_member_list %}
+                <label class="list-group-item d-flex align-items-center gap-3">
+                  <input type="checkbox" class="form-check-input m-0" name="viewer_user_id" value="{{ member.user_id }}"{% if member.user_id in viewer_user_id_set %} checked{% endif %}>
+                  <span class="avatar avatar-sm bg-primary-lt">{{ member.user.full_name | initials }}</span>
+                  <span class="text-truncate">
+                    <span class="d-block">{{ member.user.full_name }}</span>
+                    <span class="d-block small text-secondary">{{ member.user.job_title }} · {{ member.user.department }}</span>
+                  </span>
+                </label>
+              {% endfor %}
+            </div>
+            <div class="form-hint mt-2">Centangan cuma dipakai kalau pilihannya "Anggota tertentu".</div>
+          {% else %}
+            <div class="text-secondary small">Belum ada anggota lain yang aktif di group ini.</div>
+          {% endif %}
+        </div>
+
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <a href="{{ url_for('groups.detail', group_id=group.id) }}" class="btn">Batal</a>
+          <button type="submit" class="btn btn-primary">{{ icon("check") }} Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

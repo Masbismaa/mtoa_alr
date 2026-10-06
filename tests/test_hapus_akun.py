@@ -7,7 +7,7 @@ from app.models import AccessEntry, Attachment, AuditLog, Group, GroupEntry, Gro
 from app.services import auth_service
 from app.services.access_entry_service import create_access_entry
 from app.services.attachment_service import get_stored_file_path
-from app.services.group_service import accept_invitation, add_group_entry, create_group, invite_member
+from app.services.group_service import accept_invitation, add_group_entry, create_group, invite_member, set_member_can_add_entry
 from app.services.user_service import build_delete_preview, build_user_summary, delete_user_account, search_users, set_user_permissions
 from app.utils.constants import (
     AUDIT_ACTION_DELETE,
@@ -35,9 +35,12 @@ def register(email, full_name):
     """Helper: daftar user baru."""
     return auth_service.register_user(email=email, password=PASSWORD, full_name=full_name, department="ICT", job_title="Staff")
 
-def join_group(owner, group, member_user):
-    """Helper: undang + terima."""
-    accept_invitation(member_user, invite_member(owner, group, member_user.email))
+def join_group(owner, group, member_user, can_add_entry=False):
+    """Helper: undang + terima, opsional langsung dikasih izin tambah link."""
+    invitation = invite_member(owner, group, member_user.email)
+    accept_invitation(member_user, invitation)
+    if can_add_entry:
+        set_member_can_add_entry(owner, group, invitation.id, True)
 
 def test_private_deleted_public_kept(app, admin_user, registered_user, category_dict, sample_file_dict, make_file_storage):
     """Positive: link Private + file lampirannya ilang, link Public tetep ada dgn pemilik anonim."""
@@ -113,7 +116,7 @@ def test_owned_group_without_member_deleted(app, admin_user, registered_user, ot
 def test_removed_from_other_group(app, admin_user, registered_user, other_user, category_dict):
     """Positive: keluar dari group orang lain + link-nya dicabut dari group itu."""
     group = create_group(other_user, {"name": "Group Orang"})
-    join_group(other_user, group, registered_user)
+    join_group(other_user, group, registered_user, can_add_entry=True)
     public_entry = create_entry(registered_user, category_dict["Web"], "Public Dua", VISIBILITY_PUBLIC)
     add_group_entry(registered_user, group, public_entry.id)
     user_id = registered_user.id

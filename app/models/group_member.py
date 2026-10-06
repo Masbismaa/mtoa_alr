@@ -12,6 +12,8 @@ class GroupMember(TimestampMixin, db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     role = db.Column(db.String(10), nullable=False, default=GROUP_ROLE_MEMBER, server_default=GROUP_ROLE_MEMBER)
     status = db.Column(db.String(10), nullable=False, default=GROUP_MEMBER_STATUS_INVITED, server_default=GROUP_MEMBER_STATUS_INVITED)
+    # anggota baru cuma bisa liat, pemilik yg ngasih izin nambah link (pemilik sendiri selalu boleh)
+    can_add_entry = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text("false"))
     group = db.relationship("Group", back_populates="member_list")
     user = db.relationship("User")
     __table_args__ = (
