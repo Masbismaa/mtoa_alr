@@ -1,23 +1,34 @@
-"""Logika kelola user (khusus admin): daftar, cari, filter, ganti role, aktif/nonaktif, buka kunci."""
+"""Logika kelola user (khusus admin): daftar, cari, filter, ganti role, aktif/nonaktif, buka kunci, hapus akun."""
 from sqlalchemy.orm import selectinload
 from app.extensions import db
-from app.models import User, UserPermission
+from app.models import OtpCode, User, UserPermission
+from app.services.access_entry_service import count_owned_entry, delete_private_entry_list
+from app.services.attachment_service import remove_stored_file_list
 from app.services.audit_service import log_audit
+from app.services.group_service import find_group_successor, list_owned_group, release_user_group_list
 from app.utils.constants import (
+    AUDIT_ACTION_DELETE,
     AUDIT_ACTION_UPDATE,
+    DELETED_USER_EMAIL_DOMAIN,
+    DELETED_USER_NAME,
+    DELETED_USER_PROFILE_TEXT,
     MAX_SEARCH_KEYWORD_LENGTH,
     ROLE_ADMIN,
     ROLE_LIST,
+    UNUSABLE_PASSWORD_HASH,
     USER_STATUS_ACTIVE,
     USER_STATUS_INACTIVE,
     USER_STATUS_LOCKED,
     PERMISSION_LIST,
     PER_PAGE,
+    VISIBILITY_PRIVATE,
+    VISIBILITY_PUBLIC,
 )
 from app.utils.datetime_helper import to_utc_aware, utc_now
 from app.utils.exceptions import ValidationError, build_error
 from app.utils.query_helper import build_keyword_filter
 from app.utils.sanitizer import sanitize_text
+from app.utils.text_helper import normalize_email
 
 AUDIT_USER = "users"
 
@@ -42,8 +53,8 @@ def build_status_condition(status):
     return None
 
 def search_users(keyword=None, role=None, status=None, page=1, per_page=PER_PAGE):
-    """Cari user buat tabel admin, urut nama."""
-    query = db.select(User).options(selectinload(User.permission_list))
+    """Cari user buat tabel admin, urut nama. Akun yg udah dihapus ga ikut."""
+    query = db.select(User).options(selectinload(User.permission_list)).where(User.deleted_at.is_(None))
     clean_keyword = sanitize_text(keyword, max_length=MAX_SEARCH_KEYWORD_LENGTH)
     if clean_keyword:
         search_column_list = [User.email, User.full_name, User.department, User.job_title]
@@ -57,8 +68,8 @@ def search_users(keyword=None, role=None, status=None, page=1, per_page=PER_PAGE
     return db.paginate(query, page=page, per_page=per_page, error_out=False)
 
 def count_user(*condition_list):
-    """Hitung user dgn kondisi tertentu (boleh kosong = semua)."""
-    return db.session.scalar(db.select(db.func.count(User.id)).where(*condition_list))
+    """Hitung user yg belum dihapus dgn kondisi tertentu (boleh kosong = semua)."""
+    return db.session.scalar(db.select(db.func.count(User.id)).where(User.deleted_at.is_(None), *condition_list))
 
 def build_user_summary():
     """Angka ringkas di atas tabel: total, admin, terkunci, nonaktif."""
@@ -162,4 +173,59 @@ def set_user_permissions(actor, target, permission_key_list):
         new_data_dict={"permission_list": get_permission_key_list(target)}, user=actor,
     )
     db.session.commit()
+    return target
+
+# HAPUS AKUN
+def ensure_delete_confirmed(target, confirm_email):
+    """Admin wajib ngetik ulang email target biar ga salah hapus."""
+    if normalize_email(confirm_email) != target.email:
+        raise ValidationError([build_error("confirm_email", "Email konfirmasi tidak cocok dengan email akun ini")])
+
+def build_delete_preview(target):
+    """Apa aja yg bakal kena kalau akun ini dihapus, ditampilin sebelum admin konfirmasi."""
+    return {
+        "private_entry_count": count_owned_entry(target, VISIBILITY_PRIVATE),
+        "public_entry_count": count_owned_entry(target, VISIBILITY_PUBLIC),
+        "owned_group_list": [
+            {"group": group, "successor": find_group_successor(group, target.id)} for group in list_owned_group(target)
+        ],
+    }
+
+def anonymize_user(target):
+    """Ganti data diri jadi anonim + kunci login. Email asli jadi bebas dipake daftar lagi."""
+    target.email = f"deleted-{target.id}@{DELETED_USER_EMAIL_DOMAIN}"
+    target.full_name = DELETED_USER_NAME
+    target.department = DELETED_USER_PROFILE_TEXT
+    target.job_title = DELETED_USER_PROFILE_TEXT
+    target.password_hash = UNUSABLE_PASSWORD_HASH
+    target.is_active = False
+    target.failed_login_count = 0
+    target.locked_until = None
+    target.deleted_at = utc_now()
+    target.preference = None
+
+def delete_user_account(actor, target, confirm_email):
+    """Hapus akun: link Private + lampirannya dihapus, link Public tetep ada, group dilepas, akses dicabut, data diri dianonimkan."""
+    ensure_not_self(actor, target, "Kamu tidak bisa menghapus akunmu sendiri")
+    ensure_not_admin(target)
+    if target.deleted_at is not None:
+        raise ValidationError([build_error("user", "Akun ini sudah dihapus")])
+    ensure_delete_confirmed(target, confirm_email)
+    old_data_dict = {
+        "email": target.email, "full_name": target.full_name, "department": target.department,
+        "job_title": target.job_title, "role": target.role, "is_active": target.is_active,
+        "permission_list": get_permission_key_list(target),
+    }
+    group_summary_dict = release_user_group_list(actor, target)
+    private_entry_count, stored_filename_list = delete_private_entry_list(actor, target)
+    target.permission_list = []
+    db.session.execute(db.delete(OtpCode).where(OtpCode.user_id == target.id))
+    anonymize_user(target)
+    log_audit(
+        AUDIT_ACTION_DELETE, AUDIT_USER, entity_id=target.id, old_data_dict=old_data_dict,
+        new_data_dict={"deleted_private_entry_count": private_entry_count, **group_summary_dict}, user=actor,
+    )
+    db.session.commit()
+    # file lampiran baru dihapus setelah database aman ke-commit
+    remove_stored_file_list(stored_filename_list)
     return target

@@ -209,6 +209,48 @@ def leave_group(user, group):
     group.member_list.remove(membership)
     db.session.commit()
 
+def find_group_successor(group, leaving_user_id):
+    """Calon pemilik baru: anggota aktif paling lama (urut id = urut gabung), akunnya juga harus aktif."""
+    return next((
+        member for member in group.member_list
+        if member.user_id != leaving_user_id and member.status == GROUP_MEMBER_STATUS_ACTIVE and member.user.is_active
+    ), None)
+
+def list_owned_group(user):
+    """Group yg dimiliki user."""
+    return db.session.execute(
+        db.select(Group).options(selectinload(Group.member_list)).where(Group.user_id == user.id).order_by(Group.name)
+    ).scalars().all()
+
+def release_user_group_list(actor, user):
+    """Lepas user dari semua group pas akunnya dihapus. Group miliknya pindah ke anggota terlama, kalau ga ada anggota group-nya dihapus."""
+    summary_dict = {"transferred_group_id_list": [], "deleted_group_id_list": [], "left_group_id_list": []}
+    membership_list = db.session.execute(
+        db.select(GroupMember).options(joinedload(GroupMember.group)).where(GroupMember.user_id == user.id)
+    ).scalars().all()
+    for membership in membership_list:
+        group = membership.group
+        if not is_group_owner(user, group):
+            unshare_member_entry(group, user.id)
+            group.member_list.remove(membership)
+            summary_dict["left_group_id_list"].append(group.id)
+            continue
+        successor = find_group_successor(group, user.id)
+        if successor is None:
+            log_audit(AUDIT_ACTION_DELETE, AUDIT_GROUP, entity_id=group.id, old_data_dict=build_group_audit_dict(group), user=actor)
+            db.session.delete(group)
+            summary_dict["deleted_group_id_list"].append(group.id)
+            continue
+        log_audit(
+            AUDIT_ACTION_UPDATE, AUDIT_GROUP, entity_id=group.id,
+            old_data_dict={"owner_user_id": user.id}, new_data_dict={"owner_user_id": successor.user_id}, user=actor,
+        )
+        group.user_id = successor.user_id
+        successor.role = GROUP_ROLE_OWNER
+        group.member_list.remove(membership)
+        summary_dict["transferred_group_id_list"].append(group.id)
+    return summary_dict
+
 def list_addable_entry(user, group):
     """Link yg boleh ditambah ke group: punya sendiri / public, dan belum ada di group."""
     existing_id_list = [group_entry.access_entry_id for group_entry in group.group_entry_list]

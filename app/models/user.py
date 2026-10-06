@@ -31,6 +31,8 @@ class User(UserMixin, TimestampMixin, db.Model):
     # kalau keisi & belum lewat, akun lagi dikunci
     locked_until = db.Column(db.DateTime(timezone=True), nullable=True)
     last_login_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    # keisi = akun udah dihapus admin (datanya dianonimkan, barisnya tetep ada buat audit log)
+    deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
     # Relasi ke preferensi tampilan ikut terhapus jika user dihapus
     preference = db.relationship(

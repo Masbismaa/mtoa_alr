@@ -2,9 +2,12 @@
 from urllib.parse import urlencode
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import login_required
+from app.extensions import limiter
 from app.security.role_guard import admin_required
 from app.services.user_service import (
+    build_delete_preview,
     build_user_summary,
+    delete_user_account,
     get_permission_key_list,
     get_user,
     get_user_status,
@@ -74,11 +77,18 @@ def index():
     )
 
 def get_target_user_or_404(user_id):
-    """User yg mau diubah, ga ada -> 404."""
+    """User yg mau diubah, ga ada / udah dihapus -> 404."""
     target = get_user(user_id)
-    if target is None:
+    if target is None or target.deleted_at is not None:
         abort(404)
     return target
+
+def redirect_if_admin(target, message):
+    """Akun admin ga bisa diatur dari panel, balik ke tabel + kasih info. None kalau bukan admin."""
+    if target.role != ROLE_ADMIN:
+        return None
+    flash(message, "info")
+    return redirect(url_for("users.index"))
 
 def build_back_url():
     """Balik ke tabel user dgn filter yg tadi lagi kepake (dikirim lewat input hidden)."""
@@ -95,16 +105,15 @@ def run_user_action(action_function, success_message, *arg_list):
         flash(success_message, "success")
     return redirect(build_back_url())
 
-
 @users_bp.route("/<int:user_id>/access", methods=["GET", "POST"])
 @login_required
 @admin_required
 def access(user_id):
     """Atur akses user: centang akses yg dikasih, hapus centang buat nyabut."""
     target = get_target_user_or_404(user_id)
-    if target.role == ROLE_ADMIN:
-        flash("Admin otomatis punya semua akses, perubahan admin lewat command", "info")
-        return redirect(url_for("users.index"))
+    admin_redirect = redirect_if_admin(target, "Admin otomatis punya semua akses, perubahan admin lewat command")
+    if admin_redirect:
+        return admin_redirect
 
     if request.method == "POST":
         try:
@@ -140,3 +149,32 @@ def unlock(user_id):
     """Buka kunci akun yg lagi terkunci."""
     target = get_target_user_or_404(user_id)
     return run_user_action(unlock_user, f"Kunci akun {target.full_name} sudah dibuka", target)
+
+@users_bp.route("/<int:user_id>/delete", methods=["GET", "POST"])
+@login_required
+@admin_required
+@limiter.limit("5 per minute", methods=["POST"])
+def delete(user_id):
+    """Hapus akun: tampilin dampaknya dulu, admin ngetik ulang email buat konfirmasi."""
+    target = get_target_user_or_404(user_id)
+    admin_redirect = redirect_if_admin(target, "Akun admin tidak bisa dihapus dari panel")
+    if admin_redirect:
+        return admin_redirect
+
+    if request.method == "POST":
+        full_name = target.full_name
+        try:
+            delete_user_account(get_current_user(), target, request.form.get("confirm_email"))
+        except ValidationError as error:
+            flash_error_list(error.error_list)
+        else:
+            flash(f"Akun {full_name} sudah dihapus", "success")
+            return redirect(build_back_url())
+
+    return render_template(
+        "pages/users/delete.html",
+        page_title="Hapus Akun",
+        target=target,
+        delete_preview_dict=build_delete_preview(target),
+        back_url=build_back_url(),
+    )

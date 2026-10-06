@@ -1,0 +1,6 @@
+{# filter tabel user yg dibawa dari halaman sebelumnya, biar abis simpan balik ke tampilan yg sama #}
+{% macro back_field_list() %}
+  {% for back_key in ["back_q", "back_role", "back_status", "back_page"] %}
+    {% if request.values.get(back_key) %}<input type="hidden" name="{{ back_key }}" value="{{ request.values.get(back_key) }}">{% endif %}
+  {% endfor %}
+{% endmacro %}

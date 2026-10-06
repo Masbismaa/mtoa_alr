@@ -172,6 +172,8 @@
                             <button type="submit" class="dropdown-item">{{ icon("eye", "dropdown-item-icon") }} Aktifkan</button>
                           </form>
                         {% endif %}
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('users.delete', user_id=user.id, **back_param_dict) }}" class="dropdown-item text-danger">{{ icon("trash", "dropdown-item-icon") }} Hapus akun</a>
                       </div>
                     </div>
                   {% endif %}
