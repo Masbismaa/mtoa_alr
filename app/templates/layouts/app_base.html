@@ -2,13 +2,15 @@
 {% from "components/icon.html" import icon %}
 
 {% block body %}
+  {# judul halaman juga tampil di tengah title bar atas, kayak judul layar di SAP GUI #}
+  {% set shell_title = self.page_heading() | striptags %}
   <a href="#main_content" class="visually-hidden-focusable skip-link">Lewati ke konten</a>
 
   <div class="page">
+    {% include "components/topbar.html" %}
     {% include "components/sidebar.html" %}
 
     <div class="page-wrapper">
-      {% include "components/topbar.html" %}
       <div class="page-header d-print-none">
         <div class="container-xl">
           <div class="row g-3 align-items-center">

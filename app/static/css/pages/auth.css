@@ -1,4 +1,46 @@
-/* halaman login/register/OTP */
+/* halaman login/register/OTP/error ala layar logon SAP GUI */
+
+.auth-body {
+  width: 100%;
+  max-width: 72rem;
+  padding: 1.5rem 1rem 3rem;
+  margin: 0 auto;
+}
+
+/* label di kiri bergaris bawah, isian di kanan, kayak form logon SAP (layar lebar aja) */
+@media (min-width: 576px) {
+  .auth-card form .mb-3 {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr);
+    column-gap: 1rem;
+    align-items: end;
+  }
+
+  .auth-card form .form-label {
+    padding-bottom: 0.375rem;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--app-field-border);
+  }
+
+  .auth-card form .invalid-feedback {
+    grid-column: 2;
+  }
+
+  /* Departemen & Jabatan yg tadinya sebelahan ikut dibikin satu baris satu isian biar rata */
+  .auth-card form .row {
+    --tblr-gutter-y: 0;
+  }
+
+  .auth-card form .row > [class*="col-"] {
+    width: 100%;
+  }
+}
+
+.auth-info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
 /* OTP biar gede & gampang dibaca */
 #otp_code {

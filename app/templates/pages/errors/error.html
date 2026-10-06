@@ -2,6 +2,9 @@
 
 {% block title %}{{ error_title }}{% endblock %}
 
+{# halaman error ga butuh panel informasi login #}
+{% block auth_info %}{% endblock %}
+
 {% block content %}
   <div class="empty p-0">
     <div class="empty-header">{{ error_code }}</div>

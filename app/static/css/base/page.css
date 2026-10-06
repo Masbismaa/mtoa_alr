@@ -1,4 +1,4 @@
-/* dasar halaman: anti geser ke samping, jarak konten, skip link, kartu */
+/* dasar halaman: anti geser ke samping, strip toolbar & kartu ala SAP GUI, skip link */
 
 /* halaman ga boleh geser ke samping + garis bawah header dibuang */
 body {
@@ -14,12 +14,38 @@ body {
   position: relative;
 }
 
+/* strip toolbar putih di bawah title bar ala SAP GUI: keterangan di kiri, tombol aksi di kanan */
 .page-wrapper > .page-header {
-  border-bottom: 0;
+  margin: 0;
+  padding: 0.625rem 0;
+  background: var(--tblr-bg-surface);
+  border-bottom: 1px solid var(--tblr-border-color);
+}
+
+.page-wrapper > .page-header .page-pretitle {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--app-label-color);
+}
+
+.page-wrapper > .page-header .page-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--app-title-color);
+}
+
+/* layar besar: judul udah tampil di title bar atas, di strip ga usah diulang */
+@media (min-width: 992px) {
+  .page-wrapper > .page-header .page-title {
+    display: none;
+  }
 }
 
 /* kasih ruang di bawah biar konten ga ketutup tombol bulat */
 .page-body {
+  margin-top: 1rem;
   padding-bottom: 4rem;
 }
 
@@ -44,11 +70,39 @@ body {
   margin-right: 0.5rem;
 }
 
-/* kartu yg bisa diklik naik dikit pas di-hover */
+/* kartu ala group box SAP GUI: garis tipis, sudut hampir kotak, judul di strip abu-abu */
 .card {
+  --tblr-card-border-color: var(--tblr-border-color);
+  --tblr-card-border-radius: var(--tblr-border-radius-lg);
+  --tblr-card-inner-border-radius: var(--tblr-border-radius-lg);
+  box-shadow: none;
   transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
 }
 
+.card-header {
+  min-height: 2.5rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  background: var(--app-strip-bg);
+  border-bottom-color: var(--tblr-border-color);
+}
+
+.card-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--app-title-color);
+}
+
+/* judul kecil di kartu angka: bukan huruf kapital semua */
+.subheader {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--app-label-color);
+}
+
+/* kartu yg bisa diklik naik dikit pas di-hover */
 .card-link:hover {
   transform: translateY(-2px);
 }

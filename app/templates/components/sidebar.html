@@ -6,7 +6,8 @@
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <a href="{{ url_for('main.home') }}" class="navbar-brand app-brand" aria-label="Spindo - Access Link Register">
+    {# logo cuma di versi HP, di layar besar logo pindah ke shell bar atas #}
+    <a href="{{ url_for('main.home') }}" class="navbar-brand app-brand d-lg-none" aria-label="Spindo - Access Link Register">
       {% include "components/brand_logo.html" %}
       <span class="app-brand-text">Access Link<br>Register</span>
     </a>
