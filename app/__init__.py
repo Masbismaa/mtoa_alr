@@ -1,7 +1,7 @@
-"""App factory MTOA ALR: tempat aplikasi Flask dirakit (config, extension, model, blueprint, CLI)."""
+"""App factory ALR: tempat aplikasi Flask dirakit (config, extension, model, blueprint, CLI)."""
 import os
 
-from flask import Flask, app, render_template, request
+from flask import Flask, render_template, request
 from flask_login import current_user
 
 from app.config import CONFIG_BY_NAME_DICT
@@ -23,9 +23,14 @@ ERROR_PAGE_DICT = {
 CSRF_ERROR_PAGE = ("Sesi form kedaluwarsa", "Halaman ini kebuka terlalu lama. Muat ulang halaman, lalu kirim lagi.")
 
 
+def resolve_config_name(config_name=None):
+    """Nama environment yg dipake. Default production: lupa ngisi APP_ENV di server ga bikin pengaman production mati."""
+    return config_name or os.environ.get("APP_ENV", "production")
+
+
 def create_app(config_name=None):
     # 1. Pilih dan muat konfigurasi sesuai environment
-    config_name = config_name or os.environ.get("APP_ENV", "development")
+    config_name = resolve_config_name(config_name)
     app = Flask(__name__)
     app.config.from_object(CONFIG_BY_NAME_DICT[config_name])
 
@@ -158,12 +163,14 @@ def register_template_helpers(app):
     app.add_template_filter(get_user_status_label, "user_status_label")
 
     from app.security.access_policy import has_permission, is_admin
-    from app.utils.constants import PERMISSION_MANAGE_CATEGORIES
+    from app.utils.request_helper import get_current_user
+    from app.utils.constants import PERMISSION_MANAGE_CATEGORIES, ROLE_ADMIN
     # dipake template buat nampilin/nyembunyiin tombol sesuai akses
     app.jinja_env.globals.update(
         has_permission=has_permission,
         is_admin=is_admin,
         PERMISSION_MANAGE_CATEGORIES=PERMISSION_MANAGE_CATEGORIES,
+        ROLE_ADMIN=ROLE_ADMIN,
     )
 
     @app.context_processor
@@ -172,7 +179,7 @@ def register_template_helpers(app):
         if not current_user.is_authenticated:
             return {"ui_preference_dict": None, "sidebar_section_list": []}
 
-        user = current_user._get_current_object()
+        user = get_current_user()
         preference = get_or_create_preference(user)
         return {
             "ui_preference_dict": build_ui_preference_dict(preference),

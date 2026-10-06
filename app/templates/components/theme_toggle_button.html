@@ -1,4 +1,10 @@
 {% from "components/icon.html" import icon %}
-<button type="button" class="btn btn-icon btn-ghost-secondary theme-toggle" data-theme-toggle aria-label="Ganti mode terang/gelap" title="Ganti mode terang/gelap">
-  {{ icon("moon", "theme-icon-moon") }}{{ icon("sun", "theme-icon-sun") }}
+{# Teks menunjukkan mode tujuan; ikon dianimasikan oleh theme_toggle.js. #}
+<button type="button" class="btn btn-ghost-secondary theme-toggle" data-theme-toggle title="Ganti mode tampilan" aria-label="Ganti mode tampilan">
+  <span class="theme-toggle-sky" aria-hidden="true">
+    <span class="theme-toggle-sun">{{ icon("sun") }}</span>
+    <span class="theme-toggle-moon">{{ icon("moon") }}</span>
+  </span>
+  <span class="theme-option theme-option-dark">Dark mode</span>
+  <span class="theme-option theme-option-light">Light mode</span>
 </button>

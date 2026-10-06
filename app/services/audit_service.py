@@ -6,9 +6,9 @@ from app.models import AuditLog
 from app.utils.constants import (
     AUDIT_ACTION_LIST,
     AUDIT_ENTITY_LABEL_DICT,
-    PER_PAGE,
     MASKED_VALUE,
     MAX_SEARCH_KEYWORD_LENGTH,
+    PER_PAGE,
     SENSITIVE_FIELD_SET,
 )
 from app.utils.datetime_helper import build_utc_range_from_local_date

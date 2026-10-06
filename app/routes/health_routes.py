@@ -8,9 +8,5 @@ health_bp = Blueprint("health", __name__)
 
 @health_bp.get("/health")
 def health_check():
-    """Mengembalikan status aplikasi dalam format JSON.
-
-    Returns:
-        JSON {"status": "ok", "app": "MTOA ALR"} dengan HTTP 200.
-    """
-    return jsonify({"status": "ok", "app": "MTOA ALR"})
+    """Cek aplikasi hidup, balikin {"status": "ok"}. Sengaja ga nyebut nama/versi app."""
+    return jsonify({"status": "ok"})

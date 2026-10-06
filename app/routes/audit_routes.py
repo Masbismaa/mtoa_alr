@@ -1,11 +1,12 @@
 """Halaman audit log khusus admin. Cuma bisa dibaca, ga ada ubah/hapus."""
 from flask import Blueprint, abort, render_template, request
-from flask_login import current_user, login_required
+from flask_login import login_required
 from app.security.access_policy import can_view_audit_data
 from app.security.role_guard import permission_required
 from app.services.audit_service import build_audit_change_list, get_audit_log, search_audit_logs
 from app.utils.constants import AUDIT_ACTION_LABEL_DICT, AUDIT_ENTITY_LABEL_DICT, PER_PAGE, PERMISSION_VIEW_AUDIT_LOGS
 from app.utils.query_helper import clean_keyword_arg, drop_empty_value, parse_date_arg, parse_positive_int
+from app.utils.request_helper import get_current_user
 
 audit_bp = Blueprint("audit", __name__, url_prefix="/audit-logs")
 
@@ -63,7 +64,7 @@ def detail(log_id):
     if audit_log is None:
         abort(404)
     # data Private punya orang lain tetep ga boleh keliatan, termasuk sama admin
-    is_data_visible = can_view_audit_data(current_user, audit_log)
+    is_data_visible = can_view_audit_data(get_current_user(), audit_log)
     return render_template(
         "pages/audit_logs/detail.html",
         page_title="Detail Audit Log",

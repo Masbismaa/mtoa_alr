@@ -24,3 +24,4 @@ def get_user_agent():
         return None
     user_agent_text = request.user_agent.string or ""
     return user_agent_text[:MAX_USER_AGENT_LENGTH] or None
+

@@ -1,6 +1,6 @@
 """Route group: daftar, bikin, detail, edit, hapus, anggota, link."""
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
-from flask_login import current_user, login_required
+from flask_login import login_required
 from app.extensions import limiter
 from app.schemas.group_schema import GroupForm
 from app.security.access_policy import is_group_owner
@@ -23,14 +23,12 @@ from app.services.group_service import (
     update_group,
 )
 from app.utils.exceptions import ValidationError
-from app.utils.form_helper import flash_error_list
+from app.utils.form_helper import flash_error_list, read_form_data
+from app.utils.request_helper import get_current_user
 
 groups_bp = Blueprint("groups", __name__, url_prefix="/groups")
 
-
-def get_user():
-    """User asli (bukan proxy)."""
-    return current_user._get_current_object()
+GROUP_FIELD_NAME_LIST = ["name", "description"]
 
 
 def get_group_or_404(user, group_id):
@@ -47,11 +45,6 @@ def require_group_owner(user, group):
         abort(403)
 
 
-def build_form_data(form):
-    """Isi form group jadi dict."""
-    return {"name": form.name.data, "description": form.description.data}
-
-
 def render_group_form(form, page_title, cancel_url):
     """Render form bikin/edit group."""
     return render_template("pages/groups/form.html", form=form, page_title=page_title, cancel_url=cancel_url)
@@ -61,7 +54,7 @@ def render_group_form(form, page_title, cancel_url):
 @login_required
 def index():
     """Daftar group + undangan yg nunggu."""
-    user = get_user()
+    user = get_current_user()
     return render_template(
         "pages/groups/index.html",
         page_title="Groups",
@@ -77,7 +70,7 @@ def create():
     form = GroupForm()
     if form.validate_on_submit():
         try:
-            group = create_group(get_user(), build_form_data(form))
+            group = create_group(get_current_user(), read_form_data(form, GROUP_FIELD_NAME_LIST))
         except ValidationError as error:
             flash_error_list(error.error_list)
         else:
@@ -90,7 +83,7 @@ def create():
 @login_required
 def detail(group_id):
     """Detail group: link & anggota."""
-    user = get_user()
+    user = get_current_user()
     group = get_group_or_404(user, group_id)
     return render_template(
         "pages/groups/detail.html",
@@ -105,13 +98,13 @@ def detail(group_id):
 @login_required
 def edit(group_id):
     """Edit nama/deskripsi, cuma pemilik."""
-    user = get_user()
+    user = get_current_user()
     group = get_group_or_404(user, group_id)
     require_group_owner(user, group)
     form = GroupForm(obj=group)
     if form.validate_on_submit():
         try:
-            update_group(user, group, build_form_data(form))
+            update_group(user, group, read_form_data(form, GROUP_FIELD_NAME_LIST))
         except ValidationError as error:
             flash_error_list(error.error_list)
         else:
@@ -124,7 +117,7 @@ def edit(group_id):
 @login_required
 def delete(group_id):
     """Hapus group, cuma pemilik."""
-    user = get_user()
+    user = get_current_user()
     group = get_group_or_404(user, group_id)
     require_group_owner(user, group)
     group_name = group.name
@@ -138,7 +131,7 @@ def delete(group_id):
 @limiter.limit("20 per minute")
 def invite(group_id):
     """Undang anggota lewat email."""
-    user = get_user()
+    user = get_current_user()
     group = get_group_or_404(user, group_id)
     require_group_owner(user, group)
     email = request.form.get("email", "")
@@ -155,7 +148,7 @@ def invite(group_id):
 @login_required
 def remove_group_member(group_id, member_id):
     """Keluarin anggota / batalin undangan."""
-    user = get_user()
+    user = get_current_user()
     group = get_group_or_404(user, group_id)
     require_group_owner(user, group)
     try:
@@ -171,7 +164,7 @@ def remove_group_member(group_id, member_id):
 @login_required
 def leave(group_id):
     """Keluar dari group."""
-    user = get_user()
+    user = get_current_user()
     group = get_group_or_404(user, group_id)
     try:
         leave_group(user, group)
@@ -186,7 +179,7 @@ def leave(group_id):
 @login_required
 def accept(member_id):
     """Terima undangan."""
-    user = get_user()
+    user = get_current_user()
     invitation = get_own_invitation(user, member_id)
     if invitation is None:
         abort(404)
@@ -199,7 +192,7 @@ def accept(member_id):
 @login_required
 def decline(member_id):
     """Tolak undangan."""
-    user = get_user()
+    user = get_current_user()
     invitation = get_own_invitation(user, member_id)
     if invitation is None:
         abort(404)
@@ -212,7 +205,7 @@ def decline(member_id):
 @login_required
 def add_entry(group_id):
     """Tambah link yg udah ada ke group."""
-    user = get_user()
+    user = get_current_user()
     group = get_group_or_404(user, group_id)
     try:
         add_group_entry(user, group, request.form.get("entry_id"))
@@ -227,7 +220,7 @@ def add_entry(group_id):
 @login_required
 def remove_entry(group_id, group_entry_id):
     """Cabut link dari group."""
-    user = get_user()
+    user = get_current_user()
     group = get_group_or_404(user, group_id)
     try:
         remove_group_entry(user, group, group_entry_id)

@@ -40,7 +40,7 @@ Aplikasi Flask untuk mencatat link, alamat, kredensial akses, lampiran, kategori
 .\.venv\Scripts\python.exe -m flask --app run check-links
 ```
 
-Pemeriksaan status link dijalankan manual oleh Admin dari halaman **Link Monitoring**.
+`check-links` dipanggil oleh Task Scheduler atau cron untuk menjalankan pemeriksaan status link otomatis sesuai interval yang diatur admin.
 
 ## Deploy
 

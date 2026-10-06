@@ -14,6 +14,7 @@ def register_cli_commands(app):
     from app.utils.constants import ROLE_USER_ENTRY
     from app.utils.exceptions import ValidationError
     from app.utils.text_helper import normalize_email
+    from app.services.link_monitor_service import build_run_summary_text, run_monitor
 
     @app.cli.command("seed-categories")
     def seed_categories_command():
@@ -67,3 +68,8 @@ def register_cli_commands(app):
         """Turunin Admin jadi User Entry. Admin aktif terakhir ga bisa diturunin."""
         user = run_role_command(email, ROLE_USER_ENTRY)
         click.echo(f"{user.email} sekarang User Entry.")
+
+    @app.cli.command("check-links")
+    def check_links_command():
+        """Cek status semua link. Dijalanin Task Scheduler tiap 5 menit lewat scripts/run_link_monitor.cmd."""
+        click.echo(build_run_summary_text(run_monitor()))

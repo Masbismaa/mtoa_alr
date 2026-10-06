@@ -3,7 +3,7 @@
 {% from "components/copy_button.html" import copy_button %}
 {% from "components/badge.html" import link_status_badge, visibility_badge %}
 
-{% block title %}{{ entry.title }} - MTOA ALR{% endblock %}
+{% block title %}{{ entry.title }}{% endblock %}
 
 {% block page_pretitle %}<a href="{{ url_for('main.home') }}" class="text-reset">{{ icon("arrow_left") }} Dashboard</a>{% endblock %}
 
