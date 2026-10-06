@@ -1,0 +1,39 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+
+{% block title %}Link Monitoring - ALR{% endblock %}
+{% block page_pretitle %}Admin{% endblock %}
+{% block page_subtitle %}<div class="text-secondary mt-1">Pemeriksaan hanya dijalankan saat Admin menekan tombol di halaman ini.</div>{% endblock %}
+
+{% block page_actions %}
+  <form method="post" action="{{ url_for('link_monitor.run_now') }}" data-confirm-title="Cek semua data?" data-confirm-message="Server akan memeriksa status seluruh link sekarang." data-confirm-ok="Ya, cek sekarang">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-primary">{{ icon("refresh") }} Cek Semua Data Sekarang</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+  <div class="row row-cards">
+    <div class="col-lg-7">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">{{ icon("settings") }} Pengaturan Pemeriksaan</h3></div>
+        <div class="card-body">
+          <p class="mb-2">Pemeriksaan status tidak berjalan terjadwal. Hanya Admin yang dapat menjalankan pemeriksaan dari halaman ini.</p>
+          <p class="text-secondary mb-0">Setiap pemeriksaan memakai perlindungan target URL yang sama, termasuk pemblokiran loopback, metadata cloud, dan alamat terlarang.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">{{ icon("activity") }} Ringkasan Status</h3></div>
+        <div class="card-body"><dl class="row mb-0">
+          <dt class="col-6">Total data</dt><dd class="col-6">{{ monitor_summary.total_count }}</dd>
+          <dt class="col-6">Aktif</dt><dd class="col-6 text-success">{{ monitor_summary.up_count }}</dd>
+          <dt class="col-6">Tidak aktif</dt><dd class="col-6 text-danger">{{ monitor_summary.down_count }}</dd>
+          <dt class="col-6">Belum dicek</dt><dd class="col-6 text-secondary">{{ monitor_summary.unknown_count }}</dd>
+          <dt class="col-6">Pemeriksaan terakhir</dt><dd class="col-6">{{ icon("activity") }} {{ monitor_summary.last_checked_at | local_datetime }}</dd>
+        </dl></div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

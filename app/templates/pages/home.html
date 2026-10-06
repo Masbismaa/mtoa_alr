@@ -6,7 +6,7 @@
 {% from "components/entry_table.html" import entry_table %}
 {% from "components/chart.html" import bar_chart, change_badge, gauge, sparkline %}
 
-{% block title %}Dashboard - MTOA ALR{% endblock %}
+{% block title %}Dashboard - ALR{% endblock %}
 
 {% block page_pretitle %}Overview{% endblock %}
 
@@ -134,7 +134,7 @@
   <div class="card mb-3" id="kategori">
     <div class="card-header">
       <h3 class="card-title">{{ icon("category") }} Kategori</h3>
-      {% if current_user.role == "admin" %}
+      {% if has_permission(current_user, PERMISSION_MANAGE_CATEGORIES) %}
         <div class="card-actions">
           <a href="{{ url_for('categories.index') }}" class="btn btn-sm">{{ icon("settings") }} Kelola</a>
         </div>
@@ -151,6 +151,9 @@
     <div class="card-header">
       <h3 class="card-title">{{ icon("link") }} Daftar Link</h3>
       <div class="card-actions">
+        {% if pagination.total %}
+          <a href="{{ url_for('main.export_entries', **pagination_query_dict) }}" class="btn btn=sm me-2">{{ icon("download")}} Export Excel</a>
+        {% endif %}
         <span class="badge bg-secondary-lt">{{ pagination.total }} data</span>
       </div>
     </div>

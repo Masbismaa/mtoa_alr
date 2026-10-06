@@ -1,21 +1,20 @@
-"""Ambil info dari request yg lagi jalan (IP, user agent)."""
+"""Helper untuk membaca informasi request aktif."""
 
 from flask import has_request_context, request
 
 MAX_USER_AGENT_LENGTH = 255
 
 def get_client_ip():
-    """IP user yg lagi akses. None kalau dipanggil di luar request (misal dari CLI).
+    """IP klien pada request aktif, atau None di luar request.
 
-    Sengaja ga baca X-Forwarded-For karena gampang dipalsuin.
-    Kalau nanti pake reverse proxy, diatur lewat ProxyFix di milestone hardening.
+    X-Forwarded-For tidak digunakan sebelum reverse proxy tepercaya dikonfigurasi.
     """
     if not has_request_context():
         return None
     return request.remote_addr
 
 def get_user_agent():
-    """Browser/aplikasi yg dipake user, dipotong biar muat di kolom DB."""
+    """User-Agent request aktif, dibatasi agar sesuai ukuran kolom database."""
     if not has_request_context():
         return None
     user_agent_text = request.user_agent.string or ""
