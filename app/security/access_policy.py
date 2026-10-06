@@ -1,7 +1,7 @@
 """Aturan hak akses data link & group. Satu tempat, dipake route, service, dan query."""
 from sqlalchemy import or_
 from app.extensions import db
-from app.models import AccessEntry, GroupEntry, GroupMember
+from app.models import AccessEntry, Group, GroupEntry, GroupEntryViewer, GroupMember
 from app.utils.constants import (
     GROUP_MEMBER_STATUS_ACTIVE,
     PERMISSION_EDIT_PUBLIC_ENTRIES,
@@ -16,11 +16,26 @@ def is_entry_owner(user, entry):
     return entry.user_id == user.id
 
 def build_shared_entry_id_query(user):
-    """Query id link yg dibagiin ke user lewat group (cuma group yg dia anggota aktif)."""
+    """Query id link yg dibagiin ke user lewat group: anggota aktif, dan link-nya ga dibatasi atau user boleh liat."""
+    is_viewer_condition = (
+        db.select(GroupEntryViewer.id)
+        .where(GroupEntryViewer.group_entry_id == GroupEntry.id, GroupEntryViewer.user_id == user.id)
+        .exists()
+    )
     return (
         db.select(GroupEntry.access_entry_id)
         .join(GroupMember, GroupMember.group_id == GroupEntry.group_id)
-        .where(GroupMember.user_id == user.id, GroupMember.status == GROUP_MEMBER_STATUS_ACTIVE)
+        .join(Group, Group.id == GroupEntry.group_id)
+        .where(
+            GroupMember.user_id == user.id,
+            GroupMember.status == GROUP_MEMBER_STATUS_ACTIVE,
+            or_(
+                GroupEntry.is_restricted.is_(False),
+                Group.user_id == user.id,
+                GroupEntry.user_id == user.id,
+                is_viewer_condition,
+            ),
+        )
     )
 
 def is_entry_shared_with_user(user, entry):
@@ -62,10 +77,18 @@ def is_group_owner(user, group):
     """True kalau user pemilik group."""
     return group.user_id == user.id
 
-def is_active_group_member(user, group):
-    """True kalau user anggota yg udah nerima undangan."""
+def can_add_group_entry(user, group):
+    """Boleh nambah link ke group: pemilik, atau anggota aktif yg dikasih izin pemilik."""
+    if is_group_owner(user, group):
+        return True
     membership = get_group_membership(user, group)
-    return membership is not None and membership.status == GROUP_MEMBER_STATUS_ACTIVE
+    return membership is not None and membership.status == GROUP_MEMBER_STATUS_ACTIVE and membership.can_add_entry
+
+def can_view_group_entry(user, group, group_entry):
+    """Boleh liat link di group (sama kayak build_shared_entry_id_query, plus pemilik link-nya sendiri)."""
+    if not group_entry.is_restricted or is_group_owner(user, group) or group_entry.user_id == user.id:
+        return True
+    return group_entry.access_entry.user_id == user.id or any(viewer.user_id == user.id for viewer in group_entry.viewer_list)
 
 def is_admin(user):
     """True kalau user ber-role admin."""

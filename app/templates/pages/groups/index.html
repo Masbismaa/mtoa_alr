@@ -63,7 +63,7 @@
             </div>
             <div class="card-footer d-flex gap-3 text-secondary small">
               <span>{{ icon("user") }} {{ active_member_count }} anggota</span>
-              <span>{{ icon("link") }} {{ group.group_entry_list | length }} link</span>
+              <span>{{ icon("link") }} {{ visible_entry_count_dict[group.id] }} link</span>
             </div>
           </a>
         </div>

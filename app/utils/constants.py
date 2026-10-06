@@ -260,6 +260,14 @@ USER_STATUS_LABEL_DICT = {
     USER_STATUS_INACTIVE: "Nonaktif",
 }
 
+# hapus akun: data diri diganti biar email aslinya bisa dipake daftar lagi
+DELETED_USER_NAME = "Akun dihapus"
+DELETED_USER_PROFILE_TEXT = "-"
+# .invalid itu domain cadangan, dijamin ga bakal jadi email beneran
+DELETED_USER_EMAIL_DOMAIN = "deleted.invalid"
+# bukan format argon2, jadi verify_password selalu False
+UNUSABLE_PASSWORD_HASH = "!"
+
 # export kat excel
 EXPORT_MAX_ROW_COUNT = 5000
 EXPORT_FORMULA_PREFIX_TUPLE = ("=", "+", "-", "@", "\t","\r")

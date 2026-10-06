@@ -42,11 +42,14 @@
         <div class="card-header">
           <h3 class="card-title">{{ icon("link") }} Link</h3>
           <div class="card-actions btn-list">
-            <span class="badge bg-secondary-lt align-self-center">{{ group.group_entry_list | length }}</span>
-            <a href="{{ url_for('entries.create', group_id=group.id) }}" class="btn btn-primary btn-sm">{{ icon("plus") }} Link Baru</a>
+            <span class="badge bg-secondary-lt align-self-center">{{ group_entry_list | length }}</span>
+            {% if can_add_entry %}
+              <a href="{{ url_for('entries.create', group_id=group.id) }}" class="btn btn-primary btn-sm">{{ icon("plus") }} Link Baru</a>
+            {% endif %}
           </div>
         </div>
 
+        {% if can_add_entry %}
         <div class="card-body border-bottom">
           <form method="post" action="{{ url_for('groups.add_entry', group_id=group.id) }}" class="row g-2">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -63,10 +66,15 @@
               <button type="submit" class="btn">{{ icon("plus") }} Tambah</button>
             </div>
           </form>
-          <div class="form-text">{{ icon("info") }} Yang bisa ditambah cuma link milikmu atau link Public. Link Private milikmu bakal bisa dilihat semua anggota group.</div>
+          <div class="form-text">{{ icon("info") }} Yang bisa ditambah cuma link milikmu atau link Public. Link Private milikmu bakal bisa dilihat anggota group, kecuali pemilik group membatasinya.</div>
         </div>
+        {% else %}
+        <div class="card-body border-bottom">
+          <div class="text-secondary small">{{ icon("eye") }} Kamu hanya bisa melihat link di group ini. Minta pemilik group kalau perlu izin menambah link.</div>
+        </div>
+        {% endif %}
 
-        {% if group.group_entry_list %}
+        {% if group_entry_list %}
           <div class="table-responsive">
             <table class="table table-vcenter card-table table-stack">
               <thead>
@@ -79,12 +87,15 @@
                 </tr>
               </thead>
               <tbody>
-                {% for group_entry in group.group_entry_list %}
+                {% for group_entry in group_entry_list %}
                   {% set entry = group_entry.access_entry %}
                   {% set access_text = entry.url or ((entry.address ~ (":" ~ entry.port if entry.port else "")) if entry.address else "") %}
                   <tr>
                     <td class="cell-title" data-label="Judul">
                       <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="text-reset fw-bold" title="{{ entry.title }}">{{ entry.title | truncate(50, true, "…", 0) }}</a>
+                      {% if group_entry.is_restricted %}
+                        <span class="badge bg-yellow-lt ms-1" title="Cuma anggota tertentu yang bisa melihat">{{ icon("lock") }} Terbatas · {{ group_entry.viewer_list | length }} anggota</span>
+                      {% endif %}
                     </td>
                     <td data-label="Kategori"><span class="badge bg-secondary-lt">{{ entry.category | category_label }}</span></td>
                     <td data-label="URL / Address">
@@ -101,6 +112,9 @@
                     <td class="cell-action">
                       <div class="btn-list flex-nowrap">
                         <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="btn btn-sm">{{ icon("eye") }} View</a>
+                        {% if is_owner %}
+                          <a href="{{ url_for('groups.entry_viewers', group_id=group.id, group_entry_id=group_entry.id) }}" class="btn btn-sm btn-icon" aria-label="Atur siapa yang bisa melihat {{ entry.title }}" title="Atur siapa yang bisa melihat">{{ icon("lock") }}</a>
+                        {% endif %}
                         {% if can_remove_group_entry(current_user, group, group_entry) %}
                           <form method="post" action="{{ url_for('groups.remove_entry', group_id=group.id, group_entry_id=group_entry.id) }}" data-confirm-title="Cabut link dari group?" data-confirm-message="Link &quot;{{ entry.title }}&quot; dicabut dari group ini. Data link aslinya tetap aman." data-confirm-ok="Ya, cabut">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -143,10 +157,25 @@
                   {% if member.role == "owner" %}
                     <span class="badge bg-primary-lt">Pemilik</span>
                   {% elif is_owner %}
-                    <form method="post" action="{{ url_for('groups.remove_group_member', group_id=group.id, member_id=member.id) }}" data-confirm-title="Keluarkan anggota?" data-confirm-message="{{ member.user.full_name }} dikeluarkan dari group, link yang dia bagikan ikut dicabut." data-confirm-ok="Ya, keluarkan">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <button type="submit" class="btn btn-sm btn-icon btn-ghost-danger" aria-label="Keluarkan {{ member.user.full_name }}" title="Keluarkan">{{ icon("trash") }}</button>
-                    </form>
+                    <div class="btn-list flex-nowrap">
+                      <form method="post" action="{{ url_for('groups.update_member_permission', group_id=group.id, member_id=member.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="can_add_entry" value="{{ '0' if member.can_add_entry else '1' }}">
+                        {% if member.can_add_entry %}
+                          <button type="submit" class="btn btn-sm btn-outline-success" title="Klik untuk mencabut izin menambah link">{{ icon("plus") }} Bisa tambah</button>
+                        {% else %}
+                          <button type="submit" class="btn btn-sm" title="Klik untuk mengizinkan menambah link">{{ icon("eye") }} Hanya lihat</button>
+                        {% endif %}
+                      </form>
+                      <form method="post" action="{{ url_for('groups.remove_group_member', group_id=group.id, member_id=member.id) }}" data-confirm-title="Keluarkan anggota?" data-confirm-message="{{ member.user.full_name }} dikeluarkan dari group, link yang dia bagikan ikut dicabut." data-confirm-ok="Ya, keluarkan">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-icon btn-ghost-danger" aria-label="Keluarkan {{ member.user.full_name }}" title="Keluarkan">{{ icon("trash") }}</button>
+                      </form>
+                    </div>
+                  {% elif member.can_add_entry %}
+                    <span class="badge bg-green-lt">Bisa tambah</span>
+                  {% else %}
+                    <span class="badge bg-secondary-lt">Hanya lihat</span>
                   {% endif %}
                 </div>
               </div>

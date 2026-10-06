@@ -322,6 +322,24 @@ def delete_access_entry(user, entry):
     db.session.commit()
     remove_stored_file_list(stored_filename_list)
 
+def delete_private_entry_list(actor, owner):
+    """Hapus semua link Private punya owner (dipake pas akun dihapus). Belum di-commit, return nama file lampiran buat dihapus abis commit."""
+    entry_list = db.session.execute(
+        db.select(AccessEntry).where(AccessEntry.user_id == owner.id, AccessEntry.visibility == VISIBILITY_PRIVATE)
+    ).scalars().all()
+    stored_filename_list = []
+    for entry in entry_list:
+        stored_filename_list.extend(attachment.stored_filename for attachment in entry.attachment_list)
+        log_audit(AUDIT_ACTION_DELETE, AUDIT_ENTITY_TYPE, entity_id=entry.id, old_data_dict=build_entry_audit_dict(entry), user=actor)
+        db.session.delete(entry)
+    return len(entry_list), stored_filename_list
+
+def count_owned_entry(owner, visibility):
+    """Jumlah link punya owner dgn visibilitas tertentu."""
+    return db.session.scalar(
+        db.select(db.func.count(AccessEntry.id)).where(AccessEntry.user_id == owner.id, AccessEntry.visibility == visibility)
+    )
+
 # AMBIL DATA
 def get_visible_entry(user, entry_id):
     """Satu data kalau boleh diliat, None kalau nggak (dua-duanya jadi 404)."""
