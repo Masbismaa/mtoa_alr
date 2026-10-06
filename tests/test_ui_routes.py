@@ -1,4 +1,6 @@
 """Test layout (sidebar, menu per role), halaman settings, dan API preferensi."""
+import re
+
 from app import create_app
 from app.config import TestingConfig
 from app.services.auth_service import register_user
@@ -17,13 +19,22 @@ def test_dashboard_shows_topbar_profile(logged_in_client):
     assert "ICT" in html_text
     assert 'data-pref-source="server"' in html_text
 
-def test_topbar_only_has_home_and_user_menu(logged_in_client):
-    """Positive: topbar isinya cuma tombol Home (balik ke dashboard) sama menu user."""
-    html_text = logged_in_client.get("/settings/").get_data(as_text=True)
-    topbar_html = html_text.split("app-topbar\"")[1].split("</header>")[0]
+def test_topbar_has_home_theme_toggle_and_user_menu(logged_in_client):
+    """Topbar menyediakan Home, tombol tema, dan menu pengguna."""
+    response = logged_in_client.get("/settings/")
+    assert response.status_code == 200
+    html_text = response.get_data(as_text=True)
+    topbar_match = re.search(
+        r'<header\b[^>]*class="[^"\n]*\bapp-topbar\b[^"\n]*"[^>]*>(.*?)</header>',
+        html_text,
+        re.DOTALL,
+    )
+    assert topbar_match is not None, "Header dengan class app-topbar tidak ditemukan"
+    topbar_html = topbar_match.group(1)
     assert 'href="/"' in topbar_html
     assert "Home" in topbar_html
     assert "user-menu" in topbar_html
+    assert "data-theme-toggle" in topbar_html
 
 def test_user_entry_does_not_see_admin_menu(logged_in_client):
     """Negative (RBAC): user biasa ga liat menu Categories & Audit Logs."""

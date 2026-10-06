@@ -12,6 +12,13 @@ def normalize_email(value):
     """Rapihin email: hapus spasi di ujung + huruf kecil semua."""
     return (value or "").strip().lower()
 
+def complete_email(value, domain):
+    """Isian email tanpa '@' dilengkapi domain kantor (budi -> budi@spindo.com). Yg udah ada '@' dibiarin."""
+    clean_value = normalize_email(value)
+    if clean_value and "@" not in clean_value:
+        return f"{clean_value}@{domain.lower()}"
+    return clean_value
+
 def mask_email(email):
     """Samarin email buat ditampilin, misal user.login@spindo.com -> us********@spindo.com."""
     local_part, _, domain = email.partition("@")
