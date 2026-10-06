@@ -1,4 +1,4 @@
-"""Test cek status link otomatis: aturan aktif/tidak aktif, alamat terlarang, redirect, & command check-links. Ga ada koneksi beneran."""
+"""Test pemeriksaan status link: aturan aktif/tidak aktif, alamat terlarang, dan redirect."""
 import socket
 import ssl
 import pytest
@@ -181,15 +181,8 @@ def test_user_cannot_trigger_check(logged_in_client, registered_user, category_d
     assert logged_in_client.post(f"/entries/{entry.id}/check-status").status_code == 404
     assert "Cek Status" not in logged_in_client.get(f"/entries/{entry.id}").get_data(as_text=True)
 
-def test_check_links_command(app, registered_user, category_dict, monkeypatch):
-    """Positive: command check-links ngecek semua data + ngasih ringkasan."""
-    monkeypatch.setattr(link_check_service, "check_target", lambda target: (
-        LinkCheckResult(LINK_STATUS_UP, "HTTP 200") if target.url else LinkCheckResult(LINK_STATUS_UNKNOWN, "Port kosong, tidak bisa dicek")
-    ))
-    web_entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr.spindo.com"))
-    create_access_entry(registered_user, build_entry_dict(category_dict["Network"], "Switch Core", "", address="10.0.0.2", port="22"))
+def test_check_links_command_is_removed(app):
+    """Pemeriksaan hanya tersedia dari panel Admin, bukan perintah terjadwal."""
     result = app.test_cli_runner().invoke(args=["check-links"])
-    assert result.exit_code == 0
-    assert "2 link dicek" in result.output
-    db.session.refresh(web_entry)
-    assert web_entry.status == LINK_STATUS_UP
+    assert result.exit_code != 0
+    assert "No such command" in result.output

@@ -1,53 +1,26 @@
-"""Pengaturan dan eksekusi pemeriksaan status link otomatis."""
-from datetime import timedelta
+"""Ringkasan dan eksekusi pemeriksaan status link yang dipicu admin."""
+from collections import Counter
 
 from app.extensions import db
-from app.models import LinkMonitorSetting
-from app.services.audit_service import log_audit
-from app.utils.constants import AUDIT_ACTION_UPDATE, LINK_MONITOR_SETTING_ID
-from app.utils.datetime_helper import to_utc_aware, utc_now
+from app.models import AccessEntry
+from app.utils.constants import LINK_STATUS_DOWN, LINK_STATUS_UNKNOWN, LINK_STATUS_UP
 
 
-def get_monitor_settings():
-    settings = db.session.get(LinkMonitorSetting, LINK_MONITOR_SETTING_ID)
-    if settings is None:
-        settings = LinkMonitorSetting(id=LINK_MONITOR_SETTING_ID)
-        db.session.add(settings)
-        db.session.commit()
-    return settings
+def build_monitor_summary():
+    """Ambil ringkasan hasil pemeriksaan terakhir untuk panel admin."""
+    status_list = db.session.execute(db.select(AccessEntry.status)).scalars().all()
+    status_counter = Counter(status_list)
+    last_checked_at = db.session.scalar(db.select(db.func.max(AccessEntry.status_checked_at)))
+    return {
+        "total_count": len(status_list),
+        "up_count": status_counter[LINK_STATUS_UP],
+        "down_count": status_counter[LINK_STATUS_DOWN],
+        "unknown_count": status_counter[LINK_STATUS_UNKNOWN],
+        "last_checked_at": last_checked_at,
+    }
 
 
-def update_monitor_settings(user, form):
-    settings = get_monitor_settings()
-    old_data_dict = {"is_enabled": settings.is_enabled, "interval_minutes": settings.interval_minutes}
-    settings.is_enabled = form.is_enabled.data
-    settings.interval_minutes = form.interval_minutes.data
-    settings.updated_by_user_id = user.id
-    log_audit(
-        AUDIT_ACTION_UPDATE, "link_monitor_settings", entity_id=settings.id,
-        old_data_dict=old_data_dict,
-        new_data_dict={"is_enabled": settings.is_enabled, "interval_minutes": settings.interval_minutes},
-        user=user,
-    )
-    db.session.commit()
-    return settings
-
-
-def is_monitor_due(settings):
-    if not settings.is_enabled or settings.last_run_at is None:
-        return settings.is_enabled
-    return to_utc_aware(settings.last_run_at) + timedelta(minutes=settings.interval_minutes) <= utc_now()
-
-
-def run_monitor(force=False):
-    """Jalankan pemeriksaan semua data jika sudah jatuh tempo, atau paksa dari panel admin."""
-    settings = get_monitor_settings()
-    if not force and not is_monitor_due(settings):
-        return None
-
+def run_monitor():
+    """Jalankan pemeriksaan semua data atas permintaan admin."""
     from app.services.link_check_service import check_all_entry_status
-
-    status_counter = check_all_entry_status()
-    settings.last_run_at = utc_now()
-    db.session.commit()
-    return status_counter
+    return check_all_entry_status()
