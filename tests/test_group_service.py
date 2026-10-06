@@ -14,6 +14,7 @@ from app.services.group_service import (
     invite_member,
     leave_group,
     remove_member,
+    set_member_can_add_entry,
     update_group,
 )
 from app.utils.constants import GROUP_MEMBER_STATUS_ACTIVE, GROUP_MEMBER_STATUS_INVITED, GROUP_ROLE_OWNER, VISIBILITY_PRIVATE
@@ -29,11 +30,13 @@ def create_entry(user, category, title, url):
     })
 
 
-def create_group_with_member(owner, member_user):
-    """Helper: group + 1 anggota yg udah nerima undangan."""
+def create_group_with_member(owner, member_user, can_add_entry=False):
+    """Helper: group + 1 anggota yg udah nerima undangan, opsional langsung dikasih izin tambah link."""
     group = create_group(owner, {"name": "Tim Network"})
     invitation = invite_member(owner, group, member_user.email)
     accept_invitation(member_user, invitation)
+    if can_add_entry:
+        set_member_can_add_entry(owner, group, invitation.id, True)
     return group
 
 
@@ -137,7 +140,7 @@ def test_cannot_reshare_private_entry_from_other_group(app, registered_user, oth
 
 def test_member_leave_removes_their_shared_entry(app, registered_user, other_user, category_dict):
     """Positive (security): anggota keluar -> link yg dia bagi ikut dicabut."""
-    group = create_group_with_member(registered_user, other_user)
+    group = create_group_with_member(registered_user, other_user, can_add_entry=True)
     entry = create_entry(other_user, category_dict["Web"], "Punya Lain", "https://lain.spindo.com")
     add_group_entry(other_user, group, entry.id)
     leave_group(other_user, group)

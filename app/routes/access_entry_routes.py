@@ -3,7 +3,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import login_required
 
 from app.schemas.access_entry_schema import AccessEntryForm
-from app.security.access_policy import can_edit_entry, is_entry_owner
+from app.security.access_policy import can_add_group_entry, can_edit_entry, is_entry_owner
 from app.services.access_entry_service import (
     build_category_option_list,
     create_access_entry,
@@ -85,9 +85,11 @@ def create():
     attachment_error_list = []
     if request.method == "GET":
         form.category_id.data = parse_positive_int(request.args.get("category_id"))
-    # group tujuan, dicuekin kalau user bukan anggota aktifnya
+    # group tujuan, dicuekin kalau user bukan anggota aktif / belum diizinin nambah link
     group_id = parse_positive_int(request.values.get("group_id"))
     target_group = get_member_group(user, group_id) if group_id else None
+    if target_group is not None and not can_add_group_entry(user, target_group):
+        target_group = None
     if form.validate_on_submit():
         try:
             entry = create_access_entry(
