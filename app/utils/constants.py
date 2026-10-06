@@ -153,11 +153,7 @@ LINK_CHECK_MAX_REDIRECT_COUNT = 3
 LINK_CHECK_USER_AGENT = "ALR-LinkCheck/1.0"
 LINK_STATUS_NOTE_MAX_LENGTH = 255
 
-# Link Monitoring: satu pengaturan global, dijalankan oleh Task Scheduler/cron.
-LINK_MONITOR_SETTING_ID = 1
-LINK_MONITOR_DEFAULT_INTERVAL_MINUTES = 60
-LINK_MONITOR_MIN_INTERVAL_MINUTES = 5
-LINK_MONITOR_MAX_INTERVAL_MINUTES = 1440
+# Link Monitoring: dicek otomatis lewat command check-links (Task Scheduler/cron) + tombol admin
 
 # nama kategori default (harus sama dengan DEFAULT_CATEGORY_LIST)
 CATEGORY_NAME_WEB = "Web"

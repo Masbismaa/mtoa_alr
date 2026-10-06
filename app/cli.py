@@ -14,8 +14,7 @@ def register_cli_commands(app):
     from app.utils.constants import ROLE_USER_ENTRY
     from app.utils.exceptions import ValidationError
     from app.utils.text_helper import normalize_email
-    from app.services.link_monitor_service import run_monitor
-    from app.utils.constants import LINK_STATUS_DOWN, LINK_STATUS_UNKNOWN, LINK_STATUS_UP
+    from app.services.link_monitor_service import build_run_summary_text, run_monitor
 
     @app.cli.command("seed-categories")
     def seed_categories_command():
@@ -72,13 +71,5 @@ def register_cli_commands(app):
 
     @app.cli.command("check-links")
     def check_links_command():
-        """Cek status semua link sekaligus. Bisa dijadwalin tiap pagi (Task Scheduler / cron)."""
-        status_counter = run_monitor()
-        if status_counter is None:
-            click.echo("Belum waktunya pemeriksaan berikutnya, tidak ada data yang dicek.")
-            return
-        total_count = sum(status_counter.values())
-        click.echo(
-            f"Selesai, {total_count} link dicek: {status_counter[LINK_STATUS_UP]} aktif, "
-            f"{status_counter[LINK_STATUS_DOWN]} tidak aktif, {status_counter[LINK_STATUS_UNKNOWN]} belum bisa dicek."
-        )
+        """Cek status semua link. Dijalanin Task Scheduler tiap 5 menit lewat scripts/run_link_monitor.cmd."""
+        click.echo(build_run_summary_text(run_monitor()))
