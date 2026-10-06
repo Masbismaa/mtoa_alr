@@ -1,19 +1,53 @@
-/* sidebar kiri: menu, judul bagian, tombol Customize, avatar versi HP */
+/* sidebar kiri ala menu pohon SAP Easy Access: menu, judul bagian, tombol Customize, avatar versi HP */
 
+.app-sidebar {
+  font-size: 0.8125rem;
+  background: var(--tblr-bg-surface);
+}
+
+/* tiap menu dipisah garis tipis, teks biru kayak daftar transaksi di SAP */
 .app-sidebar .nav-link,
 .app-sidebar .dropdown-item {
-  border-radius: var(--tblr-border-radius);
+  min-height: 2.25rem;
+  color: var(--app-text-accent);
+  border-bottom: 1px solid var(--tblr-border-color);
+  border-radius: 0;
   transition: background-color 150ms ease, color 150ms ease;
 }
 
-/* judul bagian + tombol customize di bawah */
-.sidebar-heading {
-  padding: 1rem 0.75rem 0.35rem;
-  font-size: 0.6875rem;
+.app-sidebar .nav-link .nav-link-icon {
+  color: var(--app-title-color);
+}
+
+.app-sidebar .nav-link:hover,
+.app-sidebar .dropdown-item:hover {
+  background: var(--app-hover-bg);
+}
+
+/* menu yg lagi dibuka: latar biru muda kayak baris terpilih di SAP. menu induk (Data Link) cukup tebal aja */
+.app-sidebar .nav-item.active:not(.dropdown) > .nav-link,
+.app-sidebar .dropdown-item.active {
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--tblr-secondary);
+  color: var(--app-text-accent);
+  background: var(--app-selected-bg);
+}
+
+.app-sidebar .nav-item.dropdown.active > .nav-link {
+  font-weight: 600;
+  background: none;
+}
+
+.app-sidebar .nav-link.disabled {
+  color: var(--app-label-color);
+}
+
+/* judul bagian + tombol customize di bawah */
+/* judul bagian kayak simpul folder di pohon menu SAP */
+.sidebar-heading {
+  padding: 0.75rem 0.75rem 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--app-title-color);
 }
 
 .sidebar-footer {
@@ -61,6 +95,12 @@
 }
 
 @media (min-width: 992px) {
+  /* sidebar mulai di bawah shell bar */
+  .app-sidebar.navbar-vertical {
+    top: var(--app-shell-height);
+    border-right: 1px solid var(--tblr-border-color);
+  }
+
   /* tombol Customize nempel di bawah sidebar */
   .app-sidebar.navbar-expand-lg .navbar-collapse {
     flex-direction: column;
@@ -69,11 +109,5 @@
 
   .app-sidebar .sidebar-footer {
     margin-top: auto;
-  }
-
-  .app-sidebar.navbar-vertical .navbar-brand {
-    justify-content: flex-start;
-    width: 100%;
-    padding: 0.5rem 0.75rem;
   }
 }

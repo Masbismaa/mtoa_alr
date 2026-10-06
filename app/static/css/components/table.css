@@ -1,4 +1,30 @@
-/* tabel: filter, sel, tombol copy, versi HP jadi kartu */
+/* tabel ala ALV grid SAP: header abu-abu, garis antar kolom, baris rapat + hover, filter, tombol copy, versi HP jadi kartu */
+
+/* header kolom: strip abu-abu, huruf biasa (bukan kapital) */
+.card-table thead th,
+.table thead th {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--app-title-color);
+  background: var(--app-strip-bg);
+}
+
+/* garis tipis antar kolom kayak tabel di SAP (layar lebar aja, di HP tabel jadi kartu) */
+@media (min-width: 768px) {
+  .card-table > :not(caption) > * > * + * {
+    border-left: 1px solid var(--tblr-border-color);
+  }
+}
+
+.table tbody tr {
+  transition: background-color 150ms ease;
+}
+
+.table tbody tr:hover {
+  background: var(--app-hover-bg);
+}
 
 /* filter tabel lagi loading */
 .filter-bar {

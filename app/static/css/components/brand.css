@@ -33,7 +33,3 @@
   color: var(--tblr-secondary);
   border-left: 1px solid var(--tblr-border-color);
 }
-
-.auth-brand .app-brand-logo {
-  height: 4.5rem;
-}
