@@ -7,7 +7,7 @@ from flask import current_app
 from app.extensions import db
 from app.models import OtpCode, User, UserPreference
 from app.security.otp_service import generate_otp_code, hash_otp_code, is_otp_code_match
-from app.security.password_service import hash_password, verify_password
+from app.security.password_service import hash_password, is_rehash_needed, verify_password
 from app.services.audit_service import log_audit
 from app.services.notification_service import send_otp_code
 from app.utils.constants import (
@@ -123,7 +123,7 @@ def register_failed_login(user):
 
 
 def authenticate_user(email, password):
-    """Cek email + password. Return User kalau bener, lempar Auth-Error kalau salah."""
+    """Cek email + password. Return User kalau bener, lempar AuthError kalau salah."""
     clean_email = normalize_email(email)
     user = db.session.execute(db.select(User).filter_by(email=clean_email)).scalar_one_or_none()
 
@@ -149,16 +149,19 @@ def authenticate_user(email, password):
         db.session.commit()
         raise AuthError(GENERIC_LOGIN_ERROR)
 
+    # hash lama (parameter argon2 udah dinaikin) langsung diganti hash baru, kesimpen pas OTP dibikin
+    if is_rehash_needed(user.password_hash):
+        user.password_hash = hash_password(password)
     return user
 
 
 # LOGIN LANGKAH 2: OTP
 def can_continue_login(user):
-    # Bisa lanjut ke OTP alau akun aktif + ga dikunci.
+    # bisa lanjut ke OTP kalau akun aktif + ga dikunci
     return user.is_active and not is_account_locked(user)
 
 def ensure_can_continue_login(user):
-    # Dicek ulang di langkah OTP, bisa aja aunnya dikunci/dinonatifkan setelah lolos password
+    # dicek ulang di langkah OTP, bisa aja akunnya dikunci/dinonaktifkan setelah lolos password
     if not user.is_active:
         raise AuthError(INACTIVE_ACCOUNT_ERROR)
     if is_account_locked(user):

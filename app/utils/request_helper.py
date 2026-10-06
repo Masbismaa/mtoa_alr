@@ -1,6 +1,7 @@
 """Helper untuk membaca informasi request aktif."""
 
 from flask import has_request_context, request
+from flask_login import current_user
 
 MAX_USER_AGENT_LENGTH = 255
 
@@ -19,3 +20,7 @@ def get_user_agent():
         return None
     user_agent_text = request.user_agent.string or ""
     return user_agent_text[:MAX_USER_AGENT_LENGTH] or None
+
+def get_current_user():
+    """User yg lagi login dalam bentuk objek User asli (bukan proxy Flask-Login), aman dioper ke service."""
+    return current_user._get_current_object()

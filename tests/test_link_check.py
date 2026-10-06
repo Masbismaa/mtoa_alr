@@ -1,10 +1,11 @@
 """Test pemeriksaan status link: aturan aktif/tidak aktif, alamat terlarang, dan redirect."""
 import socket
 import ssl
+from collections import Counter
 import pytest
 from app.extensions import db
 from app.security.link_target_guard import LinkTargetBlockedError, parse_check_url, resolve_safe_ip
-from app.services import link_check_service
+from app.services import link_check_service, link_monitor_service
 from app.services.access_entry_service import create_access_entry
 from app.services.link_check_service import LinkCheckResult, LinkCheckTarget, check_target, save_check_result
 from app.utils.constants import LINK_STATUS_DOWN, LINK_STATUS_UNKNOWN, LINK_STATUS_UP, VISIBILITY_PRIVATE
@@ -181,8 +182,9 @@ def test_user_cannot_trigger_check(logged_in_client, registered_user, category_d
     assert logged_in_client.post(f"/entries/{entry.id}/check-status").status_code == 404
     assert "Cek Status" not in logged_in_client.get(f"/entries/{entry.id}").get_data(as_text=True)
 
-def test_check_links_command_is_removed(app):
-    """Pemeriksaan hanya tersedia dari panel Admin, bukan perintah terjadwal."""
+def test_check_links_command_runs_monitor(app, monkeypatch):
+    """Positive: command check-links (dipanggil Task Scheduler) jalanin pemeriksaan + nampilin ringkasan."""
+    monkeypatch.setattr(link_monitor_service, "check_all_entry_status", lambda: Counter({LINK_STATUS_UP: 2, LINK_STATUS_DOWN: 1}))
     result = app.test_cli_runner().invoke(args=["check-links"])
-    assert result.exit_code != 0
-    assert "No such command" in result.output
+    assert result.exit_code == 0
+    assert "3 data · 2 aktif · 1 tidak aktif" in result.output

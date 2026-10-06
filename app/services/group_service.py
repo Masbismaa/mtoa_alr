@@ -109,13 +109,6 @@ def list_user_group(user):
         .order_by(Group.name)
     ).scalars().all()
 
-def count_user_group(user):
-    """Jumlah group aktif user (buat kartu dashboard)."""
-    return db.session.execute(
-        db.select(db.func.count(GroupMember.id))
-        .where(GroupMember.user_id == user.id, GroupMember.status == GROUP_MEMBER_STATUS_ACTIVE)
-    ).scalar()
-
 def list_pending_invitation(user):
     """Undangan yg belum dijawab user."""
     return db.session.execute(

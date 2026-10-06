@@ -13,7 +13,6 @@ from app.services.auth_service import (
     resend_otp_challenge,
     start_otp_challenge,
     verify_otp_code,
-    authenticate_user,
 )
 from app.utils.constants import (
     AUDIT_ACTION_LOGOUT,

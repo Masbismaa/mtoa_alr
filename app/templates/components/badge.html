@@ -15,7 +15,7 @@
 {% endmacro %}
 
 {% macro role_badge(role) %}
-  <span class="badge {{ 'bg-azure-lt' if role == 'admin' else 'bg-secondary-lt' }}">{{ role | role_label }}</span>
+  <span class="badge {{ 'bg-azure-lt' if role == ROLE_ADMIN else 'bg-secondary-lt' }}">{{ role | role_label }}</span>
 {% endmacro %}
 
 {% macro user_status_badge(status) %}

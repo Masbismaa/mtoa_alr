@@ -4,7 +4,7 @@
 {% from "components/category_forum.html" import category_forum %}
 {% from "components/entry_table.html" import entry_table %}
 
-{% block title %}{{ path_list | map(attribute="name") | join(" › ") }} - MTOA ALR{% endblock %}
+{% block title %}{{ path_list | map(attribute="name") | join(" › ") }}{% endblock %}
 
 {% block page_pretitle %}
   <ol class="breadcrumb breadcrumb-arrows category-breadcrumb" aria-label="Jalur kategori">
