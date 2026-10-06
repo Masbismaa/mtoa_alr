@@ -1,8 +1,13 @@
 """Helper untuk membaca informasi request aktif."""
 
 from flask import has_request_context, request
+from flask_login import current_user
 
 MAX_USER_AGENT_LENGTH = 255
+
+def get_current_user():
+    """Ambil objek pengguna dari proxy Flask-Login pada request aktif."""
+    return current_user._get_current_object()
 
 def get_client_ip():
     """IP klien pada request aktif, atau None di luar request.

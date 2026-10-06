@@ -37,14 +37,13 @@ from app.utils.constants import (
     VISIBILITY_LIST,
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
-    DASHBOARD_PER_PAGE,
+    PER_PAGE,
     MAX_SEARCH_KEYWORD_LENGTH,
     EXPORT_MAX_ROW_COUNT,
 )
 from app.utils.exceptions import InvalidCredentialError, PermissionDeniedError, ValidationError, build_error
 from app.utils.sanitizer import get_plain_text, sanitize_rich_text, sanitize_text
 from app.utils.url_helper import normalize_address, normalize_url, parse_port
-from app.utils.query_helper import escape_like_pattern
 from app.utils.query_helper import build_keyword_filter
 
 AUDIT_ENTITY_TYPE = "access_entries"
@@ -95,6 +94,7 @@ def build_category_option_list(category_list):
             "field_list": ",".join(rule["field_list"]),
             "required_field_list": ",".join(rule["required_field_list"]),
             "has_custom_field": "true" if rule["has_custom_field"] else "false",
+            "has_credential_field": "true" if rule["has_credential_field"] else "false",
         })
     return option_list
 
@@ -127,13 +127,16 @@ def validate_entry_data(data_dict, current_category_id=None):
         except ValueError as error:
             error_list.append(build_error(field_name, str(error)))
 
-    clean_dict["username"] = sanitize_text(data_dict.get("username"), max_length=MAX_USERNAME_LENGTH) or None
-
-    raw_access_note = data_dict.get("access_note") or ""
-    if len(raw_access_note) > MAX_ACCESS_NOTE_LENGTH:
-        error_list.append(build_error("access_note", f"Access note maksimal {MAX_ACCESS_NOTE_LENGTH} karakter"))
-    # ga di-sanitize biar password utuh, nanti dienkripsi
-    clean_dict["access_note"] = raw_access_note if raw_access_note.strip() else None
+    # username & access note cuma buat kategori yg punya kredensial (General ngga)
+    clean_dict["username"] = None
+    clean_dict["access_note"] = None
+    if rule["has_credential_field"]:
+        clean_dict["username"] = sanitize_text(data_dict.get("username"), max_length=MAX_USERNAME_LENGTH) or None
+        raw_access_note = data_dict.get("access_note") or ""
+        if len(raw_access_note) > MAX_ACCESS_NOTE_LENGTH:
+            error_list.append(build_error("access_note", f"Access note maksimal {MAX_ACCESS_NOTE_LENGTH} karakter"))
+        # ga di-sanitize biar password utuh, nanti dienkripsi
+        clean_dict["access_note"] = raw_access_note if raw_access_note.strip() else None
 
     clean_dict["description"] = sanitize_text(data_dict.get("description")) or None
 
@@ -319,6 +322,24 @@ def delete_access_entry(user, entry):
     db.session.commit()
     remove_stored_file_list(stored_filename_list)
 
+def delete_private_entry_list(actor, owner):
+    """Hapus semua link Private punya owner (dipake pas akun dihapus). Belum di-commit, return nama file lampiran buat dihapus abis commit."""
+    entry_list = db.session.execute(
+        db.select(AccessEntry).where(AccessEntry.user_id == owner.id, AccessEntry.visibility == VISIBILITY_PRIVATE)
+    ).scalars().all()
+    stored_filename_list = []
+    for entry in entry_list:
+        stored_filename_list.extend(attachment.stored_filename for attachment in entry.attachment_list)
+        log_audit(AUDIT_ACTION_DELETE, AUDIT_ENTITY_TYPE, entity_id=entry.id, old_data_dict=build_entry_audit_dict(entry), user=actor)
+        db.session.delete(entry)
+    return len(entry_list), stored_filename_list
+
+def count_owned_entry(owner, visibility):
+    """Jumlah link punya owner dgn visibilitas tertentu."""
+    return db.session.scalar(
+        db.select(db.func.count(AccessEntry.id)).where(AccessEntry.user_id == owner.id, AccessEntry.visibility == visibility)
+    )
+
 # AMBIL DATA
 def get_visible_entry(user, entry_id):
     """Satu data kalau boleh diliat, None kalau nggak (dua-duanya jadi 404)."""
@@ -356,7 +377,7 @@ def build_visible_entry_query(user, keyword=None, category_id=None, visibility=N
         query = query.where(AccessEntry.visibility == visibility)
     return query.order_by(AccessEntry.updated_at.desc(), AccessEntry.id.desc())
 
-def search_visible_entries(user, keyword=None, category_id=None, visibility=None, page=1, per_page=DASHBOARD_PER_PAGE,
+def search_visible_entries(user, keyword=None, category_id=None, visibility=None, page=1, per_page=PER_PAGE,
                            is_include_sub=True):
     """Cari data yg boleh diliat user, hasilnya per halaman. Filter kategori ikut ngambil isi sub-nya."""
     query = build_visible_entry_query(user, keyword, category_id, visibility, is_include_sub)

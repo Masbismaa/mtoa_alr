@@ -63,7 +63,7 @@ def test_dashboard_empty_search_result(logged_in_client, category_dict):
 
 def test_pagination_link_keeps_filter(logged_in_client, registered_user, category_dict, monkeypatch):
     """Positive: link halaman berikutnya tetep bawa filter."""
-    monkeypatch.setattr(main_routes, "DASHBOARD_PER_PAGE", 1)
+    monkeypatch.setattr(main_routes, "PER_PAGE", 1)
     web = category_dict["Web"]
     create_access_entry(registered_user, build_entry_dict(web, "Link A", "https://a.spindo.com"))
     create_access_entry(registered_user, build_entry_dict(web, "Link B", "https://b.spindo.com"))

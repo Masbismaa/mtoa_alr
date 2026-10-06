@@ -21,7 +21,7 @@ from app.services.category_service import (
     update_category,
     can_manage_category_master,
 )
-from app.utils.constants import CATEGORY_ENTRY_PER_PAGE, MAX_CATEGORY_DEPTH, PERMISSION_MANAGE_CATEGORIES
+from app.utils.constants import PER_PAGE, MAX_CATEGORY_DEPTH, PERMISSION_MANAGE_CATEGORIES
 from app.utils.exceptions import ValidationError
 from app.utils.query_helper import parse_positive_int
 
@@ -112,7 +112,7 @@ def browse(category_id):
         user,
         category_id=category.id,
         page=parse_positive_int(request.args.get("page"), default=1),
-        per_page=CATEGORY_ENTRY_PER_PAGE,
+        per_page=PER_PAGE,
         is_include_sub=False,
     )
     return render_template(

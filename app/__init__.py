@@ -157,10 +157,14 @@ def register_template_helpers(app):
     app.add_template_filter(format_time_ago, "time_ago")
     app.add_template_filter(get_user_status_label, "user_status_label")
 
-    from app.security.access_policy import has_permission
+    from app.security.access_policy import has_permission, is_admin
     from app.utils.constants import PERMISSION_MANAGE_CATEGORIES
     # dipake template buat nampilin/nyembunyiin tombol sesuai akses
-    app.jinja_env.globals.update(has_permission=has_permission, PERMISSION_MANAGE_CATEGORIES=PERMISSION_MANAGE_CATEGORIES)
+    app.jinja_env.globals.update(
+        has_permission=has_permission,
+        is_admin=is_admin,
+        PERMISSION_MANAGE_CATEGORIES=PERMISSION_MANAGE_CATEGORIES,
+    )
 
     @app.context_processor
     def inject_layout_context():

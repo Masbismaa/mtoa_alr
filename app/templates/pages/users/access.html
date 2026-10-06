@@ -1,7 +1,8 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
+{% from "components/back_field.html" import back_field_list with context %}
 
-{% block title %}Atur Akses {{ target.full_name }} - ALR{% endblock %}
+{% block title %}Atur Akses {{ target.full_name }}{% endblock %}
 
 {% block page_pretitle %}Admin › Users{% endblock %}
 
@@ -10,9 +11,7 @@
     <div class="col-lg-8">
       <form method="post" class="card" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        {% for back_key in ["back_q", "back_role", "back_status", "back_page"] %}
-          {% if request.values.get(back_key) %}<input type="hidden" name="{{ back_key }}" value="{{ request.values.get(back_key) }}">{% endif %}
-        {% endfor %}
+        {{ back_field_list() }}
 
         <div class="card-header">
           <div class="d-flex align-items-center gap-3">

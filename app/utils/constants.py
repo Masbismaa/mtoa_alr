@@ -36,7 +36,6 @@ CATEGORY_STYLE_DICT = {
     "General": {"icon": "file", "color_class": "bg-purple"},
 }
 DEFAULT_CATEGORY_STYLE = {"icon": "category", "color_class": "bg-secondary"}
-CATEGORY_ENTRY_PER_PAGE = 20
 
 # Audit log
 # jenis aksi yg boleh dicatat, di luar ini ditolak
@@ -61,7 +60,7 @@ AUDIT_ACTION_LIST = [
 SENSITIVE_FIELD_SET = {"password", "password_hash", "access_note", "encrypted_access_note", "otp_code"}
 MASKED_VALUE = "********"
 
-# Keamanan iput
+# Keamanan input
 MAX_TEXT_LENGTH = 1000
 MIN_PASSWORD_LENGTH = 8
 
@@ -136,24 +135,25 @@ VISIBILITY_PRIVATE = "private"
 VISIBILITY_LIST = [VISIBILITY_PUBLIC, VISIBILITY_PRIVATE]
 VISIBILITY_LABEL_DICT = {VISIBILITY_PUBLIC: "Public", VISIBILITY_PRIVATE: "Private"}
 
-# status link (diisi pengecekan otomatis di M11)
+# status link (diisi pengecekan otomatis lewat command check-links)
 LINK_STATUS_UNKNOWN = "unknown"
 LINK_STATUS_UP = "up"
 LINK_STATUS_DOWN = "down"
 LINK_STATUS_LIST = [LINK_STATUS_UNKNOWN, LINK_STATUS_UP, LINK_STATUS_DOWN]
 LINK_STATUS_LABEL_DICT = {
-    LINK_STATUS_UNKNOWN: "Belum dicek", 
-    LINK_STATUS_UP: "Aktif", 
+    LINK_STATUS_UNKNOWN: "Belum dicek",
+    LINK_STATUS_UP: "Aktif",
     LINK_STATUS_DOWN: "Tidak aktif",
-    }
+}
+
 # cek status link
 LINK_CHECK_TIMEOUT_SECONDS = 5
 LINK_CHECK_MAX_WORKER_COUNT = 10
 LINK_CHECK_MAX_REDIRECT_COUNT = 3
-LINK_CHECK_USER_AGENT = "MTOA-ALR-LinkCheck/1.0"
+LINK_CHECK_USER_AGENT = "ALR-LinkCheck/1.0"
 LINK_STATUS_NOTE_MAX_LENGTH = 255
 
-# Link Monitoring: satu pengaturan global, dijalankan oleh Task Scheduler/cron.
+# Link Monitoring: dicek otomatis lewat command check-links (Task Scheduler/cron) + tombol admin
 
 # nama kategori default (harus sama dengan DEFAULT_CATEGORY_LIST)
 CATEGORY_NAME_WEB = "Web"
@@ -162,19 +162,20 @@ CATEGORY_NAME_NETWORK = "Network"
 CATEGORY_NAME_GENERAL = "General"
 
 # field khusus per kategori.
-# field umum (judul, username, access note, deskripsi, visibilitas) selalu ada di semua kategori
+# judul, deskripsi, visibilitas selalu ada. username + access note ada kalau has_credential_field True
 CATEGORY_SPECIFIC_FIELD_LIST = ["url", "address", "port"]
+CREDENTIAL_FIELD_LIST = ["username", "access_note"]
 CATEGORY_FIELD_RULE_DICT = {
-    CATEGORY_NAME_WEB: {"field_list": ["url"], "required_field_list": ["url"], "has_custom_field": False},
-    CATEGORY_NAME_APPLICATION: {"field_list": ["url", "address"], "required_field_list": [], "has_custom_field": False},
-    CATEGORY_NAME_NETWORK: {"field_list": ["address", "port"], "required_field_list": ["address"], "has_custom_field": False},
-    CATEGORY_NAME_GENERAL: {"field_list": [], "required_field_list": [], "has_custom_field": True},
+    CATEGORY_NAME_WEB: {"field_list": ["url"], "required_field_list": ["url"], "has_custom_field": False, "has_credential_field": True},
+    CATEGORY_NAME_APPLICATION: {"field_list": ["url", "address"], "required_field_list": [], "has_custom_field": False, "has_credential_field": True},
+    CATEGORY_NAME_NETWORK: {"field_list": ["address", "port"], "required_field_list": ["address"], "has_custom_field": False, "has_credential_field": True},
+    CATEGORY_NAME_GENERAL: {"field_list": [], "required_field_list": [], "has_custom_field": True, "has_credential_field": False},
 }
 # kategori baru bikinan admin (nanti) pake aturan ini
-DEFAULT_CATEGORY_FIELD_RULE = {"field_list": ["url", "address", "port"], "required_field_list": [], "has_custom_field": False}
+DEFAULT_CATEGORY_FIELD_RULE = {"field_list": ["url", "address", "port"], "required_field_list": [], "has_custom_field": False, "has_credential_field": True}
 
-# field tambahan kategori General (tambah 1 per klik, batas pengaman di bawah)
-CUSTOM_FIELD_MAX_COUNT = 20
+# field tambahan kategori General (tambah 1 per klik)
+CUSTOM_FIELD_MAX_COUNT = 10
 
 # batas panjang input
 MAX_TITLE_LENGTH = 150
@@ -208,8 +209,8 @@ ATTACHMENT_CONTENT_TYPE_BY_EXTENSION_DICT = {
 }
 ATTACHMENT_EXTENSION_LIST = list(ATTACHMENT_CONTENT_TYPE_BY_EXTENSION_DICT)
 
-# dashboard
-DASHBOARD_PER_PAGE = 20
+# jumlah baris per halaman di semua tabel (dashboard, kategori, audit log, users)
+PER_PAGE = 10
 MAX_SEARCH_KEYWORD_LENGTH = 100
 
 # group
@@ -224,7 +225,6 @@ MAX_GROUP_DESCRIPTION_LENGTH = 500
 GROUP_ENTRY_OPTION_LIMIT = 200
 
 # halaman audit log
-AUDIT_LOG_PER_PAGE = 25
 AUDIT_ACTION_LABEL_DICT = {
     AUDIT_ACTION_CREATE: "Tambah",
     AUDIT_ACTION_UPDATE: "Ubah",
@@ -251,7 +251,6 @@ DASHBOARD_CHART_DAY_COUNT = 7
 DASHBOARD_RECENT_ACTIVITY_LIMIT = 5
 
 # kelola user
-USER_PER_PAGE = 25
 USER_STATUS_ACTIVE = "active"
 USER_STATUS_LOCKED = "locked"
 USER_STATUS_INACTIVE = "inactive"
@@ -260,6 +259,14 @@ USER_STATUS_LABEL_DICT = {
     USER_STATUS_LOCKED: "Terkunci",
     USER_STATUS_INACTIVE: "Nonaktif",
 }
+
+# hapus akun: data diri diganti biar email aslinya bisa dipake daftar lagi
+DELETED_USER_NAME = "Akun dihapus"
+DELETED_USER_PROFILE_TEXT = "-"
+# .invalid itu domain cadangan, dijamin ga bakal jadi email beneran
+DELETED_USER_EMAIL_DOMAIN = "deleted.invalid"
+# bukan format argon2, jadi verify_password selalu False
+UNUSABLE_PASSWORD_HASH = "!"
 
 # export kat excel
 EXPORT_MAX_ROW_COUNT = 5000

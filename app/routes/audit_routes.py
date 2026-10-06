@@ -4,7 +4,7 @@ from flask_login import current_user, login_required
 from app.security.access_policy import can_view_audit_data
 from app.security.role_guard import permission_required
 from app.services.audit_service import build_audit_change_list, get_audit_log, search_audit_logs
-from app.utils.constants import AUDIT_ACTION_LABEL_DICT, AUDIT_ENTITY_LABEL_DICT, AUDIT_LOG_PER_PAGE, PERMISSION_VIEW_AUDIT_LOGS
+from app.utils.constants import AUDIT_ACTION_LABEL_DICT, AUDIT_ENTITY_LABEL_DICT, PER_PAGE, PERMISSION_VIEW_AUDIT_LOGS
 from app.utils.query_helper import clean_keyword_arg, drop_empty_value, parse_date_arg, parse_positive_int
 
 audit_bp = Blueprint("audit", __name__, url_prefix="/audit-logs")
@@ -38,7 +38,7 @@ def index():
         date_from=filter_dict["date_from"],
         date_to=filter_dict["date_to"],
         page=filter_dict["page"],
-        per_page=AUDIT_LOG_PER_PAGE,
+        per_page=PER_PAGE,
     )
     pagination_query_dict = drop_empty_value({
         "q": filter_dict["keyword"],

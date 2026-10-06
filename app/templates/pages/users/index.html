@@ -3,7 +3,7 @@
 {% from "components/pagination.html" import render_pagination %}
 {% from "components/badge.html" import role_badge, user_status_badge %}
 
-{% block title %}Users - ALR{% endblock %}
+{% block title %}Users{% endblock %}
 
 {# filter tabel yg lagi kepake, dibawa ke form aksi biar abis klik balik ke tampilan yg sama #}
 {% macro back_field_list() %}
@@ -128,7 +128,7 @@
                 <td data-label="Role & Akses">
                   <div class="d-flex flex-wrap gap-1">
                     {{ role_badge(user.role) }}
-                    {% if user.role == "admin" %}
+                    {% if is_admin(user) %}
                       <span class="badge bg-azure-lt">Semua akses</span>
                     {% else %}
                       {% for permission_key in row.permission_key_list %}
@@ -143,7 +143,7 @@
                 <td class="cell-action">
                   {% if user.id == current_user.id %}
                     <span class="small text-secondary">Akunmu</span>
-                    {% elif user.role == "admin" %}
+                    {% elif is_admin(user) %}
                     <span class="small text-secondary" title="Akun admin diubah lewat command">Lewat command</span>
                     {% else %}
                     {# strategy fixed biar menunya ga kepotong kotak tabel yg bisa di-scroll #}
@@ -172,6 +172,8 @@
                             <button type="submit" class="dropdown-item">{{ icon("eye", "dropdown-item-icon") }} Aktifkan</button>
                           </form>
                         {% endif %}
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('users.delete', user_id=user.id, **back_param_dict) }}" class="dropdown-item text-danger">{{ icon("trash", "dropdown-item-icon") }} Hapus akun</a>
                       </div>
                     </div>
                   {% endif %}

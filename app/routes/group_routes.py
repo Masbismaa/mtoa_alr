@@ -23,6 +23,7 @@ from app.services.group_service import (
     update_group,
 )
 from app.utils.exceptions import ValidationError
+from app.utils.form_helper import flash_error_list
 
 groups_bp = Blueprint("groups", __name__, url_prefix="/groups")
 
@@ -44,12 +45,6 @@ def require_group_owner(user, group):
     """Anggota biasa -> 403."""
     if not is_group_owner(user, group):
         abort(403)
-
-
-def flash_error_list(error_list):
-    """Tampilin semua error sebagai flash."""
-    for error_dict in error_list:
-        flash(error_dict["message"], "danger")
 
 
 def build_form_data(form):

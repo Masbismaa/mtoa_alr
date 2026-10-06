@@ -13,7 +13,7 @@ from app.services.dashboard_service import build_dashboard_dict
 from app.services.export_service import build_entry_workbook
 from app.utils.constants import (
     AUDIT_ACTION_EXPORT,
-    DASHBOARD_PER_PAGE,
+    PER_PAGE,
     EXPORT_MAX_ROW_COUNT,
     VISIBILITY_LIST,
     XLSX_MIMETYPE,
@@ -57,7 +57,7 @@ def home():
         category_id=filter_dict["category_id"],
         visibility=filter_dict["visibility"],
         page=filter_dict["page"],
-        per_page=DASHBOARD_PER_PAGE,
+        per_page=PER_PAGE,
     )
     # filter yg ikut kebawa pas pindah halaman (yg kosong ga usah)
     pagination_query_dict = drop_empty_value({
