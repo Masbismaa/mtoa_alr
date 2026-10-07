@@ -7,7 +7,9 @@
       // ditunda sebentar: kalau submit-nya dibatalin (misal dialog konfirmasi), tombol ga ikut dikunci
       window.setTimeout(function () {
         if (event.defaultPrevented) return;
-        formEl.querySelectorAll("button[type='submit'], input[type='submit']").forEach(function (buttonEl) {
+        // tombol Simpan di toolbar ada di luar form (atribut form="id"), ikut dikunci juga
+        const outsideButtonList = formEl.id ? Array.from(document.querySelectorAll("[form='" + formEl.id + "'][type='submit']")) : [];
+        Array.from(formEl.querySelectorAll("button[type='submit'], input[type='submit']")).concat(outsideButtonList).forEach(function (buttonEl) {
           buttonEl.disabled = true;
           buttonEl.classList.add("btn-loading");
           buttonEl.setAttribute("aria-busy", "true");
