@@ -1,7 +1,31 @@
 """Test cek file upload (ekstensi + magic bytes)."""
 import pytest
+import io
+import zipfile
 
 from app.security.file_validator import clean_display_filename, detect_content_type
+
+
+def test_legacy_doc_signature_alone_is_not_accepted():
+    with pytest.raises(ValueError, match="tidak diizinkan"):
+        detect_content_type("fake.doc", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1not-a-word-document")
+
+
+def test_office_zip_requires_main_part_and_relationships():
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("[Content_Types].xml", "<Types/>")
+        archive.writestr("word/fake.xml", "<fake/>")
+    with pytest.raises(ValueError):
+        detect_content_type("fake.docx", buffer.getvalue())
+
+
+def test_embedded_object_in_office_is_rejected(sample_file_dict):
+    buffer = io.BytesIO(sample_file_dict["docx"])
+    with zipfile.ZipFile(buffer, "a") as archive:
+        archive.writestr("word/embeddings/oleObject1.bin", b"dummy")
+    with pytest.raises(ValueError):
+        detect_content_type("embedded.docx", buffer.getvalue())
 
 
 def test_valid_png_jpg_pdf(sample_file_dict):

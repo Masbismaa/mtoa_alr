@@ -1,6 +1,7 @@
 """Logika register, login (password), dan OTP. Route tinggal manggil fungsi di sini."""
 from datetime import timedelta
 from functools import lru_cache
+import smtplib
 
 from flask import current_app
 
@@ -125,7 +126,10 @@ def register_failed_login(user):
 def authenticate_user(email, password):
     """Cek email + password. Return User kalau bener, lempar AuthError kalau salah."""
     clean_email = normalize_email(email)
-    user = db.session.execute(db.select(User).filter_by(email=clean_email)).scalar_one_or_none()
+    user = db.session.execute(
+        db.select(User).filter_by(email=clean_email).with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalar_one_or_none()
 
     # email ga terdaftar: tetep jalanin verifikasi palsu biar waktunya sama
     if user is None:
@@ -175,8 +179,18 @@ def get_latest_otp(user_id, is_unused_only=False):
     return db.session.execute(query.order_by(OtpCode.id.desc()).limit(1)).scalar_one_or_none()
 
 
+def lock_auth_user(user):
+    """Serialisasi password/OTP per akun di PostgreSQL, termasuk request bersamaan."""
+    return db.session.execute(
+        db.select(User).where(User.id == user.id).with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalar_one()
+
+
 def start_otp_challenge(user):
     """Bikin OTP baru, hangusin OTP lama, terus kirim ke user."""
+    user = lock_auth_user(user)
+    ensure_can_continue_login(user)
     # OTP lama yg belum kepake dihangusin, biar cuma ada 1 OTP aktif
     db.session.execute(
         db.update(OtpCode)
@@ -185,19 +199,27 @@ def start_otp_challenge(user):
     )
 
     otp_code = generate_otp_code()
-    db.session.add(OtpCode(
+    challenge = OtpCode(
         user_id=user.id,
         code_hash=hash_otp_code(otp_code),
         expires_at=utc_now() + timedelta(minutes=OTP_EXPIRE_MINUTES),
-    ))
+    )
+    db.session.add(challenge)
     db.session.commit()
 
     # kirim setelah kesimpen, jadi OTP yg dikirim pasti valid
-    send_otp_code(user, otp_code)
+    try:
+        send_otp_code(user, otp_code)
+    except (OSError, smtplib.SMTPException, RuntimeError, ValueError):
+        challenge.is_used = True
+        db.session.commit()
+        current_app.logger.error("Pengiriman OTP gagal; periksa layanan SMTP")
+        raise AuthError("OTP belum bisa dikirim. Coba lagi atau hubungi admin.") from None
 
 
 def resend_otp_challenge(user):
     """Kirim ulang OTP, tapi harus nunggu jeda dulu biar ga di-spam."""
+    user = lock_auth_user(user)
     ensure_can_continue_login(user)
     latest_otp = get_latest_otp(user.id)
     if latest_otp is not None:
@@ -209,6 +231,7 @@ def resend_otp_challenge(user):
 
 def verify_otp_code(user, otp_code):
     """Cek OTP. Kalau bener, OTP ditandai kepake & login dicatat. Kalau salah, lempar AuthError."""
+    user = lock_auth_user(user)
     ensure_can_continue_login(user)
     active_otp = get_latest_otp(user.id, is_unused_only=True)
 

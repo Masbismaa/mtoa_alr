@@ -8,6 +8,7 @@ from app.security.encryption_service import decrypt_credential, encrypt_credenti
 from app.services.attachment_service import (
     pick_entry_attachment_list,
     prepare_upload_list,
+    enforce_upload_quota,
     remove_file_path_list,
     remove_stored_file_list,
     store_prepared_attachment_list,
@@ -19,6 +20,9 @@ from app.services.category_service import (
     get_root_category,
     is_category_usable,
     list_descendant_id,
+    list_all_category,
+    build_child_dict,
+    collect_descendant_id_list,
     list_usable_category,
 )
 from app.utils.constants import (
@@ -225,6 +229,7 @@ def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list
 
     if error_list:
         raise ValidationError(error_list)
+    enforce_upload_quota(user, prepared_upload_list)
     return clean_dict, clean_custom_field_list, prepared_upload_list
 
 
@@ -363,10 +368,16 @@ def get_visible_entry(user, entry_id):
 def list_selected_category_id(category_id_list, is_include_sub=True):
     """Kategori yg dicentang (+ sub-nya kalau is_include_sub). Kategori yg ga ada dicuekin."""
     selected_id_list = []
+    category_list = list_all_category()
+    existing_id_set = {category.id for category in category_list}
+    child_dict = build_child_dict(category_list)
+    seen = set()
     for category_id in category_id_list:
-        category = get_category(category_id)
-        if category is not None:
-            selected_id_list.extend(list_descendant_id(category) if is_include_sub else [category.id])
+        if category_id in existing_id_set:
+            for selected_id in (collect_descendant_id_list(category_id, child_dict) if is_include_sub else [category_id]):
+                if selected_id not in seen:
+                    seen.add(selected_id)
+                    selected_id_list.append(selected_id)
     return selected_id_list
 
 def apply_entry_selection(query, selection, is_include_sub=True):
