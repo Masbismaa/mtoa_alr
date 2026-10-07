@@ -13,6 +13,7 @@ from app.utils.constants import (
 )
 from app.utils.datetime_helper import build_utc_range_from_local_date
 from app.utils.query_helper import build_keyword_filter
+from app.utils.selection import apply_condition_list, build_date_range_filter, build_text_selection_filter
 from app.utils.request_helper import get_client_ip, get_user_agent
 from app.utils.sanitizer import sanitize_text
 
@@ -56,8 +57,17 @@ def log_audit(
         db.session.commit()
     return audit_log
 
+def apply_audit_selection(query, selection):
+    """Tempel kriteria Select Screen (pelaku, aksi, jenis data, tanggal) ke query audit log."""
+    return apply_condition_list(query, [
+        build_text_selection_filter([AuditLog.actor_email], selection["actor"]),
+        AuditLog.action.in_(selection["action_list"]) if selection["action_list"] else None,
+        AuditLog.entity_type.in_(selection["entity_type_list"]) if selection["entity_type_list"] else None,
+        build_date_range_filter(AuditLog.created_at, *selection["date_range"]),
+    ])
+
 def search_audit_logs(keyword=None, action=None, entity_type=None, date_from=None, date_to=None,
-                      page=1, per_page=PER_PAGE):
+                      page=1, per_page=PER_PAGE, selection=None):
     """Cari audit log buat halaman admin, yg terbaru di atas."""
     query = db.select(AuditLog)
     clean_keyword = sanitize_text(keyword, max_length=MAX_SEARCH_KEYWORD_LENGTH)
@@ -72,6 +82,8 @@ def search_audit_logs(keyword=None, action=None, entity_type=None, date_from=Non
         query = query.where(AuditLog.created_at >= start_at)
     if end_at:
         query = query.where(AuditLog.created_at < end_at)
+    if selection:
+        query = apply_audit_selection(query, selection)
     query = query.order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
     return db.paginate(query, page=page, per_page=per_page, error_out=False)
 

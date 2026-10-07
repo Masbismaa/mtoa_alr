@@ -1,10 +1,11 @@
 {% from "components/icon.html" import icon %}
-{# dialog konfirmasi global. Dipake form yg punya atribut data-confirm-message #}
+{# dialog konfirmasi global. Dipake form yg punya atribut data-confirm-message,
+   juga buat pemberitahuan menu terkunci (data-locked-message) #}
 <dialog class="confirm-dialog" id="confirm_dialog" aria-labelledby="confirm_dialog_title" aria-describedby="confirm_dialog_message">
   <div class="modal-content">
-    <div class="modal-status bg-danger"></div>
+    <div class="modal-status bg-danger" data-confirm-status></div>
     <div class="modal-body text-center py-4">
-      <span class="text-danger confirm-dialog-icon">{{ icon("alert_triangle") }}</span>
+      <span class="text-danger confirm-dialog-icon" data-confirm-icon>{{ icon("alert_triangle") }}</span>
       <h3 id="confirm_dialog_title" data-confirm-title>Yakin?</h3>
       <div class="text-secondary" id="confirm_dialog_message" data-confirm-message></div>
     </div>

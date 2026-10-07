@@ -3,6 +3,7 @@
 {% from "components/pagination.html" import render_pagination %}
 {% from "components/category_forum.html" import category_forum %}
 {% from "components/entry_table.html" import entry_table %}
+{% from "components/selection_panel.html" import selection_panel %}
 
 {% block title %}{{ path_list | map(attribute="name") | join(" › ") }}{% endblock %}
 
@@ -54,6 +55,9 @@
     </div>
   {% endif %}
 
+  {% set is_filtered = pagination_query_dict | length > 0 %}
+  {{ selection_panel(selection_field_list, url_for("categories.browse", category_id=category.id), "Cari judul, URL, address, deskripsi... (tekan /)") }}
+
   <div class="card">
     <div class="card-header">
       <h3 class="card-title">{{ icon("link") }} Link di {{ category.name }}</h3>
@@ -61,7 +65,13 @@
     </div>
     {% if pagination.items %}
       {{ entry_table(pagination.items, is_category_shown=false) }}
-      {{ render_pagination(pagination, "categories.browse", pagination_query_dict) }}
+      {{ render_pagination(pagination, "categories.browse", dict(pagination_query_dict, category_id=category.id)) }}
+    {% elif is_filtered %}
+      <div class="empty">
+        <div class="empty-icon">{{ icon("search") }}</div>
+        <p class="empty-title">Tidak ada link yang cocok</p>
+        <p class="empty-subtitle text-secondary">Coba ubah kriteria pencariannya, atau pakai * (misal portal*).</p>
+      </div>
     {% else %}
       <div class="empty">
         <div class="empty-icon">{{ icon("link") }}</div>
@@ -75,4 +85,8 @@
       </div>
     {% endif %}
   </div>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', filename='js/components/selection_panel.js') }}" defer></script>
 {% endblock %}

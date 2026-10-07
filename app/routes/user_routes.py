@@ -4,6 +4,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import login_required
 from app.extensions import limiter
 from app.security.role_guard import admin_required
+from app.schemas.selection_schema import USER_FIELD_LIST, USER_FILTER_KEY_LIST, read_user_selection
 from app.services.user_service import (
     build_delete_preview,
     build_user_summary,
@@ -16,43 +17,29 @@ from app.services.user_service import (
     toggle_user_active,
     unlock_user,
 )
-from app.utils.constants import PERMISSION_INFO_DICT, ROLE_ADMIN, PER_PAGE, ROLE_LABEL_DICT, USER_STATUS_LABEL_DICT
+from app.utils.constants import PERMISSION_INFO_DICT, ROLE_ADMIN, PER_PAGE
 from app.utils.exceptions import ValidationError
-from app.utils.query_helper import clean_keyword_arg, drop_empty_value, parse_positive_int
+from app.utils.query_helper import parse_positive_int
+from app.utils.selection import build_selection_query_dict
 from app.utils.form_helper import flash_error_list
 from app.utils.request_helper import get_current_user
 
 users_bp = Blueprint("users", __name__, url_prefix="/users")
 
-# filter tabel yg ikut dibawa balik setelah ubah akun
-USER_FILTER_KEY_LIST = ["q", "role", "status", "page"]
-
 def build_back_param_dict():
-    """Filter yg lagi kepake di tabel, dikasih awalan back_ buat dibawa ke halaman/form aksi."""
-    return {f"back_{key}": request.args[key] for key in USER_FILTER_KEY_LIST if request.args.get(key)}
-
-def read_user_filter():
-    """Baca filter dari URL, nilai yg ngaco dicuekin aja."""
-    role = request.args.get("role", "")
-    status = request.args.get("status", "")
-    return {
-        "keyword": clean_keyword_arg(request.args.get("q")),
-        "role": role if role in ROLE_LABEL_DICT else "",
-        "status": status if status in USER_STATUS_LABEL_DICT else "",
-        "page": parse_positive_int(request.args.get("page"), default=1),
-    }
+    """Kriteria yg lagi kepake di tabel, dikasih awalan back_ buat dibawa ke halaman/form aksi (bisa banyak nilai)."""
+    return {f"back_{key}": request.args.getlist(key) for key in USER_FILTER_KEY_LIST if request.args.getlist(key)}
 
 @users_bp.get("/")
 @login_required
 @admin_required
 def index():
-    """Tabel semua user + search, filter role & status, pagination."""
-    filter_dict = read_user_filter()
+    """Tabel semua user + Kriteria Pencarian (Select Screen) + pagination."""
+    selection = read_user_selection(request.args)
     pagination = search_users(
-        keyword=filter_dict["keyword"],
-        role=filter_dict["role"],
-        status=filter_dict["status"],
-        page=filter_dict["page"],
+        keyword=selection["keyword"],
+        selection=selection,
+        page=parse_positive_int(request.args.get("page"), default=1),
         per_page=PER_PAGE,
     )
     return render_template(
@@ -63,15 +50,10 @@ def index():
             {"user": user, "status": get_user_status(user), "permission_key_list": get_permission_key_list(user)}
             for user in pagination.items
         ],
-        pagination_query_dict=drop_empty_value({
-            "q": filter_dict["keyword"],
-            "role": filter_dict["role"],
-            "status": filter_dict["status"],
-        }),
-        filter_dict=filter_dict,
+        pagination_query_dict=build_selection_query_dict(request.args, USER_FIELD_LIST),
+        selection_field_list=USER_FIELD_LIST,
+        keyword=selection["keyword"],
         summary_dict=build_user_summary(),
-        role_label_dict=ROLE_LABEL_DICT,
-        status_label_dict=USER_STATUS_LABEL_DICT,
         permission_info_dict=PERMISSION_INFO_DICT,
         back_param_dict=build_back_param_dict(),
     )
@@ -91,9 +73,10 @@ def redirect_if_admin(target, message):
     return redirect(url_for("users.index"))
 
 def build_back_url():
-    """Balik ke tabel user dgn filter yg tadi lagi kepake (dikirim lewat input hidden)."""
-    filter_dict = drop_empty_value({key: request.values.get(f"back_{key}", "") for key in USER_FILTER_KEY_LIST})
-    return url_for("users.index") + (f"?{urlencode(filter_dict)}" if filter_dict else "")
+    """Balik ke tabel user dgn kriteria yg tadi lagi kepake (dikirim lewat input hidden back_*)."""
+    filter_dict = {key: request.values.getlist(f"back_{key}") for key in USER_FILTER_KEY_LIST}
+    filter_dict = {key: value_list for key, value_list in filter_dict.items() if value_list}
+    return url_for("users.index") + (f"?{urlencode(filter_dict, doseq=True)}" if filter_dict else "")
 
 def run_user_action(action_function, success_message, *arg_list):
     """Jalanin aksi ke user + flash hasilnya, terus balik ke tabel (biar ga nulis try/except berulang)."""

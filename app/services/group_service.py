@@ -23,7 +23,8 @@ from app.utils.constants import (
     MAX_GROUP_NAME_LENGTH,
 )
 from app.utils.exceptions import PermissionDeniedError, ValidationError, build_error
-from app.utils.query_helper import parse_positive_int
+from app.utils.query_helper import build_keyword_filter, parse_positive_int
+from app.utils.selection import apply_condition_list, build_text_selection_filter
 from app.utils.sanitizer import sanitize_text
 from app.utils.text_helper import normalize_email
 
@@ -99,15 +100,29 @@ def get_member_group(user, group_id):
         )
     ).scalar_one_or_none()
 
-def list_user_group(user):
-    """Semua group yg user jadi anggota aktifnya."""
-    return db.session.execute(
+def build_group_role_condition(user, role_list):
+    """Filter peran user di group: cuma Pemilik atau cuma Anggota. Dua-duanya / kosong = ga difilter."""
+    if role_list == [GROUP_ROLE_OWNER]:
+        return Group.user_id == user.id
+    if role_list == [GROUP_ROLE_MEMBER]:
+        return Group.user_id != user.id
+    return None
+
+def list_user_group(user, selection=None):
+    """Semua group yg user jadi anggota aktifnya. selection = kriteria Select Screen halaman Groups."""
+    query = (
         db.select(Group)
         .join(GroupMember, GroupMember.group_id == Group.id)
         .options(selectinload(Group.member_list), selectinload(Group.group_entry_list))
         .where(GroupMember.user_id == user.id, GroupMember.status == GROUP_MEMBER_STATUS_ACTIVE)
-        .order_by(Group.name)
-    ).scalars().all()
+    )
+    if selection:
+        query = apply_condition_list(query, [
+            build_keyword_filter([Group.name, Group.description], selection["keyword"]) if selection["keyword"] else None,
+            build_text_selection_filter([Group.name], selection["name"]),
+            build_group_role_condition(user, selection["role_list"]),
+        ])
+    return db.session.execute(query.order_by(Group.name)).scalars().all()
 
 def list_pending_invitation(user):
     """Undangan yg belum dijawab user."""

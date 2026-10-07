@@ -16,8 +16,13 @@ from app.utils.exceptions import ValidationError
 from app.utils.navigation import build_sidebar_section_list
 
 def get_nav_label_list(user):
-    """Helper: semua label menu yg keliatan buat user."""
-    return [item["label"] for section in build_sidebar_section_list(user, "main.home") for item in section["item_list"]]
+    """Helper: label menu yg bisa dibuka user (menu terkunci ga dihitung)."""
+    return [
+        item["label"]
+        for section in build_sidebar_section_list(user, "main.home")
+        for item in section["item_list"]
+        if not item.get("is_locked")
+    ]
 
 def test_admin_has_all_permission(app, admin_user):
     """Positive: admin otomatis punya semua akses tanpa di-grant."""

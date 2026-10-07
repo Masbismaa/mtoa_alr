@@ -36,13 +36,13 @@ def test_topbar_has_home_theme_toggle_and_user_menu(logged_in_client):
     assert "user-menu" in topbar_html
     assert "data-theme-toggle" in topbar_html
 
-def test_user_entry_does_not_see_admin_menu(logged_in_client):
-    """Negative (RBAC): user biasa ga liat menu Categories & Audit Logs."""
+def test_user_entry_sees_locked_admin_menu(logged_in_client):
+    """Negative (RBAC): user biasa liat menu Categories & Audit Logs dgn gembok, tapi ga ada link-nya."""
     html_text = logged_in_client.get("/").get_data(as_text=True)
     assert "Settings" in html_text
     assert "Groups" in html_text
-    assert "Audit Logs" not in html_text
-    assert "Categories" not in html_text
+    assert "Audit Logs" in html_text and 'href="/audit-logs/"' not in html_text
+    assert "Categories" in html_text and 'href="/categories/"' not in html_text
 
 def test_admin_sees_admin_menu(client, user_password, fixed_otp_code):
     """Positive (RBAC): admin liat menu Categories & Audit Logs."""

@@ -27,6 +27,7 @@ from app.utils.constants import (
 from app.utils.datetime_helper import to_utc_aware, utc_now
 from app.utils.exceptions import ValidationError, build_error
 from app.utils.query_helper import build_keyword_filter
+from app.utils.selection import apply_condition_list, build_date_range_filter, build_text_selection_filter
 from app.utils.sanitizer import sanitize_text
 from app.utils.text_helper import normalize_email
 
@@ -52,7 +53,18 @@ def build_status_condition(status):
         return db.and_(User.is_active.is_(True), db.not_(is_locked_condition))
     return None
 
-def search_users(keyword=None, role=None, status=None, page=1, per_page=PER_PAGE):
+def apply_user_selection(query, selection):
+    """Tempel kriteria Select Screen (nama/email, departemen, role, status, tanggal daftar) ke query user."""
+    status_condition_list = [build_status_condition(status) for status in selection["status_list"]]
+    return apply_condition_list(query, [
+        build_text_selection_filter([User.full_name, User.email], selection["name"]),
+        build_text_selection_filter([User.department, User.job_title], selection["department"]),
+        User.role.in_(selection["role_list"]) if selection["role_list"] else None,
+        db.or_(*status_condition_list) if status_condition_list else None,
+        build_date_range_filter(User.created_at, *selection["created_range"]),
+    ])
+
+def search_users(keyword=None, role=None, status=None, page=1, per_page=PER_PAGE, selection=None):
     """Cari user buat tabel admin, urut nama. Akun yg udah dihapus ga ikut."""
     query = db.select(User).options(selectinload(User.permission_list)).where(User.deleted_at.is_(None))
     clean_keyword = sanitize_text(keyword, max_length=MAX_SEARCH_KEYWORD_LENGTH)
@@ -64,6 +76,8 @@ def search_users(keyword=None, role=None, status=None, page=1, per_page=PER_PAGE
     status_condition = build_status_condition(status)
     if status_condition is not None:
         query = query.where(status_condition)
+    if selection:
+        query = apply_user_selection(query, selection)
     query = query.order_by(db.func.lower(User.full_name), User.id)
     return db.paginate(query, page=page, per_page=per_page, error_out=False)
 
