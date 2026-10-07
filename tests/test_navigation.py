@@ -21,8 +21,8 @@ def test_admin_section_locked_for_user(app, registered_user, admin_user):
 
 def test_dropdown_open_when_child_active(app, registered_user):
     """Positive: filter Link Public aktif -> menu Data Link kebuka, Dashboard ga ikut aktif."""
-    with app.test_request_context("/?visibility=public"):
-        section_list = build_sidebar_section_list(registered_user, "main.home")
+    with app.test_request_context("/entries/?visibility=public"):
+        section_list = build_sidebar_section_list(registered_user, "entries.index")
     dashboard_item = section_list[0]["item_list"][0]
     data_link_item = section_list[1]["item_list"][0]
     assert dashboard_item["is_active"] is False

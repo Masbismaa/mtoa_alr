@@ -92,7 +92,7 @@ def test_delete_entry_via_post(logged_in_client, registered_user, category_dict)
     assert db.session.get(AccessEntry, entry_id) is None
 
 def test_dashboard_shows_entry(logged_in_client, registered_user, category_dict):
-    """Positive: data baru muncul di tabel dashboard."""
+    """Positive: data baru muncul di tabel Daftar Link."""
     create_access_entry(registered_user, build_service_dict(category_dict["Web"], title="Portal Absensi"))
-    html_text = logged_in_client.get("/").get_data(as_text=True)
+    html_text = logged_in_client.get("/entries/?run=1").get_data(as_text=True)
     assert "Portal Absensi" in html_text
