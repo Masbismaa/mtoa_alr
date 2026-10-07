@@ -4,7 +4,12 @@
 
 {% block title %}Audit Log #{{ audit_log.id }}{% endblock %}
 
-{% block page_pretitle %}<a href="{{ url_for('audit.index') }}" class="text-reset">{{ icon("arrow_left") }} Audit Logs</a>{% endblock %}
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}Display Audit Log #{{ audit_log.id }}{% endblock %}
+
+{% block page_pretitle %}Admin › Audit Logs{% endblock %}
+
+{% block toolbar_back %}{{ url_for('audit.index') }}{% endblock %}
 
 {% block page_heading %}Audit Log #{{ audit_log.id }}{% endblock %}
 

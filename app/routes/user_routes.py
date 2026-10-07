@@ -5,6 +5,8 @@ from flask_login import login_required
 from app.extensions import limiter
 from app.security.role_guard import admin_required
 from app.schemas.selection_schema import USER_FIELD_LIST, USER_FILTER_KEY_LIST, read_user_selection
+from app.schemas.table_schema import TABLE_USER
+from app.services.preference_service import get_table_layout
 from app.services.user_service import (
     build_delete_preview,
     build_user_summary,
@@ -18,6 +20,7 @@ from app.services.user_service import (
     unlock_user,
 )
 from app.utils.constants import PERMISSION_INFO_DICT, ROLE_ADMIN, PER_PAGE
+from app.utils.data_table import build_table_view
 from app.utils.exceptions import ValidationError
 from app.utils.query_helper import parse_positive_int
 from app.utils.selection import build_selection_query_dict
@@ -36,9 +39,11 @@ def build_back_param_dict():
 def index():
     """Tabel semua user + Kriteria Pencarian (Select Screen) + pagination."""
     selection = read_user_selection(request.args)
+    table_view = build_table_view(TABLE_USER, request.args, get_table_layout(get_current_user(), TABLE_USER), field_list=USER_FIELD_LIST)
     pagination = search_users(
         keyword=selection["keyword"],
         selection=selection,
+        sort=table_view["sort"],
         page=parse_positive_int(request.args.get("page"), default=1),
         per_page=PER_PAGE,
     )
@@ -56,6 +61,7 @@ def index():
         summary_dict=build_user_summary(),
         permission_info_dict=PERMISSION_INFO_DICT,
         back_param_dict=build_back_param_dict(),
+        table_view=table_view,
     )
 
 def get_target_user_or_404(user_id):

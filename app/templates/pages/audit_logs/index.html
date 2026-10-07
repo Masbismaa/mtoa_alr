@@ -3,8 +3,12 @@
 {% from "components/pagination.html" import render_pagination %}
 {% from "components/badge.html" import audit_action_badge %}
 {% from "components/selection_panel.html" import selection_panel %}
+{% from "components/data_table.html" import table_attr, table_head, cell_attr, column_menu, column_filter_form %}
 
 {% block title %}Audit Logs{% endblock %}
+
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}Display Audit Logs{% endblock %}
 
 {% block page_pretitle %}Admin{% endblock %}
 
@@ -13,41 +17,35 @@
 {% endblock %}
 
 {% block content %}
-  {% set is_filtered = pagination_query_dict | length > 0 %}
-  {{ selection_panel(selection_field_list, url_for("audit.index"), "Cari email pelaku, ID data, IP... (tekan /)") }}
+  {# urutan (sort) aja ga diitung sebagai filter #}
+  {% set is_filtered = pagination_query_dict | reject("equalto", "sort") | list | length > 0 %}
+  {{ selection_panel(selection_field_list, url_for("audit.index", _anchor="daftar_audit"), "Cari email pelaku, ID data, IP... (tekan /)") }}
 
-  <div class="card">
+  <div class="card" id="daftar_audit">
     <div class="card-header">
       <h3 class="card-title">{{ icon("audit") }} Aktivitas</h3>
       <div class="card-actions">
+        {% if pagination.items %}{{ column_menu(table_view) }}{% endif %}
         <span class="badge bg-secondary-lt">{{ pagination.total }} catatan</span>
       </div>
     </div>
 
     {% if pagination.items %}
+      {{ column_filter_form(table_view, "daftar_audit") }}
       <div class="table-responsive">
-        <table class="table table-vcenter card-table table-stack">
-          <thead>
-            <tr>
-              <th>Waktu</th>
-              <th>Pelaku</th>
-              <th>Aksi</th>
-              <th>Data</th>
-              <th>IP Address</th>
-              <th class="w-1"><span class="visually-hidden">Detail</span></th>
-            </tr>
-          </thead>
+        <table class="table table-vcenter card-table table-stack data-table" {{ table_attr(table_view) }}>
+          {{ table_head(table_view, "audit.index", pagination_query_dict, "daftar_audit") }}
           <tbody>
             {% for audit_log in pagination.items %}
               <tr>
-                <td class="text-nowrap text-secondary" data-label="Waktu">{{ audit_log.created_at | local_datetime("%d %b %Y, %H:%M:%S") }}</td>
-                <td class="cell-actor" data-label="Pelaku">{% if audit_log.actor_email %}{{ audit_log.actor_email }}{% else %}<span class="text-secondary">Sistem</span>{% endif %}</td>
-                <td data-label="Aksi">{{ audit_action_badge(audit_log.action) }}</td>
-                <td data-label="Data">
+                <td class="text-nowrap text-secondary" data-label="Waktu" {{ cell_attr(table_view, "time") }}>{{ audit_log.created_at | local_datetime("%d %b %Y, %H:%M:%S") }}</td>
+                <td class="cell-actor" data-label="Pelaku" {{ cell_attr(table_view, "actor") }}>{% if audit_log.actor_email %}{{ audit_log.actor_email }}{% else %}<span class="text-secondary">Sistem</span>{% endif %}</td>
+                <td data-label="Aksi" {{ cell_attr(table_view, "action") }}>{{ audit_action_badge(audit_log.action) }}</td>
+                <td data-label="Data" {{ cell_attr(table_view, "entity") }}>
                   {{ audit_log.entity_type | audit_entity_label }}
                   {% if audit_log.entity_id %}<span class="text-secondary">#{{ audit_log.entity_id }}</span>{% endif %}
                 </td>
-                <td class="font-monospace small" data-label="IP Address">{{ audit_log.ip_address or "-" }}</td>
+                <td class="font-monospace small" data-label="IP Address" {{ cell_attr(table_view, "ip") }}>{{ audit_log.ip_address or "-" }}</td>
                 <td class="cell-action">
                   <a href="{{ url_for('audit.detail', log_id=audit_log.id) }}" class="btn btn-sm">{{ icon("eye") }} Detail</a>
                 </td>
@@ -56,7 +54,7 @@
           </tbody>
         </table>
       </div>
-      {{ render_pagination(pagination, "audit.index", pagination_query_dict) }}
+      {{ render_pagination(pagination, "audit.index", pagination_query_dict, "daftar_audit") }}
     {% elif is_filtered %}
       <div class="empty">
         <div class="empty-icon">{{ icon("search") }}</div>

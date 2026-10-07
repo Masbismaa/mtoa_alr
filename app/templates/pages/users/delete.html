@@ -4,12 +4,21 @@
 
 {% block title %}Hapus Akun {{ target.full_name }}{% endblock %}
 
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}Change Akun: {{ target.full_name }} (Hapus){% endblock %}
+
 {% block page_pretitle %}Admin › Users{% endblock %}
+
+{% block toolbar_cancel %}{{ back_url }}{% endblock %}
+
+{% block page_actions %}
+  <button type="submit" form="delete_account_form" class="btn btn-danger">{{ icon("trash") }} Hapus Akun</button>
+{% endblock %}
 
 {% block content %}
   <div class="row justify-content-center">
     <div class="col-lg-8">
-      <form method="post" class="card" novalidate>
+      <form method="post" class="card" id="delete_account_form" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         {{ back_field_list() }}
         <div class="card-status-top bg-danger"></div>
@@ -60,11 +69,6 @@
 
           <label class="form-label required" for="confirm_email">Ketik ulang email akun untuk konfirmasi</label>
           <input type="email" id="confirm_email" name="confirm_email" class="form-control" placeholder="{{ target.email }}" autocomplete="off" required>
-        </div>
-
-        <div class="card-footer d-flex justify-content-end gap-2">
-          <a href="{{ back_url }}" class="btn">Batal</a>
-          <button type="submit" class="btn btn-danger">{{ icon("trash") }} Hapus Akun</button>
         </div>
       </form>
     </div>
