@@ -1,15 +1,19 @@
 """Ambil & ubah preferensi tampilan user."""
 from app.extensions import db
 from app.models import UserPreference
+from app.schemas.table_schema import TABLE_COLUMN_DICT
 from app.services.audit_service import log_audit
 from app.utils.constants import (
     ACCENT_KEY_BY_HEX_DICT,
     AUDIT_ACTION_UPDATE,
     DEFAULT_ACCENT_KEY,
     FONT_FAMILY_KEY_LIST,
+    TABLE_COLUMN_MAX_WIDTH,
+    TABLE_COLUMN_MIN_WIDTH,
     THEME_MODE_LIST,
 )
-from app.utils.exceptions import ValidationError
+from app.utils.data_table import build_default_layout
+from app.utils.exceptions import ValidationError, build_error
 
 # cuma field ini yg boleh diubah lewat API, sisanya ditolak
 PREFERENCE_FIELD_LIST = ["theme_mode", "accent_color", "is_compact_view", "font_family"]
@@ -78,3 +82,47 @@ def update_preference(user, data_dict):
         )
         db.session.commit()
     return preference
+
+# LAYOUT TABEL ALA ALV (kolom disembunyiin + lebar kolom), disimpen per tabel
+TABLE_LAYOUT_FIELD_LIST = ["table_key", "hidden_list", "width_dict"]
+
+def get_table_layout(user, table_key):
+    """Layout tabel yg disimpen user. Belum pernah ngatur -> layout bawaan (ga bikin baris preferensi baru)."""
+    saved_layout_dict = (user.preference.table_layout or {}).get(table_key) if user.preference else None
+    return saved_layout_dict or build_default_layout(table_key)
+
+def is_valid_width(value):
+    """Lebar kolom harus angka bulat dalam batas wajar (bool ditolak walaupun di Python termasuk int)."""
+    return isinstance(value, int) and not isinstance(value, bool) and TABLE_COLUMN_MIN_WIDTH <= value <= TABLE_COLUMN_MAX_WIDTH
+
+def clean_table_layout(data_dict):
+    """Cek layout dari JS. Return (table_key, layout_dict), lempar ValidationError kalau ada yg ga valid."""
+    error_list = [build_error(str(key)[:50], "Field tidak dikenal") for key in data_dict if key not in TABLE_LAYOUT_FIELD_LIST]
+    table_key = data_dict.get("table_key")
+    column_list = TABLE_COLUMN_DICT.get(table_key) if isinstance(table_key, str) else None
+    if column_list is None:
+        raise ValidationError(error_list + [build_error("table_key", "Tabel tidak dikenal")])
+    hideable_key_list = [column.key for column in column_list if column.is_hideable]
+    column_key_list = [column.key for column in column_list]
+    hidden_list = data_dict.get("hidden_list", [])
+    width_dict = data_dict.get("width_dict", {})
+    if not isinstance(hidden_list, list) or any(key not in hideable_key_list for key in hidden_list):
+        error_list.append(build_error("hidden_list", "Kolom yang disembunyikan tidak valid"))
+    if not isinstance(width_dict, dict) or any(
+        key not in column_key_list or not is_valid_width(value) for key, value in width_dict.items()
+    ):
+        error_list.append(build_error("width_dict", f"Lebar kolom harus {TABLE_COLUMN_MIN_WIDTH}-{TABLE_COLUMN_MAX_WIDTH} px"))
+    if error_list:
+        raise ValidationError(error_list)
+    # urutannya ngikut daftar kolom & dobel dibuang biar data yg kesimpen rapi
+    clean_hidden_list = [key for key in hideable_key_list if key in hidden_list]
+    return table_key, {"hidden_list": clean_hidden_list, "width_dict": width_dict}
+
+def update_table_layout(user, data_dict):
+    """Simpen layout satu tabel. Ga dicatat di audit log: cuma tampilan pribadi & bisa berubah tiap kolom digeser."""
+    table_key, layout_dict = clean_table_layout(data_dict)
+    preference = get_or_create_preference(user)
+    # dict baru biar SQLAlchemy sadar kolom JSON-nya berubah
+    preference.table_layout = {**(preference.table_layout or {}), table_key: layout_dict}
+    db.session.commit()
+    return layout_dict
