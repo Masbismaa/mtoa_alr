@@ -18,13 +18,14 @@ def assert_invalid_field(user, data_dict, expected_field):
     field_list = [error_dict["field"] for error_dict in error_info.value.error_list]
     assert expected_field in field_list
 
-def test_get_or_create_preference_creates_missing(app):
-    """Positive: user tanpa preferensi otomatis dibikinin yg default."""
+def test_get_or_create_preference_reads_defaults_without_writing(app):
+    """Render user lama memakai default tanpa menyisipkan/commit preferensi."""
     user = User(email="tanpa.pref@spindo.com", full_name="Tanpa Pref", department="ICT", job_title="Staff", password_hash="hash-dummy")
     db.session.add(user)
     db.session.commit()
     preference = get_or_create_preference(user)
-    assert preference.id is not None
+    assert preference.id is None
+    assert user.preference is None
     assert preference.theme_mode == "light"
 
 def test_build_ui_preference_dict_maps_accent_key(app, registered_user):

@@ -1,12 +1,15 @@
 """Ambil & ubah preferensi tampilan user."""
 from app.extensions import db
-from app.models import UserPreference
+from app.models import User, UserPreference
 from app.schemas.table_schema import TABLE_COLUMN_DICT
 from app.services.audit_service import log_audit
 from app.utils.constants import (
     ACCENT_KEY_BY_HEX_DICT,
     AUDIT_ACTION_UPDATE,
     DEFAULT_ACCENT_KEY,
+    DEFAULT_ACCENT_COLOR,
+    DEFAULT_FONT_FAMILY,
+    THEME_MODE_LIGHT,
     FONT_FAMILY_KEY_LIST,
     TABLE_COLUMN_MAX_WIDTH,
     TABLE_COLUMN_MIN_WIDTH,
@@ -18,12 +21,21 @@ from app.utils.exceptions import ValidationError, build_error
 # cuma field ini yg boleh diubah lewat API, sisanya ditolak
 PREFERENCE_FIELD_LIST = ["theme_mode", "accent_color", "is_compact_view", "font_family"]
 
-def get_or_create_preference(user):
-    """Ambil preferensi user, kalau belum ada langsung dibikinin yg default."""
-    if user.preference is None:
-        user.preference = UserPreference()
-        db.session.commit()
-    return user.preference
+def get_or_create_preference(user, for_write=False):
+    """Render memakai default tanpa menulis DB; perubahan disimpan oleh transaksi pemanggil."""
+    if for_write:
+        db.session.execute(db.select(User.id).where(User.id == user.id).with_for_update()).scalar_one()
+        preference = db.session.execute(db.select(UserPreference).where(UserPreference.user_id == user.id)
+                                        .execution_options(populate_existing=True)).scalar_one_or_none()
+    else:
+        preference = user.preference
+    if preference is None:
+        preference = UserPreference(theme_mode=THEME_MODE_LIGHT, accent_color=DEFAULT_ACCENT_COLOR,
+                                    font_family=DEFAULT_FONT_FAMILY, is_compact_view=False, table_layout={})
+        if for_write:
+            user.preference = preference
+            db.session.flush()
+    return preference
 
 def build_preference_dict(preference):
     """Preferensi dalam bentuk dict (dipake buat audit & response)."""
@@ -67,7 +79,8 @@ def update_preference(user, data_dict):
     if error_list:
         raise ValidationError(error_list)
 
-    preference = get_or_create_preference(user)
+    had_preference = user.preference is not None
+    preference = get_or_create_preference(user, for_write=True)
     old_data_dict = build_preference_dict(preference)
 
     for key, value in clean_dict.items():
@@ -80,6 +93,8 @@ def update_preference(user, data_dict):
             AUDIT_ACTION_UPDATE, "user_preferences", entity_id=preference.id,
             old_data_dict=old_data_dict, new_data_dict=new_data_dict, user=user,
         )
+        db.session.commit()
+    elif not had_preference:
         db.session.commit()
     return preference
 
@@ -121,7 +136,7 @@ def clean_table_layout(data_dict):
 def update_table_layout(user, data_dict):
     """Simpen layout satu tabel. Ga dicatat di audit log: cuma tampilan pribadi & bisa berubah tiap kolom digeser."""
     table_key, layout_dict = clean_table_layout(data_dict)
-    preference = get_or_create_preference(user)
+    preference = get_or_create_preference(user, for_write=True)
     # dict baru biar SQLAlchemy sadar kolom JSON-nya berubah
     preference.table_layout = {**(preference.table_layout or {}), table_key: layout_dict}
     db.session.commit()

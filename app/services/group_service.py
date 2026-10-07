@@ -1,5 +1,6 @@
 """Logika group: bikin, undang anggota, izin tambah link, bagi link (bisa dibatasi per anggota), keluar/dikeluarin."""
 from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy import or_
 from app.extensions import db
 from app.models import AccessEntry, Group, GroupEntry, GroupEntryViewer, GroupMember, User
 from app.security.access_policy import (
@@ -113,7 +114,7 @@ def list_user_group(user, selection=None):
     query = (
         db.select(Group)
         .join(GroupMember, GroupMember.group_id == Group.id)
-        .options(selectinload(Group.member_list), selectinload(Group.group_entry_list))
+        .options(selectinload(Group.member_list))
         .where(GroupMember.user_id == user.id, GroupMember.status == GROUP_MEMBER_STATUS_ACTIVE)
     )
     if selection:
@@ -123,6 +124,27 @@ def list_user_group(user, selection=None):
             build_group_role_condition(user, selection["role_list"]),
         ])
     return db.session.execute(query.order_by(Group.name)).scalars().all()
+
+def count_visible_group_entries(user, group_list):
+    """Hitung link semua group dalam satu query dengan aturan visibilitas yang sama."""
+    group_ids = [group.id for group in group_list]
+    if not group_ids:
+        return {}
+    viewer_exists = db.select(GroupEntryViewer.id).where(
+        GroupEntryViewer.group_entry_id == GroupEntry.id, GroupEntryViewer.user_id == user.id,
+    ).exists()
+    active_membership = db.select(GroupMember.id).where(
+        GroupMember.group_id == Group.id, GroupMember.user_id == user.id,
+        GroupMember.status == GROUP_MEMBER_STATUS_ACTIVE,
+    ).exists()
+    counts = dict(db.session.execute(
+        db.select(GroupEntry.group_id, db.func.count(GroupEntry.id))
+        .join(Group, Group.id == GroupEntry.group_id).join(AccessEntry, AccessEntry.id == GroupEntry.access_entry_id)
+        .where(Group.id.in_(group_ids), active_membership, or_(GroupEntry.is_restricted.is_(False),
+               Group.user_id == user.id, GroupEntry.user_id == user.id, AccessEntry.user_id == user.id, viewer_exists))
+        .group_by(GroupEntry.group_id)
+    ).all())
+    return {group_id: counts.get(group_id, 0) for group_id in group_ids}
 
 def list_pending_invitation(user):
     """Undangan yg belum dijawab user."""

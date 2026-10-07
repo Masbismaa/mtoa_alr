@@ -1,6 +1,7 @@
 """Perintah CLI tambahan untuk aplikasi (dijalankan lewat: python -m flask --app run <perintah>)."""
 
 import click
+import time
 
 def register_cli_commands(app):
     """Mendaftarkan semua perintah CLI custom ke aplikasi."""
@@ -14,7 +15,7 @@ def register_cli_commands(app):
     from app.utils.constants import ROLE_USER_ENTRY
     from app.utils.exceptions import ValidationError
     from app.utils.text_helper import normalize_email
-    from app.services.link_monitor_service import build_run_summary_text, run_monitor
+    from app.services.link_monitor_service import build_run_summary_text, process_pending_monitor, recover_stale_monitor, run_monitor
 
     @app.cli.command("seed-categories")
     def seed_categories_command():
@@ -71,5 +72,57 @@ def register_cli_commands(app):
 
     @app.cli.command("check-links")
     def check_links_command():
-        """Cek status semua link. Dijalanin Task Scheduler tiap 5 menit lewat scripts/run_link_monitor.cmd."""
-        click.echo(build_run_summary_text(run_monitor()))
+        """Jalankan satu pemeriksaan manual, memakai kunci yang sama dengan worker."""
+        try:
+            click.echo(build_run_summary_text(run_monitor()))
+        except ValidationError as error:
+            raise click.ClickException(error.error_list[0]["message"]) from error
+
+    @app.cli.command("monitor-worker")
+    @click.option("--once", is_flag=True, help="Proses satu antrean lalu berhenti.")
+    def monitor_worker_command(once):
+        """Proses permintaan tombol admin; tidak membuat pemeriksaan terjadwal."""
+        while True:
+            try:
+                counts = process_pending_monitor()
+                if counts is not None:
+                    click.echo(build_run_summary_text(counts))
+            except Exception:
+                if once:
+                    raise click.ClickException("Pemeriksaan gagal; periksa layanan dan jaringan") from None
+                click.echo("Pemeriksaan gagal; menunggu permintaan berikutnya.", err=True)
+            if once:
+                return
+            db.session.remove()
+            time.sleep(2)
+
+    @app.cli.command("recover-link-monitor")
+    def recover_link_monitor_command():
+        """Cabut pemeriksaan macet yang tidak memberi progres selama lima menit."""
+        click.echo("Pemeriksaan dicabut." if recover_stale_monitor() else "Tidak ada pemeriksaan macet.")
+
+    @app.cli.command("cleanup-attachments")
+    @click.option("--delete", is_flag=True, help="Hapus file yatim yang sudah lebih dari 24 jam.")
+    def cleanup_attachments_command(delete):
+        """Default hanya menampilkan jumlah file yatim; tidak menghapus file terdaftar."""
+        from app.models import Attachment
+        from app.services.attachment_service import get_upload_folder
+        cutoff = time.time() - 86400
+        count = 0
+        paths = [path for path in get_upload_folder().iterdir()
+                 if path.is_file() and not path.is_symlink() and path.stat().st_mtime < cutoff]
+        for offset in range(0, len(paths), 500):
+            batch = paths[offset:offset + 500]
+            stored_names = set(db.session.scalars(db.select(Attachment.stored_filename).where(
+                Attachment.stored_filename.in_([path.name for path in batch])
+            )))
+            for path in batch:
+                if path.name in stored_names:
+                    continue
+                count += 1
+                if delete:
+                    try:
+                        path.unlink(missing_ok=True)
+                    except OSError:
+                        raise click.ClickException("Lampiran belum dapat dihapus; periksa izin folder") from None
+        click.echo(f"{count} file yatim {'dihapus' if delete else 'ditemukan (belum dihapus)'}.")
