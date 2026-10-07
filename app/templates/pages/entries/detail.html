@@ -5,7 +5,14 @@
 
 {% block title %}{{ entry.title }}{% endblock %}
 
-{% block page_pretitle %}<a href="{{ url_for('main.home') }}" class="text-reset">{{ icon("arrow_left") }} Dashboard</a>{% endblock %}
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}Display Access Link: {{ entry.title }}{% endblock %}
+
+{# Kembali di toolbar: dibuka dari tabel -> balik ke tabel itu lagi (filter & urutan tetep), dibuka langsung -> ke Daftar Link #}
+{% set list_url = back_url or url_for('entries.index') %}
+{% block page_pretitle %}Data Link › Detail{% endblock %}
+
+{% block toolbar_back %}{{ list_url }}{% endblock %}
 
 {% block page_heading %}{{ entry.title }}{% endblock %}
 
@@ -18,8 +25,9 @@
 
 {% block page_actions %}
   {% if can_edit %}
-    <a href="{{ url_for('entries.edit', entry_id=entry.id) }}" class="btn">{{ icon("edit") }} Edit</a>
-    <form method="post" action="{{ url_for('entries.delete', entry_id=entry.id) }}" data-confirm-title="Hapus data link?" data-confirm-message="Data &quot;{{ entry.title }}&quot; beserta field tambahannya bakal dihapus permanen." data-confirm-ok="Ya, hapus">
+    {# alamat tabel asal ikut ke Edit & Hapus, biar abis itu balik ke tabel yg sama #}
+    <a href="{{ url_for('entries.edit', entry_id=entry.id, back=back_url) }}" class="btn">{{ icon("edit") }} Edit</a>
+    <form method="post" action="{{ url_for('entries.delete', entry_id=entry.id, back=back_url) }}" data-confirm-title="Hapus data link?" data-confirm-message="Data &quot;{{ entry.title }}&quot; beserta field tambahannya bakal dihapus permanen." data-confirm-ok="Ya, hapus">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-danger">{{ icon("trash") }} Hapus</button>
     </form>
