@@ -6,6 +6,7 @@ from app.utils.constants import (
     GROUP_ROLE_OWNER,
     LINK_STATUS_LABEL_DICT,
     ROLE_LABEL_DICT,
+    TABLE_SORT_KEY,
     USER_STATUS_LABEL_DICT,
     VISIBILITY_LABEL_DICT,
 )
@@ -62,8 +63,8 @@ USER_FIELD_LIST = [
     choice_field("status", "Status Akun", USER_STATUS_LABEL_DICT.items()),
     USER_CREATED_FIELD,
 ]
-# parameter URL tabel user, ikut dibawa (pake awalan back_) ke halaman/form aksi biar abis klik balik ke tampilan yg sama
-USER_FILTER_KEY_LIST = ["page", QUICK_SEARCH_KEY] + [key for field in USER_FIELD_LIST for key in list_field_key(field)]
+# parameter URL tabel user (+ urutan), ikut dibawa (pake awalan back_) ke halaman/form aksi biar abis klik balik ke tampilan yg sama
+USER_FILTER_KEY_LIST = ["page", QUICK_SEARCH_KEY, TABLE_SORT_KEY] + [key for field in USER_FIELD_LIST for key in list_field_key(field)]
 
 def read_user_selection(args):
     """Kriteria tabel Users dari URL."""
