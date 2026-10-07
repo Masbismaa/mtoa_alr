@@ -15,7 +15,24 @@
   let activeKey = null;
 
   function splitLine(text) {
-    return text.split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean).slice(0, MAX_VALUE_COUNT);
+    return text.split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
+  }
+
+  // jumlah nilai di tiap kotak + peringatan kalau lewat batas. Kelebihan ga dibuang diem-diem: tombol Pakai dikunci
+  const applyButton = dialogEl ? dialogEl.querySelector("[data-selection-apply]") : null;
+  function updateCounter() {
+    let isOverLimit = false;
+    [["include", includeEl], ["exclude", excludeEl]].forEach(function (pair) {
+      const count = splitLine(pair[1].value).length;
+      const counterEl = dialogEl.querySelector('[data-selection-counter="' + pair[0] + '"]');
+      const overCount = count - MAX_VALUE_COUNT;
+      counterEl.textContent = count + " / " + MAX_VALUE_COUNT + " nilai" + (overCount > 0 ? " — kelebihan " + overCount + ", kurangi dulu" : "");
+      counterEl.classList.toggle("text-danger", overCount > 0);
+      pair[1].classList.toggle("is-invalid", overCount > 0);
+      if (overCount > 0) isOverLimit = true;
+    });
+    applyButton.disabled = isOverLimit;
+    applyButton.title = isOverLimit ? "Maksimal " + MAX_VALUE_COUNT + " nilai per kotak" : "";
   }
 
   function getTextBox(key) {
@@ -66,13 +83,17 @@
       dialogEl.querySelector("[data-selection-dialog-label]").textContent = buttonEl.dataset.selectionLabel;
       includeEl.value = valueDict.includeList.join("\n");
       excludeEl.value = valueDict.excludeList.join("\n");
+      updateCounter();
       dialogEl.showModal();
       includeEl.focus();
     });
   });
 
   if (dialogEl) {
-    dialogEl.querySelector("[data-selection-apply]").addEventListener("click", function () {
+    includeEl.addEventListener("input", updateCounter);
+    excludeEl.addEventListener("input", updateCounter);
+    applyButton.addEventListener("click", function () {
+      if (applyButton.disabled) return;
       if (activeKey) writeValue(activeKey, splitLine(includeEl.value), splitLine(excludeEl.value));
       closeDialog();
     });
@@ -80,6 +101,7 @@
     dialogEl.querySelector("[data-selection-clear]").addEventListener("click", function () {
       includeEl.value = "";
       excludeEl.value = "";
+      updateCounter();
       includeEl.focus();
     });
     dialogEl.addEventListener("cancel", function () { activeKey = null; });
@@ -118,4 +140,16 @@
       quickEl.focus();
     }
   });
+
+  // abis Jalankan / pindah halaman (URL ada #id kartu hasil): fokus ke judul hasil, isinya udah nyebut jumlah data,
+  // jadi pengguna keyboard & pembaca layar langsung di hasil, ga mulai dari menu lagi
+  const resultCardEl = window.location.hash ? document.getElementById(window.location.hash.slice(1)) : null;
+  const resultHeadingEl = resultCardEl ? resultCardEl.querySelector("[data-result-heading], .card-title") : null;
+  if (resultHeadingEl) {
+    resultHeadingEl.setAttribute("tabindex", "-1");
+    // nunggu browser selesai lompat ke #id dulu, baru fokusnya dipindah (kalau kecepetan, fokusnya ilang lagi)
+    window.addEventListener("load", function () {
+      resultHeadingEl.focus({ preventScroll: true });
+    });
+  }
 })();

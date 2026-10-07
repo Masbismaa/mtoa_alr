@@ -1,10 +1,14 @@
 {# panel Kriteria Pencarian ala Select Screen SAP. field_list dari app/schemas/selection_schema.py.
    isian teks: bisa wildcard * + Multi Selection (Sertakan / Kecualikan), pilihan: centang lebih dari satu,
    tanggal: dari - sampai. nilai yg tampil diambil dari URL #}
-{% macro selection_panel(field_list, action_url, quick_placeholder, is_open=true) %}
+{% macro selection_panel(field_list, action_url, quick_placeholder, is_open=true, is_run_marked=false) %}
   {% from "components/icon.html" import icon %}
   {% set args = request.args %}
   <form method="get" action="{{ action_url }}" class="card selection-panel mb-3" role="search" data-selection-form>
+    {# is_run_marked: halaman yg tabelnya baru muncul abis Jalankan (Daftar Link) dikasih penanda, biar kriteria kosong tetep nampilin semua #}
+    {% if is_run_marked %}<input type="hidden" name="run" value="1">{% endif %}
+    {# urutan tabel yg lagi kepake ikut kebawa pas Jalankan #}
+    {% if args.get("sort") %}<input type="hidden" name="sort" value="{{ args.get('sort') }}">{% endif %}
     <div class="card-header">
       <h3 class="card-title">{{ icon("search") }} Kriteria Pencarian</h3>
       <div class="card-actions">
@@ -83,11 +87,13 @@
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label text-success" for="selection_include">{{ icon("check") }} Sertakan</label>
-            <textarea class="form-control" id="selection_include" rows="8" placeholder="hasil cocok salah satu nilai ini"></textarea>
+            <textarea class="form-control" id="selection_include" rows="8" placeholder="hasil cocok salah satu nilai ini" aria-describedby="selection_include_count"></textarea>
+            <div class="form-text" id="selection_include_count" data-selection-counter="include"></div>
           </div>
           <div class="col-md-6">
             <label class="form-label text-danger" for="selection_exclude">{{ icon("close") }} Kecualikan</label>
-            <textarea class="form-control" id="selection_exclude" rows="8" placeholder="hasil yg cocok nilai ini dibuang"></textarea>
+            <textarea class="form-control" id="selection_exclude" rows="8" placeholder="hasil yg cocok nilai ini dibuang" aria-describedby="selection_exclude_count"></textarea>
+            <div class="form-text" id="selection_exclude_count" data-selection-counter="exclude"></div>
           </div>
         </div>
       </div>
