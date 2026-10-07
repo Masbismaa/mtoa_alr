@@ -59,9 +59,10 @@
     setAttributes(uiDict);
   }
 
-  // kirim ke server. Kalau belum login, cukup disimpen lokal
-  async function saveToServer(payloadDict) {
-    const prefUrl = root.dataset.prefUrl;
+  // kirim ke server. Kalau belum login, cukup disimpen lokal.
+  // targetUrl opsional: dipake juga buat nyimpen layout tabel (data_table.js), defaultnya URL preferensi tampilan
+  async function saveToServer(payloadDict, targetUrl) {
+    const prefUrl = targetUrl || root.dataset.prefUrl;
     if (root.dataset.prefSource !== "server" || !prefUrl) {
       return { is_success: true, is_local_only: true };
     }
