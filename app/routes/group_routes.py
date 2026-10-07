@@ -52,9 +52,11 @@ def require_group_owner(user, group):
         abort(403)
 
 
-def render_group_form(form, page_title, cancel_url):
-    """Render form bikin/edit group."""
-    return render_template("pages/groups/form.html", form=form, page_title=page_title, cancel_url=cancel_url)
+def render_group_form(form, page_title, cancel_url, screen_title):
+    """Render form bikin/edit group. screen_title = judul layar ala SAP (Create/Change)."""
+    return render_template(
+        "pages/groups/form.html", form=form, page_title=page_title, cancel_url=cancel_url, screen_title=screen_title,
+    )
 
 
 @groups_bp.get("/")
@@ -88,7 +90,7 @@ def create():
         else:
             flash(f'Group "{group.name}" berhasil dibuat', "success")
             return redirect(url_for("groups.detail", group_id=group.id))
-    return render_group_form(form, "Buat Group", url_for("groups.index"))
+    return render_group_form(form, "Buat Group", url_for("groups.index"), "Create Group")
 
 
 @groups_bp.get("/<int:group_id>")
@@ -125,7 +127,7 @@ def edit(group_id):
         else:
             flash("Group berhasil diperbarui", "success")
             return redirect(url_for("groups.detail", group_id=group.id))
-    return render_group_form(form, "Edit Group", url_for("groups.detail", group_id=group.id))
+    return render_group_form(form, "Edit Group", url_for("groups.detail", group_id=group.id), f"Change Group: {group.name}")
 
 
 @groups_bp.post("/<int:group_id>/delete")
