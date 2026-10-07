@@ -1,23 +1,24 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
-{% from "components/pagination.html" import render_pagination %}
 {% from "components/badge.html" import audit_action_badge %}
 {% from "components/category_forum.html" import category_forum %}
-{% from "components/entry_table.html" import entry_table %}
-{% from "components/selection_panel.html" import selection_panel %}
 {% from "components/chart.html" import bar_chart, change_badge, gauge, sparkline %}
 
 {% block title %}Dashboard{% endblock %}
 
 {% block page_pretitle %}Overview{% endblock %}
 
+{# dashboard cuma ringkasan, biar ga ketuker sama hasil pencarian di Daftar Link #}
+{% block page_subtitle %}
+  <div class="text-secondary mt-1">Ringkasan seluruh data yang bisa kamu lihat. Cari &amp; olah data di <a href="{{ url_for('entries.index') }}">Daftar Link</a>.</div>
+{% endblock %}
+
 {% block page_actions %}
-  <a href="{{ url_for('groups.index') }}" class="btn">{{ icon("group") }} Groups</a>
+  <a href="{{ url_for('entries.index') }}" class="btn">{{ icon("list") }} Daftar Link</a>
   <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
 {% endblock %}
 
 {% block content %}
-  {% set is_filtered = pagination_query_dict | length > 0 %}
   {% set summary = dashboard_dict.summary %}
 
   <div class="row row-deck row-cards mb-3">
@@ -148,44 +149,6 @@
     {% endif %}
   </div>
 
-  {# di dashboard panelnya dilipat dulu, kebuka sendiri kalau lagi ada kriteria #}
-  {{ selection_panel(selection_field_list, url_for("main.home"), "Cari judul, URL, address, deskripsi... (tekan /)", is_open=is_filtered) }}
-
-  <div class="card" id="daftar_link">
-    <div class="card-header">
-      <h3 class="card-title">{{ icon("link") }} Daftar Link</h3>
-      <div class="card-actions">
-        {% if pagination.total %}
-          <a href="{{ url_for('main.export_entries', **pagination_query_dict) }}" class="btn btn-sm me-2">{{ icon("download")}} Export Excel</a>
-        {% endif %}
-        <span class="badge bg-secondary-lt">{{ pagination.total }} data</span>
-      </div>
-    </div>
-
-    {% if pagination.items %}
-      {{ entry_table(pagination.items) }}
-      {{ render_pagination(pagination, "main.home", pagination_query_dict) }}
-    {% elif is_filtered %}
-      <div class="empty">
-        <div class="empty-icon">{{ icon("search") }}</div>
-        <p class="empty-title">Tidak ada hasil{% if keyword %} untuk "{{ keyword }}"{% endif %}.</p>
-        <p class="empty-subtitle text-secondary">Coba ubah kriteria pencariannya, atau pakai * (misal portal*).</p>
-        <div class="empty-action">
-          <a href="{{ url_for('main.home') }}" class="btn">Reset filter</a>
-        </div>
-      </div>
-    {% else %}
-      <div class="empty">
-        <div class="empty-icon">{{ icon("link") }}</div>
-        <p class="empty-title">Belum ada data link</p>
-        <p class="empty-subtitle text-secondary">Yuk tambah link pertama biar tim gampang nyarinya.</p>
-        <div class="empty-action">
-          <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
-        </div>
-      </div>
-    {% endif %}
-  </div>
-
   <div class="row row-deck row-cards mt-1">
     <div class="col-lg-6">
       <div class="card">
@@ -244,6 +207,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', filename='js/components/selection_panel.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/components/count_up.js') }}" defer></script>
 {% endblock %}

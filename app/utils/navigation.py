@@ -4,7 +4,7 @@ from flask import current_app, request, url_for
 from app.security.access_policy import has_permission, is_admin
 from app.utils.constants import PERMISSION_INFO_DICT, PERMISSION_MANAGE_CATEGORIES, PERMISSION_VIEW_AUDIT_LOGS
 
-# parameter URL yg ikut nentuin menu mana yg aktif (misal filter visibilitas di dashboard)
+# parameter URL yg ikut nentuin menu mana yg aktif (misal filter visibilitas di Daftar Link)
 NAV_MATCH_QUERY_KEY_LIST = ["visibility"]
 
 # endpoint yg belum dibikin otomatis tampil "Segera" (ga bisa diklik).
@@ -15,9 +15,10 @@ SIDEBAR_SECTION_LIST = [
     ]},
     {"title": "Data", "item_list": [
         {"label": "Data Link", "icon": "link", "child_list": [
+            {"label": "Daftar Link", "endpoint": "entries.index"},
             {"label": "Tambah Link", "endpoint": "entries.create"},
-            {"label": "Link Public", "endpoint": "main.home", "query_dict": {"visibility": "public"}},
-            {"label": "Link Private", "endpoint": "main.home", "query_dict": {"visibility": "private"}},
+            {"label": "Link Public", "endpoint": "entries.index", "query_dict": {"visibility": "public"}},
+            {"label": "Link Private", "endpoint": "entries.index", "query_dict": {"visibility": "private"}},
         ]},
         {"label": "Groups", "endpoint": "groups.index", "icon": "group"},
     ]},
