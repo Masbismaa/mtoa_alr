@@ -37,7 +37,7 @@
           {{ table_head(table_view, "audit.index", pagination_query_dict, "daftar_audit") }}
           <tbody>
             {% for audit_log in pagination.items %}
-              <tr>
+              <tr data-row-url="{{ url_for('audit.detail', log_id=audit_log.id) }}">
                 <td class="text-nowrap text-secondary" data-label="Waktu" {{ cell_attr(table_view, "time") }}>{{ audit_log.created_at | local_datetime("%d %b %Y, %H:%M:%S") }}</td>
                 <td class="cell-actor" data-label="Pelaku" {{ cell_attr(table_view, "actor") }}>{% if audit_log.actor_email %}{{ audit_log.actor_email }}{% else %}<span class="text-secondary">Sistem</span>{% endif %}</td>
                 <td data-label="Aksi" {{ cell_attr(table_view, "action") }}>{{ audit_action_badge(audit_log.action) }}</td>

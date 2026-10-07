@@ -20,6 +20,7 @@ from app.utils.constants import (
 )
 from app.utils.exceptions import PermissionDeniedError, ValidationError, build_error
 from app.utils.sanitizer import sanitize_text
+from app.utils.datetime_helper import to_utc_aware
 
 AUDIT_CATEGORY = "categories"
 
@@ -240,6 +241,15 @@ def build_forum_row_list(user, parent=None):
     """Baris ala forum: kategori + sub-nya + jumlah link (termasuk turunannya) + link terbaru."""
     child_dict = build_child_dict(list_all_category())
     count_dict = count_entry_by_category(user)
+    ranked = db.select(
+        AccessEntry.id.label("entry_id"),
+        db.func.row_number().over(partition_by=AccessEntry.category_id,
+                                  order_by=(AccessEntry.created_at.desc(), AccessEntry.id.desc())).label("position"),
+    ).where(build_visible_entry_filter(user)).subquery()
+    latest_by_category = {entry.category_id: entry for entry in db.session.execute(
+        db.select(AccessEntry).join(ranked, ranked.c.entry_id == AccessEntry.id)
+        .where(ranked.c.position == 1).options(joinedload(AccessEntry.owner))
+    ).scalars()}
     parent_id = parent.id if parent is not None else None
     row_list = []
     for category in child_dict.get(parent_id, []):
@@ -247,12 +257,14 @@ def build_forum_row_list(user, parent=None):
             continue
         descendant_id_list = collect_descendant_id_list(category.id, child_dict)
         entry_count = sum(count_dict.get(category_id, 0) for category_id in descendant_id_list)
+        candidates = [latest_by_category[category_id] for category_id in descendant_id_list
+                      if category_id in latest_by_category]
         row_list.append({
             "category": category,
             "style": get_category_style(category),
             "sub_category_list": [child for child in child_dict.get(category.id, []) if child.is_active],
             "entry_count": entry_count,
-            "latest_entry": get_latest_visible_entry(user, descendant_id_list) if entry_count else None,
+            "latest_entry": max(candidates, key=lambda entry: (to_utc_aware(entry.created_at), entry.id), default=None),
         })
     return row_list
 

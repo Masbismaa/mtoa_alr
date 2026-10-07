@@ -34,6 +34,7 @@ class AuditLog(CreatedAtMixin, db.Model):
 
     # action cuma boleh yg ada di AUDIT_ACTION_LIST
     __table_args__ = (
+        db.Index("ix_audit_logs_user_created", "user_id", "created_at", "id"),
         db.CheckConstraint(f"action IN ({build_sql_in_list(AUDIT_ACTION_LIST)})", name="action_valid"),
     )
 

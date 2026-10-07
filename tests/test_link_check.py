@@ -7,8 +7,12 @@ from app.extensions import db
 from app.security.link_target_guard import LinkTargetBlockedError, parse_check_url, resolve_safe_ip
 from app.services import link_check_service, link_monitor_service
 from app.services.access_entry_service import create_access_entry
-from app.services.link_check_service import LinkCheckResult, LinkCheckTarget, check_target, save_check_result
+from app.services.link_check_service import LinkCheckResult, LinkCheckTarget, save_check_result
 from app.utils.constants import LINK_STATUS_DOWN, LINK_STATUS_UNKNOWN, LINK_STATUS_UP, VISIBILITY_PRIVATE
+
+def check_target(target):
+    """Kasus intranet ini memakai izin jaringan private yang diberikan operator."""
+    return link_check_service.check_target(target, allow_private=True)
 
 def build_entry_dict(category, title, url, **override_dict):
     """Helper: data link contoh."""
@@ -56,8 +60,8 @@ def test_forbidden_ip_blocked(ip_text):
 
 def test_internal_and_public_ip_allowed():
     """Positive: IP internal kantor & IP publik boleh dicek."""
-    assert resolve_safe_ip("10.10.1.5", 22) == "10.10.1.5"
-    assert resolve_safe_ip("203.0.113.10", 443) == "203.0.113.10"
+    assert resolve_safe_ip("10.10.1.5", 22, allow_private=True) == "10.10.1.5"
+    assert resolve_safe_ip("8.8.8.8", 443) == "8.8.8.8"
 
 def test_hostname_resolving_to_loopback_blocked(monkeypatch):
     """Negative (SSRF): nama domain yg ternyata nunjuk ke 127.0.0.1 ditolak."""
@@ -103,12 +107,12 @@ def test_url_timeout_is_down(monkeypatch):
     fake_send_sequence(monkeypatch, [TimeoutError()])
     assert check_target(build_url_target("http://10.10.1.5/")).note.startswith("Timeout")
 
-def test_url_with_invalid_cert_is_up_with_note(monkeypatch):
-    """Edge: sertifikat self-signed -> dicoba ulang tanpa cek sertifikat, aktif + ada catatannya."""
+def test_url_with_invalid_cert_is_down_without_insecure_retry(monkeypatch):
+    """Sertifikat salah ditolak, tidak dicoba lagi memakai CERT_NONE."""
     call_list = fake_send_sequence(monkeypatch, [ssl.SSLCertVerificationError("self-signed"), (200, None)])
     result = check_target(build_url_target("https://10.10.1.5/"))
-    assert result == LinkCheckResult(LINK_STATUS_UP, "HTTP 200 · Sertifikat SSL tidak valid")
-    assert [call[2] for call in call_list] == [ssl.CERT_REQUIRED, ssl.CERT_NONE]
+    assert result == LinkCheckResult(LINK_STATUS_DOWN, "Error SSL")
+    assert [call[2] for call in call_list] == [ssl.CERT_REQUIRED]
 
 def test_forbidden_url_never_contacted(monkeypatch):
     """Negative (SSRF): link ke alamat terlarang -> Belum dicek + 'Diblokir', ga ada koneksi sama sekali."""
@@ -183,8 +187,8 @@ def test_user_cannot_trigger_check(logged_in_client, registered_user, category_d
     assert "Cek Status" not in logged_in_client.get(f"/entries/{entry.id}").get_data(as_text=True)
 
 def test_check_links_command_runs_monitor(app, monkeypatch):
-    """Positive: command check-links (dipanggil Task Scheduler) jalanin pemeriksaan + nampilin ringkasan."""
-    monkeypatch.setattr(link_monitor_service, "check_all_entry_status", lambda: Counter({LINK_STATUS_UP: 2, LINK_STATUS_DOWN: 1}))
+    """Command check-links menjalankan pemeriksaan manual dan menampilkan ringkasan."""
+    monkeypatch.setattr(link_monitor_service, "check_all_entry_status", lambda **kwargs: Counter({LINK_STATUS_UP: 2, LINK_STATUS_DOWN: 1}))
     result = app.test_cli_runner().invoke(args=["check-links"])
     assert result.exit_code == 0
     assert "3 data · 2 aktif · 1 tidak aktif" in result.output

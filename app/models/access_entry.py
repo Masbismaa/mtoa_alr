@@ -58,6 +58,7 @@ class AccessEntry(TimestampMixin, db.Model):
     )
 
     __table_args__ = (
+        db.Index("ix_access_entries_category_created", "category_id", "created_at", "id"),
         db.CheckConstraint(f"visibility IN ({build_sql_in_list(VISIBILITY_LIST)})", name="visibility_valid"),
         db.CheckConstraint(f"status IN ({build_sql_in_list(LINK_STATUS_LIST)})", name="status_valid"),
         db.CheckConstraint("port IS NULL OR (port >= 1 AND port <= 65535)", name="port_valid"),

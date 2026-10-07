@@ -33,9 +33,12 @@ def create_app(config_name=None):
     config_name = resolve_config_name(config_name)
     app = Flask(__name__)
     app.config.from_object(CONFIG_BY_NAME_DICT[config_name])
-
     # 2. Fail-fast: cek semua config wajib & aturan keamanan
     validate_required_config(app)
+    proxy_count = app.config["TRUSTED_PROXY_COUNT"]
+    if proxy_count:
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxy_count, x_proto=proxy_count)
 
     # 3. Hubungkan extension (dibuat sekali di extensions.py) ke aplikasi
     db.init_app(app)
@@ -52,6 +55,7 @@ def create_app(config_name=None):
     register_blueprints(app)
     register_error_handlers(app)
     register_template_helpers(app)
+    register_response_security(app)
 
     from app.cli import register_cli_commands
 
@@ -70,6 +74,34 @@ def validate_required_config(app):
 
     if app.config.get("IS_PRODUCTION") and app.config.get("OTP_DELIVERY_MODE") == OTP_DELIVERY_CONSOLE:
         raise RuntimeError("OTP_DELIVERY_MODE=console dilarang di production, pakai smtp")
+    if app.config["TRUSTED_PROXY_COUNT"] < 0 or app.config["UPLOAD_USER_QUOTA_BYTES"] <= 0:
+        raise RuntimeError("Jumlah proxy dan kuota upload tidak valid")
+    if app.config["OTP_DELIVERY_MODE"] == "smtp":
+        if not app.config["SMTP_HOST"] or not app.config["SMTP_FROM"]:
+            raise RuntimeError("SMTP_HOST dan SMTP_FROM wajib diisi untuk pengiriman OTP")
+        if app.config["SMTP_SECURITY"] not in ("ssl", "starttls"):
+            raise RuntimeError("SMTP_SECURITY harus ssl atau starttls")
+    elif app.config["OTP_DELIVERY_MODE"] != OTP_DELIVERY_CONSOLE:
+        raise RuntimeError("Mode pengiriman OTP tidak dikenal")
+    if app.config.get("IS_PRODUCTION"):
+        if app.config["RATELIMIT_STORAGE_URI"].startswith("memory://"):
+            raise RuntimeError("Production membutuhkan penyimpanan rate limit bersama, misalnya Redis")
+        if not app.config["UPLOAD_SCANNER_HOST"]:
+            raise RuntimeError("Production membutuhkan UPLOAD_SCANNER_HOST (ClamAV)")
+
+
+def register_response_security(app):
+    @app.after_request
+    def secure_response(response):
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'; base-uri 'self'; object-src 'none'")
+        response.headers.setdefault("Referrer-Policy", "same-origin")
+        if request.endpoint != "static":
+            response.headers["Cache-Control"] = "private, no-store"
+        if app.config.get("IS_PRODUCTION"):
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
+        return response
 
 def register_blueprints(app):
     """Daftarin semua blueprint (import di dalem biar ga circular import)."""

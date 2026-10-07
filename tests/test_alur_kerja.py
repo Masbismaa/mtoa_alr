@@ -27,7 +27,7 @@ def test_detail_passes_back_to_edit_and_delete(logged_in_client, registered_user
     html_text = get_html(logged_in_client, f"/entries/{entry.id}?back={BACK_PARAM}")
     assert f'href="/entries/{entry.id}/edit?back={BACK_PARAM}"' in html_text
     assert f'action="/entries/{entry.id}/delete?back={BACK_PARAM}"' in html_text
-    assert f'href="{BACK_URL}" class="btn btn-sm app-toolbar-btn" title="Kembali ke layar sebelumnya"' in html_text
+    assert f'href="{BACK_URL}" class="btn btn-sm app-toolbar-btn" title="Kembali ke layar sebelumnya (F3)"' in html_text
 
 def test_edit_keeps_back_on_cancel_and_save(logged_in_client, registered_user, category_dict):
     """Positive: di Edit, Batal & Simpan balik ke detail yg masih inget tabel asalnya."""

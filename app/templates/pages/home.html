@@ -191,7 +191,7 @@
                   <div class="col-auto"><span class="avatar avatar-sm bg-primary-lt">{{ group.name | initials }}</span></div>
                   <div class="col text-truncate">
                     <div class="text-truncate">{{ group.name }}</div>
-                    <div class="small text-secondary">{{ group.member_list | selectattr("status", "equalto", "active") | list | length }} anggota · {{ group.group_entry_list | length }} link</div>
+                    <div class="small text-secondary">{{ group.member_list | selectattr("status", "equalto", "active") | list | length }} anggota · {{ dashboard_dict.group_entry_count_dict.get(group.id, 0) }} link</div>
                   </div>
                   <div class="col-auto">{{ icon("chevron_right", "text-secondary") }}</div>
                 </div>

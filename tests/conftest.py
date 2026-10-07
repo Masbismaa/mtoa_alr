@@ -102,8 +102,14 @@ def build_office_zip_bytes(folder_name, has_macro=False):
     """Bikin file xlsx/docx palsu tapi strukturnya bener (zip)."""
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as zip_file:
-        zip_file.writestr("[Content_Types].xml", "<Types/>")
-        zip_file.writestr(f"{folder_name}document.xml", "<doc/>")
+        main_part = "xl/workbook.xml" if folder_name == "xl/" else "word/document.xml"
+        main_type = ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"
+                     if folder_name == "xl/" else "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml")
+        zip_file.writestr("[Content_Types].xml", f'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/{main_part}" ContentType="{main_type}"/></Types>')
+        zip_file.writestr("_rels/.rels", f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="{main_part}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"/></Relationships>')
+        root_xml = ('<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheets/></workbook>'
+                    if folder_name == "xl/" else '<document xmlns="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><body/></document>')
+        zip_file.writestr(main_part, root_xml)
         if has_macro:
             zip_file.writestr(f"{folder_name}vbaProject.bin", "makro")
     return buffer.getvalue()
