@@ -135,6 +135,44 @@
   padding-left: 0.4rem;
 }
 
+/* baris aktif (klik / panah atas-bawah), kayak baris kepilih di ALV */
+@media (min-width: 768px) {
+  .data-table tbody tr[tabindex] {
+    cursor: default;
+  }
+
+  .data-table tbody tr[data-row-url] {
+    cursor: pointer;
+  }
+
+  .data-table tbody tr.is-active,
+  .data-table tbody tr.is-active:hover {
+    background: var(--app-selected-bg);
+    box-shadow: inset 3px 0 0 var(--app-accent, var(--tblr-primary));
+  }
+
+  .data-table tbody tr:focus {
+    outline: none;
+  }
+
+  .data-table tbody tr:focus-visible {
+    outline: 2px solid var(--app-accent, var(--tblr-primary));
+    outline-offset: -2px;
+  }
+}
+
+/* menu klik kanan di baris tabel */
+.row-context-menu {
+  position: fixed;
+  z-index: 1080;
+  min-width: 12rem;
+  margin: 0;
+}
+
+.row-context-menu[hidden] {
+  display: none !important;
+}
+
 /* judul kolom yg bisa diurutin */
 .col-sort {
   display: inline-flex;
