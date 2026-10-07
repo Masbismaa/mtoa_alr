@@ -41,6 +41,7 @@ from app.utils.constants import (
     MAX_SEARCH_KEYWORD_LENGTH,
     EXPORT_MAX_ROW_COUNT,
 )
+from app.utils.data_table import build_order_list
 from app.utils.exceptions import InvalidCredentialError, PermissionDeniedError, ValidationError, build_error
 from app.utils.sanitizer import get_plain_text, sanitize_rich_text, sanitize_text
 from app.utils.url_helper import normalize_address, normalize_url, parse_port
@@ -63,6 +64,10 @@ def get_category_rule(category):
 def get_active_category_list():
     """Kategori yg bisa dipilih (dia & induknya aktif), urut kayak pohon."""
     return list_usable_category()
+
+def list_active_category_option():
+    """Pilihan kategori aktif buat isian Kriteria Pencarian Daftar Link: [(id, label lengkap)]."""
+    return [(category.id, build_category_label(category)) for category in get_active_category_list()]
 
 def get_form_category_list(current_category=None):
     """Pilihan kategori di form. Pas edit, kategori lama tetep ikut walau udah dinonaktifin admin."""
@@ -378,8 +383,20 @@ def apply_entry_selection(query, selection, is_include_sub=True):
         build_date_range_filter(AccessEntry.created_at, *selection["created_range"]),
     ])
 
-def build_visible_entry_query(user, keyword=None, category_id=None, visibility=None, is_include_sub=True, selection=None):
-    """Query data yg boleh diliat user + filter (dipake tabel Home, halaman kategori, & export Excel biar hasilnya sama persis)."""
+# kolom yg bisa diurutin di tabel Daftar Link (kunci = key kolom di table_schema). Teks dibandingin huruf kecil
+ENTRY_SORT_COLUMN_DICT = {
+    "title": db.func.lower(AccessEntry.title),
+    "category": db.select(db.func.lower(Category.name)).where(Category.id == AccessEntry.category_id).scalar_subquery(),
+    "access": db.func.lower(db.func.coalesce(db.func.nullif(AccessEntry.url, ""), AccessEntry.address)),
+    "visibility": AccessEntry.visibility,
+    "status": AccessEntry.status,
+    "owner": db.select(db.func.lower(User.full_name)).where(User.id == AccessEntry.user_id).scalar_subquery(),
+    "created": AccessEntry.created_at,
+}
+
+def build_visible_entry_query(user, keyword=None, category_id=None, visibility=None, is_include_sub=True, selection=None,
+                              sort=None):
+    """Query data yg boleh diliat user + filter + urutan (dipake tabel Home, halaman kategori, & export Excel biar hasilnya sama persis)."""
     query = (
         db.select(AccessEntry)
         .options(
@@ -401,18 +418,19 @@ def build_visible_entry_query(user, keyword=None, category_id=None, visibility=N
         query = query.where(AccessEntry.visibility == visibility)
     if selection:
         query = apply_entry_selection(query, selection, is_include_sub)
-    return query.order_by(AccessEntry.updated_at.desc(), AccessEntry.id.desc())
+    default_order_list = [AccessEntry.updated_at.desc(), AccessEntry.id.desc()]
+    return query.order_by(*build_order_list(sort, ENTRY_SORT_COLUMN_DICT, default_order_list, AccessEntry.id))
 
 def search_visible_entries(user, keyword=None, category_id=None, visibility=None, page=1, per_page=PER_PAGE,
-                           is_include_sub=True, selection=None):
+                           is_include_sub=True, selection=None, sort=None):
     """Cari data yg boleh diliat user, hasilnya per halaman. Filter kategori ikut ngambil isi sub-nya."""
-    query = build_visible_entry_query(user, keyword, category_id, visibility, is_include_sub, selection)
+    query = build_visible_entry_query(user, keyword, category_id, visibility, is_include_sub, selection, sort)
     return db.paginate(query, page=page, per_page=per_page, error_out=False)
 
 def list_visible_entries_for_export(user, keyword=None, category_id=None, visibility=None, max_count=EXPORT_MAX_ROW_COUNT,
-                                    selection=None):
-    """Semua data hasil filter buat export (dibatesin biar server ga berat). Return (entry_list, is_truncated)."""
-    query = build_visible_entry_query(user, keyword, category_id, visibility, selection=selection).limit(max_count + 1)
+                                    selection=None, sort=None):
+    """Semua data hasil filter buat export, urutannya sama kayak tabel (dibatesin biar server ga berat). Return (entry_list, is_truncated)."""
+    query = build_visible_entry_query(user, keyword, category_id, visibility, selection=selection, sort=sort).limit(max_count + 1)
     entry_list = db.session.execute(query).unique().scalars().all()
     return entry_list[:max_count], len(entry_list) > max_count
 

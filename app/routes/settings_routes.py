@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request
 from flask_login import login_required
 
 from app.extensions import limiter
-from app.services.preference_service import build_ui_preference_dict, update_preference
+from app.services.preference_service import build_ui_preference_dict, update_preference, update_table_layout
 from app.utils.exceptions import ValidationError
 from app.utils.response_formatter import error_response, success_response
 from app.utils.request_helper import get_current_user
@@ -31,3 +31,19 @@ def update_preferences():
         return error_response("Preferensi tidak valid", 400, error.error_list)
 
     return success_response(data=build_ui_preference_dict(preference), message="Preferensi tersimpan")
+
+@settings_bp.post("/table-layout")
+@login_required
+@limiter.limit("60 per minute")
+def update_table_layout_api():
+    """Simpen layout tabel ala ALV (kolom disembunyiin + lebar), dipanggil dari JS tabel. Token CSRF di header."""
+    layout_payload = request.get_json(silent=True)
+    if not isinstance(layout_payload, dict):
+        return error_response("Data harus berupa JSON object", 400)
+
+    try:
+        layout_dict = update_table_layout(get_current_user(), layout_payload)
+    except ValidationError as error:
+        return error_response("Layout tabel tidak valid", 400, error.error_list)
+
+    return success_response(data=layout_dict, message="Layout tabel tersimpan")

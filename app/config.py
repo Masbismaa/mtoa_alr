@@ -53,6 +53,9 @@ class BaseConfig:
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
     RATELIMIT_HEADERS_ENABLED = True
 
+    # label environment di status bar bawah (DEV / TEST / PROD)
+    APP_ENV_LABEL = "DEV"
+
 class DevelopmentConfig(BaseConfig):
     """Konfigurasi saat development di laptop (debug aktif)."""
 
@@ -64,11 +67,14 @@ class ProductionConfig(BaseConfig):
     DEBUG = False
     IS_PRODUCTION = True
     SESSION_COOKIE_SECURE = True
+    # server uji yg pake config produksi bisa ngisi APP_ENV_LABEL=TEST di .env
+    APP_ENV_LABEL = os.environ.get("APP_ENV_LABEL", "PROD")
 
 class TestingConfig(BaseConfig):
     """Konfigurasi khusus Pytest (database SQLite di memori, tanpa PostgreSQL)."""
 
     TESTING = True
+    APP_ENV_LABEL = "TEST"
     SECRET_KEY = "test-secret-key"
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     # Kunci enkripsi acak untuk setiap test run.

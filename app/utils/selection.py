@@ -2,7 +2,7 @@
 Dipake bareng sama Daftar Link, Users, Audit Logs, dan Groups."""
 from collections import namedtuple
 from sqlalchemy import and_, not_, or_
-from app.utils.constants import MAX_SEARCH_KEYWORD_LENGTH, SELECTION_EXCLUDE_SUFFIX, SELECTION_MAX_VALUE_COUNT
+from app.utils.constants import MAX_SEARCH_KEYWORD_LENGTH, SELECTION_EXCLUDE_SUFFIX, SELECTION_MAX_VALUE_COUNT, TABLE_SORT_KEY
 from app.utils.datetime_helper import build_utc_range_from_local_date
 from app.utils.query_helper import build_keyword_filter, parse_date_arg, parse_positive_int
 
@@ -10,6 +10,8 @@ SELECTION_TEXT = "text"
 SELECTION_CHOICE = "choice"
 SELECTION_DATE_RANGE = "date_range"
 QUICK_SEARCH_KEY = "q"
+# penanda "Jalankan" udah diklik (Daftar Link baru nampilin tabel setelah ini, walau kriterianya kosong)
+RUN_KEY = "run"
 
 # satu isian di panel Kriteria Pencarian. option_list cuma buat choice, from_key/to_key cuma buat date_range
 SelectionField = namedtuple(
@@ -90,8 +92,8 @@ def list_field_key(field):
     return [field.key]
 
 def build_selection_query_dict(args, field_list):
-    """Kriteria yg lagi kepake, dibawa ke link halaman berikutnya & export. Cuma parameter yg dikenal."""
-    key_list = [QUICK_SEARCH_KEY] + [key for field in field_list for key in list_field_key(field)]
+    """Kriteria + urutan yg lagi kepake, dibawa ke link halaman berikutnya & export. Cuma parameter yg dikenal."""
+    key_list = [QUICK_SEARCH_KEY, RUN_KEY, TABLE_SORT_KEY] + [key for field in field_list for key in list_field_key(field)]
     query_dict = {}
     for key in key_list:
         value_list = clean_value_list(args.getlist(key))

@@ -5,7 +5,19 @@
 
 {% block title %}{{ page_title }}{% endblock %}
 
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}{{ screen_title }}{% endblock %}
+
 {% block page_pretitle %}Data Link{% endblock %}
+
+{# toolbar atas: Simpan & Batal selalu kelihatan walau form panjang #}
+{% block toolbar_save %}entry_form{% endblock %}
+{% block toolbar_cancel %}{{ cancel_url }}{% endblock %}
+
+{% block page_help %}
+  <p>Field bertanda <b>*</b> wajib diisi. Field yang tampil ngikut kategori yang dipilih.</p>
+  <p>Klik <b>Simpan</b> (di toolbar atas atau di bawah form) buat menyimpan. <b>Batal</b> / <b>Kembali</b> keluar tanpa menyimpan; kalau ada isian yang berubah, kamu ditanya dulu.</p>
+{% endblock %}
 
 {% block content %}
   {# kategori yg lagi kepilih -> nentuin field mana yg tampil dari awal (sebelum JS jalan) #}
@@ -16,7 +28,7 @@
   {% set is_credential_field_shown = not selected_option or selected_option.has_credential_field == "true" %}
   {% set visibility_hint_dict = {"private": "Cuma kamu yang bisa lihat", "public": "Semua user bisa lihat & copy (read-only)"} %}
 
-  <form method="post" action="{{ form_action }}" class="entry-form" enctype="multipart/form-data" novalidate data-entry-form>
+  <form method="post" action="{{ form_action }}" class="entry-form" id="entry_form" enctype="multipart/form-data" novalidate data-entry-form data-form-guard{% if request.method == "POST" %} data-form-guard-dirty{% endif %}>
     {{ form.hidden_tag() }}
     {% if target_group %}
       <input type="hidden" name="group_id" value="{{ target_group.id }}">
@@ -171,11 +183,6 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="d-flex justify-content-end gap-2 mt-2">
-      <a href="{{ cancel_url }}" class="btn">Batal</a>
-      <button type="submit" class="btn btn-primary">{{ icon("check") }} Simpan</button>
     </div>
   </form>
 {% endblock %}

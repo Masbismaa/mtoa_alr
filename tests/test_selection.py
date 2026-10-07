@@ -20,8 +20,8 @@ def get_html(client, url):
     return client.get(url).get_data(as_text=True)
 
 def get_table_html(client, url):
-    """Helper: isi tabel Daftar Link di dashboard aja (kartu Kategori di atasnya nampilin link terbaru, jadi ga ikut dicek)."""
-    return get_html(client, url).split('id="daftar_link"')[1].split("Aktivitas Terakhir Kamu")[0]
+    """Helper: isi kartu tabel Daftar Link aja (bagian lain halaman ga ikut dicek)."""
+    return get_html(client, url).split('id="daftar_link"')[1].split("data-status-bar")[0]
 
 def test_like_pattern_wildcard():
     """Positive: tanpa * = mengandung, ad* = diawali, *ad = diakhiri, a*d = a...d."""
@@ -56,9 +56,9 @@ def test_dashboard_wildcard_prefix_suffix(logged_in_client, registered_user, cat
     create_entry(registered_user, web, "Portal HR", "https://hr.spindo.com")
     create_entry(registered_user, web, "Portal VPN", "https://vpn.spindo.com")
     create_entry(registered_user, web, "Router Portal", "https://router.spindo.com")
-    html_text = get_table_html(logged_in_client, "/?title=portal*")
+    html_text = get_table_html(logged_in_client, "/entries/?title=portal*")
     assert "Portal HR" in html_text and "Portal VPN" in html_text and "Router Portal" not in html_text
-    html_text = get_table_html(logged_in_client, "/?title=*hr")
+    html_text = get_table_html(logged_in_client, "/entries/?title=*hr")
     assert "Portal HR" in html_text and "Portal VPN" not in html_text
 
 def test_dashboard_multi_include_exclude(logged_in_client, registered_user, category_dict):
@@ -67,16 +67,16 @@ def test_dashboard_multi_include_exclude(logged_in_client, registered_user, cate
     create_entry(registered_user, web, "Portal HR", "https://hr.spindo.com")
     create_entry(registered_user, web, "Portal VPN", "https://vpn.spindo.com")
     create_entry(registered_user, web, "Router Lantai", "https://router.spindo.com")
-    html_text = get_table_html(logged_in_client, "/?title=portal*&title__not=*vpn")
+    html_text = get_table_html(logged_in_client, "/entries/?title=portal*&title__not=*vpn")
     assert "Portal HR" in html_text and "Portal VPN" not in html_text and "Router Lantai" not in html_text
-    html_text = get_table_html(logged_in_client, "/?title=*hr&title=router*")
+    html_text = get_table_html(logged_in_client, "/entries/?title=*hr&title=router*")
     assert "Portal HR" in html_text and "Router Lantai" in html_text and "Portal VPN" not in html_text
 
 def test_dashboard_percent_is_literal(logged_in_client, registered_user, category_dict):
     """Negative (security): ngetik % ga bikin semua data ikut."""
     create_entry(registered_user, category_dict["Web"], "Diskon 100%", "https://a.spindo.com")
     create_entry(registered_user, category_dict["Web"], "Portal Lain", "https://b.spindo.com")
-    html_text = get_table_html(logged_in_client, "/?title=100%25")
+    html_text = get_table_html(logged_in_client, "/entries/?title=100%25")
     assert "Diskon 100%" in html_text and "Portal Lain" not in html_text
 
 def test_dashboard_access_owner_and_choice(logged_in_client, registered_user, other_user, category_dict):
@@ -84,23 +84,23 @@ def test_dashboard_access_owner_and_choice(logged_in_client, registered_user, ot
     create_entry(registered_user, category_dict["Web"], "Portal HR", "https://hr.spindo.com")
     create_entry(registered_user, category_dict["Network"], "Switch Core", address="10.0.0.2")
     create_entry(other_user, category_dict["Web"], "Public Orang", "https://lain.spindo.com", visibility=VISIBILITY_PUBLIC)
-    html_text = get_table_html(logged_in_client, "/?access=10.0.*")
+    html_text = get_table_html(logged_in_client, "/entries/?access=10.0.*")
     assert "Switch Core" in html_text and "Portal HR" not in html_text
-    html_text = get_table_html(logged_in_client, "/?owner=user.lain*")
+    html_text = get_table_html(logged_in_client, "/entries/?owner=user.lain*")
     assert "Public Orang" in html_text and "Portal HR" not in html_text
     network_id, web_id = category_dict["Network"].id, category_dict["Web"].id
-    html_text = get_table_html(logged_in_client, f"/?category_id={network_id}&category_id={web_id}&visibility=private")
+    html_text = get_table_html(logged_in_client, f"/entries/?category_id={network_id}&category_id={web_id}&visibility=private")
     assert "Switch Core" in html_text and "Portal HR" in html_text and "Public Orang" not in html_text
 
 def test_dashboard_date_range(logged_in_client, registered_user, category_dict):
     """Negative: rentang tanggal sebelum data dibuat -> kosong."""
     create_entry(registered_user, category_dict["Web"], "Portal HR", "https://hr.spindo.com")
-    assert "Portal HR" not in get_table_html(logged_in_client, "/?created_to=2000-01-01")
-    assert "Portal HR" in get_table_html(logged_in_client, "/?created_from=2000-01-01")
+    assert "Portal HR" not in get_table_html(logged_in_client, "/entries/?created_to=2000-01-01")
+    assert "Portal HR" in get_table_html(logged_in_client, "/entries/?created_from=2000-01-01")
 
 def test_dashboard_bad_values_ignored(logged_in_client):
     """Negative: nilai ngaco (status/visibilitas/tanggal/kategori asal) dicuekin, halaman tetep kebuka."""
-    response = logged_in_client.get("/?status=hack&visibility=hack&category_id=xyz&created_from=kemarin&title__not=")
+    response = logged_in_client.get("/entries/?status=hack&visibility=hack&category_id=xyz&created_from=kemarin&title__not=")
     assert response.status_code == 200
 
 def test_export_follows_selection(logged_in_client, registered_user, category_dict):

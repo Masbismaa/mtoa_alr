@@ -4,12 +4,19 @@
 
 {% block title %}Atur Akses {{ target.full_name }}{% endblock %}
 
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}Change Akses User: {{ target.full_name }}{% endblock %}
+
 {% block page_pretitle %}Admin › Users{% endblock %}
+
+{# toolbar atas: Simpan & Batal selalu kelihatan walau form panjang #}
+{% block toolbar_save %}access_form{% endblock %}
+{% block toolbar_cancel %}{{ back_url }}{% endblock %}
 
 {% block content %}
   <div class="row justify-content-center">
     <div class="col-lg-8">
-      <form method="post" class="card" novalidate>
+      <form id="access_form" method="post" class="card" novalidate data-form-guard{% if request.method == "POST" %} data-form-guard-dirty{% endif %}>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         {{ back_field_list() }}
 
@@ -37,11 +44,6 @@
             {% endfor %}
           </div>
           <div class="small text-secondary mt-3">{{ icon("info") }} Akses <strong>Kelola user</strong> dan <strong>Admin</strong> tidak bisa diberikan dari sini. Admin dibuat lewat command.</div>
-        </div>
-
-        <div class="card-footer d-flex justify-content-end gap-2">
-          <a href="{{ back_url }}" class="btn">Batal</a>
-          <button type="submit" class="btn btn-primary">{{ icon("check") }} Simpan Akses</button>
         </div>
       </form>
     </div>

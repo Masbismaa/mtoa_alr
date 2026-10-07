@@ -1,5 +1,6 @@
-{# footer kartu tabel: info halaman + navigasi. query_dict = parameter filter yg ikut dibawa #}
-{% macro render_pagination(pagination, endpoint, query_dict) %}
+{# footer kartu tabel: info halaman + navigasi. query_dict = parameter filter yg ikut dibawa,
+   anchor = id kartu tabel biar abis pindah halaman layar langsung ke tabel #}
+{% macro render_pagination(pagination, endpoint, query_dict, anchor=none) %}
   {% from "components/icon.html" import icon %}
   {% if pagination.pages > 1 %}
     <div class="card-footer d-flex flex-wrap align-items-center gap-2">
@@ -8,7 +9,7 @@
         <ul class="pagination m-0">
           <li class="page-item{% if not pagination.has_prev %} disabled{% endif %}">
             {% if pagination.has_prev %}
-              <a class="page-link" href="{{ url_for(endpoint, page=pagination.prev_num, **query_dict) }}" aria-label="Halaman sebelumnya">{{ icon("chevron_left") }}</a>
+              <a class="page-link" href="{{ url_for(endpoint, page=pagination.prev_num, _anchor=anchor, **query_dict) }}" aria-label="Halaman sebelumnya">{{ icon("chevron_left") }}</a>
             {% else %}
               <span class="page-link" aria-hidden="true">{{ icon("chevron_left") }}</span>
             {% endif %}
@@ -19,12 +20,12 @@
             {% elif page_number == pagination.page %}
               <li class="page-item active"><span class="page-link" aria-current="page">{{ page_number }}</span></li>
             {% else %}
-              <li class="page-item"><a class="page-link" href="{{ url_for(endpoint, page=page_number, **query_dict) }}">{{ page_number }}</a></li>
+              <li class="page-item"><a class="page-link" href="{{ url_for(endpoint, page=page_number, _anchor=anchor, **query_dict) }}">{{ page_number }}</a></li>
             {% endif %}
           {% endfor %}
           <li class="page-item{% if not pagination.has_next %} disabled{% endif %}">
             {% if pagination.has_next %}
-              <a class="page-link" href="{{ url_for(endpoint, page=pagination.next_num, **query_dict) }}" aria-label="Halaman berikutnya">{{ icon("chevron_right") }}</a>
+              <a class="page-link" href="{{ url_for(endpoint, page=pagination.next_num, _anchor=anchor, **query_dict) }}" aria-label="Halaman berikutnya">{{ icon("chevron_right") }}</a>
             {% else %}
               <span class="page-link" aria-hidden="true">{{ icon("chevron_right") }}</span>
             {% endif %}

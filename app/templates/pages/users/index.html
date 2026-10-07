@@ -4,8 +4,12 @@
 {% from "components/badge.html" import role_badge, user_status_badge %}
 {% from "components/selection_panel.html" import selection_panel %}
 {% from "components/back_field.html" import back_field_list with context %}
+{% from "components/data_table.html" import table_attr, table_head, cell_attr, column_menu, column_filter_form %}
 
 {% block title %}Users{% endblock %}
+
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}Display Users{% endblock %}
 
 {% block page_pretitle %}Admin{% endblock %}
 
@@ -14,7 +18,8 @@
 {% endblock %}
 
 {% block content %}
-  {% set is_filtered = pagination_query_dict | length > 0 %}
+  {# urutan (sort) aja ga diitung sebagai filter #}
+  {% set is_filtered = pagination_query_dict | reject("equalto", "sort") | list | length > 0 %}
 
   {% set summary_card_list = [
     ("Total user", summary_dict.total, "user", "bg-primary", url_for("users.index")),
@@ -40,35 +45,27 @@
     {% endfor %}
   </div>
 
-  {{ selection_panel(selection_field_list, url_for("users.index"), "Cari nama, email, departemen, jabatan... (tekan /)") }}
+  {{ selection_panel(selection_field_list, url_for("users.index", _anchor="daftar_user"), "Cari nama, email, departemen, jabatan... (tekan /)") }}
 
-  <div class="card">
+  <div class="card" id="daftar_user">
     <div class="card-header">
       <h3 class="card-title">{{ icon("user") }} Daftar User</h3>
       <div class="card-actions">
+        {% if user_row_list %}{{ column_menu(table_view) }}{% endif %}
         <span class="badge bg-secondary-lt">{{ pagination.total }} user</span>
       </div>
     </div>
 
     {% if user_row_list %}
+      {{ column_filter_form(table_view, "daftar_user") }}
       <div class="table-responsive">
-        <table class="table table-vcenter card-table table-stack">
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Departemen</th>
-              <th>Role & Akses</th>
-              <th>Status</th>
-              <th>Login Terakhir</th>
-              <th>Terdaftar</th>
-              <th class="w-1"><span class="visually-hidden">Aksi</span></th>
-            </tr>
-          </thead>
+        <table class="table table-vcenter card-table table-stack data-table" {{ table_attr(table_view) }}>
+          {{ table_head(table_view, "users.index", pagination_query_dict, "daftar_user", action_width=120) }}
           <tbody>
             {% for row in user_row_list %}
               {% set user = row.user %}
               <tr>
-                <td class="cell-title">
+                <td class="cell-title" {{ cell_attr(table_view, "name") }}>
                   <div class="d-flex align-items-center gap-2">
                     <span class="avatar avatar-sm bg-primary-lt">{{ user.full_name | initials }}</span>
                     <div class="text-truncate">
@@ -80,13 +77,13 @@
                     </div>
                   </div>
                 </td>
-                <td data-label="Departemen">
+                <td data-label="Departemen" {{ cell_attr(table_view, "department") }}>
                   <div>
                     {{ user.department }}
                     <div class="small text-secondary">{{ user.job_title }}</div>
                   </div>
                 </td>
-                <td data-label="Role & Akses">
+                <td data-label="Role & Akses" {{ cell_attr(table_view, "role") }}>
                   <div class="d-flex flex-wrap gap-1">
                     {{ role_badge(user.role) }}
                     {% if is_admin(user) %}
@@ -98,9 +95,9 @@
                     {% endif %}
                   </div>
                 </td>
-                <td data-label="Status">{{ user_status_badge(row.status) }}</td>
-                <td class="text-nowrap text-secondary" data-label="Login Terakhir">{{ user.last_login_at | time_ago if user.last_login_at else "Belum pernah" }}</td>
-                <td class="text-nowrap text-secondary" data-label="Terdaftar">{{ user.created_at | local_datetime("%d %b %Y") }}</td>
+                <td data-label="Status" {{ cell_attr(table_view, "status") }}>{{ user_status_badge(row.status) }}</td>
+                <td class="text-nowrap text-secondary" data-label="Login Terakhir" {{ cell_attr(table_view, "last_login") }}>{{ user.last_login_at | time_ago if user.last_login_at else "Belum pernah" }}</td>
+                <td class="text-nowrap text-secondary" data-label="Terdaftar" {{ cell_attr(table_view, "created") }}>{{ user.created_at | local_datetime("%d %b %Y") }}</td>
                 <td class="cell-action">
                   {% if user.id == current_user.id %}
                     <span class="small text-secondary">Akunmu</span>
@@ -144,7 +141,7 @@
           </tbody>
         </table>
       </div>
-      {{ render_pagination(pagination, "users.index", pagination_query_dict) }}
+      {{ render_pagination(pagination, "users.index", pagination_query_dict, "daftar_user") }}
     {% else %}
       <div class="empty">
         <div class="empty-icon">{{ icon("search") }}</div>

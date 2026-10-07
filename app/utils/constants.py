@@ -218,6 +218,12 @@ SEARCH_WILDCARD = "*"
 SELECTION_MAX_VALUE_COUNT = 20
 SELECTION_EXCLUDE_SUFFIX = "__not"
 
+# tabel ala ALV: parameter urutan di URL (?sort=judul / ?sort=-judul) & batas lebar kolom yg boleh disimpen
+TABLE_SORT_KEY = "sort"
+TABLE_SORT_DESC_PREFIX = "-"
+TABLE_COLUMN_MIN_WIDTH = 60
+TABLE_COLUMN_MAX_WIDTH = 800
+
 # group
 GROUP_ROLE_OWNER = "owner"
 GROUP_ROLE_MEMBER = "member"

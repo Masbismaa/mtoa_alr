@@ -1,0 +1,33 @@
+{% from "components/icon.html" import icon %}
+{# toolbar aplikasi ala SAP GUI, posisi tombolnya selalu sama di semua layar. Tombol yg ga kepake di layar ini dinonaktifin.
+   Kembali = ke layar sebelumnya, Keluar = tutup layar ke Dashboard, Batal = buang perubahan form, Simpan = simpan form.
+   tombol khusus halaman (block page_actions: Tambah, Edit, Hapus, ...) nyusul di kanan Simpan, gayanya disamain.
+   variabel dari layouts/app_base.html: toolbar_back_url, toolbar_exit_url, toolbar_cancel_url, toolbar_save_form, page_action_html #}
+{% macro toolbar_link(url, icon_name, label, title) %}
+  {% if url %}
+    <a href="{{ url }}" class="btn btn-sm app-toolbar-btn" title="{{ title }}">{{ icon(icon_name) }}<span>{{ label }}</span></a>
+  {% else %}
+    <span class="btn btn-sm app-toolbar-btn disabled" aria-disabled="true" title="{{ label }} ga tersedia di layar ini">{{ icon(icon_name) }}<span>{{ label }}</span></span>
+  {% endif %}
+{% endmacro %}
+
+<div class="app-toolbar d-print-none" role="toolbar" aria-label="Toolbar layar">
+  <div class="container-xl app-toolbar-inner">
+    {# HP: title bar atas ga ada, jadi judul layar tampil di sini #}
+    <div class="app-toolbar-title d-lg-none">{{ shell_title }}</div>
+    {{ toolbar_link(toolbar_back_url, "arrow_left", "Kembali", "Kembali ke layar sebelumnya") }}
+    {{ toolbar_link(toolbar_exit_url, "logout", "Keluar", "Keluar dari layar ini ke Dashboard") }}
+    {{ toolbar_link(toolbar_cancel_url, "close", "Batal", "Batalkan perubahan & tutup layar") }}
+    <span class="app-toolbar-divider" aria-hidden="true"></span>
+    {% if toolbar_save_form %}
+      <button type="submit" form="{{ toolbar_save_form }}" class="btn btn-sm btn-primary app-toolbar-btn" title="Simpan isian">{{ icon("check") }}<span>Simpan</span></button>
+    {% else %}
+      <span class="btn btn-sm app-toolbar-btn disabled" aria-disabled="true" title="Simpan ga tersedia di layar ini">{{ icon("check") }}<span>Simpan</span></span>
+    {% endif %}
+    {% if page_action_html %}
+      <span class="app-toolbar-divider" aria-hidden="true"></span>
+      <div class="app-toolbar-actions">{{ page_action_html }}</div>
+    {% endif %}
+    <button type="button" class="btn btn-sm app-toolbar-btn ms-auto" data-help-open aria-haspopup="dialog" title="Bantuan layar ini">{{ icon("info") }}<span>Bantuan</span></button>
+  </div>
+</div>

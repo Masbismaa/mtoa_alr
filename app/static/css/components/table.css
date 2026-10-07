@@ -61,6 +61,171 @@
   white-space: nowrap;
 }
 
+/* tabel ALV (layar lebar): lebar kolom ngikut layout yg disimpen, isi sel satu baris, kepanjangan jadi "…" */
+@media (min-width: 768px) {
+  .data-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .data-table th,
+  .data-table td {
+    overflow: hidden;
+    padding-right: 0.625rem;
+    padding-left: 0.625rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .data-table th {
+    position: relative;
+  }
+
+  .data-table .cell-description,
+  .data-table .cell-actor {
+    max-width: none;
+  }
+
+  .data-table .cell-url {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  /* badge berjejer (misal Role & Akses) tetep utuh, yg ga muat kepotong di ujung sel */
+  .data-table .d-flex.flex-wrap {
+    flex-wrap: nowrap !important;
+  }
+
+  .data-table .d-flex.flex-wrap > * {
+    flex-shrink: 0;
+  }
+
+  /* dropdown aksi di tabel users ga boleh kepotong sel */
+  .data-table td.cell-action {
+    overflow: visible;
+  }
+}
+
+/* baris filter per kolom di bawah judul kolom (HP: ikut ketutup bareng judul kolom, filter lewat Kriteria Pencarian) */
+.table-filter-row th {
+  padding-top: 0.25rem;
+  padding-bottom: 0.35rem;
+  font-weight: 400;
+  background: var(--tblr-bg-surface);
+}
+
+.table-filter-row .form-control,
+.table-filter-row .form-select {
+  width: 100%;
+  min-width: 0;
+  font-size: 0.8125rem;
+}
+
+/* pilihan di kolom sempit: padding & panah dikecilin biar tulisannya ga kepotong */
+.table-filter-row .form-select {
+  padding-right: 1.25rem;
+  padding-left: 0.4rem;
+  background-position: right 0.3rem center;
+  background-size: 12px 10px;
+}
+
+.table-filter-row .form-control {
+  padding-right: 0.4rem;
+  padding-left: 0.4rem;
+}
+
+/* judul kolom yg bisa diurutin */
+.col-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.col-sort:hover {
+  color: var(--tblr-primary);
+  text-decoration: none;
+}
+
+.col-sort-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.col-sort-icon {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  opacity: 0.35;
+}
+
+.col-sort.is-active,
+.col-sort.is-active .col-sort-icon {
+  color: var(--tblr-primary);
+  opacity: 1;
+}
+
+/* garis buat narik lebar kolom (di kanan judul) */
+.table-resize {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.table-resize:hover,
+.table-resize:focus-visible,
+.data-table.is-resizing .table-resize:active {
+  background: var(--tblr-primary);
+  opacity: 0.5;
+  outline: none;
+}
+
+.data-table.is-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.table-column-menu {
+  min-width: 15rem;
+}
+
+.table-column-menu .dropdown-item {
+  cursor: pointer;
+}
+
+/* tombol Kolom + badge jumlah sejajar di kepala kartu, di HP turun ke baris kedua kalau ga muat */
+.card-header:has(> .card-actions > [data-table-menu]) {
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+}
+
+.card-header:has(> .card-actions > [data-table-menu]) .card-title {
+  white-space: nowrap;
+}
+
+.card-actions:has(> [data-table-menu]) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* kartu yg menu dropdown-nya lagi kebuka naik ke atas, biar menunya ga ketutup kartu di bawahnya */
+.card:has(.dropdown-menu.show) {
+  z-index: 3;
+}
+
+/* kartu tabel yg jadi tujuan #anchor ga ketutup topbar (layar besar: ditambah toolbar, lihat app_shell.css) */
+.card[id] {
+  scroll-margin-top: 4.5rem;
+}
+
 .copy-button.is-copied {
   color: var(--tblr-green);
   border-color: var(--tblr-green);
@@ -69,6 +234,10 @@
 /* HP: tiap baris tabel jadi kartu kecil */
 @media (max-width: 767.98px) {
   .table-stack thead {
+    display: none;
+  }
+
+  .table-resize {
     display: none;
   }
 
