@@ -213,6 +213,11 @@ ATTACHMENT_EXTENSION_LIST = list(ATTACHMENT_CONTENT_TYPE_BY_EXTENSION_DICT)
 PER_PAGE = 10
 MAX_SEARCH_KEYWORD_LENGTH = 100
 
+# Select Screen ala SAP: * = wildcard, tiap isian maksimal sekian nilai (Multi Selection)
+SEARCH_WILDCARD = "*"
+SELECTION_MAX_VALUE_COUNT = 20
+SELECTION_EXCLUDE_SUFFIX = "__not"
+
 # group
 GROUP_ROLE_OWNER = "owner"
 GROUP_ROLE_MEMBER = "member"

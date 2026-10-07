@@ -1,4 +1,5 @@
-"""Test revisi: General tanpa username/access note, label mode tampilan, maks 10 field, pagination 10, default APP_ENV."""
+"""Test revisi: General tanpa username/access note, tombol tema animasi, maks 10 field, pagination 10, default APP_ENV."""
+import re
 from datetime import datetime, timezone
 from app import resolve_config_name
 from app.services.access_entry_service import create_access_entry, search_visible_entries
@@ -48,11 +49,22 @@ def test_pagination_is_ten(app, registered_user, category_dict):
     assert PER_PAGE == 10
     assert len(search_visible_entries(registered_user).items) == 10
 
-def test_theme_toggle_shows_mode_text(logged_in_client):
-    """Positive: tombol tema ada tulisan Dark mode / Light mode."""
-    html_text = logged_in_client.get("/").get_data(as_text=True)
-    assert "Dark mode" in html_text
-    assert "Light mode" in html_text
+def test_theme_toggle_shows_day_night_switch(logged_in_client):
+    """Tombol tema menampilkan adegan siang/malam dan status switch yang aksesibel."""
+    response = logged_in_client.get("/")
+    assert response.status_code == 200
+    toggle_match = re.search(
+        r'<button\b[^>]*\bdata-theme-toggle\b[^>]*>.*?</button>',
+        response.get_data(as_text=True),
+        re.DOTALL,
+    )
+    assert toggle_match is not None, "Tombol pengganti tema tidak ditemukan"
+    toggle_html = toggle_match.group(0)
+    assert 'role="switch"' in toggle_html
+    assert 'aria-label="Mode gelap"' in toggle_html
+    assert 'aria-checked="false"' in toggle_html
+    assert 'class="theme-toggle-day"' in toggle_html
+    assert 'class="theme-toggle-night"' in toggle_html
 
 def test_page_title_has_single_suffix(logged_in_client):
     """Positive: judul tab browser cuma sekali '- ALR', tanpa MTOA."""

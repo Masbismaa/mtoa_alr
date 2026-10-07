@@ -1,5 +1,6 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
+{% from "components/selection_panel.html" import selection_panel %}
 
 {% block title %}Groups{% endblock %}
 
@@ -44,6 +45,9 @@
     </div>
   {% endif %}
 
+  {% set is_filtered = selection_query_dict | length > 0 %}
+  {{ selection_panel(selection_field_list, url_for("groups.index"), "Cari nama atau deskripsi group... (tekan /)", is_open=is_filtered) }}
+
   {% if group_list %}
     <div class="row row-cards" aria-label="Daftar group">
       {% for group in group_list %}
@@ -69,6 +73,14 @@
         </div>
       {% endfor %}
     </div>
+  {% elif is_filtered %}
+    <div class="card">
+      <div class="empty">
+        <div class="empty-icon">{{ icon("search") }}</div>
+        <p class="empty-title">Tidak ada group yang cocok</p>
+        <p class="empty-subtitle text-secondary">Coba ubah kriteria pencariannya, atau pakai * (misal tim*).</p>
+      </div>
+    </div>
   {% else %}
     <div class="card">
       <div class="empty">
@@ -81,4 +93,8 @@
       </div>
     </div>
   {% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', filename='js/components/selection_panel.js') }}" defer></script>
 {% endblock %}

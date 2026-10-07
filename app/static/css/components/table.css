@@ -1,4 +1,4 @@
-/* tabel ala ALV grid SAP: header abu-abu, garis antar kolom, baris rapat + hover, filter, tombol copy, versi HP jadi kartu */
+/* tabel ala ALV grid SAP: header abu-abu, garis antar kolom, baris rapat + hover, tombol copy, versi HP jadi kartu */
 
 /* header kolom: strip abu-abu, huruf biasa (bukan kapital) */
 .card-table thead th,
@@ -24,16 +24,6 @@
 
 .table tbody tr:hover {
   background: var(--app-hover-bg);
-}
-
-/* filter tabel lagi loading */
-.filter-bar {
-  transition: opacity 150ms ease;
-}
-
-.filter-bar.is-loading {
-  opacity: 0.6;
-  pointer-events: none;
 }
 
 /* sel tabel */

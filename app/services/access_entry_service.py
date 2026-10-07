@@ -2,7 +2,7 @@
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.extensions import db
-from app.models import AccessEntry, AccessEntryField, Category
+from app.models import AccessEntry, AccessEntryField, Category, User
 from app.security.access_policy import build_visible_entry_filter, can_edit_entry, is_entry_owner
 from app.security.encryption_service import decrypt_credential, encrypt_credential
 from app.services.attachment_service import (
@@ -45,6 +45,7 @@ from app.utils.exceptions import InvalidCredentialError, PermissionDeniedError, 
 from app.utils.sanitizer import get_plain_text, sanitize_rich_text, sanitize_text
 from app.utils.url_helper import normalize_address, normalize_url, parse_port
 from app.utils.query_helper import build_keyword_filter
+from app.utils.selection import apply_condition_list, build_date_range_filter, build_text_selection_filter
 
 AUDIT_ENTITY_TYPE = "access_entries"
 
@@ -354,8 +355,31 @@ def get_visible_entry(user, entry_id):
         .where(AccessEntry.id == entry_id, build_visible_entry_filter(user))
     ).scalar_one_or_none()
 
-def build_visible_entry_query(user, keyword=None, category_id=None, visibility=None, is_include_sub=True):
-    """Query data yg boleh diliat user + filter (dipake tabel Home & export Excel biar hasilnya sama persis)."""
+def list_selected_category_id(category_id_list, is_include_sub=True):
+    """Kategori yg dicentang (+ sub-nya kalau is_include_sub). Kategori yg ga ada dicuekin."""
+    selected_id_list = []
+    for category_id in category_id_list:
+        category = get_category(category_id)
+        if category is not None:
+            selected_id_list.extend(list_descendant_id(category) if is_include_sub else [category.id])
+    return selected_id_list
+
+def apply_entry_selection(query, selection, is_include_sub=True):
+    """Tempel kriteria Select Screen (judul, URL/address, kategori, visibilitas, status, pembuat, tanggal) ke query link."""
+    owner_condition = build_text_selection_filter([User.full_name, User.email], selection["owner"])
+    category_id_list = selection["category_id_list"]
+    return apply_condition_list(query, [
+        build_text_selection_filter([AccessEntry.title], selection["title"]),
+        build_text_selection_filter([AccessEntry.url, AccessEntry.address], selection["access"]),
+        AccessEntry.user_id.in_(db.select(User.id).where(owner_condition)) if owner_condition is not None else None,
+        AccessEntry.category_id.in_(list_selected_category_id(category_id_list, is_include_sub)) if category_id_list else None,
+        AccessEntry.visibility.in_(selection["visibility_list"]) if selection["visibility_list"] else None,
+        AccessEntry.status.in_(selection["status_list"]) if selection["status_list"] else None,
+        build_date_range_filter(AccessEntry.created_at, *selection["created_range"]),
+    ])
+
+def build_visible_entry_query(user, keyword=None, category_id=None, visibility=None, is_include_sub=True, selection=None):
+    """Query data yg boleh diliat user + filter (dipake tabel Home, halaman kategori, & export Excel biar hasilnya sama persis)."""
     query = (
         db.select(AccessEntry)
         .options(
@@ -375,17 +399,20 @@ def build_visible_entry_query(user, keyword=None, category_id=None, visibility=N
         query = query.where(AccessEntry.category_id.in_(category_id_list))
     if visibility in VISIBILITY_LIST:
         query = query.where(AccessEntry.visibility == visibility)
+    if selection:
+        query = apply_entry_selection(query, selection, is_include_sub)
     return query.order_by(AccessEntry.updated_at.desc(), AccessEntry.id.desc())
 
 def search_visible_entries(user, keyword=None, category_id=None, visibility=None, page=1, per_page=PER_PAGE,
-                           is_include_sub=True):
+                           is_include_sub=True, selection=None):
     """Cari data yg boleh diliat user, hasilnya per halaman. Filter kategori ikut ngambil isi sub-nya."""
-    query = build_visible_entry_query(user, keyword, category_id, visibility, is_include_sub)
+    query = build_visible_entry_query(user, keyword, category_id, visibility, is_include_sub, selection)
     return db.paginate(query, page=page, per_page=per_page, error_out=False)
 
-def list_visible_entries_for_export(user, keyword=None, category_id=None, visibility=None, max_count=EXPORT_MAX_ROW_COUNT):
+def list_visible_entries_for_export(user, keyword=None, category_id=None, visibility=None, max_count=EXPORT_MAX_ROW_COUNT,
+                                    selection=None):
     """Semua data hasil filter buat export (dibatesin biar server ga berat). Return (entry_list, is_truncated)."""
-    query = build_visible_entry_query(user, keyword, category_id, visibility).limit(max_count + 1)
+    query = build_visible_entry_query(user, keyword, category_id, visibility, selection=selection).limit(max_count + 1)
     entry_list = db.session.execute(query).unique().scalars().all()
     return entry_list[:max_count], len(entry_list) > max_count
 

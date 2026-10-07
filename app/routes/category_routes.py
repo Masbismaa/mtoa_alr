@@ -2,6 +2,7 @@
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from app.schemas.category_schema import CategoryForm
+from app.schemas.selection_schema import build_entry_field_list, read_entry_selection
 from app.security.role_guard import permission_required
 from app.services.access_entry_service import search_visible_entries
 from app.services.category_service import (
@@ -26,6 +27,7 @@ from app.utils.exceptions import ValidationError
 from app.utils.form_helper import attach_form_error_list, flash_error_list, read_form_data
 from app.utils.query_helper import parse_positive_int
 from app.utils.request_helper import get_current_user
+from app.utils.selection import build_selection_query_dict
 
 categories_bp = Blueprint("categories", __name__, url_prefix="/categories")
 
@@ -96,9 +98,13 @@ def browse(category_id):
     """Isi satu kategori ala forum: sub-kategori + link yg ada langsung di kategori ini."""
     user = get_current_user()
     category = get_visible_category_or_404(user, category_id)
+    selection = read_entry_selection(request.args)
+    field_list = build_entry_field_list()
     pagination = search_visible_entries(
         user,
+        keyword=selection["keyword"],
         category_id=category.id,
+        selection=selection,
         page=parse_positive_int(request.args.get("page"), default=1),
         per_page=PER_PAGE,
         is_include_sub=False,
@@ -110,7 +116,9 @@ def browse(category_id):
         path_list=get_category_path_list(category),
         forum_row_list=build_forum_row_list(user, parent=category),
         pagination=pagination,
-        pagination_query_dict={"category_id": category.id},
+        pagination_query_dict=build_selection_query_dict(request.args, field_list),
+        selection_field_list=field_list,
+        keyword=selection["keyword"],
         can_add_sub=can_add_sub_category(category),
         can_manage=can_manage_category(user, category),
         is_default=is_default_category(category),

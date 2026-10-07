@@ -41,6 +41,17 @@
   color: var(--app-label-color);
 }
 
+/* menu terkunci: abu-abu + gembok, kursor tanda dilarang */
+/* menu terkunci: tombol polos selebar menu, warnanya redup kayak menu nonaktif */
+.app-sidebar .nav-link-locked {
+  width: 100%;
+  color: var(--app-label-color);
+  text-align: start;
+  background: none;
+  border: 0;
+  cursor: not-allowed;
+}
+
 /* judul bagian + tombol customize di bawah */
 /* judul bagian kayak simpul folder di pohon menu SAP */
 .sidebar-heading {
