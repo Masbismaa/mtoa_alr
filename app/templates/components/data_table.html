@@ -1,0 +1,97 @@
+{# tabel ala ALV SAP: judul kolom diklik buat ngurutin, garis di kanan judul ditarik buat ngatur lebar,
+   menu "Kolom" buat milih kolom yg tampil. Layout kesimpen di akun (js/components/data_table.js).
+   table_view dari app/utils/data_table.py:build_table_view #}
+
+{# atribut <table>: dipake JS buat baca & nyimpen layout #}
+{% macro table_attr(table_view) -%}
+  data-table-key="{{ table_view.key }}" data-layout-url="{{ url_for('settings.update_table_layout_api') }}"
+  data-table-layout='{{ table_view.layout | tojson }}' data-default-layout='{{ table_view.default_layout | tojson }}'
+  data-default-width='{{ table_view.default_width_dict | tojson }}'
+{%- endmacro %}
+
+{# atribut <td>: penanda kolom + disembunyiin kalau kolomnya lagi dimatiin #}
+{% macro cell_attr(table_view, key) -%}
+  data-column="{{ key }}"{% if key in table_view.hidden_key_list %} hidden{% endif %}
+{%- endmacro %}
+
+{# kepala tabel. query_dict = kriteria yg lagi kepake (ikut kebawa pas ngurutin), anchor = id kartu tabel #}
+{% macro table_head(table_view, endpoint, query_dict, anchor, action_width=80) %}
+  {% from "components/icon.html" import icon %}
+  <thead>
+    <tr>
+      {% for column in table_view.column_list %}
+        <th data-column="{{ column.key }}" style="width: {{ column.width }}px"{% if column.is_hidden %} hidden{% endif %}{% if column.sort_state %} aria-sort="{{ 'descending' if column.sort_state == 'desc' else 'ascending' }}"{% endif %}>
+          {% if column.is_sortable %}
+            <a href="{{ url_for(endpoint, _anchor=anchor, **dict(query_dict, sort=column.next_sort)) }}" class="col-sort{% if column.sort_state %} is-active{% endif %}" title="Urutkan {{ column.label }}">
+              <span class="col-sort-label">{{ column.label }}</span>
+              {{ icon("arrow_down" if column.sort_state == "desc" else "arrow_up" if column.sort_state == "asc" else "selector", "col-sort-icon") }}
+            </a>
+          {% else %}
+            <span class="col-sort-label">{{ column.label }}</span>
+          {% endif %}
+          <span class="table-resize" data-table-resize tabindex="0" role="separator" aria-orientation="vertical" aria-label="Lebar kolom {{ column.label }} (panah kiri/kanan)"></span>
+        </th>
+      {% endfor %}
+      <th class="cell-action-head" style="width: {{ action_width }}px"><span class="visually-hidden">Aksi</span></th>
+    </tr>
+    {# baris filter per kolom: isiannya nyambung ke form column_filter_form (atribut form), Enter / ganti pilihan = terapin #}
+    {% if table_view.has_filter %}
+      {% set filter_form_id = "column_filter_" ~ table_view.key %}
+      <tr class="table-filter-row">
+        {% for column in table_view.column_list %}
+          {% set column_filter = column.filter %}
+          <th data-column="{{ column.key }}"{% if column.is_hidden %} hidden{% endif %}>
+            {% if column_filter %}
+              {% set locked_attr = ' disabled title="Lebih dari satu nilai, ubah lewat Kriteria Pencarian"' | safe if column_filter.is_locked else "" %}
+              {% if column_filter.kind == "choice" %}
+                <select name="{{ column_filter.key }}" form="{{ filter_form_id }}" class="form-select form-select-sm" aria-label="Filter {{ column.label }}" data-column-filter{{ locked_attr }}>
+                  <option value="">{{ "(beberapa)" if column_filter.is_locked else "Semua" }}</option>
+                  {% for option_value, option_label in column_filter.option_list %}
+                    <option value="{{ option_value }}"{% if option_value == column_filter.value and not column_filter.is_locked %} selected{% endif %}>{{ option_label }}</option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input type="search" name="{{ column_filter.key }}" form="{{ filter_form_id }}" value="{{ '' if column_filter.is_locked else column_filter.value }}" class="form-control form-control-sm" placeholder="{{ '(beberapa)' if column_filter.is_locked else 'Filter… (pakai *)' }}" maxlength="100" autocomplete="off" aria-label="Filter {{ column.label }}" data-column-filter{{ locked_attr }}>
+              {% endif %}
+            {% endif %}
+          </th>
+        {% endfor %}
+        <th class="cell-action-head">
+          <button type="submit" form="{{ filter_form_id }}" class="btn btn-sm btn-icon" title="Terapkan filter kolom" aria-label="Terapkan filter kolom">{{ icon("search") }}</button>
+        </th>
+      </tr>
+    {% endif %}
+  </thead>
+{% endmacro %}
+
+{# form buat baris filter per kolom (ditaruh sebelum <table>, soalnya form ga boleh di dalem tabel).
+   bawa parameter lain yg lagi kepake (kriteria, urutan) sebagai input tersembunyi. anchor = id kartu tabel #}
+{% macro column_filter_form(table_view, anchor) %}
+  {% if table_view.has_filter %}
+    <form method="get" action="{{ request.path }}#{{ anchor }}" id="column_filter_{{ table_view.key }}" data-column-filter-form>
+      {% for key, value in table_view.filter_hidden_list %}
+        <input type="hidden" name="{{ key }}" value="{{ value }}">
+      {% endfor %}
+    </form>
+  {% endif %}
+{% endmacro %}
+
+{# tombol "Kolom" di kepala kartu: centang kolom yg mau tampil + balikin layout awal #}
+{% macro column_menu(table_view) %}
+  {% from "components/icon.html" import icon %}
+  <div class="dropdown" data-table-menu="{{ table_view.key }}">
+    <button type="button" class="btn btn-sm" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Atur kolom tabel">{{ icon("columns") }} Kolom</button>
+    <div class="dropdown-menu dropdown-menu-end table-column-menu">
+      <span class="dropdown-header">Tampilkan kolom</span>
+      {% for column in table_view.column_list if column.is_hideable %}
+        <label class="dropdown-item">
+          <input type="checkbox" class="form-check-input m-0 me-2" value="{{ column.key }}" data-table-column-toggle{% if not column.is_hidden %} checked{% endif %}>
+          {{ column.label }}
+        </label>
+      {% endfor %}
+      <div class="dropdown-divider"></div>
+      <button type="button" class="dropdown-item" data-table-reset>{{ icon("refresh", "dropdown-item-icon") }} Kembalikan layout awal</button>
+      <div class="dropdown-item-text small text-secondary" data-table-status role="status">Lebar &amp; kolom tersimpan otomatis di akunmu.</div>
+    </div>
+  </div>
+{% endmacro %}
