@@ -1,0 +1,23 @@
+{# dialog Bantuan dari toolbar: penjelasan layar ini (block page_help) + fungsi tombol toolbar & shortcut #}
+<dialog class="confirm-dialog help-dialog" id="help_dialog" aria-labelledby="help_dialog_title">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title" id="help_dialog_title">Bantuan: {{ shell_title }}</h3>
+    </div>
+    <div class="modal-body">
+      {% if page_help_html %}<div class="help-page">{{ page_help_html }}</div>{% endif %}
+      <dl class="help-list">
+        <dt>Kembali</dt><dd>Balik ke layar sebelumnya.</dd>
+        <dt>Keluar</dt><dd>Tutup layar ini, balik ke Dashboard.</dd>
+        <dt>Batal</dt><dd>Buang isian form yang belum disimpan.</dd>
+        <dt>Simpan</dt><dd>Simpan isian form di layar ini.</dd>
+        <dt><kbd>/</kbd></dt><dd>Langsung ke Cari cepat (di layar yang punya Kriteria Pencarian).</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Tutup dialog.</dd>
+      </dl>
+      <p class="text-secondary small mb-0">Pesan terakhir selalu ada di status bar bawah, klik buat lihat riwayatnya.</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-primary w-100" data-help-close>Tutup</button>
+    </div>
+  </div>
+</dialog>

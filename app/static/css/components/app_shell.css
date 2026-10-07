@@ -1,0 +1,260 @@
+/* shell aplikasi ala SAP GUI: toolbar aplikasi di bawah title bar + status bar di bawah layar */
+
+:root {
+  --app-statusbar-height: 1.75rem;
+}
+
+/* toolbar aplikasi: strip abu-abu, tombol ikon + teks, posisi tombol selalu sama */
+.app-toolbar {
+  background: var(--app-strip-bg);
+  border-bottom: var(--tblr-border-width, 1px) solid var(--tblr-border-color);
+}
+
+.app-toolbar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+/* judul layar di toolbar, cuma di HP (layar besar judulnya di title bar atas) */
+.app-toolbar-title {
+  flex-basis: 100%;
+  padding: 0 0.25rem;
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--app-title-color);
+}
+
+/* keterangan halaman (dulu di kepala halaman) di atas konten */
+.page-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.page-info > div {
+  flex-basis: 100%;
+}
+
+.page-info .breadcrumb {
+  margin: 0;
+}
+
+/* petunjuk di Daftar Link sebelum Jalankan */
+.selection-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.app-toolbar-btn {
+  gap: 0.35rem;
+}
+
+/* semua tombol di toolbar (termasuk tombol khusus halaman) gayanya sama: kecil, datar, ikon + teks.
+   cuma aksi utama (biru) yg berwarna, aksi hapus teksnya merah */
+.app-toolbar .btn {
+  --tblr-btn-padding-y: 0.25rem;
+  --tblr-btn-padding-x: 0.6rem;
+  --tblr-btn-font-size: 0.8125rem;
+  gap: 0.35rem;
+  min-height: 1.875rem;
+}
+
+.app-toolbar .btn .icon {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+}
+
+.app-toolbar .btn:not(.btn-primary) {
+  color: var(--app-title-color);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.app-toolbar .btn:not(.btn-primary):hover {
+  background: var(--app-hover-bg);
+  border-color: var(--tblr-border-color);
+}
+
+.app-toolbar .btn-danger,
+.app-toolbar .btn-ghost-danger {
+  color: var(--tblr-danger) !important;
+}
+
+/* tombol khusus halaman di kanan Simpan, form-nya (misal Hapus) ikut sebaris */
+.app-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.app-toolbar-actions form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.app-toolbar-btn.disabled {
+  opacity: 0.4;
+}
+
+.app-toolbar-divider {
+  width: 1px;
+  height: 1.25rem;
+  margin: 0 0.25rem;
+  background: var(--tblr-border-color);
+}
+
+/* toolbar nempel pas discroll, jadi Simpan/Batal selalu kelihatan. Layar besar: di bawah title bar, HP: paling atas */
+.app-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1010;
+}
+
+@media (min-width: 992px) {
+  .app-toolbar {
+    top: var(--app-shell-height);
+  }
+
+  .card[id] {
+    scroll-margin-top: calc(var(--app-shell-height) + 3.5rem);
+  }
+}
+
+/* HP: tulisan tombol disembunyiin, cukup ikon (judulnya ada di tooltip) */
+@media (max-width: 575.98px) {
+  .app-toolbar-btn > span:not(.icon) {
+    display: none;
+  }
+}
+
+/* status bar bawah: pesan terakhir, mode layar, environment.
+   sticky di dalem page-wrapper, jadi selalu di bawah layar & ga nutupin sidebar */
+.app-statusbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1020;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: var(--app-statusbar-height);
+  margin-top: auto;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--app-label-color);
+  background: var(--app-strip-bg);
+  border-top: var(--tblr-border-width, 1px) solid var(--tblr-border-color);
+}
+
+.app-statusbar-message {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0;
+  color: var(--app-title-color);
+  text-align: start;
+  background: none;
+  border: 0;
+}
+
+.app-statusbar-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.app-statusbar-icon .icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.app-statusbar[data-status-type="success"] .app-statusbar-icon {
+  color: var(--tblr-success);
+}
+
+.app-statusbar[data-status-type="warning"] .app-statusbar-icon {
+  color: var(--tblr-warning);
+}
+
+.app-statusbar[data-status-type="danger"] .app-statusbar-icon,
+.app-statusbar[data-status-type="danger"] .app-statusbar-text {
+  color: var(--tblr-danger);
+}
+
+.app-statusbar-item {
+  flex-shrink: 0;
+  padding-left: 0.75rem;
+  white-space: nowrap;
+  border-left: var(--tblr-border-width, 1px) solid var(--tblr-border-color);
+}
+
+.app-statusbar-env {
+  font-weight: 700;
+  color: var(--app-text-accent);
+}
+
+/* riwayat pesan */
+.status-history {
+  max-height: 50vh;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.status-history-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: var(--tblr-border-width, 1px) solid var(--tblr-border-color);
+}
+
+.status-history-item.is-danger {
+  color: var(--tblr-danger);
+}
+
+.status-history-time {
+  flex-shrink: 0;
+  color: var(--app-label-color);
+  font-variant-numeric: tabular-nums;
+}
+
+/* dialog bantuan */
+.help-dialog {
+  width: min(560px, calc(100% - 2rem));
+}
+
+.help-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.help-list dt {
+  font-weight: 600;
+}
+
+.help-list dd {
+  margin: 0;
+}
+
+/* judul hasil pencarian yg difokusin otomatis abis Jalankan: ga perlu garis fokus kalau bukan dari keyboard */
+[data-result-heading]:focus:not(:focus-visible) {
+  outline: none;
+}
