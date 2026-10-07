@@ -16,7 +16,8 @@
         {% for entry in entry_list %}
           {% set access_text = entry.url or ((entry.address ~ (":" ~ entry.port if entry.port else "")) if entry.address else "") %}
           {% set detail_url = url_for('entries.detail', entry_id=entry.id, back=back_url) %}
-          <tr>
+          {# data-row-url: dibuka pas baris aktif di-Enter / di-double-click (js/components/table_row.js) #}
+          <tr data-row-url="{{ detail_url }}">
             <td class="cell-title" data-label="Judul" {{ cell_attr(table_view, "title") }}>
               <a href="{{ detail_url }}" class="text-reset fw-bold" title="{{ entry.title }}">{{ entry.title | truncate(50, true, "…", 0) }}</a>
             </td>
