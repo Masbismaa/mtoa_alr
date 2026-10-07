@@ -2,15 +2,14 @@
 {% from "components/icon.html" import icon %}
 {% from "components/pagination.html" import render_pagination %}
 {% from "components/badge.html" import role_badge, user_status_badge %}
+{% from "components/selection_panel.html" import selection_panel %}
+{% from "components/back_field.html" import back_field_list with context %}
+{% from "components/data_table.html" import table_attr, table_head, cell_attr, column_menu, column_filter_form %}
 
 {% block title %}Users{% endblock %}
 
-{# filter tabel yg lagi kepake, dibawa ke form aksi biar abis klik balik ke tampilan yg sama #}
-{% macro back_field_list() %}
-  {% for back_key, back_value in back_param_dict.items() %}
-    <input type="hidden" name="{{ back_key }}" value="{{ back_value }}">
-  {% endfor %}
-{% endmacro %}
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}Display Users{% endblock %}
 
 {% block page_pretitle %}Admin{% endblock %}
 
@@ -19,7 +18,8 @@
 {% endblock %}
 
 {% block content %}
-  {% set is_filtered = filter_dict.keyword or filter_dict.role or filter_dict.status %}
+  {# urutan (sort) aja ga diitung sebagai filter #}
+  {% set is_filtered = pagination_query_dict | reject("equalto", "sort") | list | length > 0 %}
 
   {% set summary_card_list = [
     ("Total user", summary_dict.total, "user", "bg-primary", url_for("users.index")),
@@ -45,69 +45,27 @@
     {% endfor %}
   </div>
 
-  <div class="card">
+  {{ selection_panel(selection_field_list, url_for("users.index", _anchor="daftar_user"), "Cari nama, email, departemen, jabatan... (tekan /)") }}
+
+  <div class="card" id="daftar_user">
     <div class="card-header">
       <h3 class="card-title">{{ icon("user") }} Daftar User</h3>
       <div class="card-actions">
+        {% if user_row_list %}{{ column_menu(table_view) }}{% endif %}
         <span class="badge bg-secondary-lt">{{ pagination.total }} user</span>
       </div>
     </div>
 
-    <div class="card-body border-bottom py-3">
-      <form method="get" action="{{ url_for('users.index') }}" class="row g-2 align-items-center filter-bar" role="search" data-filter-form>
-        <div class="col-12 col-md">
-          <label class="visually-hidden" for="filter_keyword">Cari user</label>
-          <div class="input-icon">
-            <span class="input-icon-addon">{{ icon("search") }}</span>
-            <input type="search" id="filter_keyword" name="q" value="{{ filter_dict.keyword }}" class="form-control" placeholder="Cari nama, email, departemen, jabatan... (tekan /)" maxlength="100" autocomplete="off" data-filter-search>
-          </div>
-        </div>
-        <div class="col-6 col-md-auto">
-          <select name="role" class="form-select" aria-label="Filter role" data-filter-auto>
-            <option value="">Semua role</option>
-            {% for role_key, role_label in role_label_dict.items() %}
-              <option value="{{ role_key }}"{% if filter_dict.role == role_key %} selected{% endif %}>{{ role_label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-6 col-md-auto">
-          <select name="status" class="form-select" aria-label="Filter status" data-filter-auto>
-            <option value="">Semua status</option>
-            {% for status_key, status_label in status_label_dict.items() %}
-              <option value="{{ status_key }}"{% if filter_dict.status == status_key %} selected{% endif %}>{{ status_label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-auto">
-          <button type="submit" class="btn btn-primary">{{ icon("search") }} Cari</button>
-        </div>
-        {% if is_filtered %}
-          <div class="col-auto">
-            <a href="{{ url_for('users.index') }}" class="btn">Reset</a>
-          </div>
-        {% endif %}
-      </form>
-    </div>
-
     {% if user_row_list %}
+      {{ column_filter_form(table_view, "daftar_user") }}
       <div class="table-responsive">
-        <table class="table table-vcenter card-table table-stack">
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Departemen</th>
-              <th>Role & Akses</th>
-              <th>Status</th>
-              <th>Login Terakhir</th>
-              <th>Terdaftar</th>
-              <th class="w-1"><span class="visually-hidden">Aksi</span></th>
-            </tr>
-          </thead>
+        <table class="table table-vcenter card-table table-stack data-table" {{ table_attr(table_view) }}>
+          {{ table_head(table_view, "users.index", pagination_query_dict, "daftar_user", action_width=120) }}
           <tbody>
             {% for row in user_row_list %}
               {% set user = row.user %}
               <tr>
-                <td class="cell-title">
+                <td class="cell-title" {{ cell_attr(table_view, "name") }}>
                   <div class="d-flex align-items-center gap-2">
                     <span class="avatar avatar-sm bg-primary-lt">{{ user.full_name | initials }}</span>
                     <div class="text-truncate">
@@ -119,13 +77,13 @@
                     </div>
                   </div>
                 </td>
-                <td data-label="Departemen">
+                <td data-label="Departemen" {{ cell_attr(table_view, "department") }}>
                   <div>
                     {{ user.department }}
                     <div class="small text-secondary">{{ user.job_title }}</div>
                   </div>
                 </td>
-                <td data-label="Role & Akses">
+                <td data-label="Role & Akses" {{ cell_attr(table_view, "role") }}>
                   <div class="d-flex flex-wrap gap-1">
                     {{ role_badge(user.role) }}
                     {% if is_admin(user) %}
@@ -137,9 +95,9 @@
                     {% endif %}
                   </div>
                 </td>
-                <td data-label="Status">{{ user_status_badge(row.status) }}</td>
-                <td class="text-nowrap text-secondary" data-label="Login Terakhir">{{ user.last_login_at | time_ago if user.last_login_at else "Belum pernah" }}</td>
-                <td class="text-nowrap text-secondary" data-label="Terdaftar">{{ user.created_at | local_datetime("%d %b %Y") }}</td>
+                <td data-label="Status" {{ cell_attr(table_view, "status") }}>{{ user_status_badge(row.status) }}</td>
+                <td class="text-nowrap text-secondary" data-label="Login Terakhir" {{ cell_attr(table_view, "last_login") }}>{{ user.last_login_at | time_ago if user.last_login_at else "Belum pernah" }}</td>
+                <td class="text-nowrap text-secondary" data-label="Terdaftar" {{ cell_attr(table_view, "created") }}>{{ user.created_at | local_datetime("%d %b %Y") }}</td>
                 <td class="cell-action">
                   {% if user.id == current_user.id %}
                     <span class="small text-secondary">Akunmu</span>
@@ -155,20 +113,20 @@
                         {% if row.status == "locked" %}
                           <form method="post" action="{{ url_for('users.unlock', user_id=user.id) }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            {{ back_field_list() }}
+                            {{ back_field_list(back_param_dict) }}
                             <button type="submit" class="dropdown-item">{{ icon("refresh", "dropdown-item-icon") }} Buka kunci</button>
                           </form>
                         {% endif %}
                         {% if user.is_active %}
                           <form method="post" action="{{ url_for('users.toggle_active', user_id=user.id) }}" data-confirm-title="Nonaktifkan akun?" data-confirm-message="{{ user.full_name }} langsung ke-logout dan tidak bisa login lagi sampai diaktifkan. Datanya tetap aman." data-confirm-ok="Ya, nonaktifkan">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            {{ back_field_list() }}
+                            {{ back_field_list(back_param_dict) }}
                             <button type="submit" class="dropdown-item text-danger">{{ icon("eye_off", "dropdown-item-icon") }} Nonaktifkan</button>
                           </form>
                         {% else %}
                           <form method="post" action="{{ url_for('users.toggle_active', user_id=user.id) }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            {{ back_field_list() }}
+                            {{ back_field_list(back_param_dict) }}
                             <button type="submit" class="dropdown-item">{{ icon("eye", "dropdown-item-icon") }} Aktifkan</button>
                           </form>
                         {% endif %}
@@ -183,12 +141,12 @@
           </tbody>
         </table>
       </div>
-      {{ render_pagination(pagination, "users.index", pagination_query_dict) }}
+      {{ render_pagination(pagination, "users.index", pagination_query_dict, "daftar_user") }}
     {% else %}
       <div class="empty">
         <div class="empty-icon">{{ icon("search") }}</div>
         <p class="empty-title">Tidak ada user yang cocok</p>
-        <p class="empty-subtitle text-secondary">Coba ubah kata kunci atau filternya.</p>
+        <p class="empty-subtitle text-secondary">Coba ubah kriteria pencariannya, atau pakai * (misal budi*).</p>
         <div class="empty-action">
           <a href="{{ url_for('users.index') }}" class="btn">Reset filter</a>
         </div>
@@ -198,5 +156,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', filename='js/components/filter_form.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/selection_panel.js') }}" defer></script>
 {% endblock %}

@@ -1,0 +1,107 @@
+{# panel Kriteria Pencarian ala Select Screen SAP. field_list dari app/schemas/selection_schema.py.
+   isian teks: bisa wildcard * + Multi Selection (Sertakan / Kecualikan), pilihan: centang lebih dari satu,
+   tanggal: dari - sampai. nilai yg tampil diambil dari URL #}
+{% macro selection_panel(field_list, action_url, quick_placeholder, is_open=true, is_run_marked=false) %}
+  {% from "components/icon.html" import icon %}
+  {% set args = request.args %}
+  <form method="get" action="{{ action_url }}" class="card selection-panel mb-3" role="search" data-selection-form>
+    {# is_run_marked: halaman yg tabelnya baru muncul abis Jalankan (Daftar Link) dikasih penanda, biar kriteria kosong tetep nampilin semua #}
+    {% if is_run_marked %}<input type="hidden" name="run" value="1">{% endif %}
+    {# urutan tabel yg lagi kepake ikut kebawa pas Jalankan #}
+    {% if args.get("sort") %}<input type="hidden" name="sort" value="{{ args.get('sort') }}">{% endif %}
+    <div class="card-header">
+      <h3 class="card-title">{{ icon("search") }} Kriteria Pencarian</h3>
+      <div class="card-actions">
+        <button type="button" class="btn btn-sm btn-icon" data-bs-toggle="collapse" data-bs-target="#selection_body" aria-expanded="{{ 'true' if is_open else 'false' }}" aria-controls="selection_body" aria-label="Tampilkan atau sembunyikan kriteria" title="Tampilkan / sembunyikan">{{ icon("chevron_down") }}</button>
+      </div>
+    </div>
+    <div class="collapse{% if is_open %} show{% endif %}" id="selection_body">
+      <div class="card-body selection-grid">
+        <div class="selection-row">
+          <label class="selection-label" for="filter_keyword">Cari cepat</label>
+          <div class="selection-input">
+            <input type="search" id="filter_keyword" name="q" value="{{ args.get('q', '') }}" class="form-control" placeholder="{{ quick_placeholder }}" maxlength="100" autocomplete="off" data-selection-quick>
+          </div>
+        </div>
+
+        {% for field in field_list %}
+          {% set field_id = "sel_" ~ field.key %}
+          <div class="selection-row">
+            {% if field.kind == "text" %}
+              {% set include_list = args.getlist(field.key) | select | list %}
+              {% set exclude_list = args.getlist(field.key ~ "__not") | select | list %}
+              {% set extra_count = (include_list | length) - 1 + (exclude_list | length) if include_list else exclude_list | length %}
+              <label class="selection-label" for="{{ field_id }}">{{ field.label }}</label>
+              <div class="selection-input" data-selection-text="{{ field.key }}">
+                <input type="text" id="{{ field_id }}" name="{{ field.key }}" value="{{ include_list[0] if include_list else '' }}" class="form-control" placeholder="{{ field.placeholder }}" maxlength="100" autocomplete="off">
+                {% for value in include_list[1:] %}<input type="hidden" name="{{ field.key }}" value="{{ value }}" data-selection-extra>{% endfor %}
+                {% for value in exclude_list %}<input type="hidden" name="{{ field.key }}__not" value="{{ value }}" data-selection-extra>{% endfor %}
+              </div>
+              <div class="selection-tool">
+                <button type="button" class="btn btn-icon" data-selection-multi="{{ field.key }}" data-selection-label="{{ field.label }}" aria-label="Multi Selection {{ field.label }}" title="Multi Selection: banyak nilai, sertakan / kecualikan">{{ icon("list") }}</button>
+                <span class="badge bg-primary-lt" data-selection-count{% if extra_count <= 0 %} hidden{% endif %}>+{{ extra_count }}</span>
+              </div>
+            {% elif field.kind == "choice" %}
+              {% set picked_list = args.getlist(field.key) %}
+              {% set picked_label_list = field.option_list | selectattr(0, "in", picked_list) | map(attribute=1) | list %}
+              <span class="selection-label" id="{{ field_id }}_label">{{ field.label }}</span>
+              <div class="selection-input dropdown" data-selection-choice>
+                <button type="button" class="form-select text-start text-truncate" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-labelledby="{{ field_id }}_label {{ field_id }}_summary">
+                  <span id="{{ field_id }}_summary" data-selection-summary data-empty-text="Semua">{{ picked_label_list | join(", ") if picked_label_list else "Semua" }}</span>
+                </button>
+                <div class="dropdown-menu selection-choice-menu">
+                  {% for option_value, option_label in field.option_list %}
+                    <label class="dropdown-item">
+                      <input type="checkbox" class="form-check-input m-0 me-2" name="{{ field.key }}" value="{{ option_value }}" data-label="{{ option_label }}"{% if option_value in picked_list %} checked{% endif %}>
+                      {{ option_label }}
+                    </label>
+                  {% endfor %}
+                </div>
+              </div>
+            {% else %}
+              <label class="selection-label" for="{{ field_id }}_from">{{ field.label }}</label>
+              <div class="selection-input selection-range">
+                <input type="date" id="{{ field_id }}_from" name="{{ field.from_key }}" value="{{ args.get(field.from_key, '') }}" class="form-control" aria-label="{{ field.label }} dari">
+                <span class="text-secondary">s/d</span>
+                <input type="date" id="{{ field_id }}_to" name="{{ field.to_key }}" value="{{ args.get(field.to_key, '') }}" class="form-control" aria-label="{{ field.label }} sampai">
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="card-footer d-flex flex-wrap align-items-center gap-2">
+        <button type="submit" class="btn btn-primary">{{ icon("check") }} Jalankan</button>
+        <a href="{{ action_url }}" class="btn">Reset</a>
+        <span class="small text-secondary ms-md-2">Tips: <code>ad*</code> = diawali "ad", <code>*ad</code> = diakhiri "ad", <code>*ad*</code> = mengandung "ad".</span>
+      </div>
+    </div>
+  </form>
+
+  <dialog class="selection-dialog" id="selection_dialog" aria-labelledby="selection_dialog_title">
+    <form method="dialog" class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="selection_dialog_title">Multi Selection: <span data-selection-dialog-label></span></h3>
+      </div>
+      <div class="modal-body">
+        <p class="text-secondary small">Satu nilai per baris. Boleh pakai <code>*</code>, misal <code>portal*</code>.</p>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label text-success" for="selection_include">{{ icon("check") }} Sertakan</label>
+            <textarea class="form-control" id="selection_include" rows="8" placeholder="hasil cocok salah satu nilai ini" aria-describedby="selection_include_count"></textarea>
+            <div class="form-text" id="selection_include_count" data-selection-counter="include"></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-danger" for="selection_exclude">{{ icon("close") }} Kecualikan</label>
+            <textarea class="form-control" id="selection_exclude" rows="8" placeholder="hasil yg cocok nilai ini dibuang" aria-describedby="selection_exclude_count"></textarea>
+            <div class="form-text" id="selection_exclude_count" data-selection-counter="exclude"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" data-selection-clear>Kosongkan</button>
+        <button type="button" class="btn" data-selection-cancel>Batal</button>
+        <button type="button" class="btn btn-primary" data-selection-apply>Pakai</button>
+      </div>
+    </form>
+  </dialog>
+{% endmacro %}

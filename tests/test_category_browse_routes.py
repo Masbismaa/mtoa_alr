@@ -8,11 +8,11 @@ def get_category_by_name(name):
     return db.session.execute(db.select(Category).filter_by(name=name)).scalar_one_or_none()
 
 def test_home_shows_category_forum(logged_in_client, registered_user, category_dict):
-    """Positive: Home nampilin daftar kategori + sub-nya di atas daftar link."""
+    """Positive: Home (ringkasan) nampilin daftar kategori + sub-nya. Tabel link udah pindah ke Daftar Link."""
     create_sub_category(registered_user, category_dict["Web"], {"name": "SAP", "description": ""})
     html_text = logged_in_client.get("/").get_data(as_text=True)
     assert 'id="kategori"' in html_text
-    assert html_text.index('id="kategori"') < html_text.index('id="daftar_link"')
+    assert 'id="daftar_link"' not in html_text
     assert "SAP" in html_text
 
 def test_user_can_browse_category(logged_in_client, registered_user, category_dict):

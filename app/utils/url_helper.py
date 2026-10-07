@@ -70,3 +70,15 @@ def parse_port(raw_port):
     if not 1 <= port_number <= 65535:
         raise ValueError("Port harus di antara 1 dan 65535")
     return port_number
+def get_safe_back_url(raw_value):
+    """Alamat balik dari ?back= (misal balik ke tabel + filternya). Cuma boleh path di dalem ALR sendiri (/...),
+    bukan //situs-lain, http://, atau backslash, biar ga bisa dipake buat lempar user ke situs luar. Ga aman -> None."""
+    back_url = (raw_value or "").strip()
+    if not back_url.startswith("/") or back_url.startswith("//") or len(back_url) > MAX_URL_LENGTH:
+        return None
+    if "\\" in back_url or any(character.isspace() or ord(character) < 32 for character in back_url):
+        return None
+    url_part = urlsplit(back_url)
+    if url_part.scheme or url_part.netloc:
+        return None
+    return back_url

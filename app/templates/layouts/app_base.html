@@ -2,8 +2,25 @@
 {% from "components/icon.html" import icon %}
 
 {% block body %}
-  {# judul halaman juga tampil di tengah title bar atas, kayak judul layar di SAP GUI #}
-  {% set shell_title = self.page_heading() | striptags %}
+  {# judul layar di tengah title bar atas ala SAP GUI, diawali Display/Create/Change sesuai aksinya.
+     diisi lewat block screen_title tiap halaman, kalau kosong pake judul halaman biasa #}
+  {% set shell_title = (self.screen_title() | striptags | trim) or (self.page_heading() | striptags | trim) %}
+  {# toolbar aplikasi: tiap halaman boleh ngisi block toolbar_back / toolbar_cancel (URL) & toolbar_save (id form).
+     yg kosong tombolnya dinonaktifin. Kembali defaultnya ke tujuan Batal, kalau ga ada ke Dashboard #}
+  {% set is_home = request.endpoint == "main.home" %}
+  {% set toolbar_save_form = self.toolbar_save() | trim %}
+  {% set toolbar_cancel_url = self.toolbar_cancel() | trim %}
+  {% set toolbar_exit_url = "" if is_home else url_for("main.home") %}
+  {% set toolbar_back_url = (self.toolbar_back() | trim) or toolbar_cancel_url or toolbar_exit_url %}
+  {% set page_help_html = self.page_help() | trim %}
+  {# tombol khusus halaman (Tambah, Edit, Hapus, ...) ikut tampil di toolbar, ga di kepala halaman lagi #}
+  {% set page_action_html = self.page_actions() | trim %}
+  {% set page_mode = "Ubah" if toolbar_save_form else "Lihat" %}
+  {# keterangan halaman (badge, deskripsi, catatan) tetep tampil di atas konten walau kepala halaman di-remark #}
+  {% set page_info_html = self.page_subtitle() | trim %}
+  {% if false %}{% block toolbar_back %}{% endblock %}{% block toolbar_cancel %}{% endblock %}{% block toolbar_save %}{% endblock %}{% block page_help %}{% endblock %}{% block page_actions %}{% endblock %}{% block screen_title %}{% endblock %}
+    {% block page_pretitle %}ALR{% endblock %}{% block page_heading %}{{ page_title or "ALR" }}{% endblock %}{% block page_subtitle %}{% endblock %}
+  {% endif %}
   <a href="#main_content" class="visually-hidden-focusable skip-link">Lewati ke konten</a>
 
   <div class="page">
@@ -11,43 +28,42 @@
     {% include "components/sidebar.html" %}
 
     <div class="page-wrapper">
+      {% include "components/app_toolbar.html" %}
+      {# kepala halaman (judul kecil + judul + keterangan) di-remark dulu, judul layar udah ada di title bar atas.
+         buat nyalain lagi: buka komentar ini & pindahin block page_pretitle/page_heading/page_subtitle dari {% if false %} di atas ke sini.
+         isi page_subtitle (keterangan halaman) sementara tampil di atas konten (page-info)
       <div class="page-header d-print-none">
         <div class="container-xl">
-          <div class="row g-3 align-items-center">
-            <div class="col">
-              <div class="page-pretitle">{% block page_pretitle %}ALR{% endblock %}</div>
-              <h2 class="page-title">{% block page_heading %}{{ page_title or "ALR" }}{% endblock %}</h2>
-              {% block page_subtitle %}{% endblock %}
-            </div>
-            <div class="col-12 col-md-auto ms-auto d-print-none">
-              <div class="btn-list">{% block page_actions %}{% endblock %}</div>
-            </div>
-          </div>
+          <div class="page-pretitle">block page_pretitle</div>
+          <h2 class="page-title">block page_heading</h2>
+          block page_subtitle
         </div>
       </div>
+      #}
 
       <main class="page-body" id="main_content" tabindex="-1">
         <div class="container-xl">
+          {% if page_info_html %}<div class="page-info">{{ page_info_html }}</div>{% endif %}
           {% include "components/flash_messages.html" %}
           {% block content %}{% endblock %}
         </div>
       </main>
 
-      <footer class="footer footer-transparent d-print-none">
-        <div class="container-xl text-center text-secondary small">ALR · Access Link Register · ICT Spindo</div>
-      </footer>
+      {% include "components/status_bar.html" %}
     </div>
   </div>
 
-  <button type="button" class="btn btn-primary btn-icon btn-floating" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer" aria-label="Buka pengaturan tampilan" title="Pengaturan tampilan">{{ icon("palette") }}</button>
-
   {% include "components/theme_customizer.html" %}
   {% include "components/confirm_dialog.html" %}
+  {% include "components/help_dialog.html" %}
 {% endblock %}
 
 {% block scripts %}
   <script src="{{ url_for('static', filename='js/components/theme_customizer.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/components/confirm_dialog.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/components/copy_button.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/app_shell.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/form_guard.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/data_table.js') }}" defer></script>
   {% block page_scripts %}{% endblock %}
 {% endblock %}

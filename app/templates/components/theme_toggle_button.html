@@ -1,10 +1,36 @@
 {% from "components/icon.html" import icon %}
-{# Teks menunjukkan mode tujuan; ikon dianimasikan oleh theme_toggle.js. #}
-<button type="button" class="btn btn-ghost-secondary theme-toggle" data-theme-toggle title="Ganti mode tampilan" aria-label="Ganti mode tampilan">
-  <span class="theme-toggle-sky" aria-hidden="true">
-    <span class="theme-toggle-sun">{{ icon("sun") }}</span>
-    <span class="theme-toggle-moon">{{ icon("moon") }}</span>
+<button type="button" class="theme-toggle" data-theme-toggle role="switch" aria-checked="{{ 'true' if ui_preference_dict and ui_preference_dict.theme_mode == 'dark' else 'false' }}" aria-label="Mode gelap" title="Ganti mode tampilan">
+  <span class="theme-toggle-scene" aria-hidden="true">
+    <span class="theme-toggle-day">
+      <span class="theme-toggle-sun">{{ icon("sun") }}</span>
+      <svg class="theme-toggle-landscape" viewBox="0 0 100 40" fill="none" focusable="false">
+        <path class="theme-toggle-motion theme-toggle-clouds" d="M52 8h9m-5-2h11M79 15h12m-9-2h5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".7"/>
+        <path d="M-10 30Q5 26 20 30T50 30T80 30T110 30V40H-10Z" fill="#6de2d3"/>
+        <path class="theme-toggle-motion theme-toggle-waves" d="M-10 35Q8 31 26 35T62 35T98 35T134 35V42H-10Z" fill="#32c5c3"/>
+        <g class="theme-toggle-motion theme-toggle-boat">
+          <path d="M53 12V31" stroke="#c68a55" stroke-width="1"/>
+          <path d="M51 13L39 29H51Z" fill="#fff"/>
+          <path d="M55 18L63 28H55Z" fill="#e7f8ff"/>
+          <path d="M37 31H64L58 35H43Z" fill="#ed785c"/>
+        </g>
+        <path d="M82 31l-2-10m0 0q-6-5-9 0m9 0q5-7 10-3m-10 3q-5-8-8-6" stroke="#318e78" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M73 33q10-6 22 0" fill="#f6d491"/>
+      </svg>
+    </span>
+    <span class="theme-toggle-night">
+      <span class="theme-toggle-moon">{{ icon("moon") }}</span>
+      <svg class="theme-toggle-landscape" viewBox="0 0 100 40" fill="none" focusable="false">
+        <g class="theme-toggle-motion theme-toggle-stars" fill="#e1e4ff"><circle cx="14" cy="10" r=".7"/><circle cx="29" cy="6" r=".5"/><circle cx="57" cy="14" r=".7"/><circle cx="66" cy="6" r=".5"/><circle cx="20" cy="22" r=".5"/></g>
+        <path class="theme-toggle-motion theme-toggle-comet" d="M43 8l15-3" stroke="#e9edc8" stroke-linecap="round" opacity=".6"/>
+        <path d="M0 30l17-7 14 8 14-5 19 6 18-9 18 8V40H0Z" fill="#383b70"/>
+        <path d="M0 34q20-5 40 0t40 0 20 0V40H0Z" fill="#183953"/>
+        <path class="theme-toggle-motion theme-toggle-waves" d="M37 35l12-2-4 3 10 2-18 2" fill="#749da9" opacity=".6"/>
+        <path d="M33 32l1-12h3l1 12Z" fill="#c5c5d7"/>
+        <path d="M33 19h5v3h-5Z" fill="#f9edb0"/>
+        <path d="M32 19l3.5-3 3.5 3Z" fill="#69688d"/>
+        <path class="theme-toggle-motion theme-toggle-beam" d="M34 20L5 15v11Z" fill="#fff3be" opacity=".14"/>
+      </svg>
+    </span>
+    <span class="theme-toggle-thumb"></span>
   </span>
-  <span class="theme-option theme-option-dark">Dark mode</span>
-  <span class="theme-option theme-option-light">Light mode</span>
 </button>

@@ -1,6 +1,10 @@
-{# filter tabel user yg dibawa dari halaman sebelumnya, biar abis simpan balik ke tampilan yg sama #}
-{% macro back_field_list() %}
-  {% for back_key in ["back_q", "back_role", "back_status", "back_page"] %}
-    {% if request.values.get(back_key) %}<input type="hidden" name="{{ back_key }}" value="{{ request.values.get(back_key) }}">{% endif %}
+{# kriteria tabel user yg dibawa (awalan back_) biar abis simpan balik ke tampilan yg sama.
+   param_dict kosong = ambil dari request (halaman aksi), diisi = dari tabel user {back_q: [..], ...} #}
+{% macro back_field_list(param_dict=none) %}
+  {% set back_item_list = param_dict.items() if param_dict is not none else request.values.lists() %}
+  {% for back_key, back_value_list in back_item_list if back_key.startswith("back_") %}
+    {% for back_value in back_value_list %}
+      <input type="hidden" name="{{ back_key }}" value="{{ back_value }}">
+    {% endfor %}
   {% endfor %}
 {% endmacro %}

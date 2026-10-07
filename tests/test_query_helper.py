@@ -1,6 +1,8 @@
 """Test helper baca parameter URL."""
 from datetime import date
-from app.utils.query_helper import clean_keyword_arg, drop_empty_value, parse_date_arg
+from werkzeug.datastructures import MultiDict
+from app.utils.query_helper import clean_keyword_arg, parse_date_arg
+from app.utils.selection import build_selection_query_dict, text_field
 
 def test_parse_date_arg_valid():
     """Positive: format YYYY-MM-DD kebaca jadi date."""
@@ -19,7 +21,7 @@ def test_clean_keyword_arg_trims_and_limits():
     assert len(clean_keyword_arg("a" * 500)) == 100
     assert clean_keyword_arg(None) == ""
 
-def test_drop_empty_value():
-    """Positive: item kosong dibuang, sisanya tetep."""
-    raw_dict = {"q": "vpn", "action": "", "date_from": None, "category_id": 3}
-    assert drop_empty_value(raw_dict) == {"q": "vpn", "category_id": 3}
+def test_build_selection_query_dict():
+    """Positive: cuma kriteria yg dikenal & ga kosong yg dibawa ke link halaman berikutnya."""
+    args = MultiDict([("q", "vpn"), ("title", "portal*"), ("title__not", ""), ("hack", "x")])
+    assert build_selection_query_dict(args, [text_field("title", "Judul")]) == {"q": ["vpn"], "title": ["portal*"]}

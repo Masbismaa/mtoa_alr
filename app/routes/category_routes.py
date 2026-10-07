@@ -2,8 +2,11 @@
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from app.schemas.category_schema import CategoryForm
+from app.schemas.selection_schema import build_entry_field_list, read_entry_selection
+from app.schemas.table_schema import TABLE_ENTRY
 from app.security.role_guard import permission_required
 from app.services.access_entry_service import search_visible_entries
+from app.services.preference_service import get_table_layout
 from app.services.category_service import (
     build_category_label,
     build_forum_row_list,
@@ -22,10 +25,12 @@ from app.services.category_service import (
     can_manage_category_master,
 )
 from app.utils.constants import MAX_CATEGORY_DEPTH, PER_PAGE, PERMISSION_MANAGE_CATEGORIES
+from app.utils.data_table import build_table_view
 from app.utils.exceptions import ValidationError
 from app.utils.form_helper import attach_form_error_list, flash_error_list, read_form_data
 from app.utils.query_helper import parse_positive_int
 from app.utils.request_helper import get_current_user
+from app.utils.selection import build_selection_query_dict
 
 categories_bp = Blueprint("categories", __name__, url_prefix="/categories")
 
@@ -50,12 +55,13 @@ def build_back_url(user, parent_id):
         return url_for("categories.browse", category_id=parent_id)
     return url_for("categories.index") if can_manage_category_master(user) else url_for("main.home")
 
-def render_category_form(form, page_title, form_action, cancel_url, parent=None, is_name_locked=False):
-    """Render form tambah/edit kategori (utama maupun sub)."""
+def render_category_form(form, page_title, form_action, cancel_url, parent=None, is_name_locked=False, screen_title=None):
+    """Render form tambah/edit kategori (utama maupun sub). screen_title = judul layar ala SAP (Create/Change)."""
     return render_template(
         "pages/categories/form.html",
         form=form,
         page_title=page_title,
+        screen_title=screen_title,
         form_action=form_action,
         cancel_url=cancel_url,
         parent_label=build_category_label(parent) if parent is not None else None,
@@ -88,7 +94,8 @@ def create():
         else:
             flash(f'Kategori "{category.name}" berhasil ditambahkan', "success")
             return redirect(url_for("categories.index"))
-    return render_category_form(form, "Tambah Kategori", url_for("categories.create"), url_for("categories.index"))
+    return render_category_form(form, "Tambah Kategori", url_for("categories.create"), url_for("categories.index"),
+                                screen_title="Create Kategori")
 
 @categories_bp.get("/<int:category_id>")
 @login_required
@@ -96,9 +103,18 @@ def browse(category_id):
     """Isi satu kategori ala forum: sub-kategori + link yg ada langsung di kategori ini."""
     user = get_current_user()
     category = get_visible_category_or_404(user, category_id)
+    selection = read_entry_selection(request.args)
+    field_list = build_entry_field_list()
+    # kolom Kategori ga perlu, semua isinya dari kategori ini
+    table_view = build_table_view(
+        TABLE_ENTRY, request.args, get_table_layout(user, TABLE_ENTRY), excluded_key_list=["category"], field_list=field_list,
+    )
     pagination = search_visible_entries(
         user,
+        keyword=selection["keyword"],
         category_id=category.id,
+        selection=selection,
+        sort=table_view["sort"],
         page=parse_positive_int(request.args.get("page"), default=1),
         per_page=PER_PAGE,
         is_include_sub=False,
@@ -110,7 +126,10 @@ def browse(category_id):
         path_list=get_category_path_list(category),
         forum_row_list=build_forum_row_list(user, parent=category),
         pagination=pagination,
-        pagination_query_dict={"category_id": category.id},
+        pagination_query_dict=build_selection_query_dict(request.args, field_list),
+        selection_field_list=field_list,
+        keyword=selection["keyword"],
+        table_view=table_view,
         can_add_sub=can_add_sub_category(category),
         can_manage=can_manage_category(user, category),
         is_default=is_default_category(category),
@@ -137,7 +156,7 @@ def create_sub(category_id):
             return redirect(url_for("categories.browse", category_id=category.id))
     return render_category_form(
         form, "Tambah Sub-kategori", url_for("categories.create_sub", category_id=parent.id),
-        url_for("categories.browse", category_id=parent.id), parent=parent,
+        url_for("categories.browse", category_id=parent.id), parent=parent, screen_title="Create Sub-kategori",
     )
 
 @categories_bp.route("/<int:category_id>/edit", methods=["GET", "POST"])
@@ -161,7 +180,7 @@ def edit(category_id):
     return render_category_form(
         form, "Edit Kategori", url_for("categories.edit", category_id=category.id),
         url_for("categories.browse", category_id=category.id),
-        parent=category.parent, is_name_locked=is_default_category(category),
+        parent=category.parent, is_name_locked=is_default_category(category), screen_title=f"Change Kategori: {category.name}",
     )
 
 @categories_bp.post("/<int:category_id>/toggle")

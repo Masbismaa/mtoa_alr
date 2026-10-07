@@ -3,6 +3,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import login_required
 from app.extensions import limiter
 from app.schemas.group_schema import GroupForm
+from app.schemas.selection_schema import GROUP_FIELD_LIST, read_group_selection
 from app.security.access_policy import can_add_group_entry, is_group_owner
 from app.services.group_service import (
     accept_invitation,
@@ -30,6 +31,7 @@ from app.services.group_service import (
 from app.utils.exceptions import ValidationError
 from app.utils.form_helper import flash_error_list, read_form_data
 from app.utils.request_helper import get_current_user
+from app.utils.selection import build_selection_query_dict
 
 groups_bp = Blueprint("groups", __name__, url_prefix="/groups")
 
@@ -50,9 +52,11 @@ def require_group_owner(user, group):
         abort(403)
 
 
-def render_group_form(form, page_title, cancel_url):
-    """Render form bikin/edit group."""
-    return render_template("pages/groups/form.html", form=form, page_title=page_title, cancel_url=cancel_url)
+def render_group_form(form, page_title, cancel_url, screen_title):
+    """Render form bikin/edit group. screen_title = judul layar ala SAP (Create/Change)."""
+    return render_template(
+        "pages/groups/form.html", form=form, page_title=page_title, cancel_url=cancel_url, screen_title=screen_title,
+    )
 
 
 @groups_bp.get("/")
@@ -60,11 +64,13 @@ def render_group_form(form, page_title, cancel_url):
 def index():
     """Daftar group + undangan yg nunggu."""
     user = get_current_user()
-    group_list = list_user_group(user)
+    group_list = list_user_group(user, read_group_selection(request.args))
     return render_template(
         "pages/groups/index.html",
         page_title="Groups",
         group_list=group_list,
+        selection_field_list=GROUP_FIELD_LIST,
+        selection_query_dict=build_selection_query_dict(request.args, GROUP_FIELD_LIST),
         # jumlah link yg boleh diliat (link terbatas buat orang lain ga ikut dihitung)
         visible_entry_count_dict={group.id: len(list_visible_group_entry(user, group)) for group in group_list},
         invitation_list=list_pending_invitation(user),
@@ -84,7 +90,7 @@ def create():
         else:
             flash(f'Group "{group.name}" berhasil dibuat', "success")
             return redirect(url_for("groups.detail", group_id=group.id))
-    return render_group_form(form, "Buat Group", url_for("groups.index"))
+    return render_group_form(form, "Buat Group", url_for("groups.index"), "Create Group")
 
 
 @groups_bp.get("/<int:group_id>")
@@ -121,7 +127,7 @@ def edit(group_id):
         else:
             flash("Group berhasil diperbarui", "success")
             return redirect(url_for("groups.detail", group_id=group.id))
-    return render_group_form(form, "Edit Group", url_for("groups.detail", group_id=group.id))
+    return render_group_form(form, "Edit Group", url_for("groups.detail", group_id=group.id), f"Change Group: {group.name}")
 
 
 @groups_bp.post("/<int:group_id>/delete")

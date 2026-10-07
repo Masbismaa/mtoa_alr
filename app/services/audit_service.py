@@ -11,8 +11,10 @@ from app.utils.constants import (
     PER_PAGE,
     SENSITIVE_FIELD_SET,
 )
+from app.utils.data_table import build_order_list
 from app.utils.datetime_helper import build_utc_range_from_local_date
 from app.utils.query_helper import build_keyword_filter
+from app.utils.selection import apply_condition_list, build_date_range_filter, build_text_selection_filter
 from app.utils.request_helper import get_client_ip, get_user_agent
 from app.utils.sanitizer import sanitize_text
 
@@ -56,9 +58,27 @@ def log_audit(
         db.session.commit()
     return audit_log
 
+def apply_audit_selection(query, selection):
+    """Tempel kriteria Select Screen (pelaku, aksi, jenis data, tanggal) ke query audit log."""
+    return apply_condition_list(query, [
+        build_text_selection_filter([AuditLog.actor_email], selection["actor"]),
+        AuditLog.action.in_(selection["action_list"]) if selection["action_list"] else None,
+        AuditLog.entity_type.in_(selection["entity_type_list"]) if selection["entity_type_list"] else None,
+        build_date_range_filter(AuditLog.created_at, *selection["date_range"]),
+    ])
+
+# kolom yg bisa diurutin di tabel Audit Logs (kunci = key kolom di table_schema)
+AUDIT_SORT_COLUMN_DICT = {
+    "time": AuditLog.created_at,
+    "actor": db.func.lower(AuditLog.actor_email),
+    "action": AuditLog.action,
+    "entity": AuditLog.entity_type,
+    "ip": AuditLog.ip_address,
+}
+
 def search_audit_logs(keyword=None, action=None, entity_type=None, date_from=None, date_to=None,
-                      page=1, per_page=PER_PAGE):
-    """Cari audit log buat halaman admin, yg terbaru di atas."""
+                      page=1, per_page=PER_PAGE, selection=None, sort=None):
+    """Cari audit log buat halaman admin, defaultnya yg terbaru di atas."""
     query = db.select(AuditLog)
     clean_keyword = sanitize_text(keyword, max_length=MAX_SEARCH_KEYWORD_LENGTH)
     if clean_keyword:
@@ -72,7 +92,10 @@ def search_audit_logs(keyword=None, action=None, entity_type=None, date_from=Non
         query = query.where(AuditLog.created_at >= start_at)
     if end_at:
         query = query.where(AuditLog.created_at < end_at)
-    query = query.order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+    if selection:
+        query = apply_audit_selection(query, selection)
+    default_order_list = [AuditLog.created_at.desc(), AuditLog.id.desc()]
+    query = query.order_by(*build_order_list(sort, AUDIT_SORT_COLUMN_DICT, default_order_list, AuditLog.id))
     return db.paginate(query, page=page, per_page=per_page, error_out=False)
 
 def get_audit_log(log_id):

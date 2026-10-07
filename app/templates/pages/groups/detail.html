@@ -4,9 +4,14 @@
 
 {% block title %}{{ group.name }}{% endblock %}
 
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}Display Group: {{ group.name }}{% endblock %}
+
 {% set is_owner = group.user_id == current_user.id %}
 
-{% block page_pretitle %}<a href="{{ url_for('groups.index') }}" class="text-reset">{{ icon("arrow_left") }} Semua Group</a>{% endblock %}
+{% block page_pretitle %}Workspace › Group{% endblock %}
+
+{% block toolbar_back %}{{ url_for('groups.index') }}{% endblock %}
 
 {% block page_heading %}{{ group.name }}{% endblock %}
 
@@ -92,7 +97,7 @@
                   {% set access_text = entry.url or ((entry.address ~ (":" ~ entry.port if entry.port else "")) if entry.address else "") %}
                   <tr>
                     <td class="cell-title" data-label="Judul">
-                      <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="text-reset fw-bold" title="{{ entry.title }}">{{ entry.title | truncate(50, true, "…", 0) }}</a>
+                      <a href="{{ url_for('entries.detail', entry_id=entry.id, back=request.full_path.rstrip('?')) }}" class="text-reset fw-bold" title="{{ entry.title }}">{{ entry.title | truncate(50, true, "…", 0) }}</a>
                       {% if group_entry.is_restricted %}
                         <span class="badge bg-yellow-lt ms-1" title="Cuma anggota tertentu yang bisa melihat">{{ icon("lock") }} Terbatas · {{ group_entry.viewer_list | length }} anggota</span>
                       {% endif %}
@@ -111,7 +116,7 @@
                     <td data-label="Ditambah Oleh">{{ group_entry.added_by.full_name }}</td>
                     <td class="cell-action">
                       <div class="btn-list flex-nowrap">
-                        <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="btn btn-sm">{{ icon("eye") }} View</a>
+                        <a href="{{ url_for('entries.detail', entry_id=entry.id, back=request.full_path.rstrip('?')) }}" class="btn btn-sm">{{ icon("eye") }} View</a>
                         {% if is_owner %}
                           <a href="{{ url_for('groups.entry_viewers', group_id=group.id, group_entry_id=group_entry.id) }}" class="btn btn-sm btn-icon" aria-label="Atur siapa yang bisa melihat {{ entry.title }}" title="Atur siapa yang bisa melihat">{{ icon("lock") }}</a>
                         {% endif %}

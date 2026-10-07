@@ -1,22 +1,24 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
-{% from "components/pagination.html" import render_pagination %}
 {% from "components/badge.html" import audit_action_badge %}
 {% from "components/category_forum.html" import category_forum %}
-{% from "components/entry_table.html" import entry_table %}
 {% from "components/chart.html" import bar_chart, change_badge, gauge, sparkline %}
 
 {% block title %}Dashboard{% endblock %}
 
 {% block page_pretitle %}Overview{% endblock %}
 
+{# dashboard cuma ringkasan, biar ga ketuker sama hasil pencarian di Daftar Link #}
+{% block page_subtitle %}
+  <div class="text-secondary mt-1">Ringkasan seluruh data yang bisa kamu lihat. Cari &amp; olah data di <a href="{{ url_for('entries.index') }}">Daftar Link</a>.</div>
+{% endblock %}
+
 {% block page_actions %}
-  <a href="{{ url_for('groups.index') }}" class="btn">{{ icon("group") }} Groups</a>
+  <a href="{{ url_for('entries.index') }}" class="btn">{{ icon("list") }} Daftar Link</a>
   <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
 {% endblock %}
 
 {% block content %}
-  {% set is_filtered = filter_dict.keyword or filter_dict.category_id or filter_dict.visibility %}
   {% set summary = dashboard_dict.summary %}
 
   <div class="row row-deck row-cards mb-3">
@@ -147,76 +149,6 @@
     {% endif %}
   </div>
 
-  <div class="card" id="daftar_link">
-    <div class="card-header">
-      <h3 class="card-title">{{ icon("link") }} Daftar Link</h3>
-      <div class="card-actions">
-        {% if pagination.total %}
-          <a href="{{ url_for('main.export_entries', **pagination_query_dict) }}" class="btn btn=sm me-2">{{ icon("download")}} Export Excel</a>
-        {% endif %}
-        <span class="badge bg-secondary-lt">{{ pagination.total }} data</span>
-      </div>
-    </div>
-
-    <div class="card-body border-bottom py-3">
-      <form method="get" action="{{ url_for('main.home') }}" class="row g-2 align-items-center filter-bar" role="search" data-filter-form>
-        <div class="col-12 col-md">
-          <label class="visually-hidden" for="filter_keyword">Cari link</label>
-          <div class="input-icon">
-            <span class="input-icon-addon">{{ icon("search") }}</span>
-            <input type="search" id="filter_keyword" name="q" value="{{ filter_dict.keyword }}" class="form-control" placeholder="Cari judul, URL, address, deskripsi... (tekan /)" maxlength="100" autocomplete="off" data-filter-search>
-          </div>
-        </div>
-        <div class="col-6 col-md-auto">
-          <select name="category_id" class="form-select" aria-label="Filter kategori" data-filter-auto>
-            <option value="">Semua kategori</option>
-            {% for category in category_list %}
-              <option value="{{ category.id }}"{% if filter_dict.category_id == category.id %} selected{% endif %}>{{ category | category_label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-6 col-md-auto">
-          <select name="visibility" class="form-select" aria-label="Filter visibilitas" data-filter-auto>
-            <option value="">Semua visibilitas</option>
-            <option value="public"{% if filter_dict.visibility == "public" %} selected{% endif %}>Public</option>
-            <option value="private"{% if filter_dict.visibility == "private" %} selected{% endif %}>Private</option>
-          </select>
-        </div>
-        <div class="col-auto">
-          <button type="submit" class="btn btn-primary">{{ icon("search") }} Cari</button>
-        </div>
-        {% if is_filtered %}
-          <div class="col-auto">
-            <a href="{{ url_for('main.home') }}" class="btn">Reset</a>
-          </div>
-        {% endif %}
-      </form>
-    </div>
-
-    {% if pagination.items %}
-      {{ entry_table(pagination.items) }}
-      {{ render_pagination(pagination, "main.home", pagination_query_dict) }}
-    {% elif is_filtered %}
-      <div class="empty">
-        <div class="empty-icon">{{ icon("search") }}</div>
-        <p class="empty-title">Tidak ada hasil{% if filter_dict.keyword %} untuk "{{ filter_dict.keyword }}"{% endif %}.</p>
-        <p class="empty-subtitle text-secondary">Coba kata kunci lain atau hapus filternya.</p>
-        <div class="empty-action">
-          <a href="{{ url_for('main.home') }}" class="btn">Reset filter</a>
-        </div>
-      </div>
-    {% else %}
-      <div class="empty">
-        <div class="empty-icon">{{ icon("link") }}</div>
-        <p class="empty-title">Belum ada data link</p>
-        <p class="empty-subtitle text-secondary">Yuk tambah link pertama biar tim gampang nyarinya.</p>
-        <div class="empty-action">
-          <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
-        </div>
-      </div>
-    {% endif %}
-  </div>
-
   <div class="row row-deck row-cards mt-1">
     <div class="col-lg-6">
       <div class="card">
@@ -275,6 +207,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', filename='js/components/filter_form.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/components/count_up.js') }}" defer></script>
 {% endblock %}

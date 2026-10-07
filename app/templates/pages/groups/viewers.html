@@ -3,12 +3,19 @@
 
 {% block title %}Atur Akses {{ group_entry.access_entry.title }}{% endblock %}
 
-{% block page_pretitle %}<a href="{{ url_for('groups.detail', group_id=group.id) }}" class="text-reset">{{ icon("arrow_left") }} {{ group.name }}</a>{% endblock %}
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}Change Akses Link: {{ group_entry.access_entry.title }}{% endblock %}
+
+{% block page_pretitle %}Group › {{ group.name }}{% endblock %}
+
+{# toolbar atas: Simpan & Batal selalu kelihatan walau form panjang #}
+{% block toolbar_save %}viewer_form{% endblock %}
+{% block toolbar_cancel %}{{ url_for('groups.detail', group_id=group.id) }}{% endblock %}
 
 {% block content %}
   <div class="row justify-content-center">
     <div class="col-lg-8">
-      <form method="post" class="card" novalidate>
+      <form id="viewer_form" method="post" class="card" novalidate data-form-guard{% if request.method == "POST" %} data-form-guard-dirty{% endif %}>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="card-header">
@@ -62,10 +69,6 @@
           {% endif %}
         </div>
 
-        <div class="card-footer d-flex justify-content-end gap-2">
-          <a href="{{ url_for('groups.detail', group_id=group.id) }}" class="btn">Batal</a>
-          <button type="submit" class="btn btn-primary">{{ icon("check") }} Simpan</button>
-        </div>
       </form>
     </div>
   </div>

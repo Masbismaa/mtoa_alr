@@ -30,6 +30,8 @@ class UserPreference(TimestampMixin, db.Model):
     accent_color = db.Column(db.String(7), nullable=False, default=DEFAULT_ACCENT_COLOR, server_default=DEFAULT_ACCENT_COLOR)
     is_compact_view = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text("false"))
     font_family = db.Column(db.String(30), nullable=False, default=DEFAULT_FONT_FAMILY, server_default=DEFAULT_FONT_FAMILY)
+    # layout tabel ala ALV per tabel, misal {"entry": {"hidden_list": [...], "width_dict": {...}}}
+    table_layout = db.Column(db.JSON, nullable=False, default=dict, server_default=db.text("'{}'"))
 
     # --- Relasi balik ke User ---
     user = db.relationship("User", back_populates="preference")

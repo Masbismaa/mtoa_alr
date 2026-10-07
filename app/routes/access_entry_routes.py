@@ -1,8 +1,10 @@
-"""Route data link: tambah, detail, edit, hapus."""
+"""Route data link: Daftar Link (kriteria + tabel), tambah, detail, edit, hapus."""
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 
 from app.schemas.access_entry_schema import AccessEntryForm
+from app.schemas.selection_schema import build_entry_field_list, read_entry_selection
+from app.schemas.table_schema import TABLE_ENTRY
 from app.security.access_policy import can_add_group_entry, can_edit_entry, is_entry_owner
 from app.services.access_entry_service import (
     build_category_option_list,
@@ -11,20 +13,27 @@ from app.services.access_entry_service import (
     get_active_category_list,
     get_form_category_list,
     get_visible_entry,
+    list_active_category_option,
     read_access_note,
+    search_visible_entries,
     update_access_entry,
 )
+from app.services.preference_service import get_table_layout
 from app.utils.constants import (
     ATTACHMENT_EXTENSION_LIST,
     ATTACHMENT_MAX_COUNT,
     ATTACHMENT_MAX_SIZE_BYTES,
     CUSTOM_FIELD_MAX_COUNT,
+    PER_PAGE,
 )
+from app.utils.data_table import build_table_view
 from app.utils.exceptions import ValidationError
 from app.services.group_service import add_group_entry, get_member_group
 from app.utils.query_helper import parse_positive_int
 from app.utils.form_helper import attach_form_error_list, flash_error_list, read_form_data
 from app.utils.request_helper import get_current_user
+from app.utils.selection import build_selection_query_dict
+from app.utils.url_helper import get_safe_back_url
 
 entries_bp = Blueprint("entries", __name__, url_prefix="/entries")
 
@@ -40,6 +49,10 @@ def get_entry_or_404(user, entry_id):
         abort(404)
     return entry
 
+def read_back_url():
+    """Alamat tabel asal (?back=) yg dibawa terus lewat detail -> edit -> simpan/batal/hapus. Ga aman -> None."""
+    return get_safe_back_url(request.values.get("back"))
+
 def read_custom_field_pair_list():
     """Field tambahan dari form: [(judul, isi), ...]."""
     return list(zip(request.form.getlist("custom_field_label"), request.form.getlist("custom_field_content")))
@@ -52,13 +65,14 @@ def attach_error_list(form, error_list):
 
 def render_entry_form(form, category_list, custom_field_pair_list, page_title, form_action, cancel_url,
                       is_owner=True, entry=None, attachment_error_list=None, target_group=None):
-    """Render form (dipake tambah & edit)."""
+    """Render form (dipake tambah & edit). Judul layar ala SAP: Create (tambah) / Change (edit)."""
     form.category_id.choices = [(category.id, category.name) for category in category_list]
     existing_attachment_list = entry.attachment_list if entry else []
     return render_template(
         "pages/entries/form.html",
         form=form,
         page_title=page_title,
+        screen_title=f"Change Access Link: {entry.title}" if entry else "Create Access Link",
         form_action=form_action,
         cancel_url=cancel_url,
         is_owner=is_owner,
@@ -73,6 +87,37 @@ def render_entry_form(form, category_list, custom_field_pair_list, page_title, f
         target_group=target_group,
     )
 
+@entries_bp.get("/")
+@login_required
+def index():
+    """Daftar Link ala Select Screen SAP: awalnya cuma Kriteria Pencarian, tabel (ALV) baru muncul abis Jalankan."""
+    user = get_current_user()
+    selection = read_entry_selection(request.args)
+    field_list = build_entry_field_list(list_active_category_option())
+    # kriteria + urutan + penanda Jalankan yg ikut kebawa pas pindah halaman & export
+    query_dict = build_selection_query_dict(request.args, field_list)
+    table_view = build_table_view(
+        TABLE_ENTRY, request.args, get_table_layout(user, TABLE_ENTRY), field_list=field_list, is_run_marked=True,
+    )
+    # belum Jalankan (ga ada kriteria sama sekali) -> tabel ga ditampilin, query-nya juga ga dijalanin
+    pagination = search_visible_entries(
+        user,
+        keyword=selection["keyword"],
+        selection=selection,
+        sort=table_view["sort"],
+        page=parse_positive_int(request.args.get("page"), default=1),
+        per_page=PER_PAGE,
+    ) if query_dict else None
+    return render_template(
+        "pages/entries/index.html",
+        page_title="Daftar Link",
+        pagination=pagination,
+        pagination_query_dict=query_dict,
+        selection_field_list=field_list,
+        keyword=selection["keyword"],
+        table_view=table_view,
+    )
+
 @entries_bp.route("/new", methods=["GET", "POST"])
 @login_required
 def create():
@@ -83,6 +128,7 @@ def create():
     form.category_id.choices = [(category.id, category.name) for category in category_list]
     custom_field_pair_list = read_custom_field_pair_list() if request.method == "POST" else []
     attachment_error_list = []
+    back_url = read_back_url()
     if request.method == "GET":
         form.category_id.data = parse_positive_int(request.args.get("category_id"))
     # group tujuan, dicuekin kalau user bukan anggota aktif / belum diizinin nambah link
@@ -104,11 +150,14 @@ def create():
                 flash(f'Data link disimpan & masuk ke group "{target_group.name}"', "success")
                 return redirect(url_for("groups.detail", group_id=target_group.id))
             flash("Data link berhasil disimpan", "success")
-            return redirect(url_for("entries.detail", entry_id=entry.id))
-    cancel_url = url_for("groups.detail", group_id=target_group.id) if target_group else url_for("main.home")
+            return redirect(url_for("entries.detail", entry_id=entry.id, back=back_url))
+    if target_group is not None:
+        cancel_url = url_for("groups.detail", group_id=target_group.id)
+    else:
+        cancel_url = back_url or url_for("entries.index")
     return render_entry_form(
         form, category_list, custom_field_pair_list,
-        page_title="Tambah Link", form_action=url_for("entries.create"), cancel_url=cancel_url,
+        page_title="Tambah Link", form_action=url_for("entries.create", back=back_url), cancel_url=cancel_url,
         attachment_error_list=attachment_error_list, target_group=target_group,
     )
 
@@ -127,6 +176,8 @@ def detail(entry_id):
         entry=entry,
         access_note=access_note,
         can_edit=can_edit_entry(user, entry),
+        # balik ke tabel asal (Daftar Link/kategori/group) lengkap sama filter & urutannya
+        back_url=read_back_url(),
     )
 
 @entries_bp.route("/<int:entry_id>/edit", methods=["GET", "POST"])
@@ -140,6 +191,7 @@ def edit(entry_id):
 
     category_list = get_form_category_list(entry.category)
     attachment_error_list = []
+    back_url = read_back_url()
     if request.method == "GET":
         form = AccessEntryForm(obj=entry)
         access_note, is_note_error = read_access_note(entry)
@@ -163,13 +215,14 @@ def edit(entry_id):
             attachment_error_list = attach_error_list(form, error.error_list)
         else:
             flash("Perubahan berhasil disimpan", "success")
-            return redirect(url_for("entries.detail", entry_id=entry.id))
+            return redirect(url_for("entries.detail", entry_id=entry.id, back=back_url))
 
+    # konteks daftar asal ikut kebawa: Simpan & Batal balik ke detail yg masih inget tabel asalnya
     return render_entry_form(
         form, category_list, custom_field_pair_list,
         page_title="Edit Link",
-        form_action=url_for("entries.edit", entry_id=entry.id),
-        cancel_url=url_for("entries.detail", entry_id=entry.id),
+        form_action=url_for("entries.edit", entry_id=entry.id, back=back_url),
+        cancel_url=url_for("entries.detail", entry_id=entry.id, back=back_url),
         is_owner=is_entry_owner(user, entry),
         entry=entry,
         attachment_error_list=attachment_error_list,
@@ -187,4 +240,5 @@ def delete(entry_id):
     entry_title = entry.title
     delete_access_entry(user, entry)
     flash(f'Data "{entry_title}" berhasil dihapus', "success")
-    return redirect(url_for("main.home"))
+    # balik ke tabel asal (filter & urutan tetep), kalau ga ada ke Daftar Link
+    return redirect(read_back_url() or url_for("entries.index"))

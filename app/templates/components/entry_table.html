@@ -1,35 +1,29 @@
-{# tabel data link, dipake di Home & halaman kategori #}
-{% macro entry_table(entry_list, is_category_shown=true) %}
+{# tabel data link ala ALV, dipake di Home & halaman kategori.
+   table_view dari build_table_view, endpoint + query_dict buat link urutan, anchor = id kartu tabel #}
+{% macro entry_table(entry_list, table_view, endpoint, query_dict, anchor="daftar_link") %}
   {% from "components/icon.html" import icon %}
   {% from "components/copy_button.html" import copy_button %}
   {% from "components/badge.html" import link_status_badge, visibility_badge %}
+  {% from "components/data_table.html" import table_attr, table_head, cell_attr, column_filter_form %}
+  {% set column_key_list = table_view.column_list | map(attribute="key") | list %}
+  {# alamat halaman ini (+ filter & urutan), dibawa ke detail biar tombol kembali balik ke sini #}
+  {% set back_url = request.full_path.rstrip("?") ~ "#" ~ anchor %}
+  {{ column_filter_form(table_view, anchor) }}
   <div class="table-responsive">
-    <table class="table table-vcenter card-table table-stack">
-      <thead>
-        <tr>
-          <th>Judul</th>
-          {% if is_category_shown %}<th>Kategori</th>{% endif %}
-          <th>URL / Address</th>
-          <th>Deskripsi</th>
-          <th>Visibilitas</th>
-          <th>Status Link</th>
-          <th>Lampiran</th>
-          <th>Dibuat Oleh</th>
-          <th>Dibuat</th>
-          <th class="w-1"><span class="visually-hidden">Aksi</span></th>
-        </tr>
-      </thead>
+    <table class="table table-vcenter card-table table-stack data-table" {{ table_attr(table_view) }}>
+      {{ table_head(table_view, endpoint, query_dict, anchor) }}
       <tbody>
         {% for entry in entry_list %}
           {% set access_text = entry.url or ((entry.address ~ (":" ~ entry.port if entry.port else "")) if entry.address else "") %}
+          {% set detail_url = url_for('entries.detail', entry_id=entry.id, back=back_url) %}
           <tr>
-            <td class="cell-title" data-label="Judul">
-              <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="text-reset fw-bold" title="{{ entry.title }}">{{ entry.title | truncate(50, true, "…", 0) }}</a>
+            <td class="cell-title" data-label="Judul" {{ cell_attr(table_view, "title") }}>
+              <a href="{{ detail_url }}" class="text-reset fw-bold" title="{{ entry.title }}">{{ entry.title | truncate(50, true, "…", 0) }}</a>
             </td>
-            {% if is_category_shown %}
-              <td data-label="Kategori"><a href="{{ url_for('categories.browse', category_id=entry.category_id) }}" class="badge bg-secondary-lt text-wrap text-start">{{ entry.category | category_label }}</a></td>
+            {% if "category" in column_key_list %}
+              <td data-label="Kategori" {{ cell_attr(table_view, "category") }}><a href="{{ url_for('categories.browse', category_id=entry.category_id) }}" class="badge bg-secondary-lt text-wrap text-start" title="{{ entry.category | category_label }}">{{ entry.category | category_label }}</a></td>
             {% endif %}
-            <td data-label="URL / Address">
+            <td data-label="URL / Address" {{ cell_attr(table_view, "access") }}>
               {% if access_text %}
                 <div class="cell-copy">
                   <code class="cell-url" title="{{ access_text }}">{{ access_text }}</code>
@@ -39,20 +33,20 @@
                 <span class="text-secondary">-</span>
               {% endif %}
             </td>
-            <td class="cell-description text-secondary" data-label="Deskripsi">
+            <td class="cell-description text-secondary" data-label="Deskripsi" {{ cell_attr(table_view, "description") }}>
               {% if entry.description %}
                 <span title="{{ entry.description }}">{{ entry.description | truncate(60, true, "…", 0) }}</span>
               {% else %}
                 -
               {% endif %}
             </td>
-            <td data-label="Visibilitas">{{ visibility_badge(entry.visibility) }}</td>
-            <td data-label="Status">{{ link_status_badge(entry.status, entry.status_note, entry.status_checked_at) }}</td>
-            <td data-label="Lampiran">{% if entry.attachment_list %}{{ icon("paperclip") }} {{ entry.attachment_list | length }}{% else %}<span class="text-secondary">-</span>{% endif %}</td>
-            <td data-label="Dibuat Oleh">{{ entry.owner.full_name }}</td>
-            <td class="text-nowrap text-secondary" data-label="Dibuat">{{ entry.created_at | local_datetime }}</td>
+            <td data-label="Visibilitas" {{ cell_attr(table_view, "visibility") }}>{{ visibility_badge(entry.visibility) }}</td>
+            <td data-label="Status" {{ cell_attr(table_view, "status") }}>{{ link_status_badge(entry.status, entry.status_note, entry.status_checked_at) }}</td>
+            <td data-label="Lampiran" {{ cell_attr(table_view, "attachment") }}>{% if entry.attachment_list %}{{ icon("paperclip") }} {{ entry.attachment_list | length }}{% else %}<span class="text-secondary">-</span>{% endif %}</td>
+            <td data-label="Dibuat Oleh" {{ cell_attr(table_view, "owner") }} title="{{ entry.owner.full_name }}">{{ entry.owner.full_name }}</td>
+            <td class="text-nowrap text-secondary" data-label="Dibuat" {{ cell_attr(table_view, "created") }} title="{{ entry.created_at | local_datetime }}">{{ entry.created_at | local_datetime }}</td>
             <td class="cell-action">
-              <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="btn btn-sm">{{ icon("eye") }} View</a>
+              <a href="{{ detail_url }}" class="btn btn-sm">{{ icon("eye") }} View</a>
             </td>
           </tr>
         {% endfor %}

@@ -1,0 +1,100 @@
+/* panel Kriteria Pencarian (Select Screen ala SAP) + dialog Multi Selection */
+
+/* panel ditaruh di atas kartu tabel, biar daftar pilihan yg kebuka ga ketutup kartu di bawahnya */
+.selection-panel {
+  position: relative;
+  z-index: 3;
+}
+
+/* isian disusun 2 kolom di layar lebar, 1 kolom di layar kecil */
+.selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
+  gap: 0.625rem 2rem;
+}
+
+/* satu baris: label bergaris bawah | isian | tombol Multi Selection */
+.selection-row {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr) 4.5rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.selection-label {
+  padding-bottom: 0.25rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--app-title-color);
+  border-bottom: 1px solid var(--app-field-border);
+}
+
+.selection-input {
+  min-width: 0;
+}
+
+.selection-tool {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.selection-range {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.selection-range .form-control {
+  min-width: 0;
+}
+
+/* daftar pilihan (centang) bisa di-scroll kalau kebanyakan */
+.selection-choice-menu {
+  min-width: 100%;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.selection-choice-menu .dropdown-item {
+  display: flex;
+  align-items: center;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.selection-dialog {
+  width: min(42rem, calc(100% - 2rem));
+  padding: 0;
+  color: var(--tblr-body-color);
+  background: var(--tblr-bg-surface);
+  border: 1px solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius-lg);
+}
+
+.selection-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.selection-dialog .modal-header,
+.selection-dialog .modal-body,
+.selection-dialog .modal-footer {
+  padding: 0.75rem 1rem;
+}
+
+.selection-dialog .modal-header,
+.selection-dialog .modal-footer {
+  gap: 0.5rem;
+  background: var(--app-strip-bg);
+}
+
+/* HP: label di atas, isian + tombol di bawahnya */
+@media (max-width: 575.98px) {
+  .selection-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .selection-label {
+    grid-column: 1 / -1;
+  }
+}

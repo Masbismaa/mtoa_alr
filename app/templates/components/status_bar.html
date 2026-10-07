@@ -1,0 +1,29 @@
+{% from "components/icon.html" import icon %}
+{# status bar bawah ala SAP GUI: pesan terakhir (klik = riwayat), mode layar, environment.
+   variabel dari layouts/app_base.html: page_mode #}
+<footer class="app-statusbar d-print-none" data-status-bar>
+  <button type="button" class="app-statusbar-message" data-status-open aria-haspopup="dialog" title="Lihat riwayat pesan">
+    <span class="app-statusbar-icon" data-status-icon="info">{{ icon("info") }}</span>
+    <span class="app-statusbar-icon" data-status-icon="success" hidden>{{ icon("check") }}</span>
+    <span class="app-statusbar-icon" data-status-icon="warning" hidden>{{ icon("alert_triangle") }}</span>
+    <span class="app-statusbar-text" data-status-text role="status">Siap</span>
+  </button>
+  <span class="app-statusbar-item" title="Mode layar ini">Mode: <strong>{{ page_mode }}</strong></span>
+  <span class="app-statusbar-item app-statusbar-env" title="Environment server">{{ config.APP_ENV_LABEL }}</span>
+  <span class="app-statusbar-item d-none d-md-inline">ALR · ICT Spindo</span>
+</footer>
+
+<dialog class="confirm-dialog" id="status_dialog" aria-labelledby="status_dialog_title">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title" id="status_dialog_title">Riwayat pesan</h3>
+    </div>
+    <div class="modal-body">
+      <ul class="status-history" data-status-list></ul>
+      <p class="text-secondary small mb-0" data-status-empty>Belum ada pesan di sesi ini.</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn w-100" data-status-close>Tutup</button>
+    </div>
+  </div>
+</dialog>

@@ -35,6 +35,17 @@
                   {% endfor %}
                 </div>
               </li>
+            {% elif nav_item.is_locked %}
+              {# menu tanpa akses: tetep keliatan biar user tau ada. Diklik -> muncul pemberitahuan, ga pindah halaman #}
+              <li class="nav-item">
+                <button type="button" class="nav-link nav-link-locked" title="{{ nav_item.lock_reason }}"
+                        data-locked-message="Kamu belum punya otoritas buat buka menu {{ nav_item.label }}. {{ nav_item.lock_reason }}.">
+                  <span class="nav-link-icon d-md-none d-lg-inline-block">{{ icon(nav_item.icon) }}</span>
+                  <span class="nav-link-title">{{ nav_item.label }}</span>
+                  <span class="ms-auto">{{ icon("lock") }}</span>
+                  <span class="visually-hidden">({{ nav_item.lock_reason }})</span>
+                </button>
+              </li>
             {% else %}
               <li class="nav-item{% if nav_item.is_active %} active{% endif %}">
                 {% if nav_item.is_available %}
