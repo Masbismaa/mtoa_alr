@@ -3,18 +3,18 @@
 {% from "components/pagination.html" import render_pagination %}
 {% from "components/category_forum.html" import category_forum %}
 {% from "components/entry_table.html" import entry_table %}
+{% from "components/data_table.html" import column_menu %}
 {% from "components/selection_panel.html" import selection_panel %}
 
 {% block title %}{{ path_list | map(attribute="name") | join(" › ") }}{% endblock %}
 
-{% block page_pretitle %}
-  <ol class="breadcrumb breadcrumb-arrows category-breadcrumb" aria-label="Jalur kategori">
-    <li class="breadcrumb-item"><a href="{{ url_for('main.home') }}#kategori">Home</a></li>
-    {% for path_category in path_list[:-1] %}
-      <li class="breadcrumb-item"><a href="{{ url_for('categories.browse', category_id=path_category.id) }}">{{ path_category.name }}</a></li>
-    {% endfor %}
-  </ol>
-{% endblock %}
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}Display Kategori: {{ category.name }}{% endblock %}
+
+{% block page_pretitle %}Kategori{% endblock %}
+
+{# Kembali: ke kategori induk, kalau udah paling atas ke daftar kategori di Dashboard #}
+{% block toolbar_back %}{% if path_list | length > 1 %}{{ url_for('categories.browse', category_id=path_list[-2].id) }}{% else %}{{ url_for('main.home', _anchor='kategori') }}{% endif %}{% endblock %}
 
 {% block page_heading %}
   {{ category.name }}
@@ -22,7 +22,16 @@
   {% if not category.is_active %}<span class="badge bg-secondary-lt align-middle ms-1">Nonaktif</span>{% endif %}
 {% endblock %}
 
+{# jalur kategori + status + deskripsi, tampil di atas konten #}
 {% block page_subtitle %}
+  <ol class="breadcrumb breadcrumb-arrows category-breadcrumb" aria-label="Jalur kategori">
+    <li class="breadcrumb-item"><a href="{{ url_for('main.home') }}#kategori">Home</a></li>
+    {% for path_category in path_list[:-1] %}
+      <li class="breadcrumb-item"><a href="{{ url_for('categories.browse', category_id=path_category.id) }}">{{ path_category.name }}</a></li>
+    {% endfor %}
+  </ol>
+  {% if is_default %}<span class="badge bg-primary-lt">{{ icon("lock") }} Bawaan</span>{% endif %}
+  {% if not category.is_active %}<span class="badge bg-secondary-lt">Nonaktif</span>{% endif %}
   {% if category.description %}<div class="text-secondary mt-1">{{ category.description }}</div>{% endif %}
 {% endblock %}
 
@@ -55,17 +64,22 @@
     </div>
   {% endif %}
 
-  {% set is_filtered = pagination_query_dict | length > 0 %}
-  {{ selection_panel(selection_field_list, url_for("categories.browse", category_id=category.id), "Cari judul, URL, address, deskripsi... (tekan /)") }}
+  {# urutan (sort) aja ga diitung sebagai filter #}
+  {% set is_filtered = pagination_query_dict | reject("equalto", "sort") | list | length > 0 %}
+  {{ selection_panel(selection_field_list, url_for("categories.browse", category_id=category.id, _anchor="daftar_link"), "Cari judul, URL, address, deskripsi... (tekan /)") }}
 
-  <div class="card">
+  {% set table_query_dict = dict(pagination_query_dict, category_id=category.id) %}
+  <div class="card" id="daftar_link">
     <div class="card-header">
       <h3 class="card-title">{{ icon("link") }} Link di {{ category.name }}</h3>
-      <div class="card-actions"><span class="badge bg-secondary-lt">{{ pagination.total }} data</span></div>
+      <div class="card-actions">
+        {% if pagination.items %}{{ column_menu(table_view) }}{% endif %}
+        <span class="badge bg-secondary-lt">{{ pagination.total }} data</span>
+      </div>
     </div>
     {% if pagination.items %}
-      {{ entry_table(pagination.items, is_category_shown=false) }}
-      {{ render_pagination(pagination, "categories.browse", dict(pagination_query_dict, category_id=category.id)) }}
+      {{ entry_table(pagination.items, table_view, "categories.browse", table_query_dict) }}
+      {{ render_pagination(pagination, "categories.browse", table_query_dict, "daftar_link") }}
     {% elif is_filtered %}
       <div class="empty">
         <div class="empty-icon">{{ icon("search") }}</div>
