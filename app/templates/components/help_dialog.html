@@ -6,13 +6,19 @@
     </div>
     <div class="modal-body">
       {% if page_help_html %}<div class="help-page">{{ page_help_html }}</div>{% endif %}
+      {# shortcut ala SAP GUI, yg dipake js/components/keyboard_shortcut.js #}
       <dl class="help-list">
-        <dt>Kembali</dt><dd>Balik ke layar sebelumnya.</dd>
-        <dt>Keluar</dt><dd>Tutup layar ini, balik ke Dashboard.</dd>
-        <dt>Batal</dt><dd>Buang isian form yang belum disimpan.</dd>
-        <dt>Simpan</dt><dd>Simpan isian form di layar ini.</dd>
+        <dt><kbd>F3</kbd></dt><dd>Kembali ke layar sebelumnya.</dd>
+        <dt><kbd>Shift+F3</kbd></dt><dd>Keluar: tutup layar ini, balik ke Dashboard.</dd>
+        <dt><kbd>F12</kbd></dt><dd>Batal: buang isian form yang belum disimpan (kalau F12 kepake browser, pakai <kbd>Shift+F12</kbd>).</dd>
+        <dt><kbd>Ctrl+S</kbd></dt><dd>Simpan isian form di layar ini.</dd>
+        <dt><kbd>F8</kbd></dt><dd>Jalankan Kriteria Pencarian.</dd>
+        <dt><kbd>F1</kbd></dt><dd>Buka Bantuan ini.</dd>
         <dt><kbd>/</kbd></dt><dd>Langsung ke Cari cepat (di layar yang punya Kriteria Pencarian).</dd>
-        <dt><kbd>Esc</kbd></dt><dd>Tutup dialog.</dd>
+        <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Pindah baris aktif di tabel (klik baris atau Tab ke tabel dulu). <kbd>Home</kbd>/<kbd>End</kbd> ke baris pertama/terakhir.</dd>
+        <dt><kbd>Enter</kbd></dt><dd>Buka baris aktif (bisa juga double-click baris).</dd>
+        <dt><kbd>Shift+F10</kbd></dt><dd>Menu baris aktif: buka, salin nilai (bisa juga klik kanan di baris).</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Tutup dialog atau menu.</dd>
       </dl>
       <p class="text-secondary small mb-0">Pesan terakhir selalu ada di status bar bawah, klik buat lihat riwayatnya.</p>
     </div>
