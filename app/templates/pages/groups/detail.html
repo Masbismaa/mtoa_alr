@@ -1,6 +1,7 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
 {% from "components/copy_button.html" import copy_button %}
+{% from "components/pagination.html" import render_pagination %}
 
 {% block title %}{{ group.name }}{% endblock %}
 
@@ -38,16 +39,17 @@
 {% endblock %}
 
 {% block content %}
+  {% set group_entry_list = group_entry_pagination.items %}
   {% set active_member_list = group.member_list | selectattr("status", "equalto", "active") | list %}
   {% set invited_member_list = group.member_list | selectattr("status", "equalto", "invited") | list %}
 
   <div class="row row-cards">
     <div class="col-lg-8">
-      <div class="card">
+      <div class="card" id="daftar_link_group">
         <div class="card-header">
           <h3 class="card-title">{{ icon("link") }} Link</h3>
           <div class="card-actions btn-list">
-            <span class="badge bg-secondary-lt align-self-center">{{ group_entry_list | length }}</span>
+            <span class="badge bg-secondary-lt align-self-center">{{ group_entry_pagination.total }}</span>
             {% if can_add_entry %}
               <a href="{{ url_for('entries.create', group_id=group.id) }}" class="btn btn-primary btn-sm">{{ icon("plus") }} Link Baru</a>
             {% endif %}
@@ -133,6 +135,7 @@
               </tbody>
             </table>
           </div>
+          {{ render_pagination(group_entry_pagination, "groups.detail", {"group_id": group.id}, "daftar_link_group") }}
         {% else %}
           <div class="empty">
             <div class="empty-icon">{{ icon("link") }}</div>

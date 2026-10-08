@@ -23,7 +23,7 @@ from app.services.group_service import (
     list_user_group,
     count_active_member,
     list_viewer_candidate,
-    list_visible_group_entry,
+    search_visible_group_entry,
     remove_group_entry,
     remove_member,
     set_group_entry_viewers,
@@ -32,6 +32,7 @@ from app.services.group_service import (
 )
 from app.utils.exceptions import ValidationError
 from app.utils.form_helper import flash_error_list, read_form_data
+from app.utils.query_helper import parse_positive_int
 from app.utils.request_helper import get_current_user
 from app.utils.selection import build_selection_query_dict
 
@@ -103,11 +104,12 @@ def detail(group_id):
     user = get_current_user()
     group = get_group_or_404(user, group_id)
     can_add_entry = can_add_group_entry(user, group)
+    page = parse_positive_int(request.args.get("page")) or 1
     return render_template(
         "pages/groups/detail.html",
         page_title="Group",
         group=group,
-        group_entry_list=list_visible_group_entry(user, group),
+        group_entry_pagination=search_visible_group_entry(user, group, page),
         can_add_entry=can_add_entry,
         addable_entry_list=list_addable_entry(user, group) if can_add_entry else [],
         can_remove_group_entry=can_remove_group_entry,

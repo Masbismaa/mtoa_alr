@@ -3,6 +3,7 @@ import pytest
 from app.extensions import db
 from app.models import AuditLog, GroupEntry, GroupEntryViewer
 from app.services import auth_service
+from app.security.access_policy import can_view_group_entry
 from app.services.access_entry_service import create_access_entry, get_visible_entry
 from app.services.group_service import (
     accept_invitation,
@@ -10,7 +11,7 @@ from app.services.group_service import (
     create_group,
     invite_member,
     leave_group,
-    list_visible_group_entry,
+    search_visible_group_entry,
     set_group_entry_viewers,
     set_member_can_add_entry,
 )
@@ -112,7 +113,7 @@ def test_adder_still_sees_restricted_entry(app, registered_user, other_user, thi
     entry = create_entry(registered_user, category_dict["Web"], "Portal Umum", visibility=VISIBILITY_PUBLIC)
     group_entry = add_group_entry(other_user, group, entry.id)
     set_group_entry_viewers(registered_user, group, group_entry.id, True, [str(third_user.id)])
-    assert group_entry in list_visible_group_entry(other_user, group)
+    assert group_entry in search_visible_group_entry(other_user, group).items
 
 @pytest.mark.parametrize("bad_id", ["999", "abc"])
 def test_unknown_viewer_rejected(app, registered_user, other_user, category_dict, bad_id):
@@ -204,3 +205,32 @@ def test_unknown_group_entry_viewer_page_404(logged_in_client, registered_user):
     """Negative: id link ngasal -> 404."""
     group = create_group(registered_user, {"name": "Tim Network"})
     assert logged_in_client.get(f"/groups/{group.id}/entries/999/viewers").status_code == 404
+
+def test_group_entry_sql_filter_matches_python_rule(app, registered_user, other_user, third_user, category_dict):
+    """Positive & negative (security): daftar link group yg disaring di SQL sama persis dgn aturan
+    can_view_group_entry buat tiap peran (pemilik, yg nambahin, viewer dipilih, anggota lain)."""
+    group = create_group(registered_user, {"name": "Tim Network"})
+    adder = join_group(registered_user, group, other_user)
+    join_group(registered_user, group, third_user)
+    set_member_can_add_entry(registered_user, group, adder.id, True)
+    open_entry = add_group_entry(registered_user, group, create_entry(registered_user, category_dict["Web"], "Terbuka").id)
+    picked_entry = add_group_entry(registered_user, group, create_entry(registered_user, category_dict["Web"], "Dipilih").id)
+    set_group_entry_viewers(registered_user, group, picked_entry.id, True, [str(third_user.id)])
+    hidden_entry = add_group_entry(other_user, group, create_entry(other_user, category_dict["Web"], "Rahasia", VISIBILITY_PUBLIC).id)
+    set_group_entry_viewers(registered_user, group, hidden_entry.id, True, [])
+    for user in (registered_user, other_user, third_user):
+        expected = {item.id for item in group.group_entry_list if can_view_group_entry(user, group, item)}
+        assert {item.id for item in search_visible_group_entry(user, group).items} == expected
+    assert {item.id for item in search_visible_group_entry(third_user, group).items} == {open_entry.id, picked_entry.id}
+
+def test_group_detail_paginates_links(app, logged_in_client, registered_user, category_dict):
+    """Positive: link group dibagi per halaman (10), halaman kebablasan dijepit ke halaman terakhir."""
+    group = create_group(registered_user, {"name": "Tim Besar"})
+    for number in range(12):
+        add_group_entry(registered_user, group, create_entry(registered_user, category_dict["Web"], f"Link {number:02d}").id)
+    assert len(search_visible_group_entry(registered_user, group, 1).items) == 10
+    last_page = search_visible_group_entry(registered_user, group, 99)
+    assert (last_page.page, len(last_page.items)) == (2, 2)
+    html_text = logged_in_client.get(f"/groups/{group.id}?page=2").get_data(as_text=True)
+    assert "Link 11" in html_text and "Link 00" not in html_text
+    assert "Halaman <strong>2</strong> dari <strong>2</strong>" in html_text

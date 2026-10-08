@@ -6,7 +6,6 @@ from app.models import AccessEntry, Group, GroupEntry, GroupEntryViewer, GroupMe
 from app.security.access_policy import (
     build_shareable_entry_filter,
     can_add_group_entry,
-    can_view_group_entry,
     get_group_membership,
     is_group_owner,
 )
@@ -23,6 +22,7 @@ from app.utils.constants import (
     GROUP_ROLE_OWNER,
     MAX_GROUP_DESCRIPTION_LENGTH,
     MAX_GROUP_NAME_LENGTH,
+    PER_PAGE,
 )
 from app.utils.exceptions import PermissionDeniedError, ValidationError, build_error
 from app.utils.query_helper import build_keyword_filter, parse_positive_int
@@ -79,21 +79,16 @@ def delete_group(user, group):
     db.session.commit()
 
 def get_member_group(user, group_id):
-    """Group yg user jadi anggota aktifnya. None kalau bukan anggota (jadi 404)."""
+    """Group yg user jadi anggota aktifnya. None kalau bukan anggota (jadi 404).
+    Anggota (+ data user-nya) ikut diambil karena dipake cek peran di tiap aksi & jumlahnya kecil.
+    Link group SENGAJA ga diambil di sini (bisa ribuan): halaman detail ngambilnya sendiri per halaman
+    lewat search_visible_group_entry."""
     return db.session.execute(
         db.select(Group)
         .join(GroupMember, GroupMember.group_id == Group.id)
         .options(
             joinedload(Group.owner),
             selectinload(Group.member_list).joinedload(GroupMember.user),
-            selectinload(Group.group_entry_list).options(
-                joinedload(GroupEntry.added_by),
-                selectinload(GroupEntry.viewer_list),
-                joinedload(GroupEntry.access_entry).options(
-                    joinedload(AccessEntry.category),
-                    joinedload(AccessEntry.owner),
-                ),
-            ),
         )
         .where(
             Group.id == group_id,
@@ -125,14 +120,21 @@ def list_user_group(user, selection=None):
         ])
     return db.session.execute(query.order_by(Group.name)).scalars().all()
 
+def build_visible_group_entry_condition(user):
+    """Kondisi SQL link group yg boleh diliat user (versi SQL dari access_policy.can_view_group_entry):
+    link ga terbatas, atau user = pemilik group / yg nambahin / pemilik link-nya / viewer yg diizinin.
+    Query pemakainya wajib join Group & AccessEntry. Dipake bareng hitungan & daftar biar angkanya selalu cocok."""
+    viewer_exists = db.select(GroupEntryViewer.id).where(
+        GroupEntryViewer.group_entry_id == GroupEntry.id, GroupEntryViewer.user_id == user.id,
+    ).exists()
+    return or_(GroupEntry.is_restricted.is_(False), Group.user_id == user.id, GroupEntry.user_id == user.id,
+               AccessEntry.user_id == user.id, viewer_exists)
+
 def count_visible_group_entries(user, group_list):
     """Hitung link semua group dalam satu query dengan aturan visibilitas yang sama."""
     group_ids = [group.id for group in group_list]
     if not group_ids:
         return {}
-    viewer_exists = db.select(GroupEntryViewer.id).where(
-        GroupEntryViewer.group_entry_id == GroupEntry.id, GroupEntryViewer.user_id == user.id,
-    ).exists()
     active_membership = db.select(GroupMember.id).where(
         GroupMember.group_id == Group.id, GroupMember.user_id == user.id,
         GroupMember.status == GROUP_MEMBER_STATUS_ACTIVE,
@@ -140,11 +142,30 @@ def count_visible_group_entries(user, group_list):
     counts = dict(db.session.execute(
         db.select(GroupEntry.group_id, db.func.count(GroupEntry.id))
         .join(Group, Group.id == GroupEntry.group_id).join(AccessEntry, AccessEntry.id == GroupEntry.access_entry_id)
-        .where(Group.id.in_(group_ids), active_membership, or_(GroupEntry.is_restricted.is_(False),
-               Group.user_id == user.id, GroupEntry.user_id == user.id, AccessEntry.user_id == user.id, viewer_exists))
+        .where(Group.id.in_(group_ids), active_membership, build_visible_group_entry_condition(user))
         .group_by(GroupEntry.group_id)
     ).all())
     return {group_id: counts.get(group_id, 0) for group_id in group_ids}
+
+def search_visible_group_entry(user, group, page=1, per_page=PER_PAGE):
+    """Link di group yg boleh diliat user, per halaman, disaring di SQL (bukan ngambil semua terus disaring di Python).
+    Halaman kebablasan (misal link-nya abis dicabut) dijepit ke halaman terakhir."""
+    query = (
+        db.select(GroupEntry)
+        .join(Group, Group.id == GroupEntry.group_id)
+        .join(AccessEntry, AccessEntry.id == GroupEntry.access_entry_id)
+        .options(
+            joinedload(GroupEntry.added_by),
+            selectinload(GroupEntry.viewer_list),
+            joinedload(GroupEntry.access_entry).options(joinedload(AccessEntry.category), joinedload(AccessEntry.owner)),
+        )
+        .where(GroupEntry.group_id == group.id, build_visible_group_entry_condition(user))
+        .order_by(GroupEntry.id)
+    )
+    pagination = db.paginate(query, page=page, per_page=per_page, error_out=False)
+    if pagination.pages and page > pagination.pages:
+        pagination = db.paginate(query, page=pagination.pages, per_page=per_page, error_out=False)
+    return pagination
 
 def count_active_member(group_list):
     """{group_id: jumlah anggota aktif} dalam satu query, ga perlu ngambil semua baris anggota."""
@@ -393,10 +414,6 @@ def get_group_entry(group, raw_group_entry_id):
     if group_entry is None:
         raise ValidationError([build_error("entry_id", "Link tidak ada di group ini")])
     return group_entry
-
-def list_visible_group_entry(user, group):
-    """Link di group yg boleh diliat user (link terbatas cuma muncul buat yg diizinin)."""
-    return [group_entry for group_entry in group.group_entry_list if can_view_group_entry(user, group, group_entry)]
 
 def list_viewer_candidate(group):
     """Anggota aktif selain pemilik, bisa dipilih buat liat link terbatas."""

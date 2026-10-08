@@ -128,3 +128,23 @@ def test_group_member_and_invitation_counts(app, registered_user, other_user):
     assert count_active_member([group]) == {group.id: 1}
     assert count_pending_invitation(registered_user) == 1
     assert count_active_member([]) == {}
+
+
+def test_group_detail_query_count_does_not_grow_per_link(app, logged_in_client, registered_user, category_dict):
+    """Positive: halaman detail group jumlah query-nya tetep, mau isinya 2 link atau 10 link (ga N+1)."""
+    from app.services.group_service import add_group_entry, create_group
+
+    group = create_group(registered_user, {"name": "Tim"})
+
+    def add_links(start, stop):
+        for number in range(start, stop):
+            entry = AccessEntry(user_id=registered_user.id, category_id=category_dict["Web"].id, title=f"Link {number}")
+            db.session.add(entry)
+            db.session.commit()
+            add_group_entry(registered_user, group, entry.id)
+
+    add_links(0, 2)
+    _, small_statements = count_queries(lambda: logged_in_client.get(f"/groups/{group.id}"))
+    add_links(2, 10)
+    _, large_statements = count_queries(lambda: logged_in_client.get(f"/groups/{group.id}"))
+    assert len(large_statements) == len(small_statements)
