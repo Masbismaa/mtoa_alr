@@ -76,3 +76,55 @@ def test_clean_display_filename_strips_path():
     assert clean_display_filename("..\\..\\windows\\evil.pdf") == "evil.pdf"
     assert clean_display_filename("../../etc/passwd.txt") == "passwd.txt"
     assert clean_display_filename("<b>laporan</b>.pdf") == "laporan.pdf"
+
+def build_docx_with_lying_header(real_size, fake_size=1000):
+    """docx yg document.xml-nya isinya real_size byte nol, tapi header zip ngaku cuma fake_size byte."""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("[Content_Types].xml", "<Types/>")
+        archive.writestr("_rels/.rels", "<Relationships/>")
+        archive.writestr("word/document.xml", b"\0" * real_size)
+    data = bytearray(buffer.getvalue())
+    name = b"word/document.xml"
+    # file_size di local header (offset 22) & central directory (offset 24) dipalsuin
+    for signature, size_offset, name_offset, length_offset in ((b"PK\x03\x04", 22, 30, 26), (b"PK\x01\x02", 24, 46, 28)):
+        position = data.find(signature)
+        while position != -1:
+            name_length = int.from_bytes(data[position + length_offset: position + length_offset + 2], "little")
+            if data[position + name_offset: position + name_offset + name_length] == name:
+                data[position + size_offset: position + size_offset + 4] = fake_size.to_bytes(4, "little")
+            position = data.find(signature, position + 4)
+    return bytes(data)
+
+def test_zip_with_lying_size_rejected_without_using_much_memory():
+    """Negative (security/zip bomb): header zip ngaku kecil padahal isinya 30 MB -> ditolak tanpa ngebuka semuanya ke RAM."""
+    import tracemalloc
+
+    bomb = build_docx_with_lying_header(30 * 1024 * 1024)
+    tracemalloc.start()
+    try:
+        with pytest.raises(ValueError):
+            detect_content_type("bom.docx", bomb)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 5 * 1024 * 1024
+
+def test_docx_compressed_with_deflate_still_valid(sample_file_dict):
+    """Positive: docx yg dikompres deflate (kayak file Word asli) tetep lolos."""
+    source = zipfile.ZipFile(io.BytesIO(sample_file_dict["docx"]))
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for info in source.infolist():
+            archive.writestr(info.filename, source.read(info.filename))
+    assert detect_content_type("laporan.docx", buffer.getvalue())[0] == "docx"
+
+def test_docx_with_unusual_compression_rejected(sample_file_dict):
+    """Negative (security): metode kompresi selain stored/deflate (misal bzip2) ditolak, Office ga pernah makai."""
+    source = zipfile.ZipFile(io.BytesIO(sample_file_dict["docx"]))
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_BZIP2) as archive:
+        for info in source.infolist():
+            archive.writestr(info.filename, source.read(info.filename))
+    with pytest.raises(ValueError):
+        detect_content_type("laporan.docx", buffer.getvalue())
