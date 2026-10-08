@@ -6,7 +6,7 @@ import pytest
 from app.extensions import db
 from app.security.link_target_guard import LinkTargetBlockedError, parse_check_url, resolve_safe_ip
 from app.services import link_check_service, link_monitor_service
-from app.services.access_entry_service import create_access_entry
+from app.services.access_entry_service import create_access_entry, update_access_entry
 from app.services.link_check_service import LinkCheckResult, LinkCheckTarget, save_check_result
 from app.utils.constants import LINK_STATUS_DOWN, LINK_STATUS_UNKNOWN, LINK_STATUS_UP, VISIBILITY_PRIVATE
 
@@ -173,12 +173,38 @@ def test_save_result_keeps_updated_at(app, registered_user, category_dict):
     """Positive: hasil cek kesimpen, tapi 'Terakhir Diubah' ga ikut berubah."""
     entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr.spindo.com"))
     old_updated_at = entry.updated_at
-    save_check_result(entry.id, LinkCheckResult(LINK_STATUS_UP, "HTTP 200"))
+    assert save_check_result(link_check_service.build_check_target(entry), LinkCheckResult(LINK_STATUS_UP, "HTTP 200"))
     db.session.commit()
     db.session.refresh(entry)
     assert (entry.status, entry.status_note) == (LINK_STATUS_UP, "HTTP 200")
     assert entry.status_checked_at is not None
     assert entry.updated_at == old_updated_at
+
+def test_result_for_old_address_not_saved_after_edit(app, registered_user, category_dict):
+    """Negative: link diedit pas pengecekan lagi jalan -> hasil buat URL lama ga nempel ke URL baru."""
+    entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr-lama.spindo.com"))
+    old_target = link_check_service.build_check_target(entry)
+    update_access_entry(registered_user, entry, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr-baru.spindo.com"))
+    assert save_check_result(old_target, LinkCheckResult(LINK_STATUS_UP, "HTTP 200")) is False
+    db.session.commit()
+    db.session.refresh(entry)
+    assert (entry.status, entry.status_checked_at) == (LINK_STATUS_UNKNOWN, None)
+
+def test_edit_target_resets_status(app, registered_user, category_dict):
+    """Positive: URL diganti -> status lama dihapus (balik "belum dicek"), soalnya hasilnya punya alamat lama."""
+    entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr.spindo.com"))
+    save_check_result(link_check_service.build_check_target(entry), LinkCheckResult(LINK_STATUS_UP, "HTTP 200"))
+    db.session.commit()
+    update_access_entry(registered_user, entry, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr2.spindo.com"))
+    assert (entry.status, entry.status_note, entry.status_checked_at) == (LINK_STATUS_UNKNOWN, None, None)
+
+def test_edit_without_target_change_keeps_status(app, registered_user, category_dict):
+    """Positive: yg diganti cuma judul -> status cek tetep (alamatnya sama)."""
+    entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr.spindo.com"))
+    save_check_result(link_check_service.build_check_target(entry), LinkCheckResult(LINK_STATUS_UP, "HTTP 200"))
+    db.session.commit()
+    update_access_entry(registered_user, entry, build_entry_dict(category_dict["Web"], "Portal HR Baru", "https://hr.spindo.com"))
+    assert (entry.status, entry.status_note) == (LINK_STATUS_UP, "HTTP 200")
 
 def test_user_cannot_trigger_check(logged_in_client, registered_user, category_dict):
     """Negative: ga ada tombol/route cek manual, user ga bisa memicu cek lewat URL langsung."""

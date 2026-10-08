@@ -149,11 +149,19 @@ def check_target(target, allow_private=None, ca_file=None):
         return LinkCheckResult(LINK_STATUS_UNKNOWN, "Port kosong, tidak bisa dicek")
     return LinkCheckResult(LINK_STATUS_UNKNOWN, "Tidak ada URL atau Address")
 
-def save_check_result(entry_id, result):
-    """Simpen hasil cek. updated_at sengaja ga ikut berubah, soalnya ngecek bukan ngedit data."""
-    db.session.execute(
+def save_check_result(target, result):
+    """Simpen hasil cek. updated_at sengaja ga ikut berubah, soalnya ngecek bukan ngedit data.
+    Cuma disimpen kalau URL/Address/Port di DB masih sama kayak yg tadi dicek: kalau link-nya diedit pas
+    pengecekan lagi jalan, hasil buat alamat lama ga boleh nempel ke alamat baru. Return True kalau kesimpen."""
+    update_result = db.session.execute(
         db.update(AccessEntry)
-        .where(AccessEntry.id == entry_id)
+        .where(
+            AccessEntry.id == target.entry_id,
+            # IS NOT DISTINCT FROM: NULL dianggap sama dgn NULL (kolom address/port boleh kosong)
+            AccessEntry.url.is_not_distinct_from(target.url),
+            AccessEntry.address.is_not_distinct_from(target.address),
+            AccessEntry.port.is_not_distinct_from(target.port),
+        )
         .values(
             status=result.status,
             status_note=result.note[:LINK_STATUS_NOTE_MAX_LENGTH],
@@ -161,6 +169,7 @@ def save_check_result(entry_id, result):
             updated_at=AccessEntry.updated_at,
         )
     )
+    return update_result.rowcount == 1
 
 def check_all_entry_status(max_worker_count=LINK_CHECK_MAX_WORKER_COUNT, progress_callback=None):
     """Baca snapshot dalam batch kecil, tanpa menahan transaksi selama koneksi jaringan."""
@@ -189,7 +198,7 @@ def check_all_entry_status(max_worker_count=LINK_CHECK_MAX_WORKER_COUNT, progres
             if progress_callback:
                 progress_callback(sum(counts.values()), total)
             for target, result in zip(targets, results):
-                save_check_result(target.entry_id, result)
+                save_check_result(target, result)
                 counts[result.status] += 1
             if progress_callback:
                 progress_callback(sum(counts.values()), total)

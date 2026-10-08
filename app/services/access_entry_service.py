@@ -44,6 +44,7 @@ from app.utils.constants import (
     PER_PAGE,
     MAX_SEARCH_KEYWORD_LENGTH,
     EXPORT_MAX_ROW_COUNT,
+    LINK_STATUS_UNKNOWN,
 )
 from app.utils.data_table import build_order_list
 from app.utils.exceptions import InvalidCredentialError, PermissionDeniedError, ValidationError, build_error
@@ -308,7 +309,13 @@ def update_access_entry(user, entry, data_dict, custom_field_pair_list=None,
         clean_dict["visibility"] = entry.visibility
 
     old_data_dict = build_entry_audit_dict(entry)
+    old_target = (entry.url, entry.address, entry.port)
     apply_entry_data(entry, clean_dict, clean_custom_field_list)
+    # alamat yg dicek berubah -> status lama udah ga berlaku buat alamat baru, balik ke "belum dicek"
+    if (entry.url, entry.address, entry.port) != old_target:
+        entry.status = LINK_STATUS_UNKNOWN
+        entry.status_note = None
+        entry.status_checked_at = None
 
     removed_filename_list = [attachment.stored_filename for attachment in delete_attachment_list]
     for attachment in delete_attachment_list:
