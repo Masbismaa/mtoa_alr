@@ -210,6 +210,10 @@ ATTACHMENT_EXTENSION_LIST = list(ATTACHMENT_CONTENT_TYPE_BY_EXTENSION_DICT)
 
 # jumlah baris per halaman di semua tabel (dashboard, kategori, audit log, users)
 PER_PAGE = 10
+
+# notifikasi lonceng
+MAX_NOTIFICATION_MESSAGE_LENGTH = 255
+NOTIFICATION_MENU_LIMIT = 8
 MAX_SEARCH_KEYWORD_LENGTH = 100
 
 # Select Screen ala SAP: * = wildcard, tiap isian maksimal sekian nilai (Multi Selection)

@@ -13,9 +13,10 @@ from app.models.user import User
 from app.models.user_preference import UserPreference
 from app.models.user_permission import UserPermission
 from app.models.link_monitor_run import LinkMonitorRun
+from app.models.user_notification import UserNotification
 
 __all__ = [
     "AccessEntry", "AccessEntryField", "Attachment", "AuditLog", "Category",
     "Group", "GroupEntry", "GroupEntryViewer", "GroupMember", "OtpCode", "User", "UserPreference",
-    "UserPermission", "LinkMonitorRun"
+    "UserPermission", "LinkMonitorRun", "UserNotification"
 ]

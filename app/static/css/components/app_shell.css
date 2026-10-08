@@ -258,3 +258,13 @@
 [data-result-heading]:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* lonceng notifikasi: daftar dibatesin tingginya, yg belum dibaca ditandain garis aksen */
+.notification-menu .nav-link { position: relative; color: inherit; }
+.notification-dropdown { width: 22rem; max-width: calc(100vw - 2rem); }
+.notification-dropdown .list-group { max-height: 22rem; overflow-y: auto; }
+.notification-item { display: block; width: 100%; text-align: left; border: 0; background: transparent; }
+.notification-item.is-unread { box-shadow: inset 3px 0 0 var(--tblr-primary); font-weight: 600; }
+.notification-text { display: block; white-space: normal; }
+.notification-time { display: block; font-size: .75rem; font-weight: 400; color: var(--tblr-secondary); }
+

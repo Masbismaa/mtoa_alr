@@ -6,6 +6,7 @@ from app.services.access_entry_service import count_owned_entry, delete_private_
 from app.services.attachment_service import remove_stored_file_list
 from app.services.audit_service import log_audit
 from app.services.group_service import find_group_successor, list_owned_group, release_user_group_list
+from app.services.user_notification_service import add_notification
 from app.utils.constants import (
     AUDIT_ACTION_DELETE,
     AUDIT_ACTION_UPDATE,
@@ -19,6 +20,7 @@ from app.utils.constants import (
     USER_STATUS_ACTIVE,
     USER_STATUS_INACTIVE,
     USER_STATUS_LOCKED,
+    PERMISSION_INFO_DICT,
     PERMISSION_LIST,
     PER_PAGE,
     VISIBILITY_PRIVATE,
@@ -199,8 +201,18 @@ def set_user_permissions(actor, target, permission_key_list):
         old_data_dict={"permission_list": old_key_list},
         new_data_dict={"permission_list": get_permission_key_list(target)}, user=actor,
     )
+    notify_permission_change(target, old_key_list, new_key_set)
     db.session.commit()
     return target
+
+def notify_permission_change(target, old_key_list, new_key_set):
+    """Kabarin user akses apa aja yg baru dikasih / dicabut admin."""
+    added_label_list = [PERMISSION_INFO_DICT[key]["label"] for key in PERMISSION_LIST if key in new_key_set and key not in old_key_list]
+    removed_label_list = [PERMISSION_INFO_DICT[key]["label"] for key in old_key_list if key not in new_key_set]
+    if added_label_list:
+        add_notification(target.id, "Kamu mendapat akses: " + ", ".join(added_label_list))
+    if removed_label_list:
+        add_notification(target.id, "Akses dicabut: " + ", ".join(removed_label_list))
 
 # HAPUS AKUN
 def ensure_delete_confirmed(target, confirm_email):

@@ -11,6 +11,7 @@ from app.security.access_policy import (
     is_group_owner,
 )
 from app.services.audit_service import log_audit
+from app.services.user_notification_service import GROUP_LIST_PATH, add_notification, build_group_path
 from app.utils.constants import (
     AUDIT_ACTION_CREATE,
     AUDIT_ACTION_DELETE,
@@ -180,6 +181,7 @@ def invite_member(user, group, email):
         AUDIT_ACTION_CREATE, AUDIT_GROUP_MEMBER, entity_id=member.id,
         new_data_dict={"group_id": group.id, "user_email": invited_user.email, "status": member.status}, user=user,
     )
+    add_notification(invited_user.id, f"{user.full_name} mengundangmu ke group {group.name}", GROUP_LIST_PATH)
     db.session.commit()
     return member
 
@@ -238,6 +240,11 @@ def remove_member(user, group, raw_member_id):
         AUDIT_ACTION_DELETE, AUDIT_GROUP_MEMBER, entity_id=member.id,
         old_data_dict={"group_id": group.id, "user_id": member.user_id, "status": member.status}, user=user,
     )
+    # anggota aktif = dikeluarin, masih undangan = undangannya dibatalin
+    if member.status == GROUP_MEMBER_STATUS_ACTIVE:
+        add_notification(member.user_id, f"Kamu dikeluarkan dari group {group.name}", GROUP_LIST_PATH)
+    else:
+        add_notification(member.user_id, f"Undangan ke group {group.name} dibatalkan", GROUP_LIST_PATH)
     detach_member(group, member)
     db.session.commit()
 
@@ -253,6 +260,10 @@ def set_member_can_add_entry(user, group, raw_member_id, can_add_entry):
         new_data_dict={"group_id": group.id, "can_add_entry": can_add_entry}, user=user,
     )
     member.can_add_entry = can_add_entry
+    if can_add_entry:
+        add_notification(member.user_id, f"Kamu sekarang boleh menambah link ke group {group.name}", build_group_path(group.id))
+    else:
+        add_notification(member.user_id, f"Izin menambah link ke group {group.name} dicabut", build_group_path(group.id))
     db.session.commit()
     return member
 
@@ -267,6 +278,8 @@ def leave_group(user, group):
         AUDIT_ACTION_DELETE, AUDIT_GROUP_MEMBER, entity_id=membership.id,
         old_data_dict={"group_id": group.id, "user_id": user.id, "status": membership.status}, user=user,
     )
+    # pemilik dikabarin ada anggota yg keluar
+    add_notification(group.user_id, f"{user.full_name} keluar dari group {group.name}", build_group_path(group.id))
     detach_member(group, membership)
     db.session.commit()
 
