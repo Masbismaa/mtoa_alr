@@ -115,7 +115,6 @@ def list_user_group(user, selection=None):
     query = (
         db.select(Group)
         .join(GroupMember, GroupMember.group_id == Group.id)
-        .options(selectinload(Group.member_list))
         .where(GroupMember.user_id == user.id, GroupMember.status == GROUP_MEMBER_STATUS_ACTIVE)
     )
     if selection:
@@ -146,6 +145,25 @@ def count_visible_group_entries(user, group_list):
         .group_by(GroupEntry.group_id)
     ).all())
     return {group_id: counts.get(group_id, 0) for group_id in group_ids}
+
+def count_active_member(group_list):
+    """{group_id: jumlah anggota aktif} dalam satu query, ga perlu ngambil semua baris anggota."""
+    group_ids = [group.id for group in group_list]
+    if not group_ids:
+        return {}
+    counts = dict(db.session.execute(
+        db.select(GroupMember.group_id, db.func.count(GroupMember.id))
+        .where(GroupMember.group_id.in_(group_ids), GroupMember.status == GROUP_MEMBER_STATUS_ACTIVE)
+        .group_by(GroupMember.group_id)
+    ).all())
+    return {group_id: counts.get(group_id, 0) for group_id in group_ids}
+
+def count_pending_invitation(user):
+    """Jumlah undangan yg belum dijawab user."""
+    return db.session.scalar(
+        db.select(db.func.count(GroupMember.id))
+        .where(GroupMember.user_id == user.id, GroupMember.status == GROUP_MEMBER_STATUS_INVITED)
+    )
 
 def list_pending_invitation(user):
     """Undangan yg belum dijawab user."""

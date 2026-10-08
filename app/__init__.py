@@ -95,7 +95,10 @@ def register_response_security(app):
     def secure_response(response):
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
-        response.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'; base-uri 'self'; object-src 'none'")
+        # script cuma dari file sendiri: template ga punya <script> inline / onclick, jadi XSS yg lolos ga bisa jalanin script
+        response.headers.setdefault(
+            "Content-Security-Policy", "script-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+        )
         response.headers.setdefault("Referrer-Policy", "same-origin")
         if request.endpoint != "static":
             response.headers["Cache-Control"] = "private, no-store"
@@ -207,6 +210,11 @@ def register_template_helpers(app):
         PERMISSION_MANAGE_CATEGORIES=PERMISSION_MANAGE_CATEGORIES,
         ROLE_ADMIN=ROLE_ADMIN,
     )
+
+    from app.services.category_service import clear_request_category_cache
+
+    # cache kategori per request dimulai bersih (app context bisa dipake ulang antar request, misal di test)
+    app.before_request(clear_request_category_cache)
 
     @app.context_processor
     def inject_layout_context():

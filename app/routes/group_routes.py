@@ -21,6 +21,7 @@ from app.services.group_service import (
     list_addable_entry,
     list_pending_invitation,
     list_user_group,
+    count_active_member,
     list_viewer_candidate,
     list_visible_group_entry,
     remove_group_entry,
@@ -74,6 +75,7 @@ def index():
         selection_query_dict=build_selection_query_dict(request.args, GROUP_FIELD_LIST),
         # jumlah link yg boleh diliat (link terbatas buat orang lain ga ikut dihitung)
         visible_entry_count_dict=count_visible_group_entries(user, group_list),
+        active_member_count_dict=count_active_member(group_list),
         invitation_list=list_pending_invitation(user),
     )
 

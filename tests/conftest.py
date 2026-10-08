@@ -25,6 +25,17 @@ def app(tmp_path):
         db.session.remove()
         db.drop_all()
 
+@pytest.fixture(autouse=True)
+def close_database_connections():
+    """Abis tiap test, semua koneksi DB ditutup, termasuk punya app yg dibikin langsung pake create_app() di dalem test.
+    Tanpa ini muncul ResourceWarning "unclosed database" (nongolnya di test lain, pas garbage collector jalan).
+    _app_engines = daftar engine per app di Flask-SQLAlchemy 3.x (ga ada API publiknya); kalau versi baru
+    ngubah namanya, getattr ngasih {} -> test tetep jalan, cuma warning-nya balik lagi."""
+    yield
+    for engine_dict in list(getattr(db, "_app_engines", {}).values()):
+        for engine in engine_dict.values():
+            engine.dispose()
+
 @pytest.fixture()
 def client(app):
     """Test client buat nyimulasiin request."""

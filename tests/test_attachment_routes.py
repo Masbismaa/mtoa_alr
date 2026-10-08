@@ -60,6 +60,7 @@ def test_download_own_attachment(logged_in_client, registered_user, category_dic
     assert "attachment" in response.headers["Content-Disposition"]
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.data == sample_file_dict["txt"]
+    response.close()
 
 def test_download_private_attachment_of_other_user_returns_404(logged_in_client, other_user, category_dict, sample_file_dict, make_file_storage):
     """Negative (security/IDOR): lampiran di data private orang lain -> 404."""
