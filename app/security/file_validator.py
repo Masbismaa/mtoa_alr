@@ -2,6 +2,8 @@
 import io
 import re
 import zipfile
+from pathlib import PurePosixPath
+from xml.etree import ElementTree
 
 from app.utils.constants import ATTACHMENT_CONTENT_TYPE_BY_EXTENSION_DICT, ATTACHMENT_EXTENSION_LIST, MAX_FILENAME_LENGTH
 from app.utils.sanitizer import sanitize_text
@@ -12,14 +14,12 @@ SIGNATURE_BY_EXTENSION_DICT = {
     "jpeg": [b"\xff\xd8\xff"],
     "png": [b"\x89PNG\r\n\x1a\n"],
     "pdf": [b"%PDF-"],
-    "doc": [b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"],
 }
 
 # xlsx & docx itu sebenernya file zip, dicek isinya
 OFFICE_FOLDER_BY_EXTENSION_DICT = {"xlsx": "xl/", "docx": "word/"}
 ZIP_SIGNATURE = b"PK\x03\x04"
 OFFICE_CONTENT_TYPE_FILE = "[Content_Types].xml"
-MACRO_FILE_NAME = "vbaProject.bin"
 
 UTF16_BOM_LIST = [b"\xff\xfe", b"\xfe\xff"]
 
@@ -36,19 +36,54 @@ def get_file_extension(filename):
     return extension.lower() if dot else ""
 
 def is_valid_office_zip(content_bytes, extension):
-    """xlsx/docx asli: zip yg punya [Content_Types].xml + folder xl/ atau word/, tanpa makro."""
+    """Periksa paket OOXML, batasi hasil dekompresi, tolak bagian aktif/tertanam."""
+    main_part = "xl/workbook.xml" if extension == "xlsx" else "word/document.xml"
+    main_type = (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml" if extension == "xlsx"
+        else "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
+    )
     try:
         with zipfile.ZipFile(io.BytesIO(content_bytes)) as zip_file:
-            name_list = zip_file.namelist()
-    except zipfile.BadZipFile:
+            info_list = zip_file.infolist()
+            names = [info.filename for info in info_list]
+            if len(names) > 2000 or len(names) != len(set(names)):
+                return False
+            if sum(info.file_size for info in info_list) > 50 * 1024 * 1024:
+                return False
+            if not {OFFICE_CONTENT_TYPE_FILE, "_rels/.rels", main_part}.issubset(names):
+                return False
+            for info in info_list:
+                name = info.filename.lower()
+                if (PurePosixPath(name).is_absolute() or ".." in PurePosixPath(name).parts or "\\" in name
+                        or info.flag_bits & 1 or info.file_size > 10 * 1024 * 1024
+                        or info.file_size > max(info.compress_size, 1) * 200
+                        or any(part in name for part in ("vbaproject", "/embeddings/", "/activex/"))):
+                    return False
+            types_xml = zip_file.read(OFFICE_CONTENT_TYPE_FILE)
+            relations_xml = zip_file.read("_rels/.rels")
+            main_xml = zip_file.read(main_part)
+            for xml in (types_xml, relations_xml, main_xml):
+                if b"\0" in xml or b"<!DOCTYPE" in xml.upper() or b"<!ENTITY" in xml.upper():
+                    return False
+            types = ElementTree.fromstring(types_xml)
+            relationships = ElementTree.fromstring(relations_xml)
+            main = ElementTree.fromstring(main_xml)
+            expected_main = ("{http://schemas.openxmlformats.org/spreadsheetml/2006/main}workbook"
+                             if extension == "xlsx" else "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}document")
+            if (types.tag != "{http://schemas.openxmlformats.org/package/2006/content-types}Types"
+                    or relationships.tag != "{http://schemas.openxmlformats.org/package/2006/relationships}Relationships"
+                    or main.tag != expected_main):
+                return False
+            has_type = any(node.get("PartName") == "/" + main_part and node.get("ContentType") == main_type
+                           for node in types)
+            has_main = any(node.get("Target", "").lstrip("/") == main_part
+                           and node.get("Type", "").endswith("/officeDocument")
+                           and node.get("TargetMode") != "External" for node in relationships)
+            if any("macroenabled" in node.get("ContentType", "").lower() for node in types):
+                return False
+            return has_type and has_main
+    except (zipfile.BadZipFile, ElementTree.ParseError, KeyError, RuntimeError, OSError, ValueError):
         return False
-
-    if OFFICE_CONTENT_TYPE_FILE not in name_list:
-        return False
-    # file bermakro ditolak
-    if any(name.endswith(MACRO_FILE_NAME) for name in name_list):
-        return False
-    return any(name.startswith(OFFICE_FOLDER_BY_EXTENSION_DICT[extension]) for name in name_list)
 
 def is_valid_text(content_bytes):
     """txt: teks biasa (UTF-8 / ANSI Windows / UTF-16 dari Notepad), bukan file biner."""

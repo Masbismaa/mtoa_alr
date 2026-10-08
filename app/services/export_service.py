@@ -1,5 +1,6 @@
 from collections import Counter
 from io import BytesIO
+from functools import lru_cache
 from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image
@@ -72,7 +73,10 @@ TILE_FILL = PatternFill("solid", fgColor=COLOR_TILE)
 # [$-421] = locale Indonesia, jadi bulannya tampil "Okt", "Des", dst
 DATETIME_FORMAT = "[$-421]dd mmm yyyy hh:mm"
 PERCENT_FORMAT = '0"%"'
+DETAIL_CENTER_ALIGNMENT = Alignment(horizontal="center", vertical="top", wrap_text=False, indent=0)
+DETAIL_TEXT_ALIGNMENT = Alignment(horizontal="left", vertical="top", wrap_text=True, indent=1)
 
+@lru_cache(maxsize=64)
 def make_font(size=10, is_bold=False, color=COLOR_DARK, is_italic=False, is_underline=False):
     """Font seragam satu laporan."""
     return Font(
@@ -311,10 +315,7 @@ def write_detail_row(sheet, row, value_list, entry, is_band_row):
             font = make_font(10, is_bold=True, color=STATUS_COLOR_DICT.get(entry.status, COLOR_DARK))
         cell = write_cell(
             sheet, row, column, value if value not in ("", None) else None, font=font, fill=fill, border=CELL_BORDER,
-            alignment=Alignment(
-                horizontal="center" if is_center else "left", vertical="top",
-                wrap_text=not is_center, indent=0 if is_center else 1,
-            ),
+            alignment=DETAIL_CENTER_ALIGNMENT if is_center else DETAIL_TEXT_ALIGNMENT,
             number_format=DATETIME_FORMAT if column in DETAIL_DATETIME_COLUMN_SET else None,
         )
         if column == DETAIL_URL_COLUMN and isinstance(value, str) and value.startswith(("http://", "https://")):
@@ -366,4 +367,4 @@ def build_entry_workbook(entry_list, user, filter_text_list):
     buffer = BytesIO()
     workbook.save(buffer)
     buffer.seek(0)
-    return buffer 
+    return buffer

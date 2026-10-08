@@ -38,11 +38,15 @@ def date_range_field(key, label, from_key=None, to_key=None):
 def clean_value_list(raw_value_list):
     """Nilai dari URL: dirapihin, yg kosong & dobel dibuang, jumlah & panjangnya dibatesin."""
     value_list = []
+    seen = set()
     for raw_value in raw_value_list:
         value = (raw_value or "").strip()[:MAX_SEARCH_KEYWORD_LENGTH]
-        if value and value not in value_list:
+        if value and value not in seen:
+            seen.add(value)
             value_list.append(value)
-    return value_list[:SELECTION_MAX_VALUE_COUNT]
+            if len(value_list) == SELECTION_MAX_VALUE_COUNT:
+                break
+    return value_list
 
 def read_text_selection(args, key):
     """Baca isian teks: ?title=a&title=b&title__not=c."""

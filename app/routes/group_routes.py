@@ -10,6 +10,7 @@ from app.services.group_service import (
     add_group_entry,
     can_remove_group_entry,
     create_group,
+    count_visible_group_entries,
     decline_invitation,
     delete_group,
     get_group_entry,
@@ -72,7 +73,7 @@ def index():
         selection_field_list=GROUP_FIELD_LIST,
         selection_query_dict=build_selection_query_dict(request.args, GROUP_FIELD_LIST),
         # jumlah link yg boleh diliat (link terbatas buat orang lain ga ikut dihitung)
-        visible_entry_count_dict={group.id: len(list_visible_group_entry(user, group)) for group in group_list},
+        visible_entry_count_dict=count_visible_group_entries(user, group_list),
         invitation_list=list_pending_invitation(user),
     )
 

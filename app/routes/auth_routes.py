@@ -74,10 +74,10 @@ def login():
     if form.validate_on_submit():
         try:
             user = authenticate_user(form.email.data, form.password.data)
+            start_otp_challenge(user)
         except AuthError as error:
             flash(str(error), "danger")
         else:
-            start_otp_challenge(user)
             # session dibersihin dulu, terus simpen user yg lagi nunggu OTP
             session.clear()
             session[SESSION_PENDING_USER_KEY] = user.id
@@ -141,7 +141,12 @@ def resend_otp():
 @login_required
 def logout():
     """Logout. Sengaja POST biar ga bisa dipicu lewat link/gambar dari luar."""
-    log_audit(AUDIT_ACTION_LOGOUT, "users", entity_id=current_user.id, user=current_user, is_commit=True)
+    log_audit(AUDIT_ACTION_LOGOUT, "users", entity_id=current_user.id, user=current_user)
+    db.session.execute(
+        db.update(User).where(User.id == current_user.id)
+        .values(session_version=User.session_version + 1)
+    )
+    db.session.commit()
     logout_user()
     session.clear()
     flash("Kamu sudah logout", "info")

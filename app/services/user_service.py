@@ -158,6 +158,8 @@ def toggle_user_active(actor, target):
     ensure_not_admin(target)
     old_data_dict = build_user_admin_audit_dict(target)
     target.is_active = not target.is_active
+    db.session.execute(db.update(User).where(User.id == target.id)
+                       .values(session_version=User.session_version + 1))
     return save_user_change(actor, target, old_data_dict)
 
 def unlock_user(actor, target):
@@ -224,6 +226,8 @@ def anonymize_user(target):
     target.job_title = DELETED_USER_PROFILE_TEXT
     target.password_hash = UNUSABLE_PASSWORD_HASH
     target.is_active = False
+    db.session.execute(db.update(User).where(User.id == target.id)
+                       .values(session_version=User.session_version + 1))
     target.failed_login_count = 0
     target.locked_until = None
     target.deleted_at = utc_now()

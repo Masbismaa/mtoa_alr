@@ -203,7 +203,6 @@ ATTACHMENT_CONTENT_TYPE_BY_EXTENSION_DICT = {
     "png": "image/png",
     "pdf": "application/pdf",
     "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "doc": "application/msword",
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "txt": "text/plain",
 }

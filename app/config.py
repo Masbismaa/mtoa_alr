@@ -46,6 +46,20 @@ class BaseConfig:
     ALLOWED_EMAIL_DOMAIN = os.environ.get("ALLOWED_EMAIL_DOMAIN", "spindo.com")
     # console untuk development; smtp disediakan untuk implementasi production.
     OTP_DELIVERY_MODE = os.environ.get("OTP_DELIVERY_MODE", "console")
+    SMTP_HOST = os.environ.get("SMTP_HOST", "")
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+    SMTP_SECURITY = os.environ.get("SMTP_SECURITY", "starttls")
+    SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "")
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+    SMTP_FROM = os.environ.get("SMTP_FROM", "")
+    SMTP_TIMEOUT_SECONDS = 10
+    TRUSTED_PROXY_COUNT = int(os.environ.get("TRUSTED_PROXY_COUNT", "0"))
+    LINK_CHECK_ALLOW_PRIVATE_NETWORKS = os.environ.get("LINK_CHECK_ALLOW_PRIVATE_NETWORKS", "false").lower() == "true"
+    LINK_CHECK_CA_FILE = os.environ.get("LINK_CHECK_CA_FILE") or None
+    UPLOAD_USER_QUOTA_BYTES = int(os.environ.get("UPLOAD_USER_QUOTA_BYTES", str(500 * 1024 * 1024)))
+    UPLOAD_SCANNER_HOST = os.environ.get("UPLOAD_SCANNER_HOST", "")
+    UPLOAD_SCANNER_PORT = int(os.environ.get("UPLOAD_SCANNER_PORT", "3310"))
+    UPLOAD_SCANNER_TIMEOUT_SECONDS = 15
 
     # Rate limit (anti brute force)
     RATELIMIT_ENABLED = True
@@ -85,6 +99,11 @@ class TestingConfig(BaseConfig):
     RATELIMIT_ENABLED = False
     ALLOWED_EMAIL_DOMAIN = "spindo.com"
     OTP_DELIVERY_MODE = "console"
+    LINK_CHECK_ALLOW_PRIVATE_NETWORKS = False
+    UPLOAD_SCANNER_HOST = ""
+    TRUSTED_PROXY_COUNT = 0
+    UPLOAD_USER_QUOTA_BYTES = 500 * 1024 * 1024
+    RATELIMIT_STORAGE_URI = "memory://"
 
 # Pemetaan nama environment ke class config, dipakai oleh create_app()
 CONFIG_BY_NAME_DICT = {

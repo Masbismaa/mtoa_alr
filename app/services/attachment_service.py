@@ -6,11 +6,12 @@ from pathlib import Path
 from flask import current_app
 
 from app.extensions import db
-from app.models import AccessEntry, Attachment
+from app.models import AccessEntry, Attachment, User
 from app.security.access_policy import build_visible_entry_filter
 from app.security.file_validator import clean_display_filename, detect_content_type
+from app.security.upload_scanner import scan_upload
 from app.utils.constants import ATTACHMENT_MAX_COUNT, ATTACHMENT_MAX_SIZE_BYTES
-from app.utils.exceptions import build_error
+from app.utils.exceptions import ValidationError, build_error
 
 ATTACHMENT_FIELD = "attachments"
 
@@ -58,6 +59,7 @@ def prepare_upload_list(file_storage_list, existing_count=0):
 
         try:
             extension, content_type = detect_content_type(display_name, content_bytes)
+            scan_upload(content_bytes)
         except ValueError as error:
             error_list.append(build_error(ATTACHMENT_FIELD, f"{display_name}: {error}"))
             continue
@@ -69,6 +71,18 @@ def prepare_upload_list(file_storage_list, existing_count=0):
             "content_bytes": content_bytes,
         })
     return prepared_list, error_list
+
+
+def enforce_upload_quota(user, prepared_list):
+    """Kunci akun hingga transaksi simpan selesai agar upload paralel tidak melewati kuota."""
+    if not prepared_list:
+        return
+    db.session.execute(db.select(User.id).where(User.id == user.id).with_for_update()).scalar_one()
+    used = db.session.scalar(db.select(db.func.coalesce(db.func.sum(Attachment.file_size), 0))
+                             .where(Attachment.user_id == user.id))
+    incoming = sum(len(item["content_bytes"]) for item in prepared_list)
+    if used + incoming > current_app.config["UPLOAD_USER_QUOTA_BYTES"]:
+        raise ValidationError([build_error(ATTACHMENT_FIELD, "Kuota lampiran akun sudah penuh")])
 
 
 def store_prepared_attachment_list(entry, user, prepared_list):
@@ -98,7 +112,10 @@ def store_prepared_attachment_list(entry, user, prepared_list):
 def remove_file_path_list(file_path_list):
     """Hapus file dari disk (yg udah ga ada dibiarin)."""
     for file_path in file_path_list:
-        Path(file_path).unlink(missing_ok=True)
+        try:
+            Path(file_path).unlink(missing_ok=True)
+        except OSError:
+            current_app.logger.error("Lampiran belum dapat dihapus; jalankan cleanup-attachments")
 
 def remove_stored_file_list(stored_filename_list):
     """Hapus file lampiran berdasarkan nama di disk."""

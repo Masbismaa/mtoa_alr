@@ -11,11 +11,21 @@
 {% block page_actions %}
   <form method="post" action="{{ url_for('link_monitor.run_now') }}" data-confirm-title="Cek semua data?" data-confirm-message="Server akan memeriksa status seluruh link sekarang." data-confirm-ok="Ya, cek sekarang">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="btn btn-primary">{{ icon("refresh") }} Cek Semua Data Sekarang</button>
+    <button type="submit" class="btn btn-primary" {% if monitor_run and monitor_run.state in ['queued', 'running'] %}disabled{% endif %}>{{ icon("refresh") }} Cek Semua Data Sekarang</button>
   </form>
 {% endblock %}
 
 {% block content %}
+  {% if monitor_run %}
+    <div class="alert alert-info" role="status">
+      {% if monitor_run.state == 'queued' %}Menunggu pemeriksaan.
+      {% elif monitor_run.state == 'running' %}Pemeriksaan berjalan: {{ monitor_run.processed_count }} dari {{ monitor_run.total_count }} data.
+      {% elif monitor_run.state == 'failed' %}Pemeriksaan terhenti. Sebagian hasil mungkin sudah diperbarui; hubungi pengelola server.
+      {% elif monitor_run.state == 'completed' %}Pemeriksaan selesai: {{ monitor_run.processed_count }} data diperiksa.
+      {% else %}Belum ada pemeriksaan.{% endif %}
+      <a class="btn btn-sm ms-2" href="{{ url_for('link_monitor.index') }}">{{ icon("refresh") }} Perbarui Tampilan</a>
+    </div>
+  {% endif %}
   <div class="row row-cards">
     <div class="col-lg-7">
       <div class="card">

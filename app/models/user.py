@@ -31,6 +31,7 @@ class User(UserMixin, TimestampMixin, db.Model):
     # kalau keisi & belum lewat, akun lagi dikunci
     locked_until = db.Column(db.DateTime(timezone=True), nullable=True)
     last_login_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    session_version = db.Column(db.Integer, nullable=False, default=1, server_default="1")
     # keisi = akun udah dihapus admin (datanya dianonimkan, barisnya tetep ada buat audit log)
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
@@ -59,6 +60,10 @@ class User(UserMixin, TimestampMixin, db.Model):
     def validate_email(self, key, value):
         """Rapihin email sebelum disimpen (pake helper yg sama kayak service)."""
         return normalize_email(value)
+
+    def get_id(self):
+        """Versi sesi ikut ditandatangani cookie; logout mencabut semua sesi akun."""
+        return f"{self.id}:{self.session_version}"
 
     def __repr__(self):
         """Representasi singkat untuk debugging."""
