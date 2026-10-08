@@ -68,10 +68,10 @@ def test_authenticate_user_success(app, registered_user, user_password):
     assert user.id == registered_user.id
 
 def test_authenticate_wrong_password(app, registered_user):
-    """password salah -> pesan umum, hitungan gagal nambah, kecatat audit."""
+    """password salah -> pesan umum, kecatat audit; akunnya sendiri ga disentuh (yg dihitung email+IP)."""
     with pytest.raises(AuthError, match="Email atau password salah"):
         authenticate_user(registered_user.email, "PasswordSalah1")
-    assert registered_user.failed_login_count == 1
+    assert registered_user.failed_login_count == 0
     assert count_audit(AUDIT_ACTION_LOGIN_FAILED) == 1
 
 def test_authenticate_unknown_email_same_message(app):
@@ -79,14 +79,14 @@ def test_authenticate_unknown_email_same_message(app):
     with pytest.raises(AuthError, match="Email atau password salah"):
         authenticate_user("ga.ada@spindo.com", "PasswordKuat123")
 
-def test_account_locked_after_max_failed(app, registered_user, user_password):
-    """5x salah -> akun dikunci, password bener pun ditolak."""
+def test_login_blocked_after_max_failed(app, registered_user, user_password):
+    """5x salah dari tempat yg sama -> tempat itu diblokir (password bener pun ditolak), tapi akunnya ga dikunci."""
     for _ in range(LOGIN_MAX_FAILED_COUNT):
         with pytest.raises(AuthError):
             authenticate_user(registered_user.email, "PasswordSalah1")
-    assert registered_user.locked_until is not None
-    with pytest.raises(AuthError, match="dikunci"):
+    with pytest.raises(AuthError, match="Terlalu banyak percobaan login"):
         authenticate_user(registered_user.email, user_password)
+    assert registered_user.locked_until is None
 
 # OTP
 def test_verify_otp_success(app, registered_user, fixed_otp_code):
@@ -164,14 +164,15 @@ def test_wrong_otp_counts_toward_account_lock(app, registered_user, fixed_otp_co
     with pytest.raises(AuthError, match="dikunci"):
         verify_otp_code(registered_user, fixed_otp_code)
 
-def test_password_and_otp_failures_add_up(app, registered_user, user_password, fixed_otp_code):
-    """Negative (security): salah password & salah OTP dihitung bareng."""
+def test_password_failures_do_not_count_toward_account_lock(app, registered_user, user_password, fixed_otp_code):
+    """Negative (security): salah password (bisa dilakuin siapa aja) ga ikut ngunci akun; kunci akun cuma dari salah OTP."""
     for _ in range(LOGIN_MAX_FAILED_COUNT - 1):
         with pytest.raises(AuthError):
             authenticate_user(registered_user.email, "PasswordSalah1")
     start_otp_challenge(authenticate_user(registered_user.email, user_password))
-    with pytest.raises(AuthError, match="dikunci"):
+    with pytest.raises(AuthError, match="Kode OTP salah"):
         verify_otp_code(registered_user, "000000")
+    assert registered_user.locked_until is None
 
 def test_inactive_user_cannot_finish_otp(app, registered_user, fixed_otp_code):
     """Negative: akun dinonaktifin pas lagi di halaman OTP -> ditolak walau OTP-nya bener."""

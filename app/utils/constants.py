@@ -65,9 +65,17 @@ MAX_TEXT_LENGTH = 1000
 MIN_PASSWORD_LENGTH = 8
 
 # Login & OTP
-# salah password 5 kali -> akun dikunci sementara
+# salah password 5 kali dari satu IP -> kombinasi email+IP itu diblokir sementara (app/security/auth_throttle.py).
+# salah OTP 5 kali -> akunnya yg dikunci (users.locked_until), karena yg nyampe OTP pasti udah tau password
 LOGIN_MAX_FAILED_COUNT = 5
 LOGIN_LOCK_MINUTES = 15
+# email "kamu sudah punya akun" (ada yg daftar pakai email terdaftar) maksimal sekali per sekian menit per email
+REGISTER_NOTICE_COOLDOWN_MINUTES = 10
+# kode verifikasi daftar ke satu email maksimal sekian kali per sekian menit (anti spam kotak masuk orang)
+REGISTER_CODE_MAX_COUNT = 5
+REGISTER_CODE_WINDOW_MINUTES = 15
+# percobaan daftar yg ga diverifikasi dibuang setelah sekian jam
+PENDING_REGISTRATION_EXPIRE_HOURS = 24
 
 # aturan OTP
 OTP_LENGTH = 6
@@ -79,11 +87,17 @@ OTP_RESEND_COOLDOWN_SECONDS = 60
 OTP_DELIVERY_CONSOLE = "console"
 OTP_DELIVERY_SMTP = "smtp"
 
+# OTP dipake buat 2 hal: login & verifikasi email pendaftaran (beda judul email aja, tabelnya sama)
+OTP_PURPOSE_LOGIN = "login"
+OTP_PURPOSE_REGISTER = "register"
+
 # batas panjang password (argon2 lemot kalau inputnya kepanjangan)
 MAX_PASSWORD_LENGTH = 128
 
 # nama key di session buat nyimpen user yg lagi nunggu isi OTP
 SESSION_PENDING_USER_KEY = "pending_user_id"
+# data pendaftaran yg lagi nunggu kode verifikasi email: {"email", "sent_at", "attempt_count"}
+SESSION_PENDING_REGISTER_KEY = "pending_register"
 
 # UI & Customizer
 # pilihan warna aksen: hex disimpen di DB, key dipake CSS (data-accent)
