@@ -218,3 +218,52 @@ def test_check_links_command_runs_monitor(app, monkeypatch):
     result = app.test_cli_runner().invoke(args=["check-links"])
     assert result.exit_code == 0
     assert "3 data · 2 aktif · 1 tidak aktif" in result.output
+
+def test_stuck_target_does_not_hold_whole_check(app, registered_user, category_dict, monkeypatch):
+    """Negative: 1 link macet (misal DNS ga jawab) -> ditandai tidak aktif setelah batas waktu,
+    link lain tetep kesimpen, dan pemeriksaan ga nungguin selamanya."""
+    import threading
+    import time
+
+    stuck_event = threading.Event()
+    stuck_entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Lemot", "https://lemot.spindo.com"))
+    normal_entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Normal", "https://normal.spindo.com"))
+    # id diambil di luar thread (objek ORM ga boleh dibaca dari thread pemeriksa)
+    stuck_id = stuck_entry.id
+
+    def fake_check(target, **kwargs):
+        if target.entry_id == stuck_id:
+            stuck_event.wait(10)
+        return LinkCheckResult(LINK_STATUS_UP, "HTTP 200")
+
+    monkeypatch.setattr(link_check_service, "check_target", fake_check)
+    monkeypatch.setattr(link_check_service, "LINK_CHECK_TARGET_DEADLINE_SECONDS", 0.3)
+    start = time.perf_counter()
+    try:
+        counts = link_check_service.check_all_entry_status()
+    finally:
+        stuck_event.set()
+    assert time.perf_counter() - start < 3
+    db.session.refresh(stuck_entry)
+    db.session.refresh(normal_entry)
+    assert stuck_entry.status == LINK_STATUS_DOWN
+    assert "melebihi" in stuck_entry.status_note
+    assert normal_entry.status == LINK_STATUS_UP
+    assert counts == Counter({LINK_STATUS_UP: 1, LINK_STATUS_DOWN: 1})
+
+def test_unexpected_error_on_one_target_does_not_stop_check(app, registered_user, category_dict, monkeypatch):
+    """Negative: error tak terduga di 1 link -> link itu "belum dicek", link lain tetep dicek & kesimpen."""
+    broken_entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Rusak", "https://rusak.spindo.com"))
+    normal_entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Normal", "https://normal.spindo.com"))
+    broken_id = broken_entry.id
+
+    def fake_check(target, **kwargs):
+        if target.entry_id == broken_id:
+            raise RuntimeError("bug tak terduga")
+        return LinkCheckResult(LINK_STATUS_UP, "HTTP 200")
+
+    monkeypatch.setattr(link_check_service, "check_target", fake_check)
+    link_check_service.check_all_entry_status()
+    db.session.refresh(broken_entry)
+    db.session.refresh(normal_entry)
+    assert (broken_entry.status, normal_entry.status) == (LINK_STATUS_UNKNOWN, LINK_STATUS_UP)

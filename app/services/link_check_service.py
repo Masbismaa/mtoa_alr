@@ -3,7 +3,8 @@ import http.client
 import socket
 import ssl
 from collections import Counter, namedtuple
-from concurrent.futures import ThreadPoolExecutor
+import math
+from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
 from urllib.parse import urljoin
 from flask import current_app
@@ -13,6 +14,7 @@ from app.security.link_target_guard import LinkTargetBlockedError, parse_check_u
 from app.utils.constants import (
     LINK_CHECK_MAX_REDIRECT_COUNT,
     LINK_CHECK_MAX_WORKER_COUNT,
+    LINK_CHECK_TARGET_DEADLINE_SECONDS,
     LINK_CHECK_TIMEOUT_SECONDS,
     LINK_CHECK_USER_AGENT,
     LINK_STATUS_DOWN,
@@ -29,6 +31,8 @@ LinkCheckResult = namedtuple("LinkCheckResult", ["status", "note"])
 LinkCheckTarget = namedtuple("LinkCheckTarget", ["entry_id", "url", "address", "port"])
 
 REDIRECT_STATUS_SET = {301, 302, 303, 307, 308}
+# ukuran 1 batch yg dibaca dari DB & dicek barengan
+CHECK_BATCH_SIZE = 20
 
 class PinnedHTTPConnection(http.client.HTTPConnection):
     """Koneksi HTTP ke IP yg udah lolos satpam. Header Host tetep pake nama aslinya."""
@@ -182,18 +186,23 @@ def check_all_entry_status(max_worker_count=LINK_CHECK_MAX_WORKER_COUNT, progres
     if progress_callback:
         progress_callback(0, total)
     db.session.commit()
-    with ThreadPoolExecutor(max_workers=max_worker_count) as executor:
+    executor = ThreadPoolExecutor(max_workers=max_worker_count)
+    try:
         while True:
             rows = db.session.execute(
                 db.select(AccessEntry.id, AccessEntry.url, AccessEntry.address, AccessEntry.port)
                 .where(AccessEntry.id > last_id, AccessEntry.id <= upper_id)
-                .order_by(AccessEntry.id).limit(20)
+                .order_by(AccessEntry.id).limit(CHECK_BATCH_SIZE)
             ).all()
             db.session.commit()
             if not rows:
                 break
             targets = [LinkCheckTarget(*row) for row in rows]
-            results = list(executor.map(check, targets))
+            results, is_stuck = run_check_batch(executor, check, targets, max_worker_count)
+            if is_stuck:
+                # thread yg macet ga bisa dihentiin paksa: pool lama ditinggal, batch berikutnya pake pool baru
+                executor.shutdown(wait=False, cancel_futures=True)
+                executor = ThreadPoolExecutor(max_workers=max_worker_count)
             # Callback dapat menolak hasil worker yang kepemilikannya sudah dicabut.
             if progress_callback:
                 progress_callback(sum(counts.values()), total)
@@ -204,4 +213,26 @@ def check_all_entry_status(max_worker_count=LINK_CHECK_MAX_WORKER_COUNT, progres
                 progress_callback(sum(counts.values()), total)
             db.session.commit()
             last_id = rows[-1].id
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
     return counts
+
+def run_check_batch(executor, check, targets, max_worker_count):
+    """Cek 1 batch dgn batas waktu TOTAL. Timeout socket cuma ngebatesin tiap operasi (server yg ngirim data
+    dikit-dikit atau DNS yg macet bisa nahan selamanya), jadi di sini batch ditungguin maksimal
+    LINK_CHECK_TARGET_DEADLINE_SECONDS per putaran worker. Yg belum kelar dianggap tidak aktif.
+    Return (daftar hasil sesuai urutan target, True kalau ada thread yg masih macet)."""
+    future_list = [executor.submit(check, target) for target in targets]
+    round_count = math.ceil(len(targets) / max_worker_count)
+    _, not_done_set = wait(future_list, timeout=LINK_CHECK_TARGET_DEADLINE_SECONDS * round_count)
+    result_list = []
+    for target, future in zip(targets, future_list):
+        if future in not_done_set:
+            result_list.append(LinkCheckResult(LINK_STATUS_DOWN, f"Pemeriksaan melebihi {LINK_CHECK_TARGET_DEADLINE_SECONDS} detik"))
+            continue
+        try:
+            result_list.append(future.result())
+        except Exception:  # noqa: BLE001 - 1 target error ga boleh ngegagalin pemeriksaan semua link
+            current_app.logger.exception("Pemeriksaan link id=%s error tak terduga", target.entry_id)
+            result_list.append(LinkCheckResult(LINK_STATUS_UNKNOWN, "Error saat memeriksa, lihat log server"))
+    return result_list, bool(not_done_set)
