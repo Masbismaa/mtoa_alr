@@ -70,7 +70,7 @@
         {% endfor %}
       </div>
       <div class="card-footer d-flex flex-wrap align-items-center gap-2">
-        <button type="submit" class="btn btn-primary">{{ icon("check") }} Jalankan</button>
+        <button type="submit" class="btn btn-primary" title="Jalankan (F8)" data-shortcut="run" aria-keyshortcuts="F8">{{ icon("check") }} Jalankan</button>
         <a href="{{ action_url }}" class="btn">Reset</a>
         <span class="small text-secondary ms-md-2">Tips: <code>ad*</code> = diawali "ad", <code>*ad</code> = diakhiri "ad", <code>*ad*</code> = mengandung "ad".</span>
       </div>
