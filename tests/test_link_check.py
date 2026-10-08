@@ -277,3 +277,24 @@ def test_unexpected_error_on_one_target_does_not_stop_check(app, registered_user
     db.session.refresh(broken_entry)
     db.session.refresh(normal_entry)
     assert (broken_entry.status, normal_entry.status) == (LINK_STATUS_UNKNOWN, LINK_STATUS_UP)
+
+def test_slow_links_do_not_hold_other_links(app, registered_user, category_dict, monkeypatch):
+    """Positive (kecepatan): pemeriksa ga saling nunggu. 40 link, 2 di antaranya lambat (1 dtk) & beda kelompok baca DB;
+    dgn 2 pemeriksa harusnya selesai ~1 dtk (link lambat jalan barengan), bukan ~2 dtk (nunggu per kelompok)."""
+    import time
+
+    entry_id_list = [
+        create_access_entry(registered_user, build_entry_dict(category_dict["Web"], f"Link {number}", f"https://l{number}.spindo.com")).id
+        for number in range(40)
+    ]
+    slow_id_set = {entry_id_list[0], entry_id_list[20]}
+
+    def fake_check(target, **kwargs):
+        time.sleep(1 if target.entry_id in slow_id_set else 0.01)
+        return LinkCheckResult(LINK_STATUS_UP, "HTTP 200")
+
+    monkeypatch.setattr(link_check_service, "check_target", fake_check)
+    start = time.perf_counter()
+    counts = link_check_service.check_all_entry_status(max_worker_count=2)
+    assert counts == Counter({LINK_STATUS_UP: 40})
+    assert time.perf_counter() - start < 1.7
