@@ -15,6 +15,9 @@ FORBIDDEN_NETWORK_LIST = [
     ipaddress.ip_network(network_text) for network_text in (
         "0.0.0.0/8", "127.0.0.0/8", "169.254.0.0/16", "224.0.0.0/4", "240.0.0.0/4", "255.255.255.255/32",
         "100.64.0.0/10", "::/128", "::1/128", "fe80::/10", "ff00::/8", "2002::/16", "2001::/32",
+        # layanan internal AWS versi IPv6 (metadata fd00:ec2::254, DNS, NTP). Bentuknya alamat private (ULA),
+        # jadi tanpa baris ini lolos kalau LINK_CHECK_ALLOW_PRIVATE_NETWORKS=true
+        "fd00:ec2::/32",
     )
 ]
 

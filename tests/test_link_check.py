@@ -58,6 +58,16 @@ def test_forbidden_ip_blocked(ip_text):
     with pytest.raises(LinkTargetBlockedError):
         resolve_safe_ip(ip_text, 80)
 
+@pytest.mark.parametrize("ip_text", ["169.254.169.254", "fd00:ec2::254", "100.100.100.200"])
+def test_cloud_metadata_blocked_even_in_intranet_mode(ip_text):
+    """Negative (SSRF): alamat metadata cloud (AWS IPv4/IPv6, Alibaba) tetep ditolak walau jaringan private diizinin."""
+    with pytest.raises(LinkTargetBlockedError):
+        resolve_safe_ip(ip_text, 80, allow_private=True)
+
+def test_other_private_ipv6_allowed_in_intranet_mode():
+    """Positive: IPv6 private kantor lain (bukan punya AWS) tetep boleh dicek kalau jaringan private diizinin."""
+    assert resolve_safe_ip("fd12:3456::10", 443, allow_private=True) == "fd12:3456::10"
+
 def test_internal_and_public_ip_allowed():
     """Positive: IP internal kantor & IP publik boleh dicek."""
     assert resolve_safe_ip("10.10.1.5", 22, allow_private=True) == "10.10.1.5"
