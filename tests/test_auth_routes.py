@@ -2,7 +2,7 @@
 from app import create_app
 from app.config import TestingConfig
 from app.extensions import db
-from app.models import User
+from app.models import PendingRegistration, User
 from app.utils.constants import LOGIN_MAX_FAILED_COUNT
 
 def build_register_form_dict(confirm_password="PasswordKuat123"):
@@ -34,13 +34,14 @@ def test_register_page_loads(client):
     assert response.status_code == 200
     assert "Daftar Akun" in response.get_data(as_text=True)
 
-def test_register_post_creates_user(client):
-    """daftar sukses -> diarahkan ke login & user kesimpen."""
+def test_register_post_creates_pending_registration(client):
+    """daftar -> diarahkan ke verifikasi email; yg kesimpen baru percobaan daftar, akunnya belum dibikin."""
     response = client.post("/auth/register", data=build_register_form_dict())
     assert response.status_code == 302
-    assert "/auth/login" in response.location
-    user = db.session.execute(db.select(User).filter_by(email="baru@spindo.com")).scalar_one_or_none()
-    assert user is not None
+    assert "/auth/register/verify" in response.location
+    assert db.session.execute(db.select(User).filter_by(email="baru@spindo.com")).scalar_one_or_none() is None
+    pending = db.session.execute(db.select(PendingRegistration).filter_by(email="baru@spindo.com")).scalar_one()
+    assert pending.full_name == "User Baru"
 
 def test_register_password_mismatch(client):
     """konfirmasi password beda -> tetep di halaman register + pesan error."""

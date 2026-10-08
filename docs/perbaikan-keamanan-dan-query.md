@@ -23,6 +23,20 @@ Jangan membuat migrasi duplikat untuk kolom atau tabel ini.
   mengaktifkan akun juga mengganti versi agar sesi lama tidak hidup kembali.
 - Password dan OTP mengunci baris akun selama transaksi di PostgreSQL agar hitungan
   gagal dan pemakaian OTP tidak berlomba. SQLite tidak membuktikan perilaku konkurensi ini.
+- Salah password diblokir per **email + IP** (5 kali / 15 menit, `app/security/auth_throttle.py`), bukan per
+  akun, supaya orang lain tidak bisa sengaja mengunci akun orang. Email yang tidak terdaftar diblokir dengan
+  pesan yang sama. Saat sebuah IP terblokir, pemilik akun mendapat notifikasi lonceng berisi IP tersebut.
+  Akun baru dikunci (`users.locked_until`, bisa dibuka admin) hanya jika salah OTP 5 kali, dan pesan
+  "Akun dikunci" hanya muncul kalau password-nya benar. Hitungan blokir disimpan di `RATELIMIT_STORAGE_URI`
+  (Redis di production) dan tetap berjalan walau `RATELIMIT_ENABLED=False`.
+- Pendaftaran wajib verifikasi email. Akun di `users` baru dibuat setelah kode yang dikirim ke email itu
+  dimasukkan. Sebelum itu, setiap percobaan daftar disimpan sendiri-sendiri di `pending_registrations`
+  (migrasi `b4d9e2a7c1f3`) dengan token yang hanya ada di session pendaftarnya. Akibatnya, kode hanya berlaku
+  untuk percobaan itu sendiri, dan orang lain yang mendaftar memakai email yang sama tidak bisa mengubah
+  password atau profil percobaan pemiliknya. Layar pendaftaran selalu sama, baik untuk email baru maupun
+  email yang sudah terdaftar. Pemilik email terdaftar hanya menerima email pemberitahuan (maks. sekali per
+  10 menit). Kode daftar ke satu email dibatasi 5 kali per 15 menit, dan percobaan yang tidak diverifikasi
+  dihapus setelah 24 jam. Perintah `create-admin` tetap langsung membuat akun aktif.
 - SMTP sudah mendukung STARTTLS/TLS dengan verifikasi sertifikat. Isi `SMTP_HOST`,
   `SMTP_FROM`, port, serta kredensial relay sesuai arahan pengelola intramail. Mode console
   tetap hanya untuk development. Pengiriman gagal membatalkan OTP dan memberi pesan aman.

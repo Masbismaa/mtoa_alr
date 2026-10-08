@@ -28,21 +28,43 @@ export default function useColumnLayout({ tableKey, layoutUrl, initialLayout, de
   const [saveStatus, setSaveStatus] = useState({ text: IDLE_STATUS_TEXT, isError: false });
   const layoutRef = useRef(layout);
   const timerRef = useRef(null);
+  // antrean simpan: maksimal 1 request jalan. Ada perubahan pas request jalan -> isDirty, abis request selesai
+  // langsung kirim snapshot TERBARU. Tanpa ini 2 request bisa jalan bareng & yg lama telat nyampe nimpa yg baru.
+  const isSavingRef = useRef(false);
+  const isDirtyRef = useRef(false);
 
-  const sendLayout = useCallback(async (isKeepalive = false) => {
-    timerRef.current = null;
+  const postLayout = useCallback((isKeepalive) => {
     const { hidden_list: hiddenList, width_dict: widthDict } = layoutRef.current;
-    try {
-      await postJson(layoutUrl, { table_key: tableKey, hidden_list: hiddenList, width_dict: widthDict }, isKeepalive);
-      setSaveStatus({ text: "Layout tabel tersimpan", isError: false });
-      // pesan sukses ga masuk riwayat status bar biar ga numpuk tiap kolom digeser
-      showStatus("Layout tabel tersimpan", "success", false);
-    } catch (saveError) {
-      const text = saveError.message || "Gagal menyimpan layout tabel";
-      setSaveStatus({ text, isError: true });
-      showStatus(text, "danger");
-    }
+    return postJson(layoutUrl, { table_key: tableKey, hidden_list: hiddenList, width_dict: widthDict }, isKeepalive);
   }, [layoutUrl, tableKey]);
+
+  const sendLayout = useCallback(async () => {
+    timerRef.current = null;
+    if (isSavingRef.current) {
+      isDirtyRef.current = true;
+      return;
+    }
+    isSavingRef.current = true;
+    try {
+      do {
+        isDirtyRef.current = false;
+        try {
+          await postLayout(false);
+          if (!isDirtyRef.current) {
+            setSaveStatus({ text: "Layout tabel tersimpan", isError: false });
+            // pesan sukses ga masuk riwayat status bar biar ga numpuk tiap kolom digeser
+            showStatus("Layout tabel tersimpan", "success", false);
+          }
+        } catch (saveError) {
+          const text = saveError.message || "Gagal menyimpan layout tabel";
+          setSaveStatus({ text, isError: true });
+          showStatus(text, "danger");
+        }
+      } while (isDirtyRef.current);
+    } finally {
+      isSavingRef.current = false;
+    }
+  }, [postLayout]);
 
   const updateLayout = useCallback((nextLayout, { isSaved = true } = {}) => {
     layoutRef.current = nextLayout;
@@ -53,19 +75,22 @@ export default function useColumnLayout({ tableKey, layoutUrl, initialLayout, de
     timerRef.current = window.setTimeout(() => sendLayout(), SAVE_DELAY_MS);
   }, [sendLayout]);
 
-  // halaman ditutup / pindah pas simpanan masih nunggu -> langsung kirim sekarang biar ga ilang
+  // halaman ditutup / pindah pas ada perubahan yg belum kekirim -> langsung kirim snapshot terbaru (keepalive),
+  // ga nunggu antrean karena halamannya udah mau ilang
   useEffect(() => {
     function flushPendingSave() {
-      if (timerRef.current === null) return;
+      if (timerRef.current === null && !isDirtyRef.current) return;
       window.clearTimeout(timerRef.current);
-      sendLayout(true);
+      timerRef.current = null;
+      isDirtyRef.current = false;
+      postLayout(true).catch(() => {});
     }
     window.addEventListener("pagehide", flushPendingSave);
     return () => {
       window.removeEventListener("pagehide", flushPendingSave);
       window.clearTimeout(timerRef.current);
     };
-  }, [sendLayout]);
+  }, [postLayout]);
 
   const isHidden = useCallback(
     (column) => column.is_hideable && layout.hidden_list.includes(column.key),

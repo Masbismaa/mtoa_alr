@@ -1,0 +1,32 @@
+{% extends "layouts/auth_base.html" %}
+{% from "components/form_field.html" import render_field %}
+
+{% block title %}Verifikasi Email{% endblock %}
+
+{# sengaja ga ada perbedaan tampilan apa pun antara email baru & email yg udah terdaftar (anti enumerasi) #}
+{% block content %}
+  <div class="text-secondary small text-uppercase fw-bold mb-1">Daftar · langkah 2 dari 2</div>
+  <h2 class="h2 mb-2">Verifikasi Email</h2>
+  <p class="text-secondary mb-4">Masukkan {{ otp_length }} digit kode verifikasi yang dikirim ke <strong>{{ masked_email }}</strong>. Akun baru aktif setelah kode ini dimasukkan.</p>
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.otp_code, placeholder="000000", autocomplete="one-time-code", inputmode="numeric", maxlength=otp_length) }}
+    <div class="form-footer">
+      {{ form.submit(class_="btn btn-primary w-100") }}
+    </div>
+  </form>
+
+  <form method="post" action="{{ url_for('auth.resend_register_code') }}" class="text-center mt-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-link" id="resend_button" data-cooldown-seconds="{{ resend_cooldown_seconds }}">Kirim ulang kode</button>
+  </form>
+{% endblock %}
+
+{% block after_card %}
+  <div class="text-center text-secondary mt-3">Salah email? <a href="{{ url_for('auth.register') }}">Daftar ulang</a> · <a href="{{ url_for('auth.login') }}">Ke login</a></div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/pages/otp.js') }}"></script>
+{% endblock %}

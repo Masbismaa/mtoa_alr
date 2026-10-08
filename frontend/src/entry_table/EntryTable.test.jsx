@@ -216,6 +216,31 @@ describe("layout kolom", () => {
     expect(JSON.parse(options.body)).toEqual({ table_key: "entry", hidden_list: ["category"], width_dict: {} });
   });
 
+  it("simpan layout diantre: cuma 1 request jalan, perubahan selama nunggu dikirim sekali (snapshot terbaru) abis itu", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { fetchMock, pendingList } = mockFetchSequence();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<EntryTable initialPayload={makePayload()} />);
+    await user.click(screen.getByRole("button", { name: /Kolom/ }));
+
+    await user.click(screen.getByRole("checkbox", { name: "Kategori" }));
+    await act(async () => vi.advanceTimersByTime(700));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 2 perubahan lagi pas request pertama belum dibales -> belum boleh ada request kedua
+    await user.click(screen.getByRole("checkbox", { name: "URL / Address" }));
+    await act(async () => vi.advanceTimersByTime(700));
+    await user.click(screen.getByRole("checkbox", { name: "Kategori" }));
+    await act(async () => vi.advanceTimersByTime(700));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => pendingList[0].resolve(jsonResponse({})));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).hidden_list).toEqual(["access"]);
+    await act(async () => pendingList[1].resolve(jsonResponse({})));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("layout ga ketimpa balasan API yg bawa layout lama", async () => {
     const { pendingList } = mockFetchSequence();
     render(<EntryTable initialPayload={makePayload()} />);
