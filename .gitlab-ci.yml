@@ -60,5 +60,18 @@ unit_test:
     reports:
       junit: report.xml
 
+# test komponen React + pastiin app/static/dist (yg di-commit) sama persis sama hasil build source-nya.
+# Gagal di langkah diff = ada yg ngubah frontend/src tapi lupa "npm run build" & commit app/static/dist
+frontend_test:
+  stage: test
+  image: node:24-slim
+  script:
+    - cd frontend
+    - npm ci
+    - npm test
+    - cp -r ../app/static/dist /tmp/dist-committed
+    - npm run build
+    - diff -r /tmp/dist-committed ../app/static/dist || (echo "app/static/dist beda sama hasil build. Jalankan cd frontend && npm run build, lalu commit app/static/dist" && exit 1)
+
 include:
   - template: Auto-DevOps.gitlab-ci.yml

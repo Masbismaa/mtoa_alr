@@ -7,3 +7,6 @@ __pycache__/
 uploads/
 .vscode/
 *.zip
+
+# frontend React (hasil build app/static/dist tetep di-commit)
+frontend/node_modules/

@@ -1,4 +1,5 @@
 """Logika kategori bertingkat: pohon kategori, tambah/ubah/hapus, sama data tampilan forum."""
+from flask import g, has_request_context
 from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import AccessEntry, Category
@@ -23,11 +24,18 @@ from app.utils.sanitizer import sanitize_text
 from app.utils.datetime_helper import to_utc_aware
 
 AUDIT_CATEGORY = "categories"
+# kunci cache kategori per request di flask.g
+CATEGORY_CACHE_KEY = "category_dict"
 
 # POHON KATEGORI
-def list_all_category():
-    """Semua kategori sekali query. Tabelnya kecil, jadi pohonnya disusun di Python aja."""
+def query_all_category():
+    """Semua kategori sekali query, urut id."""
     return db.session.execute(db.select(Category).order_by(Category.id)).scalars().all()
+
+def list_all_category():
+    """Semua kategori. Tabelnya kecil, jadi pohonnya disusun di Python aja. Di dalam request cuma query sekali."""
+    category_dict = get_request_category_dict()
+    return list(category_dict.values()) if category_dict is not None else query_all_category()
 
 def build_child_dict(category_list):
     child_dict = {}
@@ -50,13 +58,30 @@ def collect_descendant_id_list(category_id, child_dict):
         id_list.extend(collect_descendant_id_list(child.id, child_dict))
     return id_list
 
+def get_request_category_dict():
+    """Semua kategori {id: kategori}, sekali query per request. Disimpen di g biar objeknya ga kebuang
+    (identity map SQLAlchemy cuma nyimpen referensi lemah, jadi tiap .parent bakal query ulang). Di luar request -> None."""
+    if not has_request_context():
+        return None
+    if CATEGORY_CACHE_KEY not in g:
+        g.setdefault(CATEGORY_CACHE_KEY, {category.id: category for category in query_all_category()})
+    return g.get(CATEGORY_CACHE_KEY)
+
+def clear_request_category_cache():
+    """Buang cache kategori (dipanggil tiap awal request & abis kategori ditambah/dihapus)."""
+    if has_request_context():
+        g.pop(CATEGORY_CACHE_KEY, None)
+
 def get_category_path_list(category):
     """Jalur dari kategori utama sampe kategori ini, misal [Web, SAP, Modul FI]."""
+    category_dict = get_request_category_dict() or {}
     path_list = []
     current_category = category
     while current_category is not None:
         path_list.append(current_category)
-        current_category = current_category.parent
+        parent_id = current_category.parent_id
+        # induk diambil dari cache, kalau ga ada (misal baru dibikin) baru lewat relasi
+        current_category = category_dict.get(parent_id) or (current_category.parent if parent_id is not None else None)
     return list(reversed(path_list))
 
 def get_category_depth(category):
@@ -152,6 +177,7 @@ def save_new_category(user, category):
     db.session.flush()
     log_audit(AUDIT_ACTION_CREATE, AUDIT_CATEGORY, entity_id=category.id, new_data_dict=build_category_audit_dict(category), user=user)
     db.session.commit()
+    clear_request_category_cache()
     return category
 
 def create_category(user, data_dict):
@@ -218,6 +244,7 @@ def delete_category(user, category):
     log_audit(AUDIT_ACTION_DELETE, AUDIT_CATEGORY, entity_id=category.id, old_data_dict=build_category_audit_dict(category), user=user)
     db.session.delete(category)
     db.session.commit()
+    clear_request_category_cache()
 
 # TAMPILAN
 def count_entry_by_category(user=None):
@@ -267,6 +294,10 @@ def build_forum_row_list(user, parent=None):
             "latest_entry": max(candidates, key=lambda entry: (to_utc_aware(entry.created_at), entry.id), default=None),
         })
     return row_list
+
+def has_active_child_category(category):
+    """Kategori ini punya sub yg aktif (sama kayak isi daftar sub-kategori di halaman kategori)."""
+    return any(child.is_active for child in build_child_dict(list_all_category()).get(category.id, []))
 
 def list_descendant_id(category):
     """Id kategori ini + semua turunannya (buat filter link)."""

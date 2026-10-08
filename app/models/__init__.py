@@ -13,9 +13,22 @@ from app.models.user import User
 from app.models.user_preference import UserPreference
 from app.models.user_permission import UserPermission
 from app.models.link_monitor_run import LinkMonitorRun
+from app.models.user_notification import UserNotification
+from app.extensions import db
+
+# jumlah lampiran dihitung di SQL (buat tabel & export), biar ga perlu ngambil semua baris lampiran.
+# deferred: cuma ikut query yg minta lewat undefer(AccessEntry.attachment_count).
+# ditaruh di sini karena butuh dua model yg saling refer
+AccessEntry.attachment_count = db.column_property(
+    db.select(db.func.count(Attachment.id))
+    .where(Attachment.access_entry_id == AccessEntry.id)
+    .correlate_except(Attachment)
+    .scalar_subquery(),
+    deferred=True,
+)
 
 __all__ = [
     "AccessEntry", "AccessEntryField", "Attachment", "AuditLog", "Category",
     "Group", "GroupEntry", "GroupEntryViewer", "GroupMember", "OtpCode", "User", "UserPreference",
-    "UserPermission", "LinkMonitorRun"
+    "UserPermission", "LinkMonitorRun", "UserNotification"
 ]

@@ -1,5 +1,6 @@
 {% from "components/icon.html" import icon %}
 {% from "components/user_menu.html" import user_menu with context %}
+{% from "components/notification_menu.html" import notification_menu with context %}
 <aside class="navbar navbar-vertical navbar-expand-lg app-sidebar" id="app_sidebar">
   <div class="container-fluid">
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar_menu" aria-controls="sidebar_menu" aria-expanded="false" aria-label="Buka/tutup menu">
@@ -12,9 +13,10 @@
       <span class="app-brand-text">Access Link<br>Register</span>
     </a>
 
-    {# versi HP: tombol tema + avatar di pojok kanan atas #}
+    {# versi HP: tombol tema + lonceng + avatar di pojok kanan atas #}
     <div class="navbar-nav flex-row d-lg-none gap-2">
       {% include "components/theme_toggle_button.html" %}
+      {{ notification_menu() }}
       {{ user_menu(is_compact=true) }}
     </div>
 

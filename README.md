@@ -25,10 +25,16 @@ Aplikasi Flask untuk mencatat link, alamat, kredensial akses, lampiran, kategori
    .\.venv\Scripts\python.exe -m flask --app run run
    ```
 
+   Tabel link (Daftar Link & isi kategori) dirender React. Hasil build-nya (`app/static/dist`) sudah ikut di repo,
+   jadi untuk sekadar menjalankan aplikasi tidak perlu Node.js. Untuk mengubah tabel itu, baca
+   [docs/frontend-react.md](docs/frontend-react.md).
+
 ## Test
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests -q
+# komponen React (butuh Node.js 24)
+cd frontend; npm ci; npm test
 ```
 
 ## Perintah CLI
@@ -37,10 +43,16 @@ Aplikasi Flask untuk mencatat link, alamat, kredensial akses, lampiran, kategori
 .\.venv\Scripts\python.exe -m flask --app run create-admin
 .\.venv\Scripts\python.exe -m flask --app run set-admin
 .\.venv\Scripts\python.exe -m flask --app run unset-admin
+.\.venv\Scripts\python.exe -m flask --app run monitor-worker
 .\.venv\Scripts\python.exe -m flask --app run check-links
+.\.venv\Scripts\python.exe -m flask --app run recover-link-monitor
+.\.venv\Scripts\python.exe -m flask --app run cleanup-attachments
 ```
 
-`check-links` dipanggil oleh Task Scheduler atau cron untuk menjalankan pemeriksaan status link otomatis sesuai interval yang diatur admin.
+Pemeriksaan status link hanya berjalan saat admin menekan tombol di halaman Link Monitoring (tidak ada jadwal
+otomatis). Tombol itu memasukkan permintaan ke antrean, lalu `monitor-worker` (jalan terus sebagai service) yang
+mengerjakannya. `check-links` menjalankan satu pemeriksaan langsung di terminal. Detail, termasuk
+`recover-link-monitor` dan `cleanup-attachments`, ada di [docs/perbaikan-keamanan-dan-query.md](docs/perbaikan-keamanan-dan-query.md).
 
 ## Deploy
 

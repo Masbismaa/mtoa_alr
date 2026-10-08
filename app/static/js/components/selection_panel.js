@@ -108,12 +108,54 @@
   }
 
   // tulisan di tombol pilihan ngikutin yg dicentang
-  formEl.querySelectorAll("[data-selection-choice]").forEach(function (choiceEl) {
+  function updateChoiceSummary(choiceEl) {
     const summaryEl = choiceEl.querySelector("[data-selection-summary]");
-    choiceEl.addEventListener("change", function () {
-      const labelList = Array.from(choiceEl.querySelectorAll("input:checked"), function (el) { return el.dataset.label; });
-      summaryEl.textContent = labelList.length ? labelList.join(", ") : summaryEl.dataset.emptyText;
+    const labelList = Array.from(choiceEl.querySelectorAll("input:checked"), function (el) { return el.dataset.label; });
+    summaryEl.textContent = labelList.length ? labelList.join(", ") : summaryEl.dataset.emptyText;
+  }
+
+  formEl.querySelectorAll("[data-selection-choice]").forEach(function (choiceEl) {
+    choiceEl.addEventListener("change", function () { updateChoiceSummary(choiceEl); });
+  });
+
+  // tabel React (frontend/src/entry_table) ganti urutan / filter kolom tanpa reload halaman ->
+  // isian panel ini disamain sama kriteria yg dipake tabel, biar Jalankan ga ngirim nilai lama.
+  // query = { key: [nilai, ...] } dari server (udah dirapihin)
+  function applyQuery(query) {
+    function readList(key) { return query[key] || []; }
+
+    if (quickEl) quickEl.value = readList("q")[0] || "";
+    formEl.querySelectorAll("[data-selection-text]").forEach(function (boxEl) {
+      const key = boxEl.dataset.selectionText;
+      writeValue(key, readList(key), readList(key + EXCLUDE_SUFFIX));
     });
+    formEl.querySelectorAll("[data-selection-choice]").forEach(function (choiceEl) {
+      choiceEl.querySelectorAll('input[type="checkbox"]').forEach(function (checkboxEl) {
+        checkboxEl.checked = readList(checkboxEl.name).includes(checkboxEl.value);
+      });
+      updateChoiceSummary(choiceEl);
+    });
+    formEl.querySelectorAll('input[type="date"]').forEach(function (inputEl) {
+      inputEl.value = readList(inputEl.name)[0] || "";
+    });
+
+    // urutan tabel ikut kebawa pas Jalankan
+    let sortEl = formEl.querySelector('input[type="hidden"][name="sort"]');
+    const sortValue = readList("sort")[0] || "";
+    if (sortValue && !sortEl) {
+      sortEl = document.createElement("input");
+      sortEl.type = "hidden";
+      sortEl.name = "sort";
+      formEl.prepend(sortEl);
+    }
+    if (sortEl) {
+      if (sortValue) sortEl.value = sortValue;
+      else sortEl.remove();
+    }
+  }
+
+  document.addEventListener("alr:table-query-changed", function (event) {
+    if (event.detail && event.detail.query) applyQuery(event.detail.query);
   });
 
   // isian kosong dimatiin pas dikirim, jadi ga nongol di URL

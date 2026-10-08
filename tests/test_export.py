@@ -143,12 +143,11 @@ def test_export_list_is_truncated(registered_user, category_dict):
     assert len(entry_list) == 2
     assert is_truncated is False
 
-def test_home_shows_export_button(logged_in_client, registered_user, category_dict):
+def test_home_shows_export_button(logged_in_client, registered_user, category_dict, read_entry_table):
     """Positive: tombol Export Excel muncul kalau ada data, link-nya bawa filter."""
     create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr.spindo.com"))
-    html_text = logged_in_client.get("/entries/?q=portal").get_data(as_text=True)
-    assert "Export Excel" in html_text
-    assert "/export?q=portal" in html_text
+    payload = read_entry_table(logged_in_client, "/entries/?q=portal")
+    assert payload["export_url"] == "/export?run=1&q=portal"
 
 def test_home_hides_export_button_when_empty(logged_in_client, category_dict):
     """Negative: ga ada data, tombolnya ga usah muncul."""

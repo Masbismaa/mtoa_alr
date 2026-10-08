@@ -95,7 +95,10 @@ def register_response_security(app):
     def secure_response(response):
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
-        response.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'; base-uri 'self'; object-src 'none'")
+        # script cuma dari file sendiri: template ga punya <script> inline / onclick, jadi XSS yg lolos ga bisa jalanin script
+        response.headers.setdefault(
+            "Content-Security-Policy", "script-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+        )
         response.headers.setdefault("Referrer-Policy", "same-origin")
         if request.endpoint != "static":
             response.headers["Cache-Control"] = "private, no-store"
@@ -116,6 +119,7 @@ def register_blueprints(app):
     from app.routes.audit_routes import audit_bp
     from app.routes.category_routes import categories_bp
     from app.routes.user_routes import users_bp
+    from app.routes.notification_routes import notifications_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(link_monitor_bp)
@@ -128,6 +132,7 @@ def register_blueprints(app):
     app.register_blueprint(audit_bp)
     app.register_blueprint(categories_bp)
     app.register_blueprint(users_bp)
+    app.register_blueprint(notifications_bp)
 
 def build_error_handler(error_code, error_title, error_message):
     """Bikin handler buat satu kode error (biar ga nulis ulang)."""
@@ -165,6 +170,7 @@ def register_error_handlers(app):
 def register_template_helpers(app):
     """Filter & data global buat semua template."""
     from app.services.preference_service import build_ui_preference_dict, get_or_create_preference
+    from app.services.user_notification_service import count_unread_notification, list_recent_notification
     from app.utils.constants import ACCENT_COLOR_OPTION_LIST, FONT_FAMILY_OPTION_LIST
     from app.services.category_service import build_category_label
     from app.utils.datetime_helper import format_local_datetime, format_time_ago
@@ -197,13 +203,21 @@ def register_template_helpers(app):
     from app.security.access_policy import has_permission, is_admin
     from app.utils.request_helper import get_current_user
     from app.utils.constants import PERMISSION_MANAGE_CATEGORIES, ROLE_ADMIN
+    from app.utils.vite_manifest import vite_tags
     # dipake template buat nampilin/nyembunyiin tombol sesuai akses
     app.jinja_env.globals.update(
         has_permission=has_permission,
         is_admin=is_admin,
+        # tag script komponen React hasil build (frontend/), misal {{ vite_tags("entry_table") }}
+        vite_tags=vite_tags,
         PERMISSION_MANAGE_CATEGORIES=PERMISSION_MANAGE_CATEGORIES,
         ROLE_ADMIN=ROLE_ADMIN,
     )
+
+    from app.services.category_service import clear_request_category_cache
+
+    # cache kategori per request dimulai bersih (app context bisa dipake ulang antar request, misal di test)
+    app.before_request(clear_request_category_cache)
 
     @app.context_processor
     def inject_layout_context():
@@ -218,4 +232,6 @@ def register_template_helpers(app):
             "sidebar_section_list": build_sidebar_section_list(user, request.endpoint),
             "accent_color_option_list": ACCENT_COLOR_OPTION_LIST,
             "font_family_option_list": FONT_FAMILY_OPTION_LIST,
+            "unread_notification_count": count_unread_notification(user),
+            "notification_list": list_recent_notification(user),
         }

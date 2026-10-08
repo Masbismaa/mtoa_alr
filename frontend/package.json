@@ -1,0 +1,25 @@
+{
+  "name": "alr-frontend",
+  "private": true,
+  "description": "Komponen React ALR (tabel ALV). Hasil build masuk ke app/static/dist dan ikut di-commit, jadi server ga butuh Node.",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "watch": "vite build --watch --mode development",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.7",
+    "@vitejs/plugin-react": "6.1.2",
+    "jsdom": "30.1.2",
+    "vite": "8.3.3",
+    "vitest": "5.0.3"
+  }
+}

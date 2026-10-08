@@ -1,5 +1,6 @@
 {% from "components/icon.html" import icon %}
 {% from "components/user_menu.html" import user_menu with context %}
+{% from "components/notification_menu.html" import notification_menu with context %}
 {# title bar atas ala SAP GUI (layar besar): logo + Home di kiri, judul halaman di tengah, tombol tema + menu user di kanan.
    sengaja ga pake class navbar-expand, biar Tabler ga nyembunyiin sidebar #}
 <header class="app-topbar d-none d-lg-grid d-print-none">
@@ -14,6 +15,7 @@
   <div class="app-topbar-title" title="{{ shell_title }}">{{ shell_title }}</div>
   <div class="app-topbar-side justify-content-end">
     {% include "components/theme_toggle_button.html" %}
+    {{ notification_menu() }}
     {{ user_menu() }}
   </div>
 </header>
