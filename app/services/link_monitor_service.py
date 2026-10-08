@@ -7,8 +7,14 @@ from sqlalchemy.exc import IntegrityError
 from app.extensions import db
 from app.models import AccessEntry, LinkMonitorRun
 from app.services.link_check_service import check_all_entry_status
-from app.utils.constants import LINK_STATUS_DOWN, LINK_STATUS_UNKNOWN, LINK_STATUS_UP
-from app.utils.datetime_helper import utc_now
+from app.utils.constants import (
+    LINK_STATUS_DOWN,
+    LINK_STATUS_UNKNOWN,
+    LINK_STATUS_UP,
+    MONITOR_STALL_WARNING_SECONDS,
+    MONITOR_WORKER_WAIT_WARNING_SECONDS,
+)
+from app.utils.datetime_helper import to_utc_aware, utc_now
 from app.utils.exceptions import ValidationError, build_error
 
 def build_monitor_summary():
@@ -27,6 +33,42 @@ def build_monitor_summary():
 
 def get_monitor_run():
     return db.session.get(LinkMonitorRun, 1, populate_existing=True)
+
+# perintah yg ditampilin di peringatan (worker = proses terpisah yg ngerjain antrean, bukan bagian web)
+WORKER_COMMAND = "python -m flask --app run monitor-worker"
+
+def build_monitor_status():
+    """Status pemeriksaan buat halaman Link Monitoring (render awal & polling JSON pake fungsi yg sama).
+
+    is_active: masih nunggu / jalan (halaman perlu terus nanya status).
+    warning: diisi kalau kemungkinan worker ga jalan (antrean ga diambil-ambil) atau berhenti di tengah jalan."""
+    run = get_monitor_run()
+    state = run.state if run else "idle"
+    processed_count = run.processed_count if run else 0
+    total_count = run.total_count if run else 0
+    idle_seconds = (utc_now() - to_utc_aware(run.updated_at)).total_seconds() if run and run.updated_at else 0
+    message_dict = {
+        "idle": "Belum ada pemeriksaan.",
+        "queued": "Menunggu pemeriksaan.",
+        "running": f"Pemeriksaan berjalan: {processed_count} dari {total_count} data.",
+        "completed": f"Pemeriksaan selesai: {processed_count} data diperiksa.",
+        "failed": "Pemeriksaan terhenti. Sebagian hasil mungkin sudah diperbarui; hubungi pengelola server.",
+    }
+    warning = None
+    if state == "queued" and idle_seconds > MONITOR_WORKER_WAIT_WARNING_SECONDS:
+        warning = f"Antrean belum diambil lebih dari {MONITOR_WORKER_WAIT_WARNING_SECONDS} detik. Worker kemungkinan tidak berjalan."
+    elif state == "running" and idle_seconds > MONITOR_STALL_WARNING_SECONDS:
+        warning = f"Tidak ada kemajuan lebih dari {MONITOR_STALL_WARNING_SECONDS} detik. Worker kemungkinan berhenti."
+    return {
+        "state": state,
+        "is_active": state in ("queued", "running"),
+        "processed_count": processed_count,
+        "total_count": total_count,
+        "percent": round(processed_count * 100 / total_count) if total_count else 0,
+        "message": message_dict.get(state, message_dict["idle"]),
+        "warning": warning,
+        "worker_command": WORKER_COMMAND,
+    }
 
 
 def request_monitor_run():

@@ -166,6 +166,10 @@ LINK_CHECK_MAX_WORKER_COUNT = 10
 LINK_CHECK_MAX_REDIRECT_COUNT = 3
 # batas waktu TOTAL 1 link (DNS + koneksi + redirect); lewat dari ini dianggap tidak aktif
 LINK_CHECK_TARGET_DEADLINE_SECONDS = 30
+# antrean ga diambil worker sekian detik -> halaman Link Monitoring kasih peringatan worker kemungkinan mati
+MONITOR_WORKER_WAIT_WARNING_SECONDS = 60
+# pemeriksaan jalan tapi ga ada kemajuan sekian detik -> peringatan (satu link paling lama 30 dtk)
+MONITOR_STALL_WARNING_SECONDS = 120
 LINK_CHECK_USER_AGENT = "ALR-LinkCheck/1.0"
 LINK_STATUS_NOTE_MAX_LENGTH = 255
 

@@ -11,19 +11,29 @@
 {% block page_actions %}
   <form method="post" action="{{ url_for('link_monitor.run_now') }}" data-confirm-title="Cek semua data?" data-confirm-message="Server akan memeriksa status seluruh link sekarang." data-confirm-ok="Ya, cek sekarang">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="btn btn-primary" {% if monitor_run and monitor_run.state in ['queued', 'running'] %}disabled{% endif %}>{{ icon("refresh") }} Cek Semua Data Sekarang</button>
+    <button type="submit" class="btn btn-primary" {% if monitor_status.is_active %}disabled{% endif %}>{{ icon("refresh") }} Cek Semua Data Sekarang</button>
   </form>
 {% endblock %}
 
 {% block content %}
-  {% if monitor_run %}
-    <div class="alert alert-info" role="status">
-      {% if monitor_run.state == 'queued' %}Menunggu pemeriksaan.
-      {% elif monitor_run.state == 'running' %}Pemeriksaan berjalan: {{ monitor_run.processed_count }} dari {{ monitor_run.total_count }} data.
-      {% elif monitor_run.state == 'failed' %}Pemeriksaan terhenti. Sebagian hasil mungkin sudah diperbarui; hubungi pengelola server.
-      {% elif monitor_run.state == 'completed' %}Pemeriksaan selesai: {{ monitor_run.processed_count }} data diperiksa.
-      {% else %}Belum ada pemeriksaan.{% endif %}
-      <a class="btn btn-sm ms-2" href="{{ url_for('link_monitor.index') }}">{{ icon("refresh") }} Perbarui Tampilan</a>
+  {# status pemeriksaan. Selama masih nunggu / jalan, js/pages/link_monitoring.js nanya status ke server tiap 3 detik
+     (isi teks dari link_monitor_service.build_monitor_status, sama kayak render awal ini) #}
+  {% if monitor_status.state != "idle" %}
+    <div class="alert alert-info" id="monitor_status" data-status-url="{{ url_for('link_monitor.status') }}"
+         data-is-active="{{ 'true' if monitor_status.is_active else 'false' }}">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <span data-monitor-message role="status" aria-live="polite">{{ monitor_status.message }}</span>
+        <a class="btn btn-sm ms-auto" href="{{ url_for('link_monitor.index') }}">{{ icon("refresh") }} Perbarui Tampilan</a>
+      </div>
+      <div class="progress mt-2" data-monitor-progress {% if monitor_status.state != "running" %}hidden{% endif %}>
+        <div class="progress-bar" data-monitor-progress-bar role="progressbar" style="width: {{ monitor_status.percent }}%"
+             aria-valuenow="{{ monitor_status.percent }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progres pemeriksaan"></div>
+      </div>
+    </div>
+    <div class="alert alert-warning" data-monitor-warning role="alert" {% if not monitor_status.warning %}hidden{% endif %}>
+      <div class="fw-bold" data-monitor-warning-text>{{ monitor_status.warning or "" }}</div>
+      <div class="mt-1">Pemeriksaan dikerjakan proses terpisah. Pastikan perintah ini berjalan di server (atau di terminal lain saat development):</div>
+      <code class="d-inline-block mt-1">{{ monitor_status.worker_command }}</code>
     </div>
   {% endif %}
   <div class="row row-cards">
@@ -49,4 +59,8 @@
       </div>
     </div>
   </div>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', filename='js/pages/link_monitoring.js') }}" defer></script>
 {% endblock %}

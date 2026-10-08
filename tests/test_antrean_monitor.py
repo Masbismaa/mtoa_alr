@@ -66,3 +66,53 @@ def test_monitor_saves_batches_without_loading_secrets(app, registered_user, cat
     assert result == Counter({LINK_STATUS_UP: 25})
     assert (20, 25) in progress and progress[-1] == (25, 25)
     assert db.session.scalar(db.select(db.func.count(AccessEntry.id)).where(AccessEntry.status == LINK_STATUS_UP)) == 25
+
+
+def set_run_age(state, seconds_ago, processed=0, total=0):
+    """Helper: bikin status antrean dgn umur tertentu (updated_at mundur sekian detik)."""
+    if link_monitor_service.get_monitor_run() is None:
+        db.session.add(LinkMonitorRun(id=1))
+    db.session.execute(db.update(LinkMonitorRun).values(
+        state=state, processed_count=processed, total_count=total, updated_at=utc_now() - timedelta(seconds=seconds_ago),
+    ))
+    db.session.commit()
+
+
+def test_status_api_requires_login(client):
+    """Negative (security): belum login -> 401 JSON (bukan redirect HTML), biar script halaman bisa baca alasannya."""
+    response = client.get("/link-monitoring/status")
+    assert (response.status_code, response.get_json()["is_success"]) == (401, False)
+
+
+def test_status_api_requires_admin(logged_in_client):
+    """Negative (security): status pemeriksaan cuma buat admin; user biasa -> 403 JSON."""
+    response = logged_in_client.get("/link-monitoring/status")
+    assert (response.status_code, response.get_json()["is_success"]) == (403, False)
+
+
+def test_status_api_reports_progress(admin_client):
+    """Positive: progres pemeriksaan kebaca dari API (dipake halaman buat update sendiri tanpa reload)."""
+    set_run_age("running", 5, processed=3, total=12)
+    data = admin_client.get("/link-monitoring/status").get_json()["data"]
+    assert (data["state"], data["is_active"], data["percent"], data["warning"]) == ("running", True, 25, None)
+    assert data["message"] == "Pemeriksaan berjalan: 3 dari 12 data."
+
+
+@pytest.mark.parametrize(("state", "seconds_ago", "has_warning"), [
+    ("queued", 10, False), ("queued", 61, True), ("running", 100, False), ("running", 121, True), ("completed", 999, False),
+])
+def test_worker_warning_only_when_queue_stuck(app, state, seconds_ago, has_warning):
+    """Positive & negative: peringatan "worker kemungkinan tidak berjalan" cuma muncul kalau antrean ga diambil > 1 menit
+    atau pemeriksaan ga maju > 2 menit."""
+    set_run_age(state, seconds_ago, processed=1, total=5)
+    assert (link_monitor_service.build_monitor_status()["warning"] is not None) == has_warning
+
+
+def test_page_shows_worker_command_when_queue_stuck(admin_client):
+    """Positive: halaman nampilin peringatan + perintah worker kalau antrean ga diambil, dan masang script polling."""
+    set_run_age("queued", 120)
+    html_text = admin_client.get("/link-monitoring/").get_data(as_text=True)
+    assert "Worker kemungkinan tidak berjalan" in html_text
+    assert "flask --app run monitor-worker" in html_text
+    assert 'data-is-active="true"' in html_text
+    assert "js/pages/link_monitoring.js" in html_text
