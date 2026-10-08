@@ -1,5 +1,8 @@
 """Fixture Pytest yang dipakai bareng semua file test."""
+import html
 import io
+import json
+import re
 import zipfile
 
 import pytest
@@ -146,6 +149,19 @@ def make_file_storage():
         return FileStorage(stream=io.BytesIO(content_bytes), filename=filename)
 
     return build_file_storage
+
+@pytest.fixture()
+def read_entry_table():
+    """Pabrik: buka halaman, ambil data tabel link (React) yg ditempel server di atribut data-entry-table.
+    Isinya sama persis kayak balasan API table-data (app/services/entry_table_service.py)."""
+
+    def read(client, url):
+        html_text = client.get(url).get_data(as_text=True)
+        match = re.search(r"data-entry-table='([^']*)'", html_text)
+        assert match is not None, f"tabel link ga ada di {url}"
+        return json.loads(html.unescape(match.group(1)))
+
+    return read
 
 @pytest.fixture()
 def admin_client(client, admin_user, fixed_otp_code):

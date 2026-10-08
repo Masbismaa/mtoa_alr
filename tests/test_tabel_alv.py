@@ -55,14 +55,16 @@ def test_dashboard_sort_by_title(logged_in_client, registered_user, category_dic
     assert_order(get_card_html(logged_in_client, "/entries/?sort=title", "daftar_link"), ["Alpha Link", "Bravo Link", "Charlie Link"])
     assert_order(get_card_html(logged_in_client, "/entries/?sort=-title", "daftar_link"), ["Charlie Link", "Bravo Link", "Alpha Link"])
 
-def test_sort_kept_in_pagination_and_export(logged_in_client, registered_user, category_dict):
-    """Positive: urutan + filter ikut kebawa ke halaman berikutnya (langsung ke tabel), tombol export, & form Jalankan."""
+def test_sort_kept_in_pagination_and_export(logged_in_client, registered_user, category_dict, read_entry_table):
+    """Positive: urutan + filter ikut kebawa ke halaman berikutnya, tombol export, & form Jalankan."""
     for index in range(PER_PAGE + 1):
         create_entry(registered_user, category_dict["Web"], f"Portal {index:02d}")
-    html_text = logged_in_client.get("/entries/?sort=-title&title=portal*").get_data(as_text=True)
-    assert "page=2&amp;sort=-title&amp;title=portal*#daftar_link" in html_text
-    assert "/export?sort=-title&amp;title=portal*" in html_text
-    assert '<input type="hidden" name="sort" value="-title">' in html_text
+    url = "/entries/?sort=-title&title=portal*"
+    payload = read_entry_table(logged_in_client, url)
+    assert payload["pages"] == 2
+    assert payload["query"] == {"run": ["1"], "sort": ["-title"], "title": ["portal*"]}
+    assert payload["export_url"] == "/export?run=1&sort=-title&title=portal*"
+    assert '<input type="hidden" name="sort" value="-title">' in logged_in_client.get(url).get_data(as_text=True)
 
 def test_export_follows_sort(app, registered_user, category_dict):
     """Positive: isi export urutannya sama kayak tabel."""
@@ -81,16 +83,18 @@ def test_users_and_audit_sort(admin_client):
     assert admin_client.get("/users/?sort=hack").status_code == 200
 
 # LAYOUT KOLOM PER AKUN
-def test_save_layout_applied_to_table(logged_in_client, registered_user, category_dict):
+def test_save_layout_applied_to_table(logged_in_client, registered_user, category_dict, read_entry_table):
     """Positive: layout disimpen -> kolom Kategori disembunyiin, lebar Judul ngikut, Deskripsi tampil."""
     create_entry(registered_user, category_dict["Web"], "Portal HR")
     response = logged_in_client.post(LAYOUT_URL, json={"table_key": "entry", "hidden_list": ["category"], "width_dict": {"title": 300}})
     assert response.status_code == 200 and response.get_json()["is_success"] is True
     assert registered_user.preference.table_layout["entry"] == {"hidden_list": ["category"], "width_dict": {"title": 300}}
-    html_text = get_card_html(logged_in_client, "/entries/?run=1", "daftar_link")
-    assert '<th data-column="category" style="width: 110px" hidden>' in html_text
-    assert '<th data-column="title" style="width: 300px">' in html_text
-    assert '<th data-column="description" style="width: 180px">' in html_text
+    payload = read_entry_table(logged_in_client, "/entries/?run=1")
+    assert payload["layout"] == {"hidden_list": ["category"], "width_dict": {"title": 300}}
+    column_dict = {column["key"]: column for column in payload["columns"]}
+    assert column_dict["category"]["is_hidden"] is True
+    assert column_dict["title"]["width"] == 300
+    assert column_dict["description"]["is_hidden"] is False and column_dict["description"]["width"] == 180
 
 def test_layout_saved_per_table(logged_in_client, registered_user):
     """Positive: layout tiap tabel kesimpen sendiri-sendiri."""
@@ -132,12 +136,13 @@ def test_save_layout_rejects_missing_csrf_token(monkeypatch):
     assert response.status_code == 400
 
 # ALUR PENCARIAN
-def test_search_form_and_back_link(logged_in_client, registered_user, category_dict):
+def test_search_form_and_back_link(logged_in_client, registered_user, category_dict, read_entry_table):
     """Positive: Jalankan langsung ke tabel, link judul bawa alamat tabel, detail punya tombol balik ke tabel itu."""
     entry = create_entry(registered_user, category_dict["Web"], "Portal HR")
     html_text = logged_in_client.get("/entries/?title=portal*").get_data(as_text=True)
     assert 'action="/entries/#daftar_link"' in html_text
-    assert f"/entries/{entry.id}?back=/entries/?title%3Dportal*%23daftar_link" in html_text
+    payload = read_entry_table(logged_in_client, "/entries/?title=portal*")
+    assert payload["rows"][0]["detail_url"] == f"/entries/{entry.id}?back=/entries/?run%3D1%26title%3Dportal*%23daftar_link"
     detail_html = logged_in_client.get(f"/entries/{entry.id}?back=/entries/?title%3Dportal*%23daftar_link").get_data(as_text=True)
     assert 'href="/entries/?title=portal*#daftar_link" class="btn btn-sm app-toolbar-btn" title="Kembali' in detail_html
 

@@ -1,12 +1,9 @@
 """Halaman kategori: jelajah ala forum (semua user) + kelola kategori (admin)."""
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import login_required
+from app.extensions import limiter
 from app.schemas.category_schema import CategoryForm
-from app.schemas.selection_schema import build_entry_field_list, read_entry_selection
-from app.schemas.table_schema import TABLE_ENTRY
-from app.security.role_guard import permission_required
-from app.services.access_entry_service import search_visible_entries
-from app.services.preference_service import get_table_layout
+from app.security.role_guard import api_login_required, permission_required
 from app.services.category_service import (
     build_category_label,
     build_forum_row_list,
@@ -17,6 +14,7 @@ from app.services.category_service import (
     delete_category,
     get_category,
     get_category_path_list,
+    has_active_child_category,
     is_category_usable,
     is_default_category,
     list_category_summary,
@@ -24,13 +22,12 @@ from app.services.category_service import (
     update_category,
     can_manage_category_master,
 )
-from app.utils.constants import MAX_CATEGORY_DEPTH, PER_PAGE, PERMISSION_MANAGE_CATEGORIES
-from app.utils.data_table import build_table_view
+from app.services.entry_table_service import build_category_scope, build_entry_table_payload, build_scope_field_list
+from app.utils.constants import MAX_CATEGORY_DEPTH, PERMISSION_MANAGE_CATEGORIES
 from app.utils.exceptions import ValidationError
 from app.utils.form_helper import attach_form_error_list, flash_error_list, read_form_data
-from app.utils.query_helper import parse_positive_int
 from app.utils.request_helper import get_current_user
-from app.utils.selection import build_selection_query_dict
+from app.utils.response_formatter import error_response, success_response
 
 categories_bp = Blueprint("categories", __name__, url_prefix="/categories")
 
@@ -100,40 +97,35 @@ def create():
 @categories_bp.get("/<int:category_id>")
 @login_required
 def browse(category_id):
-    """Isi satu kategori ala forum: sub-kategori + link yg ada langsung di kategori ini."""
+    """Isi satu kategori ala forum: sub-kategori + tabel link yg ada langsung di kategori ini (tabelnya React)."""
     user = get_current_user()
     category = get_visible_category_or_404(user, category_id)
-    selection = read_entry_selection(request.args)
-    field_list = build_entry_field_list()
-    # kolom Kategori ga perlu, semua isinya dari kategori ini
-    table_view = build_table_view(
-        TABLE_ENTRY, request.args, get_table_layout(user, TABLE_ENTRY), excluded_key_list=["category"], field_list=field_list,
-    )
-    pagination = search_visible_entries(
-        user,
-        keyword=selection["keyword"],
-        category_id=category.id,
-        selection=selection,
-        sort=table_view["sort"],
-        page=parse_positive_int(request.args.get("page"), default=1),
-        per_page=PER_PAGE,
-        is_include_sub=False,
-    )
+    forum_row_list = build_forum_row_list(user, parent=category)
+    scope = build_category_scope(category, has_sub_category=bool(forum_row_list))
     return render_template(
         "pages/categories/browse.html",
         page_title=category.name,
         category=category,
         path_list=get_category_path_list(category),
-        forum_row_list=build_forum_row_list(user, parent=category),
-        pagination=pagination,
-        pagination_query_dict=build_selection_query_dict(request.args, field_list),
-        selection_field_list=field_list,
-        keyword=selection["keyword"],
-        table_view=table_view,
+        forum_row_list=forum_row_list,
+        selection_field_list=build_scope_field_list(scope),
+        entry_table_payload=build_entry_table_payload(user, request.args, scope),
         can_add_sub=can_add_sub_category(category),
         can_manage=can_manage_category(user, category),
         is_default=is_default_category(category),
     )
+
+@categories_bp.get("/<int:category_id>/table-data")
+@api_login_required
+@limiter.limit("120 per minute")
+def table_data(category_id):
+    """API tabel link di kategori ini (dipanggil React pas urutan/filter/halaman berubah). Parameter sama kayak halamannya."""
+    user = get_current_user()
+    category = get_category(category_id)
+    if category is None or (not is_category_usable(category) and not can_manage_category_master(user)):
+        return error_response("Kategori tidak ditemukan", 404)
+    scope = build_category_scope(category, has_sub_category=has_active_child_category(category))
+    return success_response(data=build_entry_table_payload(user, request.args, scope))
 
 @categories_bp.route("/<int:category_id>/sub/new", methods=["GET", "POST"])
 @login_required

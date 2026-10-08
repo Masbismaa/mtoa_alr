@@ -25,10 +25,16 @@ Aplikasi Flask untuk mencatat link, alamat, kredensial akses, lampiran, kategori
    .\.venv\Scripts\python.exe -m flask --app run run
    ```
 
+   Tabel link (Daftar Link & isi kategori) dirender React. Hasil build-nya (`app/static/dist`) sudah ikut di repo,
+   jadi untuk sekadar menjalankan aplikasi tidak perlu Node.js. Untuk mengubah tabel itu, baca
+   [docs/frontend-react.md](docs/frontend-react.md).
+
 ## Test
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests -q
+# komponen React (butuh Node.js 24)
+cd frontend; npm ci; npm test
 ```
 
 ## Perintah CLI

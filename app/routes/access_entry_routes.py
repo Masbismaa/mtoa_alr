@@ -2,10 +2,10 @@
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 
+from app.extensions import limiter
 from app.schemas.access_entry_schema import AccessEntryForm
-from app.schemas.selection_schema import build_entry_field_list, read_entry_selection
-from app.schemas.table_schema import TABLE_ENTRY
 from app.security.access_policy import can_add_group_entry, can_edit_entry, is_entry_owner
+from app.security.role_guard import api_login_required
 from app.services.access_entry_service import (
     build_category_option_list,
     create_access_entry,
@@ -13,21 +13,18 @@ from app.services.access_entry_service import (
     get_active_category_list,
     get_form_category_list,
     get_visible_entry,
-    list_active_category_option,
     read_access_note,
-    search_visible_entries,
     update_access_entry,
 )
-from app.services.preference_service import get_table_layout
+from app.services.entry_table_service import build_entry_table_payload, build_index_scope, build_scope_field_list
 from app.utils.constants import (
     ATTACHMENT_EXTENSION_LIST,
     ATTACHMENT_MAX_COUNT,
     ATTACHMENT_MAX_SIZE_BYTES,
     CUSTOM_FIELD_MAX_COUNT,
-    PER_PAGE,
 )
-from app.utils.data_table import build_table_view
 from app.utils.exceptions import ValidationError
+from app.utils.response_formatter import success_response
 from app.services.group_service import add_group_entry, get_member_group
 from app.utils.query_helper import parse_positive_int
 from app.utils.form_helper import attach_form_error_list, flash_error_list, read_form_data
@@ -90,33 +87,25 @@ def render_entry_form(form, category_list, custom_field_pair_list, page_title, f
 @entries_bp.get("/")
 @login_required
 def index():
-    """Daftar Link ala Select Screen SAP: awalnya cuma Kriteria Pencarian, tabel (ALV) baru muncul abis Jalankan."""
+    """Daftar Link ala Select Screen SAP: awalnya cuma Kriteria Pencarian, tabel (ALV, React) baru muncul abis Jalankan."""
     user = get_current_user()
-    selection = read_entry_selection(request.args)
-    field_list = build_entry_field_list(list_active_category_option())
-    # kriteria + urutan + penanda Jalankan yg ikut kebawa pas pindah halaman & export
-    query_dict = build_selection_query_dict(request.args, field_list)
-    table_view = build_table_view(
-        TABLE_ENTRY, request.args, get_table_layout(user, TABLE_ENTRY), field_list=field_list, is_run_marked=True,
-    )
+    scope = build_index_scope()
+    field_list = build_scope_field_list(scope)
     # belum Jalankan (ga ada kriteria sama sekali) -> tabel ga ditampilin, query-nya juga ga dijalanin
-    pagination = search_visible_entries(
-        user,
-        keyword=selection["keyword"],
-        selection=selection,
-        sort=table_view["sort"],
-        page=parse_positive_int(request.args.get("page"), default=1),
-        per_page=PER_PAGE,
-    ) if query_dict else None
+    is_run = bool(build_selection_query_dict(request.args, field_list))
     return render_template(
         "pages/entries/index.html",
         page_title="Daftar Link",
-        pagination=pagination,
-        pagination_query_dict=query_dict,
         selection_field_list=field_list,
-        keyword=selection["keyword"],
-        table_view=table_view,
+        entry_table_payload=build_entry_table_payload(user, request.args, scope) if is_run else None,
     )
+
+@entries_bp.get("/table-data")
+@api_login_required
+@limiter.limit("120 per minute")
+def table_data():
+    """API tabel Daftar Link (dipanggil React pas urutan/filter/halaman berubah). Parameter sama kayak halamannya."""
+    return success_response(data=build_entry_table_payload(get_current_user(), request.args, build_index_scope()))
 
 @entries_bp.route("/new", methods=["GET", "POST"])
 @login_required

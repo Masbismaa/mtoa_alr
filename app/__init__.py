@@ -203,10 +203,13 @@ def register_template_helpers(app):
     from app.security.access_policy import has_permission, is_admin
     from app.utils.request_helper import get_current_user
     from app.utils.constants import PERMISSION_MANAGE_CATEGORIES, ROLE_ADMIN
+    from app.utils.vite_manifest import vite_tags
     # dipake template buat nampilin/nyembunyiin tombol sesuai akses
     app.jinja_env.globals.update(
         has_permission=has_permission,
         is_admin=is_admin,
+        # tag script komponen React hasil build (frontend/), misal {{ vite_tags("entry_table") }}
+        vite_tags=vite_tags,
         PERMISSION_MANAGE_CATEGORIES=PERMISSION_MANAGE_CATEGORIES,
         ROLE_ADMIN=ROLE_ADMIN,
     )

@@ -56,13 +56,16 @@ def test_entry_list_hides_table_before_run(logged_in_client, registered_user, ca
     assert 'id="daftar_link"' not in html_text and "Portal HR" not in html_text
     assert '<input type="hidden" name="run" value="1">' in html_text
 
-def test_entry_list_shows_table_after_run(logged_in_client, registered_user, category_dict):
-    """Positive: Jalankan tanpa kriteria -> semua link, penanda run ikut ke pagination/urutan."""
+def test_entry_list_shows_table_after_run(logged_in_client, registered_user, category_dict, read_entry_table):
+    """Positive: Jalankan tanpa kriteria -> semua link, penanda run ikut kebawa ke urutan/halaman."""
     create_entry(registered_user, category_dict["Web"], "Portal HR")
     html_text = get_html(logged_in_client, "/entries/?run=1")
-    assert 'id="daftar_link"' in html_text and "Portal HR" in html_text and "Seluruh link: 1 data" in html_text
-    assert "data-selection-hint" not in html_text
-    assert "/entries/?run=1&amp;sort=title#daftar_link" in html_text
+    assert 'id="daftar_link"' in html_text and "data-selection-hint" not in html_text
+    payload = read_entry_table(logged_in_client, "/entries/?run=1")
+    assert [row["title"] for row in payload["rows"]] == ["Portal HR"]
+    assert payload["heading"]["text"] == "Seluruh link: 1 data"
+    assert payload["query"] == {"run": ["1"]}
+    assert {column["key"]: column["next_sort"] for column in payload["columns"]}["title"] == "title"
 
 def test_sidebar_filter_shows_table(logged_in_client, registered_user, category_dict):
     """Positive: menu Link Public (bawa kriteria) langsung nampilin tabel."""
@@ -71,26 +74,23 @@ def test_sidebar_filter_shows_table(logged_in_client, registered_user, category_
     assert 'id="daftar_link"' in html_text and "Portal Umum" in html_text
 
 # FILTER PER KOLOM
-def test_column_filter_row(logged_in_client, registered_user, category_dict):
-    """Positive: baris filter per kolom ada (teks & pilihan), nyambung ke form filter, nilai yg kepake keisi."""
+def test_column_filter_row(logged_in_client, registered_user, category_dict, read_entry_table):
+    """Positive: filter per kolom ada (teks & pilihan), nilai yg kepake keisi, urutan & penanda run ikut kebawa."""
     create_entry(registered_user, category_dict["Web"], "Portal HR")
-    html_text = get_html(logged_in_client, "/entries/?run=1&title=portal*&sort=-title")
-    assert 'id="column_filter_entry"' in html_text
-    assert 'name="title" form="column_filter_entry" value="portal*"' in html_text
-    assert '<select name="visibility" form="column_filter_entry"' in html_text
-    filter_form_html = html_text.split('id="column_filter_entry"')[1].split("</form>")[0]
-    assert '<input type="hidden" name="run" value="1">' in filter_form_html
-    assert '<input type="hidden" name="sort" value="-title">' in filter_form_html
-    assert 'name="title"' not in filter_form_html
+    payload = read_entry_table(logged_in_client, "/entries/?run=1&title=portal*&sort=-title")
+    filter_dict = {column["key"]: column["filter"] for column in payload["columns"]}
+    assert filter_dict["title"] == {"key": "title", "kind": "text", "value": "portal*", "option_list": [], "is_locked": False}
+    assert filter_dict["visibility"]["kind"] == "choice"
+    assert filter_dict["description"] is None
+    assert payload["sort"] == "-title"
+    assert payload["query"] == {"run": ["1"], "sort": ["-title"], "title": ["portal*"]}
 
-def test_column_filter_locked_for_multi_value(logged_in_client, registered_user, category_dict):
+def test_column_filter_locked_for_multi_value(logged_in_client, registered_user, category_dict, read_entry_table):
     """Negative: isian yg lagi diisi banyak nilai (Multi Selection) dikunci di baris filter, nilainya tetep kebawa."""
     create_entry(registered_user, category_dict["Web"], "Portal HR")
-    html_text = get_html(logged_in_client, "/entries/?title=portal*&title=router*")
-    assert 'title="Lebih dari satu nilai, ubah lewat Kriteria Pencarian"' in html_text
-    filter_form_html = html_text.split('id="column_filter_entry"')[1].split("</form>")[0]
-    assert '<input type="hidden" name="title" value="portal*">' in filter_form_html
-    assert '<input type="hidden" name="title" value="router*">' in filter_form_html
+    payload = read_entry_table(logged_in_client, "/entries/?title=portal*&title=router*")
+    assert {column["key"]: column["filter"] for column in payload["columns"]}["title"]["is_locked"] is True
+    assert payload["query"]["title"] == ["portal*", "router*"]
 
 def test_column_filter_filters_table(logged_in_client, registered_user, category_dict):
     """Positive: isi filter kolom Judul (sama kayak isian Kriteria) -> tabel cuma nampilin yg cocok."""
@@ -106,12 +106,11 @@ def test_column_filter_on_admin_tables(admin_client, url, form_id):
     html_text = get_html(admin_client, url)
     assert f'id="{form_id}"' in html_text and f'form="{form_id}"' in html_text
 
-def test_column_filter_keeps_run_marker(logged_in_client, registered_user, category_dict):
-    """Positive: dibuka dari menu (tanpa run) lalu filter kolom dikosongin -> tabel tetep tampil."""
+def test_column_filter_keeps_run_marker(logged_in_client, registered_user, category_dict, read_entry_table):
+    """Positive: dibuka dari menu (tanpa run) lalu filter kolom dikosongin -> tabel tetep tampil (run ikut kebawa)."""
     create_entry(registered_user, category_dict["Web"], "Portal Umum", visibility=VISIBILITY_PUBLIC)
-    html_text = get_html(logged_in_client, "/entries/?visibility=public")
-    filter_form_html = html_text.split('id="column_filter_entry"')[1].split("</form>")[0]
-    assert '<input type="hidden" name="run" value="1">' in filter_form_html
+    payload = read_entry_table(logged_in_client, "/entries/?visibility=public")
+    assert payload["query"] == {"run": ["1"], "visibility": ["public"]}
 
 def test_page_info_still_shown(logged_in_client, registered_user, category_dict):
     """Positive: keterangan halaman (kategori & visibilitas di detail) tetep tampil walau kepala halaman di-remark."""
