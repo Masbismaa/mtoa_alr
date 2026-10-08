@@ -135,7 +135,7 @@
   padding-left: 0.4rem;
 }
 
-/* baris aktif (klik / panah atas-bawah), kayak baris kepilih di ALV */
+/* baris aktif (klik / panah atas-bawah), kayak baris kepilih di ALV: tabel React & js/components/table_row.js */
 @media (min-width: 768px) {
   .data-table tbody tr[tabindex] {
     cursor: default;
@@ -161,8 +161,9 @@
   }
 }
 
-/* menu klik kanan di baris tabel */
-.row-context-menu {
+/* menu klik kanan di baris tabel (.app-menu.row-context-menu biar menang lawan position: absolute di .app-menu) */
+.row-context-menu,
+.app-menu.row-context-menu {
   position: fixed;
   z-index: 1080;
   min-width: 12rem;
@@ -171,6 +172,12 @@
 
 .row-context-menu[hidden] {
   display: none !important;
+}
+
+/* lagi ngambil data baru: isi lama tetep keliatan tapi diredupin */
+.data-table[aria-busy="true"] tbody {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
 }
 
 /* judul kolom yg bisa diurutin */
@@ -255,8 +262,61 @@
 }
 
 /* kartu yg menu dropdown-nya lagi kebuka naik ke atas, biar menunya ga ketutup kartu di bawahnya */
-.card:has(.dropdown-menu.show) {
+.card:has(.dropdown-menu.show),
+.card:has(.app-menu) {
   z-index: 3;
+}
+
+/* menu buatan React (menu Kolom, menu klik kanan). Tampilannya disamain persis sama .dropdown-menu Tabler,
+   tapi SENGAJA ga pake class .dropdown-menu: Bootstrap (tabler.min.js) dengerin panah/Esc di semua .dropdown-menu
+   lewat document fase capture & nyari tombol data-bs-toggle yg ga ada di menu React -> TypeError di console.
+   Isinya tetep pake .dropdown-item / .dropdown-header / .dropdown-divider biasa */
+.app-menu {
+  --tblr-dropdown-zindex: 1000;
+  --tblr-dropdown-min-width: 11rem;
+  --tblr-dropdown-padding-y: 0.25rem;
+  --tblr-dropdown-font-size: 0.875rem;
+  --tblr-dropdown-color: var(--tblr-body-color);
+  --tblr-dropdown-bg: var(--tblr-bg-surface);
+  --tblr-dropdown-border-color: var(--tblr-border-color-translucent);
+  --tblr-dropdown-border-radius: var(--tblr-border-radius);
+  --tblr-dropdown-border-width: var(--tblr-border-width);
+  --tblr-dropdown-divider-bg: var(--tblr-border-color-translucent);
+  --tblr-dropdown-divider-margin-y: var(--tblr-spacer-2);
+  --tblr-dropdown-box-shadow: var(--tblr-shadow-dropdown);
+  --tblr-dropdown-link-color: inherit;
+  --tblr-dropdown-link-hover-color: inherit;
+  --tblr-dropdown-link-hover-bg: var(--tblr-hover-bg);
+  --tblr-dropdown-link-active-color: var(--tblr-primary);
+  --tblr-dropdown-link-active-bg: var(--tblr-active-bg);
+  --tblr-dropdown-link-disabled-color: var(--tblr-tertiary-color);
+  --tblr-dropdown-item-padding-x: 0.75rem;
+  --tblr-dropdown-item-padding-y: 0.5rem;
+  --tblr-dropdown-header-color: light-dark(var(--tblr-gray-600), var(--tblr-gray-400));
+  --tblr-dropdown-header-padding-x: 0.75rem;
+  --tblr-dropdown-header-padding-y: 0.25rem;
+  position: absolute;
+  z-index: var(--tblr-dropdown-zindex);
+  display: block;
+  min-width: var(--tblr-dropdown-min-width);
+  padding: var(--tblr-dropdown-padding-y) 0;
+  margin: 0;
+  font-size: var(--tblr-dropdown-font-size);
+  color: var(--tblr-dropdown-color);
+  text-align: start;
+  list-style: none;
+  background-color: var(--tblr-dropdown-bg);
+  background-clip: padding-box;
+  border: var(--tblr-dropdown-border-width) solid var(--tblr-dropdown-border-color);
+  border-radius: var(--tblr-dropdown-border-radius);
+  box-shadow: var(--tblr-dropdown-box-shadow);
+}
+
+/* menu Kolom: nempel di bawah tombolnya, rata kanan */
+.app-menu.app-menu-end {
+  top: 100%;
+  right: 0;
+  margin-top: 1px;
 }
 
 /* kartu tabel yg jadi tujuan #anchor ga ketutup topbar (layar besar: ditambah toolbar, lihat app_shell.css) */

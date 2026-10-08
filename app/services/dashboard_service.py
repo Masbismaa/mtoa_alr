@@ -5,7 +5,12 @@ from app.models import AccessEntry, Attachment, AuditLog
 from app.security.access_policy import build_visible_entry_filter
 from app.services.access_entry_service import count_visible_entry_summary
 from app.services.category_service import build_forum_row_list
-from app.services.group_service import count_visible_group_entries, list_pending_invitation, list_user_group
+from app.services.group_service import (
+    count_active_member,
+    count_pending_invitation,
+    count_visible_group_entries,
+    list_user_group,
+)
 from app.utils.chart_helper import build_bar_list, build_sparkline, calculate_change_percent, calculate_percent
 from app.utils.constants import DASHBOARD_CHART_DAY_COUNT, DASHBOARD_RECENT_ACTIVITY_LIMIT
 from app.utils.datetime_helper import build_utc_range_from_local_date, to_local_time, utc_now
@@ -15,16 +20,6 @@ def build_local_date_list(day_count):
     """Tanggal (WIB) n hari terakhir, urut dari yg paling lama sampe hari ini."""
     today = to_local_time(utc_now()).date()
     return [today - timedelta(days=offset) for offset in range(day_count - 1, -1, -1)]
-
-
-def count_per_local_date(datetime_list, date_list):
-    """Hitung jumlah kejadian per tanggal WIB (dihitung di Python biar sama di PostgreSQL & SQLite)."""
-    count_dict = {local_date: 0 for local_date in date_list}
-    for value in datetime_list:
-        local_date = to_local_time(value).date()
-        if local_date in count_dict:
-            count_dict[local_date] += 1
-    return [count_dict[local_date] for local_date in date_list]
 
 
 def count_created_by_local_date(column, condition, date_list):
@@ -98,7 +93,8 @@ def build_dashboard_dict(user):
         "activity_bar_list": build_bar_list(activity_count_list),
         "group_list": group_list,
         "group_entry_count_dict": count_visible_group_entries(user, group_list),
-        "invitation_count": len(list_pending_invitation(user)),
+        "active_member_count_dict": count_active_member(group_list),
+        "invitation_count": count_pending_invitation(user),
         "forum_row_list": build_forum_row_list(user),
         "recent_activity_list": list_recent_own_activity(user),
     }

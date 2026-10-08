@@ -1,28 +1,64 @@
+# Semua versi dikunci persis (==) biar laptop, CI, dan server production masang library yg SAMA dgn yg udah dites.
+# Tanpa ini, pip bisa masang versi baru kapan aja dan aplikasi rusak tanpa ada kode yg berubah.
+# Cara upgrade: ganti versi di sini -> pip install -r requirements.txt -> pytest -q (+ cek manual) -> commit.
+
 # framework web utama
-Flask>=3.0
+Flask==3.1.3
 # ORM, query otomatis pake parameter jadi aman dari SQL Injection
-Flask-SQLAlchemy>=3.1
+# (tests/conftest.py makai atribut internal db._app_engines, cek lagi kalau versi ini diupgrade)
+Flask-SQLAlchemy==3.1.1
 # migrasi skema database
-Flask-Migrate>=4.0
+Flask-Migrate==4.1.0
 # proteksi CSRF buat form
-Flask-WTF>=1.2
+Flask-WTF==1.3.0
 # driver PostgreSQL
-psycopg[binary]>=3.1
+psycopg[binary]==3.3.6
 # baca file .env
-python-dotenv>=1.0
+python-dotenv==1.2.3
 # enkripsi kredensial (Fernet/AES)
-cryptography>=42.0
+cryptography==50.0.1
 # hash password login (Argon2id)
-argon2-cffi>=23.1
+argon2-cffi==25.1.0
 # buang tag HTML dari input (anti XSS)
-nh3>=0.2.17
+nh3==0.3.7
 # unit test
-pytest>=8.0
+pytest==9.1.1
 # untuk autentikasi
-Flask-Login>=0.6.3
-# untuk membatasi akses user
-Flask-Limiter[redis]>=3.5
+Flask-Login==0.6.3
+# untuk membatasi akses user (extra redis = penyimpanan rate limit bersama, wajib di production)
+Flask-Limiter[redis]==4.1.1
 # membuat file Excel untuk export data
-openpyxl>=3.1
+openpyxl==3.1.5
 # Baca gambar logo buat kop excel
-Pillow>=10.0
+Pillow==12.3.0
+
+# --- dependensi turunan (ikut kepasang dari library di atas), dikunci juga biar ga geser diam-diam ---
+alembic==1.20.0
+argon2-cffi-bindings==26.1.0
+blinker==1.9.0
+cffi==2.1.1
+click==8.5.0
+Deprecated==1.3.1
+et_xmlfile==2.0.0
+greenlet==3.5.6
+iniconfig==2.3.0
+itsdangerous==2.2.0
+Jinja2==3.1.6
+limits==5.8.0
+Mako==1.4.3
+MarkupSafe==3.0.3
+ordered-set==4.1.0
+packaging==26.3
+pluggy==1.6.0
+psycopg-binary==3.3.6
+pycparser==3.0
+Pygments==2.21.0
+redis==7.4.1
+SQLAlchemy==2.0.54
+typing_extensions==4.16.0
+Werkzeug==3.1.8
+wrapt==2.4.1
+WTForms==3.2.2
+# cuma kepake di Windows (laptop developer), di server Linux dilewati
+colorama==0.4.6; sys_platform == "win32"
+tzdata==2026.4; sys_platform == "win32"

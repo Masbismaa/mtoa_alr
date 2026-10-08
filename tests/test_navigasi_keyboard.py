@@ -16,10 +16,10 @@ def get_html(client, url):
 
 # BARIS AKTIF
 def test_entry_row_opens_detail(logged_in_client, registered_user, category_dict):
-    """Positive: baris Daftar Link bawa alamat detail (plus alamat tabel asal) buat Enter / double-click."""
+    """Positive: baris Daftar Link (tabel React) bawa alamat detail (plus alamat tabel asal) buat Enter / double-click."""
     entry = create_entry(registered_user, category_dict["Web"], "Portal HR")
     html_text = get_html(logged_in_client, "/entries/?run=1")
-    assert f'<tr data-row-url="/entries/{entry.id}?back=/entries/?run%3D1%23daftar_link">' in html_text
+    assert f'"detail_url": "/entries/{entry.id}?back=/entries/?run%3D1%23daftar_link"' in html_text
 
 def test_audit_row_opens_detail(admin_client):
     """Positive: baris Audit Logs kebuka ke detail catatannya."""

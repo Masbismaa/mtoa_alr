@@ -96,6 +96,16 @@
   transform: none !important;
 }
 
+/* lonceng di navbar HP: menunya dibentang selebar layar biar ga kepotong di kiri */
+.app-sidebar .navbar-nav.flex-row .dropdown-menu.notification-dropdown {
+  position: fixed !important;
+  inset: 4.5rem 1rem auto 1rem !important;
+  width: auto;
+  max-width: none;
+  padding: 0 !important;
+  white-space: normal;
+}
+
 .app-sidebar .navbar-nav.flex-row .dropdown-item {
   display: flex;
   align-items: center;

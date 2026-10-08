@@ -187,6 +187,9 @@
 
   // HP: tabel jadi kartu, baris aktif ga dipake
   if (window.matchMedia("(min-width: 768px)").matches) {
-    document.querySelectorAll("table.data-table").forEach(setupTable);
+    document.querySelectorAll("table.data-table").forEach(function (tableEl) {
+      // tabel link React (data-entry-table) udah ngurus baris aktif & menunya sendiri
+      if (!tableEl.closest("[data-entry-table]")) setupTable(tableEl);
+    });
   }
 })();

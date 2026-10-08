@@ -1,0 +1,40 @@
+{# lonceng notifikasi di kanan atas: angka = yg belum dibaca, klik = daftar terbaru #}
+{% macro notification_menu() %}
+  {% from "components/icon.html" import icon %}
+  {% set back_url = request.full_path.rstrip("?") %}
+  <div class="nav-item dropdown notification-menu">
+    <a href="#" class="nav-link px-0" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Notifikasi, {{ unread_notification_count }} belum dibaca" title="Notifikasi">
+      {{ icon("bell") }}
+      {% if unread_notification_count %}<span class="badge bg-red text-red-fg badge-notification">{{ unread_notification_count if unread_notification_count < 100 else "99+" }}</span>{% endif %}
+    </a>
+    <div class="dropdown-menu dropdown-menu-end dropdown-menu-card notification-dropdown">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Notifikasi</h3>
+          {% if unread_notification_count %}
+            <form method="post" action="{{ url_for('notifications.read_all') }}" class="ms-auto">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="back" value="{{ back_url }}">
+              <button type="submit" class="btn btn-link btn-sm p-0">Tandai semua dibaca</button>
+            </form>
+          {% endif %}
+        </div>
+        <div class="list-group list-group-flush">
+          {% for notification in notification_list %}
+            {# tiap item = form POST, biar status dibaca ga bisa diubah lewat link biasa #}
+            <form method="post" action="{{ url_for('notifications.open_item', notification_id=notification.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="back" value="{{ back_url }}">
+              <button type="submit" class="list-group-item list-group-item-action notification-item{% if not notification.is_read %} is-unread{% endif %}">
+                <span class="notification-text">{{ notification.message }}</span>
+                <span class="notification-time">{{ notification.created_at | time_ago }}</span>
+              </button>
+            </form>
+          {% else %}
+            <div class="list-group-item text-secondary">Belum ada notifikasi.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endmacro %}

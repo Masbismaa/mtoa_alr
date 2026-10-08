@@ -3,6 +3,20 @@ from functools import wraps
 from flask_login import current_user
 from app.security.access_policy import is_admin, has_permission
 from app.utils.exceptions import PermissionDeniedError
+from app.utils.response_formatter import error_response
+
+# pesan sesi habis buat API (React nampilin ini + ajakan muat ulang halaman)
+SESSION_EXPIRED_MESSAGE = "Sesi login habis, muat ulang halaman lalu login lagi"
+
+def api_login_required(view_function):
+    """Pengganti @login_required buat endpoint JSON: belum login -> 401 JSON, bukan redirect ke halaman login
+    (fetch ngikutin redirect diem-diem, ujungnya dapet HTML login yg ga bisa dibaca)."""
+    @wraps(view_function)
+    def wrapper(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return error_response(SESSION_EXPIRED_MESSAGE, 401)
+        return view_function(*args, **kwargs)
+    return wrapper
 
 def admin_required(view_function):
     """Halaman khusus admin, user biasa dapet 403. Pasang di bawah @login_required."""

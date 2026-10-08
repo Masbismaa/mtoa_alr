@@ -1,5 +1,5 @@
 """Test halaman Daftar Link (search, filter, copy, truncate, pagination) + Dashboard yg sekarang cuma ringkasan."""
-from app.routes import access_entry_routes
+from app.services import entry_table_service
 from app.services.access_entry_service import create_access_entry
 from app.utils.constants import VISIBILITY_PRIVATE
 
@@ -39,21 +39,20 @@ def test_dashboard_ignores_invalid_params(logged_in_client, category_dict):
     response = logged_in_client.get("/entries/?page=abc&category_id=xyz&visibility=hack")
     assert response.status_code == 200
 
-def test_dashboard_has_copy_button(logged_in_client, registered_user, category_dict):
-    """Positive: tombol copy di tabel bawa URL lengkap."""
+def test_dashboard_has_copy_button(logged_in_client, registered_user, category_dict, read_entry_table):
+    """Positive: kolom URL / Address (yg ada tombol copy-nya) bawa URL lengkap."""
     create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr.spindo.com"))
-    html_text = logged_in_client.get("/entries/?run=1").get_data(as_text=True)
-    assert 'data-copy-text="https://hr.spindo.com"' in html_text
+    payload = read_entry_table(logged_in_client, "/entries/?run=1")
+    assert payload["rows"][0]["access_text"] == "https://hr.spindo.com"
 
-def test_dashboard_truncates_long_description(logged_in_client, registered_user, category_dict):
-    """Positive: deskripsi panjang dipotong, teks lengkap ada di tooltip."""
+def test_dashboard_truncates_long_description(logged_in_client, registered_user, category_dict, read_entry_table):
+    """Positive: deskripsi panjang dikirim utuh (buat tooltip), motongnya di tampilan React (dites di columns.test.jsx)."""
     long_text = "A" * 200
     create_access_entry(registered_user, build_entry_dict(
         category_dict["Web"], "Portal HR", "https://hr.spindo.com", description=long_text,
     ))
-    html_text = logged_in_client.get("/entries/?run=1").get_data(as_text=True)
-    assert "A" * 59 + "…" in html_text
-    assert f'title="{long_text}"' in html_text
+    payload = read_entry_table(logged_in_client, "/entries/?run=1")
+    assert payload["rows"][0]["description"] == long_text
 
 def test_dashboard_empty_search_result(logged_in_client, category_dict):
     """Positive: pencarian kosong nampilin pesan + tombol reset."""
@@ -61,15 +60,15 @@ def test_dashboard_empty_search_result(logged_in_client, category_dict):
     assert "Tidak ada hasil" in html_text
     assert "Reset filter" in html_text
 
-def test_pagination_link_keeps_filter(logged_in_client, registered_user, category_dict, monkeypatch):
-    """Positive: link halaman berikutnya tetep bawa filter."""
-    monkeypatch.setattr(access_entry_routes, "PER_PAGE", 1)
+def test_pagination_link_keeps_filter(logged_in_client, registered_user, category_dict, monkeypatch, read_entry_table):
+    """Positive: ada halaman berikutnya & kriteria yg dibawa ke halaman itu tetep ada filternya."""
+    monkeypatch.setattr(entry_table_service, "PER_PAGE", 1)
     web = category_dict["Web"]
     create_access_entry(registered_user, build_entry_dict(web, "Link A", "https://a.spindo.com"))
     create_access_entry(registered_user, build_entry_dict(web, "Link B", "https://b.spindo.com"))
-    html_text = logged_in_client.get(f"/entries/?category_id={web.id}").get_data(as_text=True)
-    assert "page=2" in html_text
-    assert f"category_id={web.id}" in html_text
+    payload = read_entry_table(logged_in_client, f"/entries/?category_id={web.id}")
+    assert payload["pages"] == 2 and payload["page_list"] == [1, 2]
+    assert payload["query"] == {"run": ["1"], "category_id": [str(web.id)]}
 
 def test_dashboard_is_summary_only(logged_in_client, registered_user, category_dict):
     """Positive: Dashboard cuma ringkasan seluruh data (ga ada tabel & kriteria), ada jalan ke Daftar Link."""

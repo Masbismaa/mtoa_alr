@@ -1,5 +1,5 @@
 """Logika CRUD Access Entry. Route tinggal manggil fungsi di sini."""
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload, selectinload, undefer
 
 from app.extensions import db
 from app.models import AccessEntry, AccessEntryField, Category, User
@@ -413,7 +413,7 @@ def build_visible_entry_query(user, keyword=None, category_id=None, visibility=N
         .options(
             joinedload(AccessEntry.category),
             joinedload(AccessEntry.owner),
-            selectinload(AccessEntry.attachment_list),
+            undefer(AccessEntry.attachment_count),
         )
         .where(build_visible_entry_filter(user))
     )

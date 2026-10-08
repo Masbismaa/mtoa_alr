@@ -1,8 +1,6 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
-{% from "components/pagination.html" import render_pagination %}
 {% from "components/entry_table.html" import entry_table %}
-{% from "components/data_table.html" import column_menu %}
 {% from "components/selection_panel.html" import selection_panel %}
 
 {% block title %}Daftar Link{% endblock %}
@@ -22,52 +20,14 @@
 {% endblock %}
 
 {% block content %}
-  {# urutan (sort) & penanda Jalankan ga diitung sebagai filter #}
-  {% set is_filtered = pagination_query_dict | reject("in", ["sort", "run"]) | list | length > 0 %}
   {# abis Jalankan, layar langsung ke tabel hasil (#daftar_link) #}
   {{ selection_panel(selection_field_list, url_for("entries.index", _anchor="daftar_link"), "Cari judul, URL, address, deskripsi... (tekan /)", is_run_marked=true) }}
 
   {# ala Select Screen SAP: tabel baru muncul abis Jalankan #}
-  {% if pagination is none %}
+  {% if entry_table_payload is none %}
     <p class="text-secondary selection-hint" data-selection-hint>{{ icon("info") }} Isi kriteria lalu klik <b>Jalankan</b> buat nampilin daftar link. Kriteria kosong = semua link yang bisa kamu lihat.</p>
   {% else %}
-    <div class="card" id="daftar_link">
-      <div class="card-header">
-        {# judulnya beda pas lagi nyari, biar ga ketuker sama jumlah seluruh data #}
-        <h3 class="card-title" data-result-heading>
-          {% if is_filtered %}{{ icon("search") }} Hasil pencarian: {{ pagination.total }} data{% else %}{{ icon("link") }} Seluruh link: {{ pagination.total }} data{% endif %}
-        </h3>
-        <div class="card-actions">
-          {% if pagination.total %}
-            <a href="{{ url_for('main.export_entries', **pagination_query_dict) }}" class="btn btn-sm">{{ icon("download")}} Export Excel</a>
-            {{ column_menu(table_view) }}
-          {% endif %}
-        </div>
-      </div>
-
-      {% if pagination.items %}
-        {{ entry_table(pagination.items, table_view, "entries.index", pagination_query_dict) }}
-        {{ render_pagination(pagination, "entries.index", pagination_query_dict, "daftar_link") }}
-      {% elif is_filtered %}
-        <div class="empty">
-          <div class="empty-icon">{{ icon("search") }}</div>
-          <p class="empty-title">Tidak ada hasil{% if keyword %} untuk "{{ keyword }}"{% endif %}.</p>
-          <p class="empty-subtitle text-secondary">Coba ubah kriteria pencariannya, atau pakai * (misal portal*).</p>
-          <div class="empty-action">
-            <a href="{{ url_for('entries.index', run=1, _anchor='daftar_link') }}" class="btn">Reset filter</a>
-          </div>
-        </div>
-      {% else %}
-        <div class="empty">
-          <div class="empty-icon">{{ icon("link") }}</div>
-          <p class="empty-title">Belum ada data link</p>
-          <p class="empty-subtitle text-secondary">Yuk tambah link pertama biar tim gampang nyarinya.</p>
-          <div class="empty-action">
-            <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
-          </div>
-        </div>
-      {% endif %}
-    </div>
+    {{ entry_table(entry_table_payload) }}
   {% endif %}
 {% endblock %}
 

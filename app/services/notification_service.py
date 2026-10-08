@@ -1,14 +1,20 @@
-"""Pengiriman OTP sesuai mode notifikasi yang dikonfigurasi."""
+"""Pengiriman email (OTP login, kode verifikasi daftar, pemberitahuan) sesuai mode yang dikonfigurasi."""
 
 import smtplib
 import ssl
 from email.message import EmailMessage
 from flask import current_app
 
-from app.utils.constants import OTP_DELIVERY_CONSOLE, OTP_EXPIRE_MINUTES
+from app.utils.constants import OTP_DELIVERY_CONSOLE, OTP_EXPIRE_MINUTES, OTP_PURPOSE_LOGIN, OTP_PURPOSE_REGISTER
 
-def send_otp_code(user, otp_code):
-    """Kirim OTP ke user sesuai OTP_DELIVERY_MODE.
+# judul email per tujuan OTP (kodenya sama-sama dari tabel otp_codes)
+OTP_SUBJECT_DICT = {
+    OTP_PURPOSE_LOGIN: "Kode login ALR",
+    OTP_PURPOSE_REGISTER: "Kode verifikasi pendaftaran ALR",
+}
+
+def send_email(to_address, subject, body):
+    """Kirim satu email sesuai OTP_DELIVERY_MODE.
 
     console -> dicetak ke terminal (khusus ujicoba).
     smtp    -> SMTP dengan STARTTLS atau TLS langsung, sertifikat selalu diverifikasi.
@@ -16,12 +22,8 @@ def send_otp_code(user, otp_code):
     delivery_mode = current_app.config["OTP_DELIVERY_MODE"]
 
     if delivery_mode == OTP_DELIVERY_CONSOLE:
-        # Mode development: OTP ditulis ke terminal.
-        print(
-            f"\n===== [DEV] OTP untuk {user.email}: {otp_code} "
-            f"(berlaku {OTP_EXPIRE_MINUTES} menit) =====\n",
-            flush=True,
-        )
+        # Mode development: email ditulis ke terminal.
+        print(f"\n===== [DEV] Email ke {to_address}: {subject} =====\n{body}\n=====\n", flush=True)
         return
 
     if delivery_mode != "smtp":
@@ -31,9 +33,9 @@ def send_otp_code(user, otp_code):
         raise RuntimeError("SMTP_HOST dan SMTP_FROM wajib diisi")
     message = EmailMessage()
     message["From"] = config["SMTP_FROM"]
-    message["To"] = user.email
-    message["Subject"] = "Kode login ALR"
-    message.set_content(f"Kode login ALR: {otp_code}\nBerlaku {OTP_EXPIRE_MINUTES} menit. Jangan bagikan kode ini.")
+    message["To"] = to_address
+    message["Subject"] = subject
+    message.set_content(body)
     security = config["SMTP_SECURITY"]
     if security not in ("starttls", "ssl"):
         raise RuntimeError("SMTP_SECURITY harus starttls atau ssl")
@@ -50,3 +52,18 @@ def send_otp_code(user, otp_code):
         if config["SMTP_USERNAME"]:
             connection.login(config["SMTP_USERNAME"], config["SMTP_PASSWORD"])
         connection.send_message(message)
+
+def send_otp_code(user, otp_code, purpose=OTP_PURPOSE_LOGIN):
+    """Kirim kode OTP (login / verifikasi pendaftaran). `user` = User atau PendingRegistration, yg dipake cuma .email."""
+    subject = OTP_SUBJECT_DICT[purpose]
+    send_email(user.email, subject, f"{subject}: {otp_code}\nBerlaku {OTP_EXPIRE_MINUTES} menit. Jangan bagikan kode ini.")
+
+def send_registration_notice(user):
+    """Ada yg nyoba daftar pakai email yg udah punya akun. Pemiliknya dikabarin lewat email (bukan lewat layar,
+    biar orang lain ga bisa ngecek email mana yg udah terdaftar)."""
+    send_email(
+        user.email,
+        "Percobaan pendaftaran ALR",
+        "Ada yang mencoba mendaftar di ALR memakai email ini, padahal kamu sudah punya akun.\n"
+        "Kalau itu kamu, langsung login saja. Kalau bukan, abaikan email ini; akunmu tidak berubah.",
+    )

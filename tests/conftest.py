@@ -1,5 +1,8 @@
 """Fixture Pytest yang dipakai bareng semua file test."""
+import html
 import io
+import json
+import re
 import zipfile
 
 import pytest
@@ -24,6 +27,17 @@ def app(tmp_path):
         yield app
         db.session.remove()
         db.drop_all()
+
+@pytest.fixture(autouse=True)
+def close_database_connections():
+    """Abis tiap test, semua koneksi DB ditutup, termasuk punya app yg dibikin langsung pake create_app() di dalem test.
+    Tanpa ini muncul ResourceWarning "unclosed database" (nongolnya di test lain, pas garbage collector jalan).
+    _app_engines = daftar engine per app di Flask-SQLAlchemy 3.x (ga ada API publiknya); kalau versi baru
+    ngubah namanya, getattr ngasih {} -> test tetep jalan, cuma warning-nya balik lagi."""
+    yield
+    for engine_dict in list(getattr(db, "_app_engines", {}).values()):
+        for engine in engine_dict.values():
+            engine.dispose()
 
 @pytest.fixture()
 def client(app):
@@ -135,6 +149,19 @@ def make_file_storage():
         return FileStorage(stream=io.BytesIO(content_bytes), filename=filename)
 
     return build_file_storage
+
+@pytest.fixture()
+def read_entry_table():
+    """Pabrik: buka halaman, ambil data tabel link (React) yg ditempel server di atribut data-entry-table.
+    Isinya sama persis kayak balasan API table-data (app/services/entry_table_service.py)."""
+
+    def read(client, url):
+        html_text = client.get(url).get_data(as_text=True)
+        match = re.search(r"data-entry-table='([^']*)'", html_text)
+        assert match is not None, f"tabel link ga ada di {url}"
+        return json.loads(html.unescape(match.group(1)))
+
+    return read
 
 @pytest.fixture()
 def admin_client(client, admin_user, fixed_otp_code):

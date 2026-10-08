@@ -1,9 +1,7 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
-{% from "components/pagination.html" import render_pagination %}
 {% from "components/category_forum.html" import category_forum %}
 {% from "components/entry_table.html" import entry_table %}
-{% from "components/data_table.html" import column_menu %}
 {% from "components/selection_panel.html" import selection_panel %}
 
 {% block title %}{{ path_list | map(attribute="name") | join(" › ") }}{% endblock %}
@@ -64,41 +62,9 @@
     </div>
   {% endif %}
 
-  {# urutan (sort) aja ga diitung sebagai filter #}
-  {% set is_filtered = pagination_query_dict | reject("equalto", "sort") | list | length > 0 %}
   {{ selection_panel(selection_field_list, url_for("categories.browse", category_id=category.id, _anchor="daftar_link"), "Cari judul, URL, address, deskripsi... (tekan /)") }}
 
-  {% set table_query_dict = dict(pagination_query_dict, category_id=category.id) %}
-  <div class="card" id="daftar_link">
-    <div class="card-header">
-      <h3 class="card-title">{{ icon("link") }} Link di {{ category.name }}</h3>
-      <div class="card-actions">
-        {% if pagination.items %}{{ column_menu(table_view) }}{% endif %}
-        <span class="badge bg-secondary-lt">{{ pagination.total }} data</span>
-      </div>
-    </div>
-    {% if pagination.items %}
-      {{ entry_table(pagination.items, table_view, "categories.browse", table_query_dict) }}
-      {{ render_pagination(pagination, "categories.browse", table_query_dict, "daftar_link") }}
-    {% elif is_filtered %}
-      <div class="empty">
-        <div class="empty-icon">{{ icon("search") }}</div>
-        <p class="empty-title">Tidak ada link yang cocok</p>
-        <p class="empty-subtitle text-secondary">Coba ubah kriteria pencariannya, atau pakai * (misal portal*).</p>
-      </div>
-    {% else %}
-      <div class="empty">
-        <div class="empty-icon">{{ icon("link") }}</div>
-        <p class="empty-title">Belum ada link langsung di sini</p>
-        <p class="empty-subtitle text-secondary">{% if forum_row_list %}Link lainnya ada di sub-kategori di atas.{% else %}Jadi yang pertama nambahin link di kategori ini.{% endif %}</p>
-        {% if category.is_active %}
-          <div class="empty-action">
-            <a href="{{ url_for('entries.create', category_id=category.id) }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link di sini</a>
-          </div>
-        {% endif %}
-      </div>
-    {% endif %}
-  </div>
+  {{ entry_table(entry_table_payload) }}
 {% endblock %}
 
 {% block page_scripts %}

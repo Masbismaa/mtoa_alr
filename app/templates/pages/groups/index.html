@@ -55,7 +55,7 @@
     <div class="row row-cards" aria-label="Daftar group">
       {% for group in group_list %}
         {% set is_owner = group.user_id == current_user.id %}
-        {% set active_member_count = group.member_list | selectattr("status", "equalto", "active") | list | length %}
+        {% set active_member_count = active_member_count_dict.get(group.id, 0) %}
         <div class="col-md-6 col-xl-4">
           <a href="{{ url_for('groups.detail', group_id=group.id) }}" class="card card-link card-link-pop h-100 text-reset">
             <div class="card-body">

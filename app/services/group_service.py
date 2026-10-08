@@ -11,6 +11,7 @@ from app.security.access_policy import (
     is_group_owner,
 )
 from app.services.audit_service import log_audit
+from app.services.user_notification_service import GROUP_LIST_PATH, add_notification, build_group_path
 from app.utils.constants import (
     AUDIT_ACTION_CREATE,
     AUDIT_ACTION_DELETE,
@@ -114,7 +115,6 @@ def list_user_group(user, selection=None):
     query = (
         db.select(Group)
         .join(GroupMember, GroupMember.group_id == Group.id)
-        .options(selectinload(Group.member_list))
         .where(GroupMember.user_id == user.id, GroupMember.status == GROUP_MEMBER_STATUS_ACTIVE)
     )
     if selection:
@@ -145,6 +145,25 @@ def count_visible_group_entries(user, group_list):
         .group_by(GroupEntry.group_id)
     ).all())
     return {group_id: counts.get(group_id, 0) for group_id in group_ids}
+
+def count_active_member(group_list):
+    """{group_id: jumlah anggota aktif} dalam satu query, ga perlu ngambil semua baris anggota."""
+    group_ids = [group.id for group in group_list]
+    if not group_ids:
+        return {}
+    counts = dict(db.session.execute(
+        db.select(GroupMember.group_id, db.func.count(GroupMember.id))
+        .where(GroupMember.group_id.in_(group_ids), GroupMember.status == GROUP_MEMBER_STATUS_ACTIVE)
+        .group_by(GroupMember.group_id)
+    ).all())
+    return {group_id: counts.get(group_id, 0) for group_id in group_ids}
+
+def count_pending_invitation(user):
+    """Jumlah undangan yg belum dijawab user."""
+    return db.session.scalar(
+        db.select(db.func.count(GroupMember.id))
+        .where(GroupMember.user_id == user.id, GroupMember.status == GROUP_MEMBER_STATUS_INVITED)
+    )
 
 def list_pending_invitation(user):
     """Undangan yg belum dijawab user."""
@@ -180,6 +199,7 @@ def invite_member(user, group, email):
         AUDIT_ACTION_CREATE, AUDIT_GROUP_MEMBER, entity_id=member.id,
         new_data_dict={"group_id": group.id, "user_email": invited_user.email, "status": member.status}, user=user,
     )
+    add_notification(invited_user.id, f"{user.full_name} mengundangmu ke group {group.name}", GROUP_LIST_PATH)
     db.session.commit()
     return member
 
@@ -238,6 +258,11 @@ def remove_member(user, group, raw_member_id):
         AUDIT_ACTION_DELETE, AUDIT_GROUP_MEMBER, entity_id=member.id,
         old_data_dict={"group_id": group.id, "user_id": member.user_id, "status": member.status}, user=user,
     )
+    # anggota aktif = dikeluarin, masih undangan = undangannya dibatalin
+    if member.status == GROUP_MEMBER_STATUS_ACTIVE:
+        add_notification(member.user_id, f"Kamu dikeluarkan dari group {group.name}", GROUP_LIST_PATH)
+    else:
+        add_notification(member.user_id, f"Undangan ke group {group.name} dibatalkan", GROUP_LIST_PATH)
     detach_member(group, member)
     db.session.commit()
 
@@ -253,6 +278,10 @@ def set_member_can_add_entry(user, group, raw_member_id, can_add_entry):
         new_data_dict={"group_id": group.id, "can_add_entry": can_add_entry}, user=user,
     )
     member.can_add_entry = can_add_entry
+    if can_add_entry:
+        add_notification(member.user_id, f"Kamu sekarang boleh menambah link ke group {group.name}", build_group_path(group.id))
+    else:
+        add_notification(member.user_id, f"Izin menambah link ke group {group.name} dicabut", build_group_path(group.id))
     db.session.commit()
     return member
 
@@ -267,6 +296,8 @@ def leave_group(user, group):
         AUDIT_ACTION_DELETE, AUDIT_GROUP_MEMBER, entity_id=membership.id,
         old_data_dict={"group_id": group.id, "user_id": user.id, "status": membership.status}, user=user,
     )
+    # pemilik dikabarin ada anggota yg keluar
+    add_notification(group.user_id, f"{user.full_name} keluar dari group {group.name}", build_group_path(group.id))
     detach_member(group, membership)
     db.session.commit()
 

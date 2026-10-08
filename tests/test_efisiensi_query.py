@@ -77,3 +77,54 @@ def test_daily_counts_respect_wib_midnight(app, registered_user, category_dict):
     counts = count_created_by_local_date(AccessEntry.created_at, AccessEntry.user_id == registered_user.id,
                                         [date(2026, 10, 1), date(2026, 10, 2)])
     assert counts == [1, 1]
+
+
+def test_category_label_reads_tree_once_per_request(app, category_dict):
+    """Positive: label kategori bertingkat di dalam request cuma 1 query, berapa pun kedalamannya."""
+    from app.services.category_service import build_category_label
+
+    parent = category_dict["Web"]
+    level_two = Category(parent_id=parent.id, name="SAP")
+    db.session.add(level_two)
+    db.session.flush()
+    level_three = Category(parent_id=level_two.id, name="Modul FI")
+    db.session.add(level_three)
+    db.session.commit()
+    level_three_id = level_three.id
+    db.session.expunge_all()
+    with app.test_request_context("/"):
+        category = db.session.get(Category, level_three_id)
+        label, statements = count_queries(lambda: build_category_label(category))
+    assert label == "Web › SAP › Modul FI"
+    assert len(statements) == 1
+
+
+def test_attachment_count_without_loading_rows(app, registered_user, category_dict):
+    """Positive: jumlah lampiran di tabel dihitung SQL, baris lampiran ga ikut diambil."""
+    from app.models import Attachment
+    from app.services.access_entry_service import search_visible_entries
+
+    entry = AccessEntry(user_id=registered_user.id, category_id=category_dict["Web"].id, title="Berlampiran")
+    db.session.add(entry)
+    db.session.flush()
+    for number in range(3):
+        db.session.add(Attachment(access_entry_id=entry.id, user_id=registered_user.id, original_filename="a.txt",
+                                  stored_filename=f"file{number}.txt", content_type="text/plain", file_size=1))
+    db.session.commit()
+    db.session.expire_all()
+    db.session.refresh(registered_user)
+    pagination, statements = count_queries(lambda: search_visible_entries(registered_user))
+    assert [item.attachment_count for item in pagination.items] == [3]
+    # hitung total halaman + ambil baris, ga ada query tambahan buat lampiran
+    assert len(statements) == 2
+
+
+def test_group_member_and_invitation_counts(app, registered_user, other_user):
+    """Positive: jumlah anggota aktif & undangan dihitung SQL (undangan ga ikut dihitung anggota)."""
+    from app.services.group_service import count_active_member, count_pending_invitation, invite_member
+
+    group = create_group(other_user, {"name": "Tim"})
+    invite_member(other_user, group, registered_user.email)
+    assert count_active_member([group]) == {group.id: 1}
+    assert count_pending_invitation(registered_user) == 1
+    assert count_active_member([]) == {}

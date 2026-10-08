@@ -299,7 +299,7 @@ def build_detail_row(row_number, entry):
         entry.description,
         get_visibility_label(entry.visibility),
         get_link_status_label(entry.status),
-        len(entry.attachment_list),
+        entry.attachment_count,
         entry.owner.full_name,
         to_excel_time(entry.created_at),
         to_excel_time(entry.updated_at),

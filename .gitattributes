@@ -1,0 +1,3 @@
+# hasil build React (Vite) disimpen apa adanya, tanpa konversi LF/CRLF (core.autocrlf):
+# job CI frontend_test ngebandingin file ini byte per byte sama hasil build ulang
+app/static/dist/** -text
