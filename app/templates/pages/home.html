@@ -154,12 +154,12 @@
           {% endfor %}
           {% if monitor_summary.down_count %}
             <a href="{{ url_for('entries.index', run=1, status='down') }}" class="list-group-item list-group-item-action">
-              {{ icon("alert_triangle", "text-red") }} <strong>{{ monitor_summary.down_count }}</strong> links were down at the last check.
+              {{ icon("alert_triangle", "text-red") }} <strong>{{ monitor_summary.down_count }}</strong> {{ "link was" if monitor_summary.down_count == 1 else "links were" }} down at the last check.
             </a>
           {% endif %}
           {% if monitor_summary.unknown_count %}
             <a href="{{ url_for('link_monitor.index') }}" class="list-group-item list-group-item-action">
-              {{ icon("refresh", "text-secondary") }} <strong>{{ monitor_summary.unknown_count }}</strong> links have never been checked. Run a check from Link Monitoring.
+              {{ icon("refresh", "text-secondary") }} <strong>{{ monitor_summary.unknown_count }}</strong> {{ "link has" if monitor_summary.unknown_count == 1 else "links have" }} never been checked. Run a check from Link Monitoring.
             </a>
           {% endif %}
           {% if dashboard_dict.invitation_count %}
@@ -196,7 +196,7 @@
           {% endfor %}
           {% if dashboard_dict.unknown_count %}
             <a href="{{ url_for('entries.index', run=1, status='unknown') }}" class="list-group-item list-group-item-action text-secondary small">
-              {{ icon("info") }} {{ dashboard_dict.unknown_count }} links you can see have never been checked.
+              {{ icon("info") }} {{ dashboard_dict.unknown_count }} {{ "link you can see has" if dashboard_dict.unknown_count == 1 else "links you can see have" }} never been checked.
             </a>
           {% endif %}
           {% if not (dashboard_dict.invitation_count or dashboard_dict.own_down_entry_list or dashboard_dict.unknown_count) %}
