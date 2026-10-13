@@ -64,7 +64,9 @@
           <tbody>
             {% for row in user_row_list %}
               {% set user = row.user %}
-              <tr>
+              {# baris user biasa (bukan akunmu / admin) Enter-nya buka Atur Akses #}
+              {% set is_row_editable = user.id != current_user.id and not is_admin(user) %}
+              <tr{% if is_row_editable %} data-row-url="{{ url_for('users.access', user_id=user.id, **back_param_dict) }}"{% endif %}>
                 <td class="cell-title" {{ cell_attr(table_view, "name") }}>
                   <div class="d-flex align-items-center gap-2">
                     <span class="avatar avatar-sm bg-primary-lt">{{ user.full_name | initials }}</span>

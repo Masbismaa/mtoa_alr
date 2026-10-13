@@ -135,8 +135,12 @@
   padding-left: 0.4rem;
 }
 
-/* baris aktif tabel React (klik / panah atas-bawah), kayak baris kepilih di ALV */
+/* baris aktif (klik / panah atas-bawah), kayak baris kepilih di ALV: tabel React & js/components/table_row.js */
 @media (min-width: 768px) {
+  .data-table tbody tr[tabindex] {
+    cursor: default;
+  }
+
   .data-table tbody tr[data-row-url] {
     cursor: pointer;
   }
@@ -157,12 +161,17 @@
   }
 }
 
-/* menu klik kanan di baris tabel (dua class biar menang lawan position: absolute di .app-menu) */
+/* menu klik kanan di baris tabel (.app-menu.row-context-menu biar menang lawan position: absolute di .app-menu) */
+.row-context-menu,
 .app-menu.row-context-menu {
   position: fixed;
   z-index: 1080;
   min-width: 12rem;
   margin: 0;
+}
+
+.row-context-menu[hidden] {
+  display: none !important;
 }
 
 /* lagi ngambil data baru: isi lama tetep keliatan tapi diredupin */
