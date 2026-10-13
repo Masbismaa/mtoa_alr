@@ -1,22 +1,55 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.svg">
+  <img alt="Access Link Register" src="assets/banner-light.svg" width="100%">
+</picture>
+
 # Access Link Register (ALR)
 
 Web app for an ICT team to store and share links, servers, and access notes. Built with Flask, PostgreSQL, and a small React table, with a keyboard-driven interface modeled on SAP GUI.
 
-![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-3.1-000000?logo=flask&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+<p>
+  <img src="https://skillicons.dev/icons?i=python,flask,postgres,react,vite,redis,js,css" alt="Python, Flask, PostgreSQL, React, Vite, Redis, JavaScript, CSS">
+</p>
 
 > [!NOTE]
-> Built for an internal team and published as a portfolio project with permission. No company data, credentials, or infrastructure details are included.
+> Built for an internal team and published as a portfolio project with permission. No company data, credentials, or infrastructure details are included. Screenshots use demo data.
 
 ## Contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Architecture](#architecture)
 - [Security](#security)
 - [Testing](#testing)
 - [Running locally](#running-locally)
+
+## Screenshots
+
+Images follow your GitHub theme (light or dark).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/dashboard-dark.png">
+  <img alt="Admin dashboard: system overview, admin to-do list, and team activity" src="assets/dashboard-light.png">
+</picture>
+<p align="center"><sub>Admin dashboard: system overview, to-do list, and grouped team activity</sub></p>
+
+<details>
+<summary><b>Link list</b> (selection screen and ALV-like table)</summary>
+<br>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/links-dark.png">
+  <img alt="Link list with selection criteria, filters, status, and copy buttons" src="assets/links-light.png">
+</picture>
+</details>
+
+<details>
+<summary><b>Link detail</b> (hidden password, copy buttons, status, history)</summary>
+<br>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/detail-dark.png">
+  <img alt="Link detail with masked access note, link status, and change history" src="assets/detail-light.png">
+</picture>
+</details>
 
 ## Features
 
