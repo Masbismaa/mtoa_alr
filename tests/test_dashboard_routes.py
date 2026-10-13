@@ -1,6 +1,7 @@
 """Test halaman Daftar Link (search, filter, copy, truncate, pagination) + Dashboard yg sekarang cuma ringkasan."""
 from app.services import entry_table_service
-from app.services.access_entry_service import create_access_entry
+from app.services.access_entry_service import create_access_entry, update_access_entry
+from app.services.dashboard_service import list_team_activity
 from app.utils.constants import VISIBILITY_PRIVATE
 
 def build_entry_dict(category, title, url, **override_dict):
@@ -57,7 +58,7 @@ def test_dashboard_truncates_long_description(logged_in_client, registered_user,
 def test_dashboard_empty_search_result(logged_in_client, category_dict):
     """Positive: pencarian kosong nampilin pesan + tombol reset."""
     html_text = logged_in_client.get("/entries/?q=zzzz").get_data(as_text=True)
-    assert "Tidak ada hasil" in html_text
+    assert "No results" in html_text
     assert "Reset filter" in html_text
 
 def test_pagination_link_keeps_filter(logged_in_client, registered_user, category_dict, monkeypatch, read_entry_table):
@@ -86,5 +87,75 @@ def test_dashboard_old_filter_url_redirects(logged_in_client):
 def test_entry_list_heading_shows_scope(logged_in_client, registered_user, category_dict):
     """Positive: judul tabel bedain seluruh data vs hasil pencarian."""
     create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr.spindo.com"))
-    assert "Seluruh link: 1 data" in logged_in_client.get("/entries/?run=1").get_data(as_text=True)
-    assert "Hasil pencarian: 0 data" in logged_in_client.get("/entries/?q=zzzz").get_data(as_text=True)
+    assert "All links: 1" in logged_in_client.get("/entries/?run=1").get_data(as_text=True)
+    assert "Search results: 0" in logged_in_client.get("/entries/?q=zzzz").get_data(as_text=True)
+
+
+def test_team_activity_groups_public_links(app, registered_user, other_user, category_dict):
+    for number in range(3):
+        create_access_entry(other_user, build_entry_dict(
+            category_dict["Web"], f"Shared portal {number}", f"https://shared-{number}.example",
+            visibility="public",
+        ))
+    activity = list_team_activity(registered_user)
+    assert len(activity) == 1
+    assert activity[0]["text"] == "added 3 public links"
+    assert activity[0]["actor_name"] == other_user.full_name
+    assert activity[0]["entry_id"] is None
+    assert activity[0]["is_admin_only"] is False
+
+
+def test_team_activity_does_not_publish_private_history(app, registered_user, other_user, category_dict):
+    entry = create_access_entry(other_user, build_entry_dict(
+        category_dict["Web"], "Secret private title", "https://private-history.example",
+    ))
+    update_access_entry(other_user, entry, build_entry_dict(
+        category_dict["Web"], "Now public", entry.url, visibility="public",
+    ))
+    assert list_team_activity(registered_user) == []
+
+
+def test_team_activity_hides_links_made_private(app, registered_user, other_user, category_dict):
+    entry = create_access_entry(other_user, build_entry_dict(
+        category_dict["Web"], "Former public portal", "https://formerly-public.example", visibility="public",
+    ))
+    update_access_entry(other_user, entry, build_entry_dict(category_dict["Web"], entry.title, entry.url))
+    assert list_team_activity(registered_user) == []
+
+
+def test_admin_activity_only_summarizes_private_links(app, admin_user, other_user, category_dict):
+    create_access_entry(other_user, build_entry_dict(
+        category_dict["Web"], "Secret private title", "https://admin-summary.example",
+        username="secret.user", access_note="secret credential",
+    ))
+    activity = [item for item in list_team_activity(admin_user) if item["text"] == "added a link"]
+    assert len(activity) == 1
+    assert activity[0]["is_admin_only"] is True
+    assert activity[0]["title_text"] == ""
+    assert activity[0]["entry_id"] is None
+
+
+def test_login_noise_cannot_displace_public_activity(app, registered_user, other_user, category_dict, monkeypatch):
+    from app.services import dashboard_service
+    from app.services.audit_service import log_audit
+    from app.utils.constants import AUDIT_ACTION_LOGIN_FAILED
+
+    monkeypatch.setattr(dashboard_service, "ACTIVITY_SCAN_LIMIT", 3)
+    create_access_entry(other_user, build_entry_dict(
+        category_dict["Web"], "Shared update", "https://noise-test.example", visibility="public",
+    ))
+    for _ in range(6):
+        log_audit(AUDIT_ACTION_LOGIN_FAILED, "users", user=other_user, is_commit=True)
+    activity = list_team_activity(registered_user)
+    assert len(activity) == 1
+    assert activity[0]["title_text"] == "Shared update"
+
+
+def test_audit_permission_does_not_expose_admin_activity(app, registered_user, admin_user, other_user):
+    from app.services.audit_service import log_audit
+    from app.services.user_service import set_user_permissions
+    from app.utils.constants import AUDIT_ACTION_PASSWORD_CHANGE, PERMISSION_VIEW_AUDIT_LOGS
+
+    set_user_permissions(admin_user, registered_user, [PERMISSION_VIEW_AUDIT_LOGS])
+    log_audit(AUDIT_ACTION_PASSWORD_CHANGE, "users", user=other_user, is_commit=True)
+    assert list_team_activity(registered_user) == []

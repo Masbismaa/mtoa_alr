@@ -60,8 +60,9 @@
   }
 
   // kirim ke server. Kalau belum login, cukup disimpen lokal.
-  // targetUrl opsional: dipake juga buat nyimpen layout tabel (data_table.js), defaultnya URL preferensi tampilan
-  async function saveToServer(payloadDict, targetUrl) {
+  // targetUrl opsional: dipake juga buat nyimpen layout tabel (data_table.js), defaultnya URL preferensi tampilan.
+  // isKeepalive: request tetep dikirim walau halamannya lagi ditutup (dipake pas pagehide)
+  async function saveToServer(payloadDict, targetUrl, isKeepalive) {
     const prefUrl = targetUrl || root.dataset.prefUrl;
     if (root.dataset.prefSource !== "server" || !prefUrl) {
       return { is_success: true, is_local_only: true };
@@ -72,6 +73,7 @@
       const response = await fetch(prefUrl, {
         method: "POST",
         credentials: "same-origin",
+        keepalive: Boolean(isKeepalive),
         headers: {
           "Content-Type": "application/json",
           "X-CSRFToken": csrfMeta ? csrfMeta.content : ""
@@ -79,14 +81,14 @@
         body: JSON.stringify(payloadDict)
       });
       const bodyDict = await response.json().catch(function () {
-        return { is_success: false, message: "Respon server tidak valid" };
+        return { is_success: false, message: "Invalid server response" };
       });
       if (!response.ok) {
         bodyDict.is_success = false;
       }
       return bodyDict;
     } catch (error) {
-      return { is_success: false, message: "Koneksi ke server gagal" };
+      return { is_success: false, message: "Could not connect to the server" };
     }
   }
 

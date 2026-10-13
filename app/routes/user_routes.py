@@ -100,7 +100,7 @@ def run_user_action(action_function, success_message, *arg_list):
 def access(user_id):
     """Atur akses user: centang akses yg dikasih, hapus centang buat nyabut."""
     target = get_target_user_or_404(user_id)
-    admin_redirect = redirect_if_admin(target, "Admin otomatis punya semua akses, perubahan admin lewat command")
+    admin_redirect = redirect_if_admin(target, "Admins automatically have all access; admin changes are done via the command line")
     if admin_redirect:
         return admin_redirect
 
@@ -110,12 +110,12 @@ def access(user_id):
         except ValidationError as error:
             flash_error_list(error.error_list)
         else:
-            flash(f"Akses {target.full_name} sudah disimpan", "success")
+            flash(f"Access for {target.full_name} saved", "success")
             return redirect(build_back_url())
 
     return render_template(
         "pages/users/access.html",
-        page_title="Atur Akses",
+        page_title="Manage Access",
         target=target,
         owned_key_list=get_permission_key_list(target),
         permission_info_dict=PERMISSION_INFO_DICT,
@@ -128,8 +128,8 @@ def access(user_id):
 def toggle_active(user_id):
     """Aktifin / nonaktifin akun."""
     target = get_target_user_or_404(user_id)
-    status_text = "dinonaktifkan" if target.is_active else "diaktifkan lagi"
-    return run_user_action(toggle_user_active, f"Akun {target.full_name} {status_text}", target)
+    status_text = "deactivated" if target.is_active else "reactivated"
+    return run_user_action(toggle_user_active, f"Account {target.full_name} {status_text}", target)
 
 @users_bp.post("/<int:user_id>/unlock")
 @login_required
@@ -137,7 +137,7 @@ def toggle_active(user_id):
 def unlock(user_id):
     """Buka kunci akun yg lagi terkunci."""
     target = get_target_user_or_404(user_id)
-    return run_user_action(unlock_user, f"Kunci akun {target.full_name} sudah dibuka", target)
+    return run_user_action(unlock_user, f"Account {target.full_name} unlocked", target)
 
 @users_bp.route("/<int:user_id>/delete", methods=["GET", "POST"])
 @login_required
@@ -146,7 +146,7 @@ def unlock(user_id):
 def delete(user_id):
     """Hapus akun: tampilin dampaknya dulu, admin ngetik ulang email buat konfirmasi."""
     target = get_target_user_or_404(user_id)
-    admin_redirect = redirect_if_admin(target, "Akun admin tidak bisa dihapus dari panel")
+    admin_redirect = redirect_if_admin(target, "Admin accounts can't be deleted from the panel")
     if admin_redirect:
         return admin_redirect
 
@@ -157,12 +157,12 @@ def delete(user_id):
         except ValidationError as error:
             flash_error_list(error.error_list)
         else:
-            flash(f"Akun {full_name} sudah dihapus", "success")
+            flash(f"Account {full_name} deleted", "success")
             return redirect(build_back_url())
 
     return render_template(
         "pages/users/delete.html",
-        page_title="Hapus Akun",
+        page_title="Delete Account",
         target=target,
         delete_preview_dict=build_delete_preview(target),
         back_url=build_back_url(),

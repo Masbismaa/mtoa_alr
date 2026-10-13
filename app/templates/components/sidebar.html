@@ -3,7 +3,7 @@
 {% from "components/notification_menu.html" import notification_menu with context %}
 <aside class="navbar navbar-vertical navbar-expand-lg app-sidebar" id="app_sidebar">
   <div class="container-fluid">
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar_menu" aria-controls="sidebar_menu" aria-expanded="false" aria-label="Buka/tutup menu">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar_menu" aria-controls="sidebar_menu" aria-expanded="false" aria-label="Toggle menu">
       <span class="navbar-toggler-icon"></span>
     </button>
 
@@ -21,27 +21,36 @@
     </div>
 
     <div class="collapse navbar-collapse" id="sidebar_menu">
-      <ul class="navbar-nav pt-lg-2">
+      <ul class="navbar-nav pt-lg-2 sidebar-tree">
         {% for section in sidebar_section_list %}
-          <li class="nav-item sidebar-heading">{{ section.title }}</li>
+          <li class="nav-item sidebar-section">
+            <details data-sidebar-branch="section-{{ loop.index }}"{% if section.is_open %} open data-sidebar-active="true"{% endif %}>
+              <summary class="sidebar-heading">
+                <span class="sidebar-chevron">{{ icon("chevron_right") }}</span>
+                <span>{{ section.title }}</span>
+              </summary>
+              <ul class="sidebar-children">
           {% for nav_item in section.item_list %}
             {% if nav_item.child_list %}
-              <li class="nav-item dropdown{% if nav_item.is_open %} active{% endif %}">
-                <a class="nav-link dropdown-toggle{% if nav_item.is_open %} show{% endif %}" href="#" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="{{ 'true' if nav_item.is_open else 'false' }}">
-                  <span class="nav-link-icon d-md-none d-lg-inline-block">{{ icon(nav_item.icon) }}</span>
-                  <span class="nav-link-title">{{ nav_item.label }}</span>
-                </a>
-                <div class="dropdown-menu{% if nav_item.is_open %} show{% endif %}">
+              <li class="nav-item sidebar-folder{% if nav_item.is_open %} active{% endif %}">
+                <details data-sidebar-branch="menu-{{ nav_item.icon }}"{% if nav_item.is_open %} open data-sidebar-active="true"{% endif %}>
+                  <summary class="nav-link sidebar-folder-toggle">
+                    <span class="sidebar-chevron">{{ icon("chevron_right") }}</span>
+                    <span class="nav-link-icon">{{ icon(nav_item.icon) }}</span>
+                    <span class="nav-link-title">{{ nav_item.label }}</span>
+                  </summary>
+                  <ul class="sidebar-children sidebar-leaves">
                   {% for child_item in nav_item.child_list if child_item.is_available %}
-                    <a class="dropdown-item{% if child_item.is_active %} active{% endif %}" href="{{ child_item.url }}"{% if child_item.is_active %} aria-current="page"{% endif %}>{{ child_item.label }}</a>
+                    <li><a class="dropdown-item{% if child_item.is_active %} active{% endif %}" href="{{ child_item.url }}"{% if child_item.is_active %} aria-current="page"{% endif %}>{{ child_item.label }}</a></li>
                   {% endfor %}
-                </div>
+                  </ul>
+                </details>
               </li>
             {% elif nav_item.is_locked %}
               {# menu tanpa akses: tetep keliatan biar user tau ada. Diklik -> muncul pemberitahuan, ga pindah halaman #}
               <li class="nav-item">
                 <button type="button" class="nav-link nav-link-locked" title="{{ nav_item.lock_reason }}"
-                        data-locked-message="Kamu belum punya otoritas buat buka menu {{ nav_item.label }}. {{ nav_item.lock_reason }}.">
+                        data-locked-message="You are not authorized to open the {{ nav_item.label }} menu. {{ nav_item.lock_reason }}.">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">{{ icon(nav_item.icon) }}</span>
                   <span class="nav-link-title">{{ nav_item.label }}</span>
                   <span class="ms-auto">{{ icon("lock") }}</span>
@@ -56,15 +65,18 @@
                     <span class="nav-link-title">{{ nav_item.label }}</span>
                   </a>
                 {% else %}
-                  <span class="nav-link disabled" aria-disabled="true" title="{{ nav_item.label }} (segera hadir)">
+                  <span class="nav-link disabled" aria-disabled="true" title="{{ nav_item.label }} (coming soon)">
                     <span class="nav-link-icon d-md-none d-lg-inline-block">{{ icon(nav_item.icon) }}</span>
                     <span class="nav-link-title">{{ nav_item.label }}</span>
-                    <span class="badge bg-secondary-lt ms-auto">Segera</span>
+                    <span class="badge bg-secondary-lt ms-auto">Soon</span>
                   </span>
                 {% endif %}
               </li>
             {% endif %}
           {% endfor %}
+              </ul>
+            </details>
+          </li>
         {% endfor %}
       </ul>
 

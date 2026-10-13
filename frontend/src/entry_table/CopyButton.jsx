@@ -19,7 +19,7 @@ export default function CopyButton({ text, label }) {
       window.clearTimeout(timerRef.current);
       timerRef.current = window.setTimeout(() => setIsCopied(false), RESET_MS);
     } catch (error) {
-      showStatus("Gagal menyalin, coba blok teksnya manual", "danger");
+      showStatus("Copy failed; select the text and copy it manually", "danger");
     }
   }
 
@@ -32,7 +32,7 @@ export default function CopyButton({ text, label }) {
       onClick={handleClick}
     >
       <Icon name="copy" />
-      <span className="visually-hidden">{isCopied ? "Tersalin ✓" : label}</span>
+      <span className="visually-hidden">{isCopied ? "Copied ✓" : label}</span>
     </button>
   );
 }

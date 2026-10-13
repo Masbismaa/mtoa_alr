@@ -1,0 +1,57 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+
+{% block title %}Import Links{% endblock %}
+
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}Import Access Links{% endblock %}
+
+{% block page_pretitle %}Links{% endblock %}
+
+{% block toolbar_cancel %}{{ url_for('entries.index') }}{% endblock %}
+
+{% block page_help %}
+  <p>Download the template, fill one link per row, then upload it here. Every row is checked with the same rules as <b>Add Link</b>.</p>
+  <p>If any row has an error, <b>nothing</b> is imported; fix the rows listed and upload again.</p>
+{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      {% if error_list %}
+        <div class="alert alert-danger" role="alert">
+          <div class="fw-bold mb-1">{{ icon("alert_triangle") }} Nothing was imported. Fix these and upload again:</div>
+          <ul class="mb-0 import-error-list">
+            {% for error in error_list %}<li>{{ error }}</li>{% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("upload") }} Import from Excel</h3>
+        </div>
+        <div class="card-body">
+          <ol class="mb-4">
+            <li class="mb-2">
+              Download the template and fill one link per row (up to {{ import_max_row_count }} rows).
+              <div class="mt-2"><a href="{{ url_for('entries.import_template') }}" class="btn btn-sm">{{ icon("download") }} Download template</a></div>
+            </li>
+            <li class="mb-2">Write the <b>Category</b> as its full path, e.g. <code>Web &gt; SAP</code> for SAP under Web. The template's <b>Categories</b> sheet lists every path you can use.</li>
+            <li><b>Visibility</b> is <code>Private</code> or <code>Public</code> (empty = Private). You become the owner of every imported link.</li>
+          </ol>
+
+          <div class="alert alert-warning">{{ icon("lock") }} Access notes are stored encrypted after import, but the Excel file itself is not. Delete the file once the import is done.</div>
+
+          <form method="post" enctype="multipart/form-data" id="import_form" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="form-label required" for="import_file">Excel file (.xlsx)</label>
+            <input type="file" name="import_file" id="import_file" class="form-control mb-3"
+                   accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+            <button type="submit" class="btn btn-primary">{{ icon("upload") }} Import</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

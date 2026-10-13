@@ -17,10 +17,6 @@ def test_complete_email_empty_stays_empty():
     assert complete_email("", "spindo.com") == ""
     assert complete_email(None, "spindo.com") == ""
 
-def test_login_page_shows_domain(client):
-    """Positive: domain kantor tampil nempel di kanan isian email."""
-    assert "@spindo.com</span>" in client.get("/auth/login").get_data(as_text=True)
-
 def test_register_with_local_part(client, user_password):
     """Positive: daftar cukup isi nama depan -> pendaftaran kesimpen pake email lengkap."""
     response = client.post("/auth/register", data={

@@ -1,6 +1,7 @@
-"""Model ORM tabel otp_codes: OTP login yg lagi aktif/udah kepake."""
+"""Model ORM tabel otp_codes: OTP login & lupa password yg lagi aktif/udah kepake."""
 from app.extensions import db
 from app.models.base_model import CreatedAtMixin
+from app.utils.constants import OTP_PURPOSE_LOGIN
 
 class OtpCode(CreatedAtMixin, db.Model):
     """Satu baris = satu OTP yg pernah dikirim ke user."""
@@ -18,6 +19,8 @@ class OtpCode(CreatedAtMixin, db.Model):
     attempt_count = db.Column(db.Integer, nullable=False, default=0, server_default="0")
     # kalau OTP udah kepake / hangus
     is_used = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text("false"))
+    # login / reset (lupa password). Dipisah biar kode reset ga bisa dipake login & ga saling ngehanguskan
+    purpose = db.Column(db.String(20), nullable=False, default=OTP_PURPOSE_LOGIN, server_default=OTP_PURPOSE_LOGIN)
 
     def __repr__(self):
         """Representasi singkat buat debugging (hash-nya sengaja ga ditampilin)."""

@@ -10,3 +10,6 @@ uploads/
 
 # frontend React (hasil build app/static/dist tetep di-commit)
 frontend/node_modules/
+
+# screenshot uji E2E (scripts/e2e)
+scripts/e2e/shots/

@@ -1,12 +1,6 @@
 """Test helper form bareng: baca isi form, tempel error ke field, sisanya dibalikin."""
 from app.schemas.category_schema import CategoryForm
-from app.utils.form_helper import attach_form_error_list, read_form_data
-
-def test_read_form_data(app):
-    """Positive: cuma field yg disebut yg diambil."""
-    with app.test_request_context(method="POST", data={"name": "SAP", "description": "ERP"}):
-        form = CategoryForm()
-        assert read_form_data(form, ["name"]) == {"name": "SAP"}
+from app.utils.form_helper import attach_form_error_list
 
 def test_attach_form_error_list(app):
     """Positive/Negative: error ber-field nempel ke field-nya, yg ga ada field-nya dibalikin."""

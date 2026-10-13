@@ -51,7 +51,7 @@
     closeButton.type = "button";
     closeButton.className = "btn-close";
     closeButton.dataset.flashClose = "";
-    closeButton.setAttribute("aria-label", "Tutup pesan");
+    closeButton.setAttribute("aria-label", "Close message");
 
     flashEl.append(textEl, closeButton);
     listEl.append(flashEl);

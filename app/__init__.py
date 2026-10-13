@@ -13,14 +13,14 @@ REQUIRED_CONFIG_KEY_LIST = ["SECRET_KEY", "SQLALCHEMY_DATABASE_URI", "ENCRYPTION
 
 # isi halaman error
 ERROR_PAGE_DICT = {
-    403: ("Akses ditolak", "Kamu tidak punya izin untuk membuka atau mengubah data ini."),
-    404: ("Tidak ditemukan", "Halaman atau data yang kamu cari tidak ada, atau kamu tidak punya akses."),
-    405: ("Aksi tidak diizinkan", "Cara membuka halaman ini tidak didukung. Kembali lalu coba lewat tombol yang tersedia."),
-    413: ("File terlalu besar", "Total upload kebesaran. Maksimal 5 file, masing-masing 10MB."),
-    500: ("Terjadi kesalahan", "Ada yang error di server. Coba lagi sebentar lagi, kalau masih muncul hubungi tim ICT."),
+    403: ("Access denied", "You don't have permission to open or change this data."),
+    404: ("Not found", "The page or data you are looking for doesn't exist, or you don't have access."),
+    405: ("Action not allowed", "This page can't be opened this way. Go back and use the available buttons."),
+    413: ("File too large", "The total upload is too large. Up to 5 files, 10MB each."),
+    500: ("Something went wrong", "There was a server error. Try again shortly; if it keeps happening, contact the ICT team."),
 }
 # token form (CSRF) kedaluwarsa / ga ada, biasanya gara-gara halaman kebuka kelamaan
-CSRF_ERROR_PAGE = ("Sesi form kedaluwarsa", "Halaman ini kebuka terlalu lama. Muat ulang halaman, lalu kirim lagi.")
+CSRF_ERROR_PAGE = ("Form session expired", "This page was open too long. Reload the page, then submit again.")
 
 
 def resolve_config_name(config_name=None):
@@ -39,6 +39,8 @@ def create_app(config_name=None):
     if proxy_count:
         from werkzeug.middleware.proxy_fix import ProxyFix
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxy_count, x_proto=proxy_count)
+    else:
+        warn_untrusted_proxy_header(app)
 
     # 3. Hubungkan extension (dibuat sekali di extensions.py) ke aplikasi
     db.init_app(app)
@@ -65,6 +67,21 @@ def create_app(config_name=None):
 
     register_cli_commands(app)
     return app
+
+def warn_untrusted_proxy_header(app):
+    """Ada header X-Forwarded-For padahal TRUSTED_PROXY_COUNT=0 -> aplikasi kemungkinan di belakang reverse proxy
+    yg belum diatur. Semua user bakal keliatan dari 1 IP (IP proxy): rate limit login & blokir salah password
+    jadi berlaku buat sekantor. Cukup dicatat sekali per proses biar log ga kebanjiran."""
+    is_warned = []
+
+    @app.before_request
+    def check_proxy_header():
+        if not is_warned and "X-Forwarded-For" in request.headers:
+            is_warned.append(True)
+            app.logger.warning(
+                "Request membawa X-Forwarded-For tapi TRUSTED_PROXY_COUNT=0: semua user terlihat dari IP proxy. "
+                "Isi TRUSTED_PROXY_COUNT sesuai jumlah reverse proxy (lihat docs/deploy.md)."
+            )
 
 def validate_required_config(app):
     """Cek config wajib udah keisi semua, kalau ada yg kosong/berbahaya langsung error."""
@@ -142,10 +159,15 @@ def build_error_handler(error_code, error_title, error_message):
     """Bikin handler buat satu kode error (biar ga nulis ulang)."""
 
     def handle_error(error):
+        from app.utils.response_formatter import error_response, wants_json_response
+
         if error_code >= 500:
             # Handler ini dipanggil saat ada request, jadi application context
             # dan session SQLAlchemy sudah tersedia di sini.
             db.session.rollback()
+        # request dari script (fetch JSON) dapet JSON dgn pesan yg sama, bukan halaman HTML
+        if wants_json_response():
+            return error_response(error_message, error_code)
         return render_template(
             "pages/errors/error.html",
             error_code=error_code,
@@ -169,12 +191,17 @@ def register_error_handlers(app):
 
     @app.errorhandler(429)
     def handle_too_many_requests(error):
+        from app.utils.response_formatter import error_response, wants_json_response
+
+        if wants_json_response():
+            return error_response("Too many requests. Wait a moment, then try again.", 429)
         return render_template("pages/errors/429.html"), 429
 
 def register_template_helpers(app):
     """Filter & data global buat semua template."""
     from app.services.preference_service import build_ui_preference_dict, get_or_create_preference
     from app.services.user_notification_service import count_unread_notification, list_recent_notification
+    from app.services.user_service import get_permission_key_list
     from app.utils.constants import ACCENT_COLOR_OPTION_LIST, FONT_FAMILY_OPTION_LIST
     from app.services.category_service import build_category_label
     from app.utils.datetime_helper import format_local_datetime, format_time_ago
@@ -205,16 +232,29 @@ def register_template_helpers(app):
     app.add_template_filter(get_user_status_label, "user_status_label")
 
     from app.security.access_policy import has_permission, is_admin
+    from app.services.preference_service import list_selection_variant
+
+    def list_screen_variant():
+        """Variant Kriteria Pencarian user di layar ini (dipake components/selection_panel.html)."""
+        user = get_current_user()
+        return list_selection_variant(user, request.path) if user.is_authenticated else []
+
     from app.utils.request_helper import get_current_user
-    from app.utils.constants import PERMISSION_MANAGE_CATEGORIES, ROLE_ADMIN
+    from app.utils.constants import (
+        DASHBOARD_ACTIVITY_DAY_COUNT, PERMISSION_MANAGE_CATEGORIES, PERMISSION_VIEW_AUDIT_LOGS, ROLE_ADMIN,
+        PERMISSION_INFO_DICT, PERMISSION_EDIT_PUBLIC_ENTRIES,
+    )
     from app.utils.vite_manifest import vite_tags
     # dipake template buat nampilin/nyembunyiin tombol sesuai akses
     app.jinja_env.globals.update(
         has_permission=has_permission,
         is_admin=is_admin,
+        list_screen_variant=list_screen_variant,
         # tag script komponen React hasil build (frontend/), misal {{ vite_tags("entry_table") }}
         vite_tags=vite_tags,
         PERMISSION_MANAGE_CATEGORIES=PERMISSION_MANAGE_CATEGORIES,
+        PERMISSION_VIEW_AUDIT_LOGS=PERMISSION_VIEW_AUDIT_LOGS,
+        DASHBOARD_ACTIVITY_DAY_COUNT=DASHBOARD_ACTIVITY_DAY_COUNT,
         ROLE_ADMIN=ROLE_ADMIN,
     )
 
@@ -231,9 +271,25 @@ def register_template_helpers(app):
 
         user = get_current_user()
         preference = get_or_create_preference(user)
+        sidebar_sections = build_sidebar_section_list(user, request.endpoint)
+        permission_keys = get_permission_key_list(user) if not is_admin(user) else []
+        access_kind = "admin" if is_admin(user) else "granted" if permission_keys else "standard"
+        account_access = {
+            "kind": access_kind,
+            "label": {"admin": "Admin", "granted": "User with access", "standard": "User Entry"}[access_kind],
+            "color_class": {"admin": "bg-blue-lt", "granted": "bg-teal-lt", "standard": "bg-secondary-lt"}[access_kind],
+            "permission_list": [PERMISSION_INFO_DICT[key] for key in permission_keys],
+            "can_edit_public": PERMISSION_EDIT_PUBLIC_ENTRIES in permission_keys,
+            "management_link_list": [
+                item for section in sidebar_sections for item in section["item_list"]
+                if (item.get("permission") or item.get("is_admin_only"))
+                and not item.get("is_locked") and item.get("is_available")
+            ],
+        }
         return {
+            "account_access": account_access,
             "ui_preference_dict": build_ui_preference_dict(preference),
-            "sidebar_section_list": build_sidebar_section_list(user, request.endpoint),
+            "sidebar_section_list": sidebar_sections,
             "accent_color_option_list": ACCENT_COLOR_OPTION_LIST,
             "font_family_option_list": FONT_FAMILY_OPTION_LIST,
             "unread_notification_count": count_unread_notification(user),

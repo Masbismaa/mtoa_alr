@@ -1,5 +1,6 @@
 """Test helper teks (email, inisial, label role/visibilitas/status)."""
 from app.utils.text_helper import (
+    format_file_size,
     get_initials,
     get_link_status_label,
     get_role_label,
@@ -45,4 +46,12 @@ def test_get_visibility_and_link_status_label():
     """Positive: label visibilitas & status link."""
     assert get_visibility_label("public") == "Public"
     assert get_visibility_label("private") == "Private"
-    assert get_link_status_label("unknown") == "Belum dicek"
+    assert get_link_status_label("unknown") == "Not checked"
+
+
+def test_format_file_size():
+    """Positive: B, KB, MB kebaca rapi."""
+    assert format_file_size(500) == "500 B"
+    assert format_file_size(2048) == "2.0 KB"
+    assert format_file_size(3 * 1024 * 1024) == "3.0 MB"
+    assert format_file_size(None) == "-"

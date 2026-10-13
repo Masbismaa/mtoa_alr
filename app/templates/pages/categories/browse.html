@@ -7,29 +7,29 @@
 {% block title %}{{ path_list | map(attribute="name") | join(" › ") }}{% endblock %}
 
 {# judul layar di title bar atas ala SAP #}
-{% block screen_title %}Display Kategori: {{ category.name }}{% endblock %}
+{% block screen_title %}Display Category: {{ category.name }}{% endblock %}
 
-{% block page_pretitle %}Kategori{% endblock %}
+{% block page_pretitle %}Categories{% endblock %}
 
 {# Kembali: ke kategori induk, kalau udah paling atas ke daftar kategori di Dashboard #}
 {% block toolbar_back %}{% if path_list | length > 1 %}{{ url_for('categories.browse', category_id=path_list[-2].id) }}{% else %}{{ url_for('main.home', _anchor='kategori') }}{% endif %}{% endblock %}
 
 {% block page_heading %}
   {{ category.name }}
-  {% if is_default %}<span class="badge bg-primary-lt align-middle ms-1">{{ icon("lock") }} Bawaan</span>{% endif %}
-  {% if not category.is_active %}<span class="badge bg-secondary-lt align-middle ms-1">Nonaktif</span>{% endif %}
+  {% if is_default %}<span class="badge bg-primary-lt align-middle ms-1">{{ icon("lock") }} Built-in</span>{% endif %}
+  {% if not category.is_active %}<span class="badge bg-secondary-lt align-middle ms-1">Inactive</span>{% endif %}
 {% endblock %}
 
 {# jalur kategori + status + deskripsi, tampil di atas konten #}
 {% block page_subtitle %}
-  <ol class="breadcrumb breadcrumb-arrows category-breadcrumb" aria-label="Jalur kategori">
+  <ol class="breadcrumb breadcrumb-arrows category-breadcrumb" aria-label="Category path">
     <li class="breadcrumb-item"><a href="{{ url_for('main.home') }}#kategori">Home</a></li>
     {% for path_category in path_list[:-1] %}
       <li class="breadcrumb-item"><a href="{{ url_for('categories.browse', category_id=path_category.id) }}">{{ path_category.name }}</a></li>
     {% endfor %}
   </ol>
-  {% if is_default %}<span class="badge bg-primary-lt">{{ icon("lock") }} Bawaan</span>{% endif %}
-  {% if not category.is_active %}<span class="badge bg-secondary-lt">Nonaktif</span>{% endif %}
+  {% if is_default %}<span class="badge bg-primary-lt">{{ icon("lock") }} Built-in</span>{% endif %}
+  {% if not category.is_active %}<span class="badge bg-secondary-lt">Inactive</span>{% endif %}
   {% if category.description %}<div class="text-secondary mt-1">{{ category.description }}</div>{% endif %}
 {% endblock %}
 
@@ -37,17 +37,17 @@
   {% if can_manage %}
     <a href="{{ url_for('categories.edit', category_id=category.id) }}" class="btn">{{ icon("edit") }} Edit</a>
     {% if not is_default %}
-      <form method="post" action="{{ url_for('categories.delete', category_id=category.id) }}" data-confirm-title="Hapus kategori?" data-confirm-message="Kategori &quot;{{ category.name }}&quot; bakal dihapus permanen. Cuma bisa kalau udah kosong (ga ada link & sub-kategori)." data-confirm-ok="Ya, hapus">
+      <form method="post" action="{{ url_for('categories.delete', category_id=category.id) }}" data-confirm-title="Delete category?" data-confirm-message="Category &quot;{{ category.name }}&quot; will be permanently deleted. Only possible when it is empty (no links & sub-categories)." data-confirm-ok="Yes, delete">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-ghost-danger">{{ icon("trash") }} Hapus</button>
+        <button type="submit" class="btn btn-ghost-danger" data-fkey="Shift+F2" title="Delete (Shift+F2)">{{ icon("trash") }} Delete</button>
       </form>
     {% endif %}
   {% endif %}
   {% if can_add_sub %}
-    <a href="{{ url_for('categories.create_sub', category_id=category.id) }}" class="btn">{{ icon("plus") }} Sub-kategori</a>
-    <a href="{{ url_for('entries.create', category_id=category.id) }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link di sini</a>
+    <a href="{{ url_for('categories.create_sub', category_id=category.id) }}" class="btn">{{ icon("plus") }} Sub-category</a>
+    <a href="{{ url_for('entries.create', category_id=category.id) }}" class="btn btn-primary">{{ icon("plus") }} Add Link here</a>
   {% elif category.is_active %}
-    <a href="{{ url_for('entries.create', category_id=category.id) }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link di sini</a>
+    <a href="{{ url_for('entries.create', category_id=category.id) }}" class="btn btn-primary">{{ icon("plus") }} Add Link here</a>
   {% endif %}
 {% endblock %}
 
@@ -55,14 +55,14 @@
   {% if forum_row_list %}
     <div class="card mb-3">
       <div class="card-header">
-        <h3 class="card-title">{{ icon("category") }} Sub-kategori</h3>
+        <h3 class="card-title">{{ icon("category") }} Sub-categories</h3>
         <div class="card-actions"><span class="badge bg-secondary-lt">{{ forum_row_list | length }}</span></div>
       </div>
       {{ category_forum(forum_row_list) }}
     </div>
   {% endif %}
 
-  {{ selection_panel(selection_field_list, url_for("categories.browse", category_id=category.id, _anchor="daftar_link"), "Cari judul, URL, address, deskripsi... (tekan /)") }}
+  {{ selection_panel(selection_field_list, url_for("categories.browse", category_id=category.id, _anchor="daftar_link"), "Search title, URL, address, description... (press /)") }}
 
   {{ entry_table(entry_table_payload) }}
 {% endblock %}

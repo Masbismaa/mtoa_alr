@@ -15,6 +15,8 @@ from app.models.user_permission import UserPermission
 from app.models.link_monitor_run import LinkMonitorRun
 from app.models.user_notification import UserNotification
 from app.models.pending_registration import PendingRegistration
+from app.models.user_favorite import UserFavorite
+from app.models.selection_variant import SelectionVariant
 from app.extensions import db
 
 # jumlah lampiran dihitung di SQL (buat tabel & export), biar ga perlu ngambil semua baris lampiran.
@@ -31,5 +33,5 @@ AccessEntry.attachment_count = db.column_property(
 __all__ = [
     "AccessEntry", "AccessEntryField", "Attachment", "AuditLog", "Category",
     "Group", "GroupEntry", "GroupEntryViewer", "GroupMember", "OtpCode", "User", "UserPreference",
-    "UserPermission", "LinkMonitorRun", "UserNotification", "PendingRegistration"
+    "UserPermission", "LinkMonitorRun", "UserNotification", "PendingRegistration", "UserFavorite", "SelectionVariant"
 ]

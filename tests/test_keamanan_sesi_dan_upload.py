@@ -52,7 +52,7 @@ def test_failed_delivery_invalidates_otp(app, registered_user, monkeypatch):
     def fail_delivery(*args):
         raise OSError("smtp secret should not appear")
     monkeypatch.setattr(auth_service, "send_otp_code", fail_delivery)
-    with pytest.raises(AuthError, match="belum bisa dikirim"):
+    with pytest.raises(AuthError, match="could not be sent"):
         auth_service.start_otp_challenge(registered_user)
     assert db.session.scalar(db.select(OtpCode).order_by(OtpCode.id.desc()).limit(1)).is_used
 
@@ -88,10 +88,10 @@ def test_scanner_rejects_detection_and_unavailability(app, monkeypatch):
     connection.__enter__.return_value = connection
     connection.recv.return_value = b"stream: Eicar-Test-Signature FOUND\0"
     monkeypatch.setattr(socket, "create_connection", MagicMock(return_value=connection))
-    with pytest.raises(ValueError, match="ditolak"):
+    with pytest.raises(ValueError, match="rejected"):
         scan_upload(b"dummy")
     monkeypatch.setattr(socket, "create_connection", MagicMock(side_effect=OSError()))
-    with pytest.raises(ValueError, match="belum tersedia"):
+    with pytest.raises(ValueError, match="not available"):
         scan_upload(b"dummy")
 
 

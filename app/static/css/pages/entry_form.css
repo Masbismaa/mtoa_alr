@@ -10,3 +10,11 @@
   top: 0;
   right: 0;
 }
+
+/* kategori bertingkat (entry_form.js): 1 dropdown + label per tingkat, sejajar kalau lebar cukup, numpuk di HP.
+   :not([hidden]) biar atribut hidden tetep menang selama JS belum jalan */
+.category-cascade:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}

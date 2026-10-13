@@ -43,7 +43,7 @@ def get_visibility_label(visibility):
     return VISIBILITY_LABEL_DICT.get(visibility, visibility)
 
 def get_link_status_label(status):
-    """Ubah kode status link jadi label, misal 'unknown' -> 'Belum dicek'."""
+    """Ubah kode status link jadi label, misal 'unknown' -> 'Not checked'."""
     return LINK_STATUS_LABEL_DICT.get(status, status)
 
 def format_file_size(size_bytes):
@@ -60,9 +60,9 @@ def get_audit_action_label(action):
     return AUDIT_ACTION_LABEL_DICT.get(action, action)
 
 def get_audit_entity_label(entity_type):
-    """Ubah nama tabel di audit log jadi label, misal 'access_entries' -> 'Data Link'."""
+    """Ubah nama tabel di audit log jadi label, misal 'access_entries' -> 'Link'."""
     return AUDIT_ENTITY_LABEL_DICT.get(entity_type, entity_type)
 
 def get_user_status_label(status):
-    # ubah code status akun jdi label contoh "active" -> "Aktif"
+    # ubah code status akun jdi label contoh "active" -> "Active"
     return USER_STATUS_LABEL_DICT.get(status, status)

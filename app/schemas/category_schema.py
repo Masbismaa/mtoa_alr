@@ -6,8 +6,8 @@ from app.utils.constants import MAX_CATEGORY_DESCRIPTION_LENGTH, MAX_CATEGORY_NA
 
 class CategoryForm(FlaskForm):
     """Nama wajib, deskripsi opsional."""
-    name = StringField("Nama Kategori", validators=[
-        DataRequired(message="Nama kategori wajib diisi"),
+    name = StringField("Category Name", validators=[
+        DataRequired(message="Category name is required"),
         Length(max=MAX_CATEGORY_NAME_LENGTH),
     ])
-    description = TextAreaField("Deskripsi", validators=[Optional(), Length(max=MAX_CATEGORY_DESCRIPTION_LENGTH)])
+    description = TextAreaField("Description", validators=[Optional(), Length(max=MAX_CATEGORY_DESCRIPTION_LENGTH)])

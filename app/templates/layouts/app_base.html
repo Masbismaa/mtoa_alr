@@ -15,13 +15,13 @@
   {% set page_help_html = self.page_help() | trim %}
   {# tombol khusus halaman (Tambah, Edit, Hapus, ...) ikut tampil di toolbar, ga di kepala halaman lagi #}
   {% set page_action_html = self.page_actions() | trim %}
-  {% set page_mode = "Ubah" if toolbar_save_form else "Lihat" %}
+  {% set page_mode = "Change" if toolbar_save_form else "Display" %}
   {# keterangan halaman (badge, deskripsi, catatan) tetep tampil di atas konten walau kepala halaman di-remark #}
   {% set page_info_html = self.page_subtitle() | trim %}
   {% if false %}{% block toolbar_back %}{% endblock %}{% block toolbar_cancel %}{% endblock %}{% block toolbar_save %}{% endblock %}{% block page_help %}{% endblock %}{% block page_actions %}{% endblock %}{% block screen_title %}{% endblock %}
     {% block page_pretitle %}ALR{% endblock %}{% block page_heading %}{{ page_title or "ALR" }}{% endblock %}{% block page_subtitle %}{% endblock %}
   {% endif %}
-  <a href="#main_content" class="visually-hidden-focusable skip-link">Lewati ke konten</a>
+  <a href="#main_content" class="visually-hidden-focusable skip-link">Skip to content</a>
 
   <div class="page">
     {% include "components/topbar.html" %}

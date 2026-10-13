@@ -10,15 +10,39 @@
     {# urutan tabel yg lagi kepake ikut kebawa pas Jalankan #}
     {% if args.get("sort") %}<input type="hidden" name="sort" value="{{ args.get('sort') }}">{% endif %}
     <div class="card-header">
-      <h3 class="card-title">{{ icon("search") }} Kriteria Pencarian</h3>
-      <div class="card-actions">
-        <button type="button" class="btn btn-sm btn-icon" data-bs-toggle="collapse" data-bs-target="#selection_body" aria-expanded="{{ 'true' if is_open else 'false' }}" aria-controls="selection_body" aria-label="Tampilkan atau sembunyikan kriteria" title="Tampilkan / sembunyikan">{{ icon("chevron_down") }}</button>
+      <h3 class="card-title">{{ icon("search") }} Selection Criteria</h3>
+      <div class="card-actions btn-list">
+        {# Variant ala SAP: simpen isian kriteria pake nama (Save as Variant), panggil lagi (Get Variant).
+           input & tombolnya nempel ke form di bawah (atribut form), soalnya form ga boleh di dalem form #}
+        {% set variant_list = list_screen_variant() %}
+        <div class="dropdown">
+          <button type="button" class="btn btn-sm" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Get / save variants">{{ icon("list") }} Variant{% if variant_list %} ({{ variant_list | length }}){% endif %}</button>
+          <div class="dropdown-menu dropdown-menu-end selection-variant-menu">
+            <span class="dropdown-header">Get Variant</span>
+            {% for variant in variant_list %}
+              <div class="selection-variant-item">
+                <a class="dropdown-item text-truncate" href="{{ request.path }}{% if variant.query_text %}?{{ variant.query_text }}{% endif %}" title="Apply variant {{ variant.name }}">{{ variant.name }}</a>
+                <button type="submit" form="variant_delete_form" formaction="{{ url_for('settings.delete_variant', variant_id=variant.id) }}" class="btn btn-sm btn-icon btn-ghost-danger" aria-label="Delete variant {{ variant.name }}" title="Delete variant">{{ icon("trash") }}</button>
+              </div>
+            {% else %}
+              <span class="dropdown-item-text small text-secondary">No saved variants yet.</span>
+            {% endfor %}
+            <div class="dropdown-divider"></div>
+            <span class="dropdown-header">Save as Variant</span>
+            <div class="px-3 pb-2 d-flex gap-2">
+              <input type="text" name="name" form="variant_save_form" class="form-control form-control-sm" maxlength="50" placeholder="Variant name" aria-label="Variant name" required autocomplete="off">
+              <button type="submit" form="variant_save_form" class="btn btn-sm btn-primary">Save</button>
+            </div>
+            <div class="px-3 pb-1 small text-secondary">Saves the criteria currently filled in. Same name = replaced.</div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-icon" data-bs-toggle="collapse" data-bs-target="#selection_body" aria-expanded="{{ 'true' if is_open else 'false' }}" aria-controls="selection_body" aria-label="Show or hide criteria" title="Show / hide">{{ icon("chevron_down") }}</button>
       </div>
     </div>
     <div class="collapse{% if is_open %} show{% endif %}" id="selection_body">
       <div class="card-body selection-grid">
         <div class="selection-row">
-          <label class="selection-label" for="filter_keyword">Cari cepat</label>
+          <label class="selection-label" for="filter_keyword">Quick search</label>
           <div class="selection-input">
             <input type="search" id="filter_keyword" name="q" value="{{ args.get('q', '') }}" class="form-control" placeholder="{{ quick_placeholder }}" maxlength="100" autocomplete="off" data-selection-quick>
           </div>
@@ -38,7 +62,7 @@
                 {% for value in exclude_list %}<input type="hidden" name="{{ field.key }}__not" value="{{ value }}" data-selection-extra>{% endfor %}
               </div>
               <div class="selection-tool">
-                <button type="button" class="btn btn-icon" data-selection-multi="{{ field.key }}" data-selection-label="{{ field.label }}" aria-label="Multi Selection {{ field.label }}" title="Multi Selection: banyak nilai, sertakan / kecualikan">{{ icon("list") }}</button>
+                <button type="button" class="btn btn-icon" data-selection-multi="{{ field.key }}" data-selection-label="{{ field.label }}" aria-label="Multi Selection {{ field.label }}" title="Multi Selection: multiple values, include / exclude">{{ icon("list") }}</button>
                 <span class="badge bg-primary-lt" data-selection-count{% if extra_count <= 0 %} hidden{% endif %}>+{{ extra_count }}</span>
               </div>
             {% elif field.kind == "choice" %}
@@ -47,7 +71,7 @@
               <span class="selection-label" id="{{ field_id }}_label">{{ field.label }}</span>
               <div class="selection-input dropdown" data-selection-choice>
                 <button type="button" class="form-select text-start text-truncate" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-labelledby="{{ field_id }}_label {{ field_id }}_summary">
-                  <span id="{{ field_id }}_summary" data-selection-summary data-empty-text="Semua">{{ picked_label_list | join(", ") if picked_label_list else "Semua" }}</span>
+                  <span id="{{ field_id }}_summary" data-selection-summary data-empty-text="All">{{ picked_label_list | join(", ") if picked_label_list else "All" }}</span>
                 </button>
                 <div class="dropdown-menu selection-choice-menu">
                   {% for option_value, option_label in field.option_list %}
@@ -61,20 +85,29 @@
             {% else %}
               <label class="selection-label" for="{{ field_id }}_from">{{ field.label }}</label>
               <div class="selection-input selection-range">
-                <input type="date" id="{{ field_id }}_from" name="{{ field.from_key }}" value="{{ args.get(field.from_key, '') }}" class="form-control" aria-label="{{ field.label }} dari">
-                <span class="text-secondary">s/d</span>
-                <input type="date" id="{{ field_id }}_to" name="{{ field.to_key }}" value="{{ args.get(field.to_key, '') }}" class="form-control" aria-label="{{ field.label }} sampai">
+                <input type="date" id="{{ field_id }}_from" name="{{ field.from_key }}" value="{{ args.get(field.from_key, '') }}" class="form-control" aria-label="{{ field.label }} from">
+                <span class="text-secondary">to</span>
+                <input type="date" id="{{ field_id }}_to" name="{{ field.to_key }}" value="{{ args.get(field.to_key, '') }}" class="form-control" aria-label="{{ field.label }} to">
               </div>
             {% endif %}
           </div>
         {% endfor %}
       </div>
       <div class="card-footer d-flex flex-wrap align-items-center gap-2">
-        <button type="submit" class="btn btn-primary">{{ icon("check") }} Jalankan</button>
+        <button type="submit" class="btn btn-primary" data-fkey="F8" aria-keyshortcuts="F8" title="Execute (F8)">{{ icon("check") }} Execute</button>
         <a href="{{ action_url }}" class="btn">Reset</a>
-        <span class="small text-secondary ms-md-2">Tips: <code>ad*</code> = diawali "ad", <code>*ad</code> = diakhiri "ad", <code>*ad*</code> = mengandung "ad".</span>
+        <span class="small text-secondary ms-md-2">Tips: <code>ad*</code> = starts with "ad", <code>*ad</code> = ends with "ad", <code>*ad*</code> = contains "ad".</span>
       </div>
     </div>
+  </form>
+  <form method="post" action="{{ url_for('settings.save_variant') }}" id="variant_save_form" data-variant-save-form hidden>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="screen_path" value="{{ request.path }}">
+    {# diisi selection_panel.js dari isian yg lagi keisi; tanpa JS: kriteria yg terakhir dijalanin #}
+    <input type="hidden" name="query_text" value="{{ request.query_string.decode() }}" data-variant-query>
+  </form>
+  <form method="post" id="variant_delete_form" data-confirm-title="Delete variant?" data-confirm-message="The saved criteria will be removed." data-confirm-ok="Yes, delete" hidden>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   </form>
 
   <dialog class="selection-dialog" id="selection_dialog" aria-labelledby="selection_dialog_title">
@@ -83,24 +116,24 @@
         <h3 class="modal-title" id="selection_dialog_title">Multi Selection: <span data-selection-dialog-label></span></h3>
       </div>
       <div class="modal-body">
-        <p class="text-secondary small">Satu nilai per baris. Boleh pakai <code>*</code>, misal <code>portal*</code>.</p>
+        <p class="text-secondary small">One value per line. You can use <code>*</code>, e.g. <code>portal*</code>.</p>
         <div class="row g-3">
           <div class="col-md-6">
-            <label class="form-label text-success" for="selection_include">{{ icon("check") }} Sertakan</label>
-            <textarea class="form-control" id="selection_include" rows="8" placeholder="hasil cocok salah satu nilai ini" aria-describedby="selection_include_count"></textarea>
+            <label class="form-label text-success" for="selection_include">{{ icon("check") }} Include</label>
+            <textarea class="form-control" id="selection_include" rows="8" placeholder="results matching any of these values" aria-describedby="selection_include_count"></textarea>
             <div class="form-text" id="selection_include_count" data-selection-counter="include"></div>
           </div>
           <div class="col-md-6">
-            <label class="form-label text-danger" for="selection_exclude">{{ icon("close") }} Kecualikan</label>
-            <textarea class="form-control" id="selection_exclude" rows="8" placeholder="hasil yg cocok nilai ini dibuang" aria-describedby="selection_exclude_count"></textarea>
+            <label class="form-label text-danger" for="selection_exclude">{{ icon("close") }} Exclude</label>
+            <textarea class="form-control" id="selection_exclude" rows="8" placeholder="results matching these values are removed" aria-describedby="selection_exclude_count"></textarea>
             <div class="form-text" id="selection_exclude_count" data-selection-counter="exclude"></div>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn" data-selection-clear>Kosongkan</button>
-        <button type="button" class="btn" data-selection-cancel>Batal</button>
-        <button type="button" class="btn btn-primary" data-selection-apply>Pakai</button>
+        <button type="button" class="btn" data-selection-clear>Clear</button>
+        <button type="button" class="btn" data-selection-cancel>Cancel</button>
+        <button type="button" class="btn btn-primary" data-selection-apply>Apply</button>
       </div>
     </form>
   </dialog>

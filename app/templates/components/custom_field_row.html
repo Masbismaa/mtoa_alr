@@ -6,19 +6,19 @@
     <div class="card-header">
       <span class="badge bg-primary-lt" data-custom-field-number>Field</span>
       <div class="card-actions btn-list">
-        <button type="button" class="btn btn-icon btn-sm btn-ghost-secondary" data-custom-field-move="up" aria-label="Pindah ke atas" title="Pindah ke atas">{{ icon("arrow_up") }}</button>
-        <button type="button" class="btn btn-icon btn-sm btn-ghost-secondary" data-custom-field-move="down" aria-label="Pindah ke bawah" title="Pindah ke bawah">{{ icon("arrow_down") }}</button>
-        <button type="button" class="btn btn-icon btn-sm btn-ghost-danger" data-custom-field-remove aria-label="Hapus field" title="Hapus field">{{ icon("trash") }}</button>
+        <button type="button" class="btn btn-icon btn-sm btn-ghost-secondary" data-custom-field-move="up" aria-label="Move up" title="Move up">{{ icon("arrow_up") }}</button>
+        <button type="button" class="btn btn-icon btn-sm btn-ghost-secondary" data-custom-field-move="down" aria-label="Move down" title="Move down">{{ icon("arrow_down") }}</button>
+        <button type="button" class="btn btn-icon btn-sm btn-ghost-danger" data-custom-field-remove aria-label="Delete field" title="Delete field">{{ icon("trash") }}</button>
       </div>
     </div>
     <div class="card-body">
       <label class="d-block mb-3">
-        <span class="form-label">Judul Field</span>
-        <input type="text" name="custom_field_label" class="form-control" maxlength="100" value="{{ label }}" placeholder="Contoh: Cara akses VPN" autocomplete="off">
+        <span class="form-label">Field Title</span>
+        <input type="text" name="custom_field_label" class="form-control" maxlength="100" value="{{ label }}" placeholder="Example: How to access the VPN" autocomplete="off">
       </label>
       <div>
-        <span class="form-label">Isi</span>
-        {{ rich_text_editor("custom_field_content", content, "Isi field", "Contoh: 1. Buka FortiClient 2. Isi server...") }}
+        <span class="form-label">Content</span>
+        {{ rich_text_editor("custom_field_content", content, "Field content", "Example: 1. Open FortiClient 2. Fill in the server...") }}
       </div>
     </div>
   </div>

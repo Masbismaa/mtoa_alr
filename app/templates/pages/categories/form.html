@@ -7,7 +7,7 @@
 {# judul layar di title bar atas ala SAP #}
 {% block screen_title %}{{ screen_title }}{% endblock %}
 
-{% block page_pretitle %}Kategori{% endblock %}
+{% block page_pretitle %}Categories{% endblock %}
 
 {# toolbar atas: Simpan & Batal selalu kelihatan walau form panjang #}
 {% block toolbar_save %}category_form{% endblock %}
@@ -24,19 +24,19 @@
         <div class="card-body">
           {% if parent_label %}
             <div class="mb-3">
-              <div class="form-label">Di dalam</div>
+              <div class="form-label">Inside</div>
               <span class="badge bg-secondary-lt text-wrap">{{ parent_label }}</span>
             </div>
           {% endif %}
           {% if is_name_locked %}
             {{ render_field(form.name, readonly=true) }}
-            <div class="form-hint mt-n2 mb-3">{{ icon("lock") }} Nama kategori bawaan dikunci karena aturan form link-nya nempel ke nama ini.</div>
+            <div class="form-hint mt-n2 mb-3">{{ icon("lock") }} Built-in category names are locked because their link form rules are tied to the name.</div>
           {% else %}
-            {{ render_field(form.name, placeholder="Contoh: SAP", autocomplete="off") }}
+            {{ render_field(form.name, placeholder="Example: SAP", autocomplete="off") }}
           {% endif %}
-          {{ render_field(form.description, placeholder="Kategori ini buat link apa (opsional)", rows=3) }}
+          {{ render_field(form.description, placeholder="What kind of links this category is for (optional)", rows=3) }}
           {% if not is_name_locked %}
-            <div class="text-secondary small">{{ icon("info") }} Field form link (URL, Address, Port) ngikut kategori utamanya.</div>
+            <div class="text-secondary small">{{ icon("info") }} Link form fields (URL, Address, Port) follow the main category.</div>
           {% endif %}
         </div>
       </form>

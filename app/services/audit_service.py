@@ -6,6 +6,7 @@ from app.models import AuditLog
 from app.utils.constants import (
     AUDIT_ACTION_LIST,
     AUDIT_ENTITY_LABEL_DICT,
+    ENTITY_HISTORY_LIMIT,
     MASKED_VALUE,
     MAX_SEARCH_KEYWORD_LENGTH,
     PER_PAGE,
@@ -98,6 +99,23 @@ def search_audit_logs(keyword=None, action=None, entity_type=None, date_from=Non
     query = query.order_by(*build_order_list(sort, AUDIT_SORT_COLUMN_DICT, default_order_list, AuditLog.id))
     return db.paginate(query, page=page, per_page=per_page, error_out=False)
 
+def list_entity_history(entity_type, entity_id, limit=ENTITY_HISTORY_LIMIT):
+    """Riwayat satu data (misal satu link), terbaru dulu: [{audit_log, changed_field_list}].
+    Isi field rahasia udah di-mask pas dicatat, di sini cuma nama field yg berubah yg ditampilin."""
+    audit_log_list = db.session.execute(
+        db.select(AuditLog)
+        .where(AuditLog.entity_type == entity_type, AuditLog.entity_id == str(entity_id))
+        .order_by(AuditLog.id.desc())
+        .limit(limit)
+    ).scalars().all()
+    return [
+        {
+            "audit_log": audit_log,
+            "changed_field_list": [change["field"] for change in build_audit_change_list(audit_log) if change["is_changed"]],
+        }
+        for audit_log in audit_log_list
+    ]
+
 def get_audit_log(log_id):
     """Ambil satu audit log, None kalau ga ada."""
     return db.session.get(AuditLog, log_id)
@@ -107,7 +125,7 @@ def format_audit_value(value):
     if value is None or value == "" or value == []:
         return "-"
     if isinstance(value, bool):
-        return "Ya" if value else "Tidak"
+        return "Yes" if value else "No"
     if isinstance(value, list):
         return ", ".join(str(item) for item in value)
     if isinstance(value, dict):

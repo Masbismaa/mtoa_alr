@@ -32,7 +32,7 @@
         return;
       }
       resendButton.disabled = true;
-      resendButton.textContent = originalLabel + " (" + remainingSeconds + " dtk)";
+      resendButton.textContent = originalLabel + " (" + remainingSeconds + "s)";
       remainingSeconds -= 1;
     }
 

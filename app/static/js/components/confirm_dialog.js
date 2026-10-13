@@ -18,9 +18,9 @@
   // buka dialog, hasilnya Promise true (lanjut) / false (batal)
   function open(optionDict) {
     const settingDict = optionDict || {};
-    titleEl.textContent = settingDict.title || "Yakin?";
+    titleEl.textContent = settingDict.title || "Are you sure?";
     messageEl.textContent = settingDict.message || "";
-    okButton.textContent = settingDict.okLabel || "Ya, lanjutkan";
+    okButton.textContent = settingDict.okLabel || "Yes, continue";
     // mode pemberitahuan: warna kuning, tombol Batal disembunyiin
     const isInfo = Boolean(settingDict.isInfo);
     statusEl.classList.toggle("bg-danger", !isInfo);
@@ -80,7 +80,8 @@
       });
       if (isConfirmed) {
         formEl.dataset.isConfirmed = "true";
-        formEl.requestSubmit();
+        // tombol pemicunya ikut dikirim ulang, biar formaction/name-nya (misal hapus variant tertentu) ga ilang
+        formEl.requestSubmit(event.submitter || undefined);
       }
     });
   });
@@ -88,7 +89,7 @@
   // menu sidebar yg terkunci: diklik -> muncul pemberitahuan ga ada otoritas
   document.querySelectorAll("[data-locked-message]").forEach(function (buttonEl) {
     buttonEl.addEventListener("click", function () {
-      open({ title: "Tidak ada otoritas", message: buttonEl.dataset.lockedMessage, okLabel: "Mengerti", isInfo: true });
+      open({ title: "Not authorized", message: buttonEl.dataset.lockedMessage, okLabel: "Got it", isInfo: true });
     });
   });
 

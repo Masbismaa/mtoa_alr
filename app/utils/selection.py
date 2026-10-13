@@ -110,13 +110,13 @@ def describe_selection(args, field_list):
     text_list = []
     keyword = clean_value_list([args.get(QUICK_SEARCH_KEY)])
     if keyword:
-        text_list.append(f'Kata kunci "{keyword[0]}"')
+        text_list.append(f'Keyword "{keyword[0]}"')
     for field in field_list:
         if field.kind == SELECTION_TEXT:
             selection = read_text_selection(args, field.key)
             part_list = [", ".join(f'"{value}"' for value in selection.include_list)] if selection.include_list else []
             if selection.exclude_list:
-                part_list.append("kecuali " + ", ".join(f'"{value}"' for value in selection.exclude_list))
+                part_list.append("except " + ", ".join(f'"{value}"' for value in selection.exclude_list))
             if part_list:
                 text_list.append(f"{field.label} {' '.join(part_list)}")
         elif field.kind == SELECTION_CHOICE:
@@ -127,7 +127,7 @@ def describe_selection(args, field_list):
         else:
             date_from, date_to = read_date_range(args, field)
             if date_from or date_to:
-                from_text = date_from.strftime("%d-%m-%Y") if date_from else "awal"
-                to_text = date_to.strftime("%d-%m-%Y") if date_to else "sekarang"
-                text_list.append(f"{field.label} {from_text} s/d {to_text}")
+                from_text = date_from.strftime("%d-%m-%Y") if date_from else "start"
+                to_text = date_to.strftime("%d-%m-%Y") if date_to else "now"
+                text_list.append(f"{field.label} {from_text} to {to_text}")
     return text_list

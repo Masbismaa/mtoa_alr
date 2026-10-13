@@ -26,13 +26,13 @@
       const count = splitLine(pair[1].value).length;
       const counterEl = dialogEl.querySelector('[data-selection-counter="' + pair[0] + '"]');
       const overCount = count - MAX_VALUE_COUNT;
-      counterEl.textContent = count + " / " + MAX_VALUE_COUNT + " nilai" + (overCount > 0 ? " — kelebihan " + overCount + ", kurangi dulu" : "");
+      counterEl.textContent = count + " / " + MAX_VALUE_COUNT + " values" + (overCount > 0 ? " — " + overCount + " too many, remove some first" : "");
       counterEl.classList.toggle("text-danger", overCount > 0);
       pair[1].classList.toggle("is-invalid", overCount > 0);
       if (overCount > 0) isOverLimit = true;
     });
     applyButton.disabled = isOverLimit;
-    applyButton.title = isOverLimit ? "Maksimal " + MAX_VALUE_COUNT + " nilai per kotak" : "";
+    applyButton.title = isOverLimit ? "Max " + MAX_VALUE_COUNT + " values per box" : "";
   }
 
   function getTextBox(key) {
@@ -194,4 +194,22 @@
       resultHeadingEl.focus({ preventScroll: true });
     });
   }
+})();
+
+// Save as Variant: yg disimpen isian kriteria yg lagi keisi di layar (belum tentu udah di-Execute), kayak SAP.
+// Isian kosong ga ikut; nomor halaman dibuang di server
+(function () {
+  "use strict";
+
+  const selectionFormEl = document.querySelector("[data-selection-form]");
+  const variantFormEl = document.querySelector("[data-variant-save-form]");
+  if (!selectionFormEl || !variantFormEl) return;
+
+  variantFormEl.addEventListener("submit", function () {
+    const params = new URLSearchParams();
+    new FormData(selectionFormEl).forEach(function (value, key) {
+      if (typeof value === "string" && value.trim() !== "") params.append(key, value);
+    });
+    variantFormEl.querySelector("[data-variant-query]").value = params.toString();
+  });
 })();

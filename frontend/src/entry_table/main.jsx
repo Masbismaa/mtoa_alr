@@ -11,7 +11,7 @@ export function mountEntryTable(containerEl) {
     initialPayload = JSON.parse(containerEl.dataset.entryTable);
   } catch (error) {
     console.error("data-entry-table bukan JSON yg valid", error);
-    containerEl.textContent = "Data tabel rusak, muat ulang halaman.";
+    containerEl.textContent = "The table data is corrupted, reload the page.";
     return null;
   }
   const root = createRoot(containerEl);

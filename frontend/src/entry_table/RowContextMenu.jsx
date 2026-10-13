@@ -60,7 +60,7 @@ export default function RowContextMenu({ x, y, itemList, onClose }) {
       // class app-menu, BUKAN dropdown-menu: lihat komentar .app-menu di static/css/components/table.css
       className="app-menu row-context-menu"
       role="menu"
-      aria-label="Menu baris"
+      aria-label="Row menu"
       ref={menuRef}
       style={{ left: x + "px", top: y + "px" }}
       onKeyDown={handleKeyDown}

@@ -8,15 +8,15 @@
 {# judul layar di title bar atas ala SAP #}
 {% block screen_title %}{{ screen_title }}{% endblock %}
 
-{% block page_pretitle %}Data Link{% endblock %}
+{% block page_pretitle %}Links{% endblock %}
 
 {# toolbar atas: Simpan & Batal selalu kelihatan walau form panjang #}
 {% block toolbar_save %}entry_form{% endblock %}
 {% block toolbar_cancel %}{{ cancel_url }}{% endblock %}
 
 {% block page_help %}
-  <p>Field bertanda <b>*</b> wajib diisi. Field yang tampil ngikut kategori yang dipilih.</p>
-  <p>Klik <b>Simpan</b> (di toolbar atas atau di bawah form) buat menyimpan. <b>Batal</b> / <b>Kembali</b> keluar tanpa menyimpan; kalau ada isian yang berubah, kamu ditanya dulu.</p>
+  <p>Fields marked <b>*</b> are required. The fields shown depend on the selected category.</p>
+  <p>Click <b>Save</b> in the toolbar to save. <b>Cancel</b> / <b>Back</b> leave without saving; if anything changed, you are asked first.</p>
 {% endblock %}
 
 {% block content %}
@@ -26,77 +26,79 @@
   {% set selected_required_list = selected_option.required_field_list.split(",") if selected_option else [] %}
   {% set is_custom_field_shown = selected_option and selected_option.has_custom_field == "true" %}
   {% set is_credential_field_shown = not selected_option or selected_option.has_credential_field == "true" %}
-  {% set visibility_hint_dict = {"private": "Cuma kamu yang bisa lihat", "public": "Semua user bisa lihat & copy (read-only)"} %}
+  {% set visibility_hint_dict = {"private": "Only you can see it", "public": "All users can view & copy (read-only)"} %}
 
   <form method="post" action="{{ form_action }}" class="entry-form" id="entry_form" enctype="multipart/form-data" novalidate data-entry-form data-form-guard{% if request.method == "POST" %} data-form-guard-dirty{% endif %}>
     {{ form.hidden_tag() }}
     {% if target_group %}
       <input type="hidden" name="group_id" value="{{ target_group.id }}">
-      <div class="alert alert-info">Link ini bakal langsung masuk ke group <strong>{{ target_group.name }}</strong>.</div>
+      <div class="alert alert-info">This link will be added straight to the group <strong>{{ target_group.name }}</strong>.</div>
     {% endif %}
 
     <div class="row row-cards">
       <div class="col-lg-8">
         <div class="card mb-3">
           <div class="card-header">
-            <h3 class="card-title">{{ icon("link") }} Data Link</h3>
+            <h3 class="card-title">{{ icon("link") }} Link Data</h3>
           </div>
           <div class="card-body">
             <div class="mb-3">
-              <label class="form-label required" for="category_id">Kategori</label>
+              <label class="form-label required" for="category_id">Category</label>
+              {# dropdown asli = sumber data & yg dikirim. Kalau JS jalan, diganti dropdown bertingkat (entry_form.js) #}
               <select name="category_id" id="category_id" class="form-select{% if form.category_id.errors %} is-invalid{% endif %}">
                 {% for category_option in category_option_list %}
-                  <option value="{{ category_option.id }}" data-field-list="{{ category_option.field_list }}" data-required-field-list="{{ category_option.required_field_list }}" data-has-custom-field="{{ category_option.has_custom_field }}" data-has-credential-field="{{ category_option.has_credential_field }}"{% if selected_option and selected_option.id == category_option.id %} selected{% endif %}>{{ category_option.name }}</option>
+                  <option value="{{ category_option.id }}" data-parent-id="{{ category_option.parent_id }}" data-name="{{ category_option.short_name }}" data-field-list="{{ category_option.field_list }}" data-required-field-list="{{ category_option.required_field_list }}" data-has-custom-field="{{ category_option.has_custom_field }}" data-has-credential-field="{{ category_option.has_credential_field }}"{% if selected_option and selected_option.id == category_option.id %} selected{% endif %}>{{ category_option.name }}</option>
                 {% endfor %}
               </select>
+              <div class="category-cascade" data-category-cascade hidden></div>
               {% for error in form.category_id.errors %}
                 <div class="invalid-feedback d-block">{{ error }}</div>
               {% endfor %}
             </div>
 
-            {{ render_field(form.title, placeholder="Contoh: Portal HR", autocomplete="off") }}
+            {{ render_field(form.title, placeholder="Example: HR Portal", autocomplete="off") }}
 
             <div class="category-field" data-category-field="url"{% if "url" not in selected_field_list %} hidden{% endif %}>
-              <span class="badge bg-red-lt required-badge" data-required-mark{% if "url" not in selected_required_list %} hidden{% endif %}>Wajib</span>
+              <span class="badge bg-red-lt required-badge" data-required-mark{% if "url" not in selected_required_list %} hidden{% endif %}>Required</span>
               {{ render_field(form.url, placeholder="https://aplikasi.spindo.com", autocomplete="off", inputmode="url") }}
             </div>
 
             <div class="row g-2">
               <div class="col-md-8 category-field" data-category-field="address"{% if "address" not in selected_field_list %} hidden{% endif %}>
-                <span class="badge bg-red-lt required-badge" data-required-mark{% if "address" not in selected_required_list %} hidden{% endif %}>Wajib</span>
-                {{ render_field(form.address, placeholder="10.0.0.1 atau router-lt2.local", autocomplete="off") }}
+                <span class="badge bg-red-lt required-badge" data-required-mark{% if "address" not in selected_required_list %} hidden{% endif %}>Required</span>
+                {{ render_field(form.address, placeholder="10.0.0.1 or router-lt2.local", autocomplete="off") }}
               </div>
               <div class="col-md-4 category-field" data-category-field="port"{% if "port" not in selected_field_list %} hidden{% endif %}>
-                <span class="badge bg-red-lt required-badge" data-required-mark{% if "port" not in selected_required_list %} hidden{% endif %}>Wajib</span>
+                <span class="badge bg-red-lt required-badge" data-required-mark{% if "port" not in selected_required_list %} hidden{% endif %}>Required</span>
                 {{ render_field(form.port, placeholder="22", autocomplete="off", inputmode="numeric") }}
               </div>
             </div>
 
             <div data-credential-field{% if not is_credential_field_shown %} hidden{% endif %}>
-              {{ render_field(form.username, placeholder="Username login (opsional)", autocomplete="off") }}
-              {{ render_field(form.access_note, placeholder="Password / petunjuk akses (opsional)", autocomplete="off", rows=3) }}
-              <div class="form-text mt-n2 mb-3">{{ icon("lock") }} Access note disimpan terenkripsi di database.</div>
+              {{ render_field(form.username, placeholder="Login username (optional)", autocomplete="off") }}
+              {{ render_field(form.access_note, placeholder="Password / access hint (optional)", autocomplete="off", rows=3) }}
+              <div class="form-text mt-n2 mb-3">{{ icon("lock") }} The access note is stored encrypted in the database.</div>
             </div>
 
-            {{ render_field(form.description, placeholder="Keterangan singkat (opsional)", rows=3) }}
+            {{ render_field(form.description, placeholder="Short description (optional)", rows=3) }}
           </div>
         </div>
 
         <div class="card mb-3 custom-field-section" data-custom-field-section data-max-count="{{ custom_field_max_count }}"{% if not is_custom_field_shown %} hidden{% endif %}>
           <div class="card-header">
-            <h3 class="card-title">{{ icon("plus") }} Field Tambahan</h3>
+            <h3 class="card-title">{{ icon("plus") }} Additional Fields</h3>
             <div class="card-actions">
-              <span class="badge bg-secondary-lt">Maks {{ custom_field_max_count }}</span>
+              <span class="badge bg-secondary-lt">Max {{ custom_field_max_count }}</span>
             </div>
           </div>
           <div class="card-body">
-            <p class="text-secondary">Tambah info sendiri, satu per satu. Field tambahan <strong>tidak dienkripsi</strong>, jadi jangan simpan password di sini. Link yang butuh password masukkan ke kategori Web, Application, atau Network.</p>
+            <p class="text-secondary">Add your own info, one field at a time. Additional fields are <strong>not encrypted</strong>, so don't store passwords here. Links that need a password belong in the Web, Application, or Network category.</p>
             <div class="custom-field-list" data-custom-field-list>
               {% for custom_field in custom_field_list %}
                 {{ custom_field_row(custom_field.field_label, custom_field.field_content) }}
               {% endfor %}
             </div>
-            <p class="text-secondary" data-custom-field-empty{% if custom_field_list %} hidden{% endif %}>Belum ada field tambahan.</p>
+            <p class="text-secondary" data-custom-field-empty{% if custom_field_list %} hidden{% endif %}>No additional fields yet.</p>
             <button type="button" class="btn" data-custom-field-add>{{ icon("plus") }} Add field</button>
             <template id="custom_field_template">{{ custom_field_row() }}</template>
           </div>
@@ -106,11 +108,11 @@
       <div class="col-lg-4">
         <div class="card mb-3">
           <div class="card-header">
-            <h3 class="card-title">{{ icon("eye") }} Visibilitas</h3>
+            <h3 class="card-title">{{ icon("eye") }} Visibility</h3>
           </div>
           <div class="card-body">
             {% if not is_owner %}
-              <p class="form-text mt-0">Cuma pemilik data yang bisa mengubah visibilitas.</p>
+              <p class="form-text mt-0">Only the owner can change the visibility.</p>
               <input type="hidden" name="visibility" value="{{ form.visibility.data }}">
             {% endif %}
             <div class="form-selectgroup form-selectgroup-boxes d-flex flex-column">
@@ -135,10 +137,10 @@
 
         <div class="card mb-3 attachment-section">
           <div class="card-header">
-            <h3 class="card-title">{{ icon("paperclip") }} Lampiran</h3>
+            <h3 class="card-title">{{ icon("paperclip") }} Attachments</h3>
           </div>
           <div class="card-body">
-            <p class="text-secondary small">Maks {{ attachment_max_count }} file, masing-masing maks {{ (attachment_max_size // 1048576) }}MB. Format: {{ attachment_extension_list | join(", ") }}.</p>
+            <p class="text-secondary small">Up to {{ attachment_max_count }} files, max {{ (attachment_max_size // 1048576) }}MB each. Formats: {{ attachment_extension_list | join(", ") }}.</p>
 
             {% if existing_attachment_list %}
               <ul class="attachment-list">
@@ -149,7 +151,7 @@
                     <small class="text-secondary">{{ attachment.file_size | file_size }}</small>
                     <label class="form-check form-check-inline m-0">
                       <input type="checkbox" class="form-check-input" name="delete_attachment_id" value="{{ attachment.id }}" data-attachment-delete>
-                      <span class="form-check-label">Hapus</span>
+                      <span class="form-check-label">Delete</span>
                     </label>
                   </li>
                 {% endfor %}
@@ -166,8 +168,8 @@
                      data-allowed-extension="{{ attachment_extension_list | join(',') }}">
               <span class="dropzone-text">
                 {{ icon("upload") }}
-                <strong>Klik atau tarik file ke sini</strong>
-                <small class="text-secondary">Bisa pilih beberapa file sekaligus</small>
+                <strong>Click or drag files here</strong>
+                <small class="text-secondary">You can select several files at once</small>
               </span>
             </label>
 
@@ -178,7 +180,7 @@
               <div class="invalid-feedback d-block">{{ error }}</div>
             {% endfor %}
             {% if attachment_error_list %}
-              <p class="form-text">File yang tadi dipilih perlu dipilih ulang ya.</p>
+              <p class="form-text">Please select the files again.</p>
             {% endif %}
           </div>
         </div>

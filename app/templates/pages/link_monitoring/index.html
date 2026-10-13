@@ -6,12 +6,12 @@
 {# judul layar di title bar atas ala SAP #}
 {% block screen_title %}Display Link Monitoring{% endblock %}
 {% block page_pretitle %}Admin{% endblock %}
-{% block page_subtitle %}<div class="text-secondary mt-1">Pemeriksaan hanya dijalankan saat Admin menekan tombol di halaman ini.</div>{% endblock %}
+{% block page_subtitle %}<div class="text-secondary mt-1">Checks only run when an Admin presses the button on this page.</div>{% endblock %}
 
 {% block page_actions %}
-  <form method="post" action="{{ url_for('link_monitor.run_now') }}" data-confirm-title="Cek semua data?" data-confirm-message="Server akan memeriksa status seluruh link sekarang." data-confirm-ok="Ya, cek sekarang">
+  <form method="post" action="{{ url_for('link_monitor.run_now') }}" data-confirm-title="Check all links?" data-confirm-message="The server will check the status of every link now." data-confirm-ok="Yes, check now">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="btn btn-primary" {% if monitor_status.is_active %}disabled{% endif %}>{{ icon("refresh") }} Cek Semua Data Sekarang</button>
+    <button type="submit" class="btn btn-primary" {% if monitor_status.is_active %}disabled{% endif %}>{{ icon("refresh") }} Check All Links Now</button>
   </form>
 {% endblock %}
 
@@ -23,38 +23,38 @@
          data-is-active="{{ 'true' if monitor_status.is_active else 'false' }}">
       <div class="d-flex flex-wrap align-items-center gap-2">
         <span data-monitor-message role="status" aria-live="polite">{{ monitor_status.message }}</span>
-        <a class="btn btn-sm ms-auto" href="{{ url_for('link_monitor.index') }}">{{ icon("refresh") }} Perbarui Tampilan</a>
+        <a class="btn btn-sm ms-auto" href="{{ url_for('link_monitor.index') }}">{{ icon("refresh") }} Refresh View</a>
       </div>
       <div class="progress mt-2" data-monitor-progress {% if monitor_status.state != "running" %}hidden{% endif %}>
         <div class="progress-bar" data-monitor-progress-bar role="progressbar" style="width: {{ monitor_status.percent }}%"
-             aria-valuenow="{{ monitor_status.percent }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progres pemeriksaan"></div>
+             aria-valuenow="{{ monitor_status.percent }}" aria-valuemin="0" aria-valuemax="100" aria-label="Check progress"></div>
       </div>
     </div>
     <div class="alert alert-warning" data-monitor-warning role="alert" {% if not monitor_status.warning %}hidden{% endif %}>
       <div class="fw-bold" data-monitor-warning-text>{{ monitor_status.warning or "" }}</div>
-      <div class="mt-1">Pemeriksaan dikerjakan proses terpisah. Pastikan perintah ini berjalan di server (atau di terminal lain saat development):</div>
+      <div class="mt-1">Checks are done by a separate process. Make sure this command is running on the server (or in another terminal during development):</div>
       <code class="d-inline-block mt-1">{{ monitor_status.worker_command }}</code>
     </div>
   {% endif %}
   <div class="row row-cards">
     <div class="col-lg-7">
       <div class="card">
-        <div class="card-header"><h3 class="card-title">{{ icon("settings") }} Pengaturan Pemeriksaan</h3></div>
+        <div class="card-header"><h3 class="card-title">{{ icon("settings") }} Check Settings</h3></div>
         <div class="card-body">
-          <p class="mb-2">Pemeriksaan status tidak berjalan terjadwal. Hanya Admin yang dapat menjalankan pemeriksaan dari halaman ini.</p>
-          <p class="text-secondary mb-0">Setiap pemeriksaan memakai perlindungan target URL yang sama, termasuk pemblokiran loopback, metadata cloud, dan alamat terlarang.</p>
+          <p class="mb-2">Status checks are not scheduled. Only Admins can run a check from this page.</p>
+          <p class="text-secondary mb-0">Every check uses the same URL target protection, including blocking loopback, cloud metadata, and forbidden addresses.</p>
         </div>
       </div>
     </div>
     <div class="col-lg-5">
       <div class="card">
-        <div class="card-header"><h3 class="card-title">{{ icon("activity") }} Ringkasan Status</h3></div>
+        <div class="card-header"><h3 class="card-title">{{ icon("activity") }} Status Summary</h3></div>
         <div class="card-body"><dl class="row mb-0">
-          <dt class="col-6">Total data</dt><dd class="col-6">{{ monitor_summary.total_count }}</dd>
-          <dt class="col-6">Aktif</dt><dd class="col-6 text-success">{{ monitor_summary.up_count }}</dd>
-          <dt class="col-6">Tidak aktif</dt><dd class="col-6 text-danger">{{ monitor_summary.down_count }}</dd>
-          <dt class="col-6">Belum dicek</dt><dd class="col-6 text-secondary">{{ monitor_summary.unknown_count }}</dd>
-          <dt class="col-6">Pemeriksaan terakhir</dt><dd class="col-6">{{ icon("activity") }} {{ monitor_summary.last_checked_at | local_datetime }}</dd>
+          <dt class="col-6">Total links</dt><dd class="col-6">{{ monitor_summary.total_count }}</dd>
+          <dt class="col-6">Up</dt><dd class="col-6 text-success">{{ monitor_summary.up_count }}</dd>
+          <dt class="col-6">Down</dt><dd class="col-6 text-danger">{{ monitor_summary.down_count }}</dd>
+          <dt class="col-6">Not checked</dt><dd class="col-6 text-secondary">{{ monitor_summary.unknown_count }}</dd>
+          <dt class="col-6">Last check</dt><dd class="col-6">{{ icon("activity") }} {{ monitor_summary.last_checked_at | local_datetime }}</dd>
         </dl></div>
       </div>
     </div>

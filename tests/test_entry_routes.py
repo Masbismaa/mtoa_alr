@@ -37,6 +37,19 @@ def test_create_page_loads_with_categories(logged_in_client, category_dict):
     assert "General" in html_text
     assert "Add field" in html_text
 
+def test_create_page_has_category_tree_for_cascade(logged_in_client, category_dict):
+    """Positive: tiap pilihan kategori bawa induk + nama pendek, buat dropdown bertingkat (entry_form.js)."""
+    from app.models import Category
+
+    web = category_dict["Web"]
+    sap = Category(parent_id=web.id, name="SAP", is_active=True)
+    db.session.add(sap)
+    db.session.commit()
+    html_text = logged_in_client.get("/entries/new").get_data(as_text=True)
+    assert f'value="{sap.id}" data-parent-id="{web.id}" data-name="SAP"' in html_text
+    assert f'value="{web.id}" data-parent-id="" data-name="Web"' in html_text
+    assert "data-category-cascade" in html_text
+
 def test_create_web_entry_via_form(logged_in_client, category_dict):
     """Positive: simpan -> diarahin ke detail."""
     response = logged_in_client.post("/entries/new", data=build_form_dict(category_dict["Web"]))
@@ -49,7 +62,7 @@ def test_create_invalid_url_shows_error(logged_in_client, category_dict):
     """Negative: URL ftp ditolak, pesan error muncul di form."""
     response = logged_in_client.post("/entries/new", data=build_form_dict(category_dict["Web"], url="ftp://files.spindo.com"))
     assert response.status_code == 200
-    assert "http:// atau https://" in response.get_data(as_text=True)
+    assert "http:// or https://" in response.get_data(as_text=True)
 
 def test_create_general_entry_with_custom_fields(logged_in_client, category_dict):
     """Positive (revisi): field tambahan dari form kesimpen sesuai urutan."""
@@ -63,14 +76,17 @@ def test_create_general_entry_with_custom_fields(logged_in_client, category_dict
     assert response.status_code == 302
     assert db.session.execute(db.select(db.func.count(AccessEntryField.id))).scalar() == 2
 
-def test_detail_escapes_access_note(logged_in_client, registered_user, category_dict):
-    """Negative (security): access note berisi script tampil sebagai teks, ga dijalanin."""
+def test_detail_never_embeds_access_note(logged_in_client, registered_user, category_dict):
+    """Negative (security): isi access note ga pernah ada di HTML detail (diambil lewat API pas Show/Copy,
+    ditampilin JS pake textContent), jadi script di dalemnya ga bisa jalan & ga kebaca dari source halaman."""
     entry = create_access_entry(registered_user, build_service_dict(
         category_dict["Web"], access_note="<script>alert(1)</script>",
     ))
     html_text = logged_in_client.get(f"/entries/{entry.id}").get_data(as_text=True)
-    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html_text
-    assert "<script>alert(1)" not in html_text
+    assert "alert(1)" not in html_text
+    assert f'data-secret-url="/entries/{entry.id}/access-note"' in html_text
+    api_data = logged_in_client.post(f"/entries/{entry.id}/access-note").get_json()
+    assert api_data["data"]["access_note"] == "<script>alert(1)</script>"
 
 def test_private_entry_of_other_user_returns_404(logged_in_client, other_user, category_dict):
     """Negative (security/IDOR): private orang lain dijawab 404 (keberadaannya ga bocor)."""
@@ -96,3 +112,52 @@ def test_dashboard_shows_entry(logged_in_client, registered_user, category_dict)
     create_access_entry(registered_user, build_service_dict(category_dict["Web"], title="Portal Absensi"))
     html_text = logged_in_client.get("/entries/?run=1").get_data(as_text=True)
     assert "Portal Absensi" in html_text
+def test_create_entry_into_group(logged_in_client, registered_user, category_dict):
+    """Positive: bikin link dari halaman group -> link kesimpen & langsung masuk group."""
+    from app.services.group_service import create_group
+
+    group = create_group(registered_user, {"name": "Tim"})
+    response = logged_in_client.post(f"/entries/new?group_id={group.id}", data=build_form_dict(category_dict["Web"]))
+    assert response.status_code == 302
+    assert f"/groups/{group.id}" in response.location
+    assert len(group.group_entry_list) == 1
+
+def test_create_entry_into_group_partial_failure_is_explained(logged_in_client, registered_user, category_dict, monkeypatch):
+    """Negative (temuan audit): link udah kesimpen tapi gagal masuk group (misal izin dicabut barengan) ->
+    bukan error 500; user diarahin ke link-nya + dikasih tau, dan link ga kebikin dobel."""
+    from app.routes import access_entry_routes
+    from app.services.group_service import create_group
+    from app.utils.exceptions import PermissionDeniedError
+
+    group = create_group(registered_user, {"name": "Tim"})
+
+    def fail_add(*args):
+        raise PermissionDeniedError("Kamu belum diizinkan menambah link ke group ini")
+
+    monkeypatch.setattr(access_entry_routes, "add_group_entry", fail_add)
+    response = logged_in_client.post(f"/entries/new?group_id={group.id}", data=build_form_dict(category_dict["Web"]))
+    entry_list = db.session.execute(db.select(AccessEntry)).scalars().all()
+    assert len(entry_list) == 1
+    assert response.status_code == 302
+    assert f"/entries/{entry_list[0].id}" in response.location
+    html_text = logged_in_client.get(response.location).get_data(as_text=True)
+    assert "could not be added to group" in html_text
+
+def test_create_entry_into_group_failure_keeps_back_url(logged_in_client, registered_user, category_dict, monkeypatch):
+    """Positive: gagal masuk group -> detail link tetep bawa ?back, biar tombol Back balik ke tabel asal + filternya."""
+    from app.routes import access_entry_routes
+    from app.services.group_service import create_group
+    from app.utils.exceptions import PermissionDeniedError
+
+    group = create_group(registered_user, {"name": "Tim"})
+
+    def fail_add(*args):
+        raise PermissionDeniedError("izin dicabut")
+
+    monkeypatch.setattr(access_entry_routes, "add_group_entry", fail_add)
+    response = logged_in_client.post(
+        f"/entries/new?group_id={group.id}&back=/entries/?title%3Dportal*",
+        data=build_form_dict(category_dict["Web"]),
+    )
+    assert response.status_code == 302
+    assert "back=/entries/?title%3Dportal*" in response.location

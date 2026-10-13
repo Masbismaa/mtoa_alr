@@ -1,30 +1,38 @@
 """Route data link: Daftar Link (kriteria + tabel), tambah, detail, edit, hapus."""
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 from flask_login import login_required
 
 from app.extensions import limiter
 from app.schemas.access_entry_schema import AccessEntryForm
-from app.security.access_policy import can_add_group_entry, can_edit_entry, is_entry_owner
+from app.security.access_policy import can_add_group_entry, can_edit_entry, is_admin, is_entry_owner
 from app.security.role_guard import api_login_required
 from app.services.access_entry_service import (
     build_category_option_list,
     create_access_entry,
     delete_access_entry,
+    delete_access_entry_list,
     get_active_category_list,
     get_form_category_list,
     get_visible_entry,
-    read_access_note,
+    is_favorite_entry,
+    reveal_access_note,
+    toggle_favorite,
     update_access_entry,
 )
+from app.services.audit_service import list_entity_history
+from app.services.import_service import import_entries
+from app.services.import_template_service import build_import_template
 from app.services.entry_table_service import build_entry_table_payload, build_index_scope, build_scope_field_list
 from app.utils.constants import (
     ATTACHMENT_EXTENSION_LIST,
     ATTACHMENT_MAX_COUNT,
     ATTACHMENT_MAX_SIZE_BYTES,
+    BULK_DELETE_MAX_COUNT,
     CUSTOM_FIELD_MAX_COUNT,
+    IMPORT_MAX_ROW_COUNT,
 )
-from app.utils.exceptions import ValidationError
-from app.utils.response_formatter import success_response
+from app.utils.exceptions import PermissionDeniedError, ValidationError
+from app.utils.response_formatter import error_response, success_response
 from app.services.group_service import add_group_entry, get_member_group
 from app.utils.query_helper import parse_positive_int
 from app.utils.form_helper import attach_form_error_list, flash_error_list, read_form_data
@@ -95,7 +103,7 @@ def index():
     is_run = bool(build_selection_query_dict(request.args, field_list))
     return render_template(
         "pages/entries/index.html",
-        page_title="Daftar Link",
+        page_title="Link List",
         selection_field_list=field_list,
         entry_table_payload=build_entry_table_payload(user, request.args, scope) if is_run else None,
     )
@@ -106,6 +114,24 @@ def index():
 def table_data():
     """API tabel Daftar Link (dipanggil React pas urutan/filter/halaman berubah). Parameter sama kayak halamannya."""
     return success_response(data=build_entry_table_payload(get_current_user(), request.args, build_index_scope()))
+
+@entries_bp.post("/bulk-delete")
+@api_login_required
+@limiter.limit("20 per minute")
+def bulk_delete():
+    """Hapus banyak link dari tabel (centang baris), khusus admin. Body JSON: {"entry_id_list": [1, 2, ...]}."""
+    user = get_current_user()
+    if not is_admin(user):
+        return error_response("Only admins can delete several links at once", 403)
+    payload = request.get_json(silent=True)
+    raw_id_list = payload.get("entry_id_list") if isinstance(payload, dict) else None
+    if not isinstance(raw_id_list, list) or not raw_id_list or len(raw_id_list) > BULK_DELETE_MAX_COUNT:
+        return error_response(f"Select 1-{BULK_DELETE_MAX_COUNT} links to delete", 400)
+    entry_id_list = [parse_positive_int(value) for value in raw_id_list]
+    if None in entry_id_list:
+        return error_response("Invalid link id", 400)
+    deleted_count = delete_access_entry_list(user, set(entry_id_list))
+    return success_response(data={"deleted_count": deleted_count}, message=f"{deleted_count} links deleted")
 
 @entries_bp.route("/new", methods=["GET", "POST"])
 @login_required
@@ -135,10 +161,17 @@ def create():
             attachment_error_list = attach_error_list(form, error.error_list)
         else:
             if target_group is not None:
-                add_group_entry(user, target_group, entry.id)
-                flash(f'Data link disimpan & masuk ke group "{target_group.name}"', "success")
+                # link-nya udah kesimpen duluan. Kalau masuk ke group gagal (misal izin nambah link baru aja dicabut),
+                # kasih tau jelas & arahin ke link-nya, biar user ga bikin link yg sama dua kali
+                try:
+                    add_group_entry(user, target_group, entry.id)
+                except (PermissionDeniedError, ValidationError) as error:
+                    reason = error.error_list[0]["message"] if isinstance(error, ValidationError) else str(error)
+                    flash(f'Link saved, but it could not be added to group "{target_group.name}": {reason}', "warning")
+                    return redirect(url_for("entries.detail", entry_id=entry.id, back=back_url))
+                flash(f'Link saved & added to group "{target_group.name}"', "success")
                 return redirect(url_for("groups.detail", group_id=target_group.id))
-            flash("Data link berhasil disimpan", "success")
+            flash("Link saved", "success")
             return redirect(url_for("entries.detail", entry_id=entry.id, back=back_url))
     if target_group is not None:
         cancel_url = url_for("groups.detail", group_id=target_group.id)
@@ -146,9 +179,41 @@ def create():
         cancel_url = back_url or url_for("entries.index")
     return render_entry_form(
         form, category_list, custom_field_pair_list,
-        page_title="Tambah Link", form_action=url_for("entries.create", back=back_url), cancel_url=cancel_url,
+        page_title="Add Link", form_action=url_for("entries.create", back=back_url), cancel_url=cancel_url,
         attachment_error_list=attachment_error_list, target_group=target_group,
     )
+
+@entries_bp.route("/import", methods=["GET", "POST"])
+@login_required
+@limiter.limit("10 per minute", methods=["POST"])
+def import_page():
+    """Import link dari Excel (template). Ada 1 baris salah -> ga ada yg disimpen, error per baris ditampilin."""
+    error_list = []
+    if request.method == "POST":
+        upload_file = request.files.get("import_file")
+        if upload_file is None or not upload_file.filename:
+            error_list = ["Choose the Excel file to import"]
+        else:
+            try:
+                imported_count = import_entries(get_current_user(), upload_file)
+            except ValidationError as error:
+                error_list = [error_dict["message"] for error_dict in error.error_list]
+            else:
+                flash(f"{imported_count} links imported", "success")
+                return redirect(url_for("entries.index", run=1))
+    return render_template(
+        "pages/entries/import.html",
+        page_title="Import Links",
+        error_list=error_list,
+        import_max_row_count=IMPORT_MAX_ROW_COUNT,
+    )
+
+@entries_bp.get("/import/template")
+@login_required
+def import_template():
+    """Download template Excel buat import (kolom + daftar kategori yg bisa dipake)."""
+    return send_file(build_import_template(), as_attachment=True, download_name="ALR_import_template.xlsx",
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", max_age=0)
 
 @entries_bp.get("/<int:entry_id>")
 @login_required
@@ -156,18 +221,46 @@ def detail(entry_id):
     """Detail data link."""
     user = get_current_user()
     entry = get_entry_or_404(user, entry_id)
-    access_note, is_note_error = read_access_note(entry)
-    if is_note_error:
-        flash("Access note tidak bisa dibuka (kunci enkripsi berbeda atau data rusak)", "danger")
+    is_editable = can_edit_entry(user, entry)
+    # isi access note sengaja ga ditempel di HTML: diambil lewat reveal_access_note_api pas user klik Show/Copy
     return render_template(
         "pages/entries/detail.html",
         page_title="Detail Link",
         entry=entry,
-        access_note=access_note,
-        can_edit=can_edit_entry(user, entry),
+        has_access_note=entry.encrypted_access_note is not None,
+        can_edit=is_editable,
+        is_favorite=is_favorite_entry(user, entry),
+        # riwayat link (termasuk siapa buka password-nya) cuma buat yg boleh ngubah link ini
+        history_list=list_entity_history("access_entries", entry.id) if is_editable else [],
         # balik ke tabel asal (Daftar Link/kategori/group) lengkap sama filter & urutannya
         back_url=read_back_url(),
     )
+
+@entries_bp.post("/<int:entry_id>/access-note")
+@api_login_required
+@limiter.limit("30 per minute")
+def reveal_access_note_api(entry_id):
+    """Isi access note buat tombol Show/Copy di detail. Tiap diambil dicatat di audit (aksi Reveal Password)."""
+    user = get_current_user()
+    entry = get_visible_entry(user, entry_id)
+    if entry is None:
+        return error_response("Link not found", 404)
+    access_note, is_note_error = reveal_access_note(user, entry)
+    if is_note_error:
+        return error_response("The access note can't be opened (different encryption key or corrupted data)", 500)
+    if not access_note:
+        return error_response("This link has no access note", 404)
+    return success_response(data={"access_note": access_note})
+
+@entries_bp.post("/<int:entry_id>/favorite")
+@login_required
+def favorite(entry_id):
+    """Tandain / lepas bintang (favorit). Balik ke detail, konteks tabel asalnya tetep kebawa."""
+    user = get_current_user()
+    entry = get_entry_or_404(user, entry_id)
+    is_now_favorite = toggle_favorite(user, entry)
+    flash("Added to Favorites" if is_now_favorite else "Removed from Favorites", "success")
+    return redirect(url_for("entries.detail", entry_id=entry.id, back=read_back_url()))
 
 @entries_bp.route("/<int:entry_id>/edit", methods=["GET", "POST"])
 @login_required
@@ -183,10 +276,11 @@ def edit(entry_id):
     back_url = read_back_url()
     if request.method == "GET":
         form = AccessEntryForm(obj=entry)
-        access_note, is_note_error = read_access_note(entry)
+        # form edit nampilin password-nya -> ikut dicatat sebagai buka password
+        access_note, is_note_error = reveal_access_note(user, entry)
         form.access_note.data = access_note
         if is_note_error:
-            flash("Access note lama tidak bisa dibuka, isi ulang kalau perlu", "warning")
+            flash("The old access note can't be opened; fill it in again if needed", "warning")
         custom_field_pair_list = [(field.field_label, field.field_content) for field in entry.custom_field_list]
     else:
         form = AccessEntryForm()
@@ -203,7 +297,7 @@ def edit(entry_id):
         except ValidationError as error:
             attachment_error_list = attach_error_list(form, error.error_list)
         else:
-            flash("Perubahan berhasil disimpan", "success")
+            flash("Changes saved", "success")
             return redirect(url_for("entries.detail", entry_id=entry.id, back=back_url))
 
     # konteks daftar asal ikut kebawa: Simpan & Batal balik ke detail yg masih inget tabel asalnya
@@ -228,6 +322,6 @@ def delete(entry_id):
 
     entry_title = entry.title
     delete_access_entry(user, entry)
-    flash(f'Data "{entry_title}" berhasil dihapus', "success")
+    flash(f'Link "{entry_title}" deleted', "success")
     # balik ke tabel asal (filter & urutan tetep), kalau ga ada ke Daftar Link
     return redirect(read_back_url() or url_for("entries.index"))

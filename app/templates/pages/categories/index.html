@@ -4,33 +4,33 @@
 {% block title %}Categories{% endblock %}
 
 {# judul layar di title bar atas ala SAP #}
-{% block screen_title %}Display Kategori{% endblock %}
+{% block screen_title %}Display Categories{% endblock %}
 
 {% block page_pretitle %}Admin{% endblock %}
 
 {% block page_subtitle %}
-  <div class="text-secondary mt-1">Maksimal {{ max_category_depth }} tingkat. Kategori nonaktif (beserta sub-nya) ga muncul di form tambah link, tapi link lamanya tetap aman.</div>
+  <div class="text-secondary mt-1">Up to {{ max_category_depth }} levels. Inactive categories (and their subs) don't appear in the Add Link form, but their existing links stay safe.</div>
 {% endblock %}
 
 {% block page_actions %}
-  <a href="{{ url_for('categories.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Kategori Utama</a>
+  <a href="{{ url_for('categories.create') }}" class="btn btn-primary">{{ icon("plus") }} Add Main Category</a>
 {% endblock %}
 
 {% block content %}
   <div class="card">
     <div class="card-header">
-      <h3 class="card-title">{{ icon("category") }} Daftar Kategori</h3>
-      <div class="card-actions"><span class="badge bg-secondary-lt">{{ category_summary_list | length }} kategori</span></div>
+      <h3 class="card-title">{{ icon("category") }} Category List</h3>
+      <div class="card-actions"><span class="badge bg-secondary-lt">{{ category_summary_list | length }} categories</span></div>
     </div>
     <div class="table-responsive">
       <table class="table table-vcenter card-table table-stack">
         <thead>
           <tr>
-            <th>Kategori</th>
-            <th class="w-1">Link</th>
+            <th>Category</th>
+            <th class="w-1">Links</th>
             <th class="w-1">Sub</th>
             <th class="w-1">Status</th>
-            <th class="w-1"><span class="visually-hidden">Aksi</span></th>
+            <th class="w-1"><span class="visually-hidden">Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -43,38 +43,38 @@
                   <div class="d-flex align-items-center gap-2">
                     {% if summary.depth > 1 %}<span class="text-secondary" aria-hidden="true">└</span>{% endif %}
                     <a href="{{ url_for('categories.browse', category_id=category.id) }}" class="fw-medium{% if not category.is_active %} text-secondary{% else %} text-reset{% endif %}">{{ category.name }}</a>
-                    {% if summary.is_default %}<span class="badge bg-primary-lt" title="Kategori bawaan, nama & statusnya dikunci">{{ icon("lock") }} Bawaan</span>{% endif %}
+                    {% if summary.is_default %}<span class="badge bg-primary-lt" title="Built-in category, its name & status are locked">{{ icon("lock") }} Built-in</span>{% endif %}
                   </div>
                   <div class="small text-secondary mt-1">
-                    {{ category.description or "Belum ada deskripsi." }}
-                    {% if category.creator and summary.depth > 1 %} · dibuat {{ category.creator.full_name }}{% endif %}
+                    {{ category.description or "No description yet." }}
+                    {% if category.creator and summary.depth > 1 %} · created by {{ category.creator.full_name }}{% endif %}
                   </div>
                 </div>
               </td>
-              <td class="text-nowrap" data-label="Link">{{ summary.entry_count }}</td>
+              <td class="text-nowrap" data-label="Links">{{ summary.entry_count }}</td>
               <td class="text-nowrap" data-label="Sub">{{ summary.child_count }}</td>
               <td data-label="Status">
-                <span class="badge {{ 'bg-green-lt' if category.is_active else 'bg-secondary-lt' }}">{{ "Aktif" if category.is_active else "Nonaktif" }}</span>
+                <span class="badge {{ 'bg-green-lt' if category.is_active else 'bg-secondary-lt' }}">{{ "Active" if category.is_active else "Inactive" }}</span>
               </td>
               <td class="cell-action">
                 <div class="btn-list flex-nowrap justify-content-end">
                   <a href="{{ url_for('categories.edit', category_id=category.id) }}" class="btn btn-sm">{{ icon("edit") }} Edit</a>
                   {% if not summary.is_default %}
                     {% if category.is_active %}
-                      <form method="post" action="{{ url_for('categories.toggle', category_id=category.id) }}" data-confirm-title="Nonaktifkan kategori?" data-confirm-message="Kategori &quot;{{ category.name }}&quot; dan semua sub-nya ga bakal muncul lagi di form tambah link. Link yang udah ada tetap aman." data-confirm-ok="Ya, nonaktifkan">
+                      <form method="post" action="{{ url_for('categories.toggle', category_id=category.id) }}" data-confirm-title="Deactivate category?" data-confirm-message="Category &quot;{{ category.name }}&quot; and all of its subs will no longer appear in the Add Link form. Existing links stay safe." data-confirm-ok="Yes, deactivate">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-sm">{{ icon("eye_off") }} Nonaktifkan</button>
+                        <button type="submit" class="btn btn-sm">{{ icon("eye_off") }} Deactivate</button>
                       </form>
                     {% else %}
                       <form method="post" action="{{ url_for('categories.toggle', category_id=category.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-sm">{{ icon("eye") }} Aktifkan</button>
+                        <button type="submit" class="btn btn-sm">{{ icon("eye") }} Activate</button>
                       </form>
                     {% endif %}
                     {% if is_empty %}
-                      <form method="post" action="{{ url_for('categories.delete', category_id=category.id) }}" data-confirm-title="Hapus kategori?" data-confirm-message="Kategori &quot;{{ category.name }}&quot; bakal dihapus permanen." data-confirm-ok="Ya, hapus">
+                      <form method="post" action="{{ url_for('categories.delete', category_id=category.id) }}" data-confirm-title="Delete category?" data-confirm-message="Category &quot;{{ category.name }}&quot; will be permanently deleted." data-confirm-ok="Yes, delete">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-sm btn-ghost-danger" aria-label="Hapus kategori {{ category.name }}" title="Hapus">{{ icon("trash") }}</button>
+                        <button type="submit" class="btn btn-sm btn-ghost-danger" aria-label="Delete category {{ category.name }}" title="Delete">{{ icon("trash") }}</button>
                       </form>
                     {% endif %}
                   {% endif %}

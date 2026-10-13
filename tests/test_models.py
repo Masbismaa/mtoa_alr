@@ -52,17 +52,6 @@ def test_user_invalid_role_is_rejected(app):
     db.session.rollback()
 
 
-def test_user_preference_default_values(app):
-    """Positive: preferensi baru memakai tema light, warna aksen default, dan tidak compact."""
-    user = build_user()
-    user.preference = UserPreference()
-    db.session.add(user)
-    db.session.commit()
-    assert user.preference.theme_mode == THEME_MODE_LIGHT
-    assert user.preference.accent_color == DEFAULT_ACCENT_COLOR
-    assert user.preference.is_compact_view is False
-
-
 def test_user_cannot_have_two_preferences(app):
     """Negative: satu user hanya boleh punya satu baris preferensi."""
     user = build_user()

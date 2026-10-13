@@ -7,7 +7,7 @@ from app.extensions import db
 from app.models import AccessEntry, Attachment
 from app.services import attachment_service
 from app.services.access_entry_service import create_access_entry, delete_access_entry, update_access_entry
-from app.services.attachment_service import get_stored_file_path, get_visible_attachment
+from app.services.attachment_service import get_stored_file_path, get_upload_folder, get_visible_attachment
 from app.utils.constants import VISIBILITY_PRIVATE, VISIBILITY_PUBLIC
 from app.utils.exceptions import ValidationError
 
@@ -135,3 +135,73 @@ def test_get_visible_attachment_hides_private_of_other_user(app, registered_user
     )
     assert get_visible_attachment(registered_user, private_entry.attachment_list[0].id) is None
     assert get_visible_attachment(registered_user, public_entry.attachment_list[0].id) is not None
+def test_concurrent_upload_cannot_exceed_entry_limit(app, registered_user, category_dict, sample_file_dict, make_file_storage):
+    """Negative (temuan audit, upload barengan): request ini masih megang data lama (4 lampiran), padahal request
+    lain udah nambah lampiran ke-5. Nambah 1 lagi harus ditolak, bukan jadi 6."""
+    entry = create_access_entry(
+        registered_user, build_entry_dict(category_dict["Web"]),
+        upload_file_list=[make_file_storage(sample_file_dict["png"], f"lama{index}.png") for index in range(4)],
+    )
+    assert len(entry.attachment_list) == 4
+    # request lain (di luar session ini) nambah lampiran ke-5 langsung ke DB
+    db.session.execute(db.insert(Attachment).values(
+        access_entry_id=entry.id, user_id=registered_user.id, original_filename="lain.png",
+        stored_filename="lain-request.png", content_type="image/png", file_size=1,
+    ))
+    with pytest.raises(ValidationError) as error_info:
+        update_access_entry(
+            registered_user, entry, build_entry_dict(category_dict["Web"]),
+            upload_file_list=[make_file_storage(sample_file_dict["pdf"], "baru.pdf")],
+        )
+    assert "Up to" in error_info.value.error_list[0]["message"]
+    db.session.rollback()
+    assert db.session.scalar(db.select(db.func.count(Attachment.id)).where(Attachment.access_entry_id == entry.id)) <= 5
+
+def test_same_attachment_deleted_twice_not_counted_twice(app, registered_user, category_dict, sample_file_dict, make_file_storage):
+    """Negative (temuan audit): request ini mau hapus lampiran A + nambah 1, padahal request lain udah duluan
+    hapus A & nambah 1 (jadi 5 lagi). Penghapusan A ga boleh kehitung dua kali -> nambah lagi ditolak, bukan jadi 6."""
+    entry = create_access_entry(
+        registered_user, build_entry_dict(category_dict["Web"]),
+        upload_file_list=[make_file_storage(sample_file_dict["png"], f"lama{index}.png") for index in range(5)],
+    )
+    attachment_a_id = entry.attachment_list[0].id
+    # request lain: hapus A + nambah 1, langsung ke DB (session ini masih megang data lama)
+    db.session.execute(db.delete(Attachment).where(Attachment.id == attachment_a_id))
+    db.session.execute(db.insert(Attachment).values(
+        access_entry_id=entry.id, user_id=registered_user.id, original_filename="lain.png",
+        stored_filename="lain-request.png", content_type="image/png", file_size=1,
+    ))
+    with pytest.raises(ValidationError):
+        update_access_entry(
+            registered_user, entry, build_entry_dict(category_dict["Web"]),
+            upload_file_list=[make_file_storage(sample_file_dict["pdf"], "baru.pdf")],
+            delete_attachment_id_list=[str(attachment_a_id)],
+        )
+
+
+def test_cleanup_attachments_deletes_only_old_orphan_files(app, registered_user, category_dict, make_file_storage, sample_file_dict):
+    """Negative (data hilang): --delete cuma buang file yatim lama; lampiran terdaftar & file yatim baru tetep ada."""
+    import os
+    import time
+
+    entry = create_access_entry(registered_user, {
+        "category_id": category_dict["Web"].id, "title": "Ada Lampiran", "url": "https://lampiran.spindo.com",
+        "visibility": "private",
+    }, upload_file_list=[make_file_storage(sample_file_dict["png"], "foto.png")])
+    folder = get_upload_folder()
+    registered_file = get_stored_file_path(entry.attachment_list[0].stored_filename)
+    old_orphan = folder / "yatim_lama.png"
+    new_orphan = folder / "yatim_baru.png"
+    old_orphan.write_bytes(b"x")
+    new_orphan.write_bytes(b"x")
+    two_days_ago = time.time() - 2 * 86400
+    for path in (registered_file, old_orphan):
+        os.utime(path, (two_days_ago, two_days_ago))
+
+    runner = app.test_cli_runner()
+    assert "1 file yatim ditemukan" in runner.invoke(args=["cleanup-attachments"]).output
+    assert old_orphan.exists()
+    result = runner.invoke(args=["cleanup-attachments", "--delete"])
+    assert "1 file yatim dihapus" in result.output
+    assert not old_orphan.exists()
+    assert registered_file.exists() and new_orphan.exists()

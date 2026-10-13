@@ -77,13 +77,13 @@
       is_compact_view: false,
       font_family: panelEl.dataset.defaultFont
     }, true);
-    showStatus("Balik ke default, klik Simpan biar kesimpen");
+    showStatus("Reset to default; click Save to store it");
   }
 
   async function handleSave() {
     const currentDict = preference.readCurrent();
     saveButton.disabled = true;
-    showStatus("Menyimpan...");
+    showStatus("Saving...");
     const resultDict = await preference.saveToServer({
       theme_mode: currentDict.theme_mode,
       accent_color: findAccentHex(currentDict.accent_key),
@@ -94,10 +94,10 @@
 
     if (resultDict.is_success) {
       savedDict = currentDict;
-      showStatus("Tersimpan ✓");
+      showStatus("Saved ✓");
       if (closeButton) closeButton.click();
     } else {
-      showStatus(resultDict.message || "Gagal menyimpan", true);
+      showStatus(resultDict.message || "Failed to save", true);
     }
   }
 

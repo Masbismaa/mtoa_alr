@@ -6,7 +6,7 @@ from app.utils.exceptions import PermissionDeniedError
 from app.utils.response_formatter import error_response
 
 # pesan sesi habis buat API (React nampilin ini + ajakan muat ulang halaman)
-SESSION_EXPIRED_MESSAGE = "Sesi login habis, muat ulang halaman lalu login lagi"
+SESSION_EXPIRED_MESSAGE = "Your login session expired, reload the page and log in again"
 
 def api_login_required(view_function):
     """Pengganti @login_required buat endpoint JSON: belum login -> 401 JSON, bukan redirect ke halaman login
@@ -23,7 +23,7 @@ def admin_required(view_function):
     @wraps(view_function)
     def wrapper(*args, **kwargs):
         if not is_admin(current_user):
-            raise PermissionDeniedError("Halaman ini khusus admin")
+            raise PermissionDeniedError("This page is for admins only")
         return view_function(*args, **kwargs)
     return wrapper
 
@@ -33,7 +33,7 @@ def permission_required(permission_key):
         @wraps(view_function)
         def wrapper(*args, **kwargs):
             if not has_permission(current_user, permission_key):
-                raise PermissionDeniedError("Halaman ini khusus user yg punya akses tertentu")
+                raise PermissionDeniedError("This page is only for users with specific access")
             return view_function(*args, **kwargs)
         return wrapper
     return decorator

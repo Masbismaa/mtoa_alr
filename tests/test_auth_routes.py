@@ -32,7 +32,7 @@ def test_register_page_loads(client):
     """halaman register kebuka."""
     response = client.get("/auth/register")
     assert response.status_code == 200
-    assert "Daftar Akun" in response.get_data(as_text=True)
+    assert "Create Account" in response.get_data(as_text=True)
 
 def test_register_post_creates_pending_registration(client):
     """daftar -> diarahkan ke verifikasi email; yg kesimpen baru percobaan daftar, akunnya belum dibikin."""
@@ -47,7 +47,7 @@ def test_register_password_mismatch(client):
     """konfirmasi password beda -> tetep di halaman register + pesan error."""
     response = client.post("/auth/register", data=build_register_form_dict(confirm_password="BedaSendiri123"))
     assert response.status_code == 200
-    assert "Konfirmasi password tidak sama" in response.get_data(as_text=True)
+    assert "Passwords do not match" in response.get_data(as_text=True)
 
 def test_full_login_flow(client, registered_user, user_password, fixed_otp_code):
     """login -> Next ke halaman OTP -> isi OTP -> masuk beranda."""
@@ -70,7 +70,7 @@ def test_login_wrong_password_shows_generic_error(client, registered_user):
     """password salah -> tetep di halaman login + pesan umum."""
     response = client.post("/auth/login", data={"email": registered_user.email, "password": "PasswordSalah1"})
     assert response.status_code == 200
-    assert "Email atau password salah" in response.get_data(as_text=True)
+    assert "Incorrect email or password" in response.get_data(as_text=True)
 
 def test_otp_page_without_login_step(client):
     """halaman OTP ga bisa dibuka langsung tanpa lewat langkah 1."""

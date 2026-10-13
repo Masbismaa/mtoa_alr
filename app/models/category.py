@@ -19,16 +19,19 @@ class Category(TimestampMixin, db.Model):
     parent = db.relationship("Category", remote_side=[id])
     creator = db.relationship("User")
 
-    __table_args__ = (
-        # nama boleh sama asal induknya beda (Web › SAP dan Application › SAP)
-        db.UniqueConstraint("parent_id", "name"),
-        # NULL dianggap beda sama database, jadi nama kategori utama dijaga pake index khusus
-        db.Index(
-            "ix_categories_root_name", "name", unique=True,
-            postgresql_where=db.text("parent_id IS NULL"), sqlite_where=db.text("parent_id IS NULL"),
-        ),
-    )
-
     def __repr__(self):
         # representasi string buat debug
         return f"<Category {self.id} {self.name}>"
+
+# Nama kategori unik per induk, huruf besar/kecil dianggap SAMA (SAP = sap), sama persis kayak aturan di
+# category_service.find_sibling_by_name. Dijaga juga di database biar 2 request barengan ga bisa lolos dua-duanya.
+# Nama boleh sama asal induknya beda (Web › SAP dan Application › SAP). Dibikin 2 index soalnya NULL (kategori utama)
+# dianggap beda-beda sama database.
+db.Index(
+    "ix_categories_parent_lower_name", Category.parent_id, db.func.lower(Category.name), unique=True,
+    postgresql_where=Category.parent_id.is_not(None), sqlite_where=Category.parent_id.is_not(None),
+)
+db.Index(
+    "ix_categories_root_lower_name", db.func.lower(Category.name), unique=True,
+    postgresql_where=Category.parent_id.is_(None), sqlite_where=Category.parent_id.is_(None),
+)

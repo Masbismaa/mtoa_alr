@@ -58,6 +58,84 @@
     });
   }
 
+  // ===== kategori bertingkat =====
+  // dropdown asli tetep yg dikirim (name=category_id); di layar diganti 1 dropdown per tingkat.
+  // boleh berhenti di tingkat mana aja: yg kesimpen tingkat terakhir yg dipilih
+  const LEVEL_LABEL_LIST = ["Category", "Sub-category", "Sub-category 2", "Sub-category 3"];
+  const cascadeEl = formEl.querySelector("[data-category-cascade]");
+
+  function buildChildDict() {
+    const idSet = new Set(Array.from(categorySelect.options, function (optionEl) { return optionEl.value; }));
+    const childDict = {};
+    Array.from(categorySelect.options).forEach(function (optionEl) {
+      // induk ga ada di daftar (kategori lama yg induknya dinonaktifin) -> ditaruh di tingkat paling atas
+      const parentId = idSet.has(optionEl.dataset.parentId) ? optionEl.dataset.parentId : "";
+      (childDict[parentId] = childDict[parentId] || []).push(optionEl);
+    });
+    return childDict;
+  }
+
+  function buildSelectedPath(childDict) {
+    const parentById = {};
+    Object.keys(childDict).forEach(function (parentId) {
+      childDict[parentId].forEach(function (optionEl) { parentById[optionEl.value] = parentId; });
+    });
+    const pathList = [];
+    for (let id = categorySelect.value; id; id = parentById[id]) pathList.unshift(id);
+    return pathList;
+  }
+
+  // bikin ulang dropdown mulai fromLevel ke bawah; yg di atasnya (termasuk yg lagi dipake keyboard) ga disentuh
+  function renderCascade(childDict, pathList, fromLevel) {
+    cascadeEl.querySelectorAll("[data-level-box]").forEach(function (boxEl) {
+      if (Number(boxEl.dataset.levelBox) >= fromLevel) boxEl.remove();
+    });
+    let parentId = fromLevel ? pathList[fromLevel - 1] : "";
+    for (let level = fromLevel; parentId !== undefined && childDict[parentId]; level++) {
+      const levelLabel = LEVEL_LABEL_LIST[level] || "Sub-category";
+      const boxEl = document.createElement("div");
+      boxEl.dataset.levelBox = String(level);
+      const labelEl = document.createElement("label");
+      labelEl.className = "form-label" + (level === 0 ? " required" : "");
+      labelEl.htmlFor = "category_level_" + level;
+      labelEl.textContent = levelLabel;
+      const levelSelect = document.createElement("select");
+      levelSelect.className = categorySelect.className;
+      levelSelect.id = "category_level_" + level;
+      levelSelect.dataset.level = String(level);
+      if (level > 0) levelSelect.append(new Option("— Optional —", ""));
+      childDict[parentId].forEach(function (optionEl) {
+        levelSelect.append(new Option(optionEl.dataset.name, optionEl.value));
+      });
+      levelSelect.value = pathList[level] || "";
+      boxEl.append(labelEl, levelSelect);
+      cascadeEl.append(boxEl);
+      if (!levelSelect.value) break;
+      parentId = levelSelect.value;
+    }
+  }
+
+  function initCascade() {
+    if (!cascadeEl || !categorySelect.options.length) return;
+    const childDict = buildChildDict();
+    renderCascade(childDict, buildSelectedPath(childDict), 0);
+    categorySelect.hidden = true;
+    cascadeEl.hidden = false;
+    // label bawaan diganti label per tingkat
+    const labelEl = formEl.querySelector('label[for="category_id"]');
+    if (labelEl) labelEl.hidden = true;
+
+    cascadeEl.addEventListener("change", function (event) {
+      const level = Number(event.target.dataset.level);
+      const pathList = buildSelectedPath(childDict).slice(0, level);
+      if (event.target.value) pathList.push(event.target.value);
+      // pilih "(optional)" = berhenti di tingkat atasnya
+      categorySelect.value = pathList[pathList.length - 1];
+      renderCascade(childDict, pathList, level + 1);
+      categorySelect.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }
+
   // ===== field tambahan =====
   function getRowList() {
     return listEl.querySelectorAll("[data-custom-field]");
@@ -72,7 +150,7 @@
       rowEl.querySelector('[data-custom-field-move="down"]').disabled = index === rowList.length - 1;
     });
     addButton.disabled = rowList.length >= maxCount;
-    addButton.title = addButton.disabled ? "Sudah mencapai batas " + maxCount + " field" : "";
+    addButton.title = addButton.disabled ? "Reached the limit of " + maxCount + " fields" : "";
     if (emptyEl) emptyEl.hidden = rowList.length > 0;
   }
 
@@ -97,9 +175,9 @@
     // kalau udah ada isinya, tanya dulu
     if ((labelText || contentText) && window.AlrConfirm) {
       const isConfirmed = await window.AlrConfirm.open({
-        title: "Hapus field ini?",
-        message: "Isi field yang sudah diketik bakal hilang.",
-        okLabel: "Ya, hapus"
+        title: "Delete this field?",
+        message: "Anything typed in this field will be lost.",
+        okLabel: "Yes, delete"
       });
       if (!isConfirmed) return;
     }
@@ -138,6 +216,7 @@
   addButton.addEventListener("click", addRow);
   categorySelect.addEventListener("change", applyCategoryRule);
 
+  initCascade();
   applyCategoryRule();
   refreshCustomFieldState();
 })();

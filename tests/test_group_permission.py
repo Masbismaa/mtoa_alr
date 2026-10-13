@@ -3,7 +3,6 @@ import pytest
 from app.extensions import db
 from app.models import AuditLog, GroupEntry, GroupEntryViewer
 from app.services import auth_service
-from app.security.access_policy import can_view_group_entry
 from app.services.access_entry_service import create_access_entry, get_visible_entry
 from app.services.group_service import (
     accept_invitation,
@@ -147,8 +146,8 @@ def test_read_only_member_page(logged_in_client, registered_user, other_user):
     group = create_group(other_user, {"name": "Group Orang"})
     join_group(other_user, group, registered_user)
     html_text = logged_in_client.get(f"/groups/{group.id}").get_data(as_text=True)
-    assert "Link Baru" not in html_text
-    assert "hanya bisa melihat" in html_text
+    assert "New Link" not in html_text
+    assert "can only view" in html_text
     assert logged_in_client.post(f"/groups/{group.id}/entries", data={"entry_id": "1"}).status_code == 403
 
 def test_read_only_member_new_entry_not_added_to_group(logged_in_client, registered_user, other_user, category_dict):
@@ -195,7 +194,7 @@ def test_owner_saves_viewers_via_route(logged_in_client, registered_user, other_
     join_group(registered_user, group, other_user)
     group_entry = add_group_entry(registered_user, group, create_entry(registered_user, category_dict["Web"], "Router").id)
     url = f"/groups/{group.id}/entries/{group_entry.id}/viewers"
-    assert "Anggota tertentu" in logged_in_client.get(url).get_data(as_text=True)
+    assert "Selected members" in logged_in_client.get(url).get_data(as_text=True)
     response = logged_in_client.post(url, data={"is_restricted": "1", "viewer_user_id": [str(other_user.id)]})
     assert response.status_code == 302
     assert group_entry.is_restricted is True
@@ -206,9 +205,11 @@ def test_unknown_group_entry_viewer_page_404(logged_in_client, registered_user):
     group = create_group(registered_user, {"name": "Tim Network"})
     assert logged_in_client.get(f"/groups/{group.id}/entries/999/viewers").status_code == 404
 
-def test_group_entry_sql_filter_matches_python_rule(app, registered_user, other_user, third_user, category_dict):
-    """Positive & negative (security): daftar link group yg disaring di SQL sama persis dgn aturan
-    can_view_group_entry buat tiap peran (pemilik, yg nambahin, viewer dipilih, anggota lain)."""
+def test_group_link_visibility_same_on_group_page_and_link_detail(app, registered_user, other_user, third_user, category_dict):
+    """Positive & negative (security): siapa liat link apa di group, buat tiap peran (pemilik group, yg nambahin,
+    viewer dipilih). Daftar di halaman group & hak buka detail link-nya harus sama persis (satu aturan)."""
+    from app.security.access_policy import can_view_entry
+
     group = create_group(registered_user, {"name": "Tim Network"})
     adder = join_group(registered_user, group, other_user)
     join_group(registered_user, group, third_user)
@@ -216,12 +217,17 @@ def test_group_entry_sql_filter_matches_python_rule(app, registered_user, other_
     open_entry = add_group_entry(registered_user, group, create_entry(registered_user, category_dict["Web"], "Terbuka").id)
     picked_entry = add_group_entry(registered_user, group, create_entry(registered_user, category_dict["Web"], "Dipilih").id)
     set_group_entry_viewers(registered_user, group, picked_entry.id, True, [str(third_user.id)])
-    hidden_entry = add_group_entry(other_user, group, create_entry(other_user, category_dict["Web"], "Rahasia", VISIBILITY_PUBLIC).id)
+    hidden_entry = add_group_entry(other_user, group, create_entry(other_user, category_dict["Web"], "Rahasia").id)
     set_group_entry_viewers(registered_user, group, hidden_entry.id, True, [])
+    expected_dict = {
+        registered_user.id: {open_entry.id, picked_entry.id, hidden_entry.id},  # pemilik group liat semua
+        other_user.id: {open_entry.id, hidden_entry.id},  # yg nambahin & pemilik link "Rahasia"
+        third_user.id: {open_entry.id, picked_entry.id},  # viewer yg dipilih
+    }
     for user in (registered_user, other_user, third_user):
-        expected = {item.id for item in group.group_entry_list if can_view_group_entry(user, group, item)}
-        assert {item.id for item in search_visible_group_entry(user, group).items} == expected
-    assert {item.id for item in search_visible_group_entry(third_user, group).items} == {open_entry.id, picked_entry.id}
+        assert {item.id for item in search_visible_group_entry(user, group).items} == expected_dict[user.id]
+        for group_entry in (open_entry, picked_entry, hidden_entry):
+            assert can_view_entry(user, group_entry.access_entry) == (group_entry.id in expected_dict[user.id])
 
 def test_group_detail_paginates_links(app, logged_in_client, registered_user, category_dict):
     """Positive: link group dibagi per halaman (10), halaman kebablasan dijepit ke halaman terakhir."""
@@ -233,4 +239,4 @@ def test_group_detail_paginates_links(app, logged_in_client, registered_user, ca
     assert (last_page.page, len(last_page.items)) == (2, 2)
     html_text = logged_in_client.get(f"/groups/{group.id}?page=2").get_data(as_text=True)
     assert "Link 11" in html_text and "Link 00" not in html_text
-    assert "Halaman <strong>2</strong> dari <strong>2</strong>" in html_text
+    assert "Page <strong>2</strong> of <strong>2</strong>" in html_text

@@ -13,20 +13,20 @@
 {% block page_pretitle %}Admin{% endblock %}
 
 {% block page_subtitle %}
-  <div class="text-secondary mt-1">{{ icon("lock") }} Catatan aktivitas cuma bisa dibaca, tidak bisa diubah atau dihapus siapa pun.</div>
+  <div class="text-secondary mt-1">{{ icon("lock") }} Activity records are read-only; nobody can change or delete them.</div>
 {% endblock %}
 
 {% block content %}
   {# urutan (sort) aja ga diitung sebagai filter #}
   {% set is_filtered = pagination_query_dict | reject("equalto", "sort") | list | length > 0 %}
-  {{ selection_panel(selection_field_list, url_for("audit.index", _anchor="daftar_audit"), "Cari email pelaku, ID data, IP... (tekan /)") }}
+  {{ selection_panel(selection_field_list, url_for("audit.index", _anchor="daftar_audit"), "Search actor email, data ID, IP... (press /)") }}
 
   <div class="card" id="daftar_audit">
     <div class="card-header">
-      <h3 class="card-title">{{ icon("audit") }} Aktivitas</h3>
+      <h3 class="card-title">{{ icon("audit") }} Activity</h3>
       <div class="card-actions">
         {% if pagination.items %}{{ column_menu(table_view) }}{% endif %}
-        <span class="badge bg-secondary-lt">{{ pagination.total }} catatan</span>
+        <span class="badge bg-secondary-lt">{{ pagination.total }} records</span>
       </div>
     </div>
 
@@ -38,9 +38,9 @@
           <tbody>
             {% for audit_log in pagination.items %}
               <tr>
-                <td class="text-nowrap text-secondary" data-label="Waktu" {{ cell_attr(table_view, "time") }}>{{ audit_log.created_at | local_datetime("%d %b %Y, %H:%M:%S") }}</td>
-                <td class="cell-actor" data-label="Pelaku" {{ cell_attr(table_view, "actor") }}>{% if audit_log.actor_email %}{{ audit_log.actor_email }}{% else %}<span class="text-secondary">Sistem</span>{% endif %}</td>
-                <td data-label="Aksi" {{ cell_attr(table_view, "action") }}>{{ audit_action_badge(audit_log.action) }}</td>
+                <td class="text-nowrap text-secondary" data-label="Time" {{ cell_attr(table_view, "time") }}>{{ audit_log.created_at | local_datetime("%d %b %Y, %H:%M:%S") }}</td>
+                <td class="cell-actor" data-label="Actor" {{ cell_attr(table_view, "actor") }}>{% if audit_log.actor_email %}{{ audit_log.actor_email }}{% else %}<span class="text-secondary">System</span>{% endif %}</td>
+                <td data-label="Action" {{ cell_attr(table_view, "action") }}>{{ audit_action_badge(audit_log.action) }}</td>
                 <td data-label="Data" {{ cell_attr(table_view, "entity") }}>
                   {{ audit_log.entity_type | audit_entity_label }}
                   {% if audit_log.entity_id %}<span class="text-secondary">#{{ audit_log.entity_id }}</span>{% endif %}
@@ -58,8 +58,8 @@
     {% elif is_filtered %}
       <div class="empty">
         <div class="empty-icon">{{ icon("search") }}</div>
-        <p class="empty-title">Tidak ada catatan yang cocok</p>
-        <p class="empty-subtitle text-secondary">Coba ubah kriteria pencariannya atau rentang tanggalnya.</p>
+        <p class="empty-title">No matching records</p>
+        <p class="empty-subtitle text-secondary">Try changing the search criteria or the date range.</p>
         <div class="empty-action">
           <a href="{{ url_for('audit.index') }}" class="btn">Reset filter</a>
         </div>
@@ -67,7 +67,7 @@
     {% else %}
       <div class="empty">
         <div class="empty-icon">{{ icon("audit") }}</div>
-        <p class="empty-title">Belum ada catatan aktivitas</p>
+        <p class="empty-title">No activity records yet</p>
       </div>
     {% endif %}
   </div>

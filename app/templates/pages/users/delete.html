@@ -2,17 +2,17 @@
 {% from "components/icon.html" import icon %}
 {% from "components/back_field.html" import back_field_list with context %}
 
-{% block title %}Hapus Akun {{ target.full_name }}{% endblock %}
+{% block title %}Delete Account {{ target.full_name }}{% endblock %}
 
 {# judul layar di title bar atas ala SAP #}
-{% block screen_title %}Change Akun: {{ target.full_name }} (Hapus){% endblock %}
+{% block screen_title %}Change Account: {{ target.full_name }} (Delete){% endblock %}
 
 {% block page_pretitle %}Admin › Users{% endblock %}
 
 {% block toolbar_cancel %}{{ back_url }}{% endblock %}
 
 {% block page_actions %}
-  <button type="submit" form="delete_account_form" class="btn btn-danger">{{ icon("trash") }} Hapus Akun</button>
+  <button type="submit" form="delete_account_form" class="btn btn-danger">{{ icon("trash") }} Delete Account</button>
 {% endblock %}
 
 {% block content %}
@@ -37,37 +37,37 @@
           <div class="alert alert-danger" role="alert">
             <div class="d-flex gap-2">
               <span>{{ icon("alert_triangle") }}</span>
-              <div>Akun yang dihapus <strong>tidak bisa dikembalikan</strong>. Pastikan akun ini memang sudah tidak dipakai.</div>
+              <div>A deleted account <strong>cannot be restored</strong>. Make sure this account is really no longer used.</div>
             </div>
           </div>
 
-          <h4>Yang akan terjadi</h4>
+          <h4>What will happen</h4>
           <ul class="list-unstyled d-grid gap-2 mb-4">
-            <li>{{ icon("trash", "text-danger") }} <strong>{{ delete_preview_dict.private_entry_count }}</strong> link Private beserta lampirannya dihapus permanen.</li>
-            <li>{{ icon("globe", "text-secondary") }} <strong>{{ delete_preview_dict.public_entry_count }}</strong> link Public tetap ada, pemiliknya tampil sebagai "Akun dihapus".</li>
-            <li>{{ icon("lock", "text-secondary") }} Akses tambahan dicabut, akun tidak bisa login lagi, nama dan email dianonimkan.</li>
-            <li>{{ icon("group", "text-secondary") }} Keluar dari semua group, link miliknya dicabut dari group orang lain.</li>
-            <li>{{ icon("mail", "text-secondary") }} Email {{ target.email }} bisa dipakai daftar ulang.</li>
-            <li>{{ icon("audit", "text-secondary") }} Riwayat di Audit Logs tetap disimpan.</li>
+            <li>{{ icon("trash", "text-danger") }} <strong>{{ delete_preview_dict.private_entry_count }}</strong> Private links and their attachments are permanently deleted.</li>
+            <li>{{ icon("globe", "text-secondary") }} <strong>{{ delete_preview_dict.public_entry_count }}</strong> Public links remain, with the owner shown as "Deleted account".</li>
+            <li>{{ icon("lock", "text-secondary") }} Extra access is revoked, the account can no longer log in, and the name and email are anonymized.</li>
+            <li>{{ icon("group", "text-secondary") }} Leaves all groups, and their links are removed from other people's groups.</li>
+            <li>{{ icon("mail", "text-secondary") }} The email {{ target.email }} can be used to register again.</li>
+            <li>{{ icon("audit", "text-secondary") }} History in Audit Logs is kept.</li>
           </ul>
 
           {% if delete_preview_dict.owned_group_list %}
-            <h4>Group milik akun ini</h4>
+            <h4>Groups owned by this account</h4>
             <div class="list-group list-group-flush border rounded mb-4">
               {% for group_plan in delete_preview_dict.owned_group_list %}
                 <div class="list-group-item d-flex justify-content-between align-items-center gap-2">
                   <span class="fw-medium text-truncate">{{ group_plan.group.name }}</span>
                   {% if group_plan.successor %}
-                    <span class="badge bg-azure-lt">Pindah ke {{ group_plan.successor.user.full_name }}</span>
+                    <span class="badge bg-azure-lt">Moves to {{ group_plan.successor.user.full_name }}</span>
                   {% else %}
-                    <span class="badge bg-red-lt">Dihapus (tidak ada anggota)</span>
+                    <span class="badge bg-red-lt">Deleted (no members)</span>
                   {% endif %}
                 </div>
               {% endfor %}
             </div>
           {% endif %}
 
-          <label class="form-label required" for="confirm_email">Ketik ulang email akun untuk konfirmasi</label>
+          <label class="form-label required" for="confirm_email">Retype the account email to confirm</label>
           <input type="email" id="confirm_email" name="confirm_email" class="form-control" placeholder="{{ target.email }}" autocomplete="off" required>
         </div>
       </form>

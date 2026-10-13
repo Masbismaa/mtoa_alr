@@ -4,15 +4,16 @@
 {% block title %}Login{% endblock %}
 
 {% block content %}
-  <div class="text-secondary small text-uppercase fw-bold mb-1">Langkah 1 dari 2</div>
-  <h2 class="h2 mb-2">Masuk</h2>
-  <p class="text-secondary mb-4">Isi email korporat dan password kamu.</p>
+  <div class="text-secondary small text-uppercase fw-bold mb-1">Step 1 of 2</div>
+  <h2 class="h2 mb-2">Log in</h2>
+  <p class="text-secondary mb-4">Enter your corporate email and password.</p>
 
   <form method="post" novalidate>
     {{ form.hidden_tag() }}
     {# cukup isi nama depan email, domain kantor nempel di kanan & dilengkapi otomatis di server #}
-    {{ render_field(form.email, suffix="@" ~ config.ALLOWED_EMAIL_DOMAIN, value=(form.email.data or "").split("@")[0], placeholder="nama", autocomplete="username") }}
+    {{ render_field(form.email, suffix="@" ~ config.ALLOWED_EMAIL_DOMAIN, value=(form.email.data or "").split("@")[0], placeholder="name", autocomplete="username") }}
     {{ render_field(form.password, placeholder="Password", autocomplete="current-password") }}
+    <div class="text-end mt-n2 mb-3"><a href="{{ url_for('auth.forgot_password') }}" class="small">Forgot password?</a></div>
     <div class="form-footer">
       {{ form.submit(class_="btn btn-primary w-100") }}
     </div>
@@ -20,5 +21,5 @@
 {% endblock %}
 
 {% block after_card %}
-  <div class="text-center text-secondary mt-3">Belum punya akun? <a href="{{ url_for('auth.register') }}">Daftar di sini</a></div>
+  <div class="text-center text-secondary mt-3">Don't have an account? <a href="{{ url_for('auth.register') }}">Register here</a></div>
 {% endblock %}

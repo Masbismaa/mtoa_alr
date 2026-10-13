@@ -98,3 +98,19 @@
     grid-column: 1 / -1;
   }
 }
+
+/* menu Variant: daftar variant (klik = pakai, tong sampah = hapus) + isian Save as Variant */
+.selection-variant-menu {
+  min-width: 18rem;
+}
+
+.selection-variant-item {
+  display: flex;
+  align-items: center;
+  padding-right: 0.5rem;
+}
+
+.selection-variant-item .dropdown-item {
+  flex: 1;
+  min-width: 0;
+}

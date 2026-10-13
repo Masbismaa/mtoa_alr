@@ -84,6 +84,8 @@ def register_cli_commands(app):
         """Proses permintaan tombol admin; tidak membuat pemeriksaan terjadwal."""
         while True:
             try:
+                # run yg ketinggalan "running" (worker sebelumnya mati di tengah jalan) dicabut otomatis setelah 5 menit
+                recover_stale_monitor()
                 counts = process_pending_monitor()
                 if counts is not None:
                     click.echo(build_run_summary_text(counts))
@@ -126,3 +128,33 @@ def register_cli_commands(app):
                     except OSError:
                         raise click.ClickException("Lampiran belum dapat dihapus; periksa izin folder") from None
         click.echo(f"{count} file yatim {'dihapus' if delete else 'ditemukan (belum dihapus)'}.")
+
+    @app.cli.command("cleanup-old-data")
+    @click.option("--delete", is_flag=True, help="Hapus beneran (default cuma ngitung).")
+    def cleanup_old_data_command(delete):
+        """Buang data sementara yg udah ga kepake biar tabel ga numpuk bertahun-tahun: OTP yg udah kedaluwarsa,
+        notifikasi yg udah dibaca & lebih tua dari 90 hari, dan percobaan daftar yg ga diverifikasi > 24 jam.
+        Default cuma nampilin jumlahnya. Audit log sengaja ga disentuh (emang ga boleh dihapus)."""
+        from datetime import timedelta
+
+        from app.models import OtpCode, PendingRegistration, UserNotification
+        from app.utils.constants import NOTIFICATION_RETENTION_DAYS, PENDING_REGISTRATION_EXPIRE_HOURS
+        from app.utils.datetime_helper import utc_now
+
+        now = utc_now()
+        target_list = [
+            ("OTP kedaluwarsa", OtpCode, OtpCode.expires_at < now - timedelta(days=1)),
+            ("notifikasi lama yang sudah dibaca", UserNotification, db.and_(
+                UserNotification.is_read.is_(True),
+                UserNotification.created_at < now - timedelta(days=NOTIFICATION_RETENTION_DAYS),
+            )),
+            ("pendaftaran tidak diverifikasi", PendingRegistration,
+             PendingRegistration.created_at < now - timedelta(hours=PENDING_REGISTRATION_EXPIRE_HOURS)),
+        ]
+        for label, model, condition in target_list:
+            if delete:
+                count = db.session.execute(db.delete(model).where(condition)).rowcount
+            else:
+                count = db.session.scalar(db.select(db.func.count()).select_from(model).where(condition))
+            click.echo(f"{count} {label} {'dihapus' if delete else 'ditemukan (belum dihapus)'}.")
+        db.session.commit()

@@ -11,7 +11,7 @@
     const isDark = preference.readCurrent().theme_mode === "dark";
     buttonList.forEach(function (buttonEl) {
       buttonEl.setAttribute("aria-checked", String(isDark));
-      buttonEl.title = isDark ? "Ubah ke Light mode" : "Ubah ke Dark mode";
+      buttonEl.title = isDark ? "Switch to Light mode" : "Switch to Dark mode";
     });
   }
 
@@ -30,14 +30,14 @@
       preference.apply({ theme_mode: nextTheme }, true);
       const [resultDict] = await Promise.all([
         preference.saveToServer({ theme_mode: nextTheme }),
-        new Promise(function (resolve) { window.setTimeout(resolve, 560); }),
+        new Promise(function (resolve) { window.setTimeout(resolve, 500); }),
       ]);
 
       // gagal simpen -> balikin lagi + kasih tau user
       if (!resultDict.is_success) {
         preference.apply({ theme_mode: previousTheme }, true);
         if (window.AlrFlash) {
-          window.AlrFlash.show(resultDict.message || "Gagal menyimpan mode tampilan", "danger");
+          window.AlrFlash.show(resultDict.message || "Failed to save the display mode", "danger");
         }
       }
 

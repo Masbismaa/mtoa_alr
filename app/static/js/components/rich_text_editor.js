@@ -40,12 +40,12 @@
     // simpen posisi blok teks dulu, soalnya kotak prompt bikin fokus pindah
     const selection = window.getSelection();
     const savedRange = selection.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
-    const rawUrl = window.prompt("Masukkan link (harus diawali http:// atau https://)", "https://");
+    const rawUrl = window.prompt("Enter a link (must start with http:// or https://)", "https://");
     if (!rawUrl) return;
 
     const url = rawUrl.trim();
     if (!LINK_PATTERN.test(url)) {
-      if (window.AlrFlash) window.AlrFlash.show("Link harus diawali http:// atau https://", "warning");
+      if (window.AlrFlash) window.AlrFlash.show("The link must start with http:// or https://", "warning");
       return;
     }
 
@@ -66,7 +66,7 @@
   }
 
   function insertCode() {
-    const selectedText = window.getSelection().toString() || "kode";
+    const selectedText = window.getSelection().toString() || "code";
     // textContent -> isi otomatis di-escape, aman
     const codeEl = document.createElement("code");
     codeEl.textContent = selectedText;

@@ -44,7 +44,7 @@
       if (!response.ok || !body.is_success) {
         // sesi habis / bukan admin lagi: berhenti nanya, kasih tau alasannya
         isStopped = true;
-        messageEl.textContent = body.message || "Status pemeriksaan tidak bisa diambil. Muat ulang halaman.";
+        messageEl.textContent = body.message || "Could not get the check status. Reload the page.";
         return;
       }
       if (!body.data.is_active) {

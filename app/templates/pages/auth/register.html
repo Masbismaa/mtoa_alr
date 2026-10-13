@@ -1,23 +1,23 @@
 {% extends "layouts/auth_base.html" %}
 {% from "components/form_field.html" import render_field %}
 
-{% block title %}Daftar{% endblock %}
+{% block title %}Register{% endblock %}
 
 {% block content %}
-  <h2 class="h2 mb-2">Daftar Akun</h2>
-  <p class="text-secondary mb-4">Gunakan email korporat. Password minimal 8 karakter berisi huruf dan angka.</p>
+  <h2 class="h2 mb-2">Create Account</h2>
+  <p class="text-secondary mb-4">Use your corporate email. The password must be at least 8 characters with letters and numbers.</p>
 
   <form method="post" novalidate>
     {{ form.hidden_tag() }}
     {# cukup isi nama depan email, domain kantor nempel di kanan & dilengkapi otomatis di server #}
-    {{ render_field(form.email, suffix="@" ~ config.ALLOWED_EMAIL_DOMAIN, value=(form.email.data or "").split("@")[0], placeholder="nama", autocomplete="username") }}
-    {{ render_field(form.full_name, placeholder="Nama lengkap", autocomplete="name") }}
+    {{ render_field(form.email, suffix="@" ~ config.ALLOWED_EMAIL_DOMAIN, value=(form.email.data or "").split("@")[0], placeholder="name", autocomplete="username") }}
+    {{ render_field(form.full_name, placeholder="Full name", autocomplete="name") }}
     <div class="row g-2">
-      <div class="col-sm-6">{{ render_field(form.department, placeholder="Contoh: ICT") }}</div>
-      <div class="col-sm-6">{{ render_field(form.job_title, placeholder="Contoh: Staff") }}</div>
+      <div class="col-sm-6">{{ render_field(form.department, placeholder="Example: ICT") }}</div>
+      <div class="col-sm-6">{{ render_field(form.job_title, placeholder="Example: Staff") }}</div>
     </div>
     {{ render_field(form.password, placeholder="Password", autocomplete="new-password") }}
-    {{ render_field(form.confirm_password, placeholder="Ulangi password", autocomplete="new-password") }}
+    {{ render_field(form.confirm_password, placeholder="Repeat password", autocomplete="new-password") }}
     <div class="form-footer">
       {{ form.submit(class_="btn btn-primary w-100") }}
     </div>
@@ -25,5 +25,5 @@
 {% endblock %}
 
 {% block after_card %}
-  <div class="text-center text-secondary mt-3">Sudah punya akun? <a href="{{ url_for('auth.login') }}">Masuk</a></div>
+  <div class="text-center text-secondary mt-3">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></div>
 {% endblock %}

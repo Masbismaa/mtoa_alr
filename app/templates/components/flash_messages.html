@@ -3,7 +3,7 @@
   {% for category, message in get_flashed_messages(with_categories=true) %}
     <div class="alert alert-{{ category }} alert-dismissible flash-item" role="alert" data-flash data-flash-category="{{ category }}">
       <div class="flash-text">{{ message }}</div>
-      <button type="button" class="btn-close" data-flash-close aria-label="Tutup pesan"></button>
+      <button type="button" class="btn-close" data-flash-close aria-label="Close message"></button>
     </div>
   {% endfor %}
 </div>

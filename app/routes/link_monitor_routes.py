@@ -28,7 +28,12 @@ def index():
 def status():
     """Status pemeriksaan (JSON) buat halaman yg lagi kebuka: progres jalan sendiri tanpa reload."""
     if not is_admin(current_user):
-        return error_response("Halaman ini khusus admin", 403)
+        return error_response("This page is for admins only", 403)
+    return success_response(data=build_monitor_status())
+
+def status():
+    if not is_admin(current_user):
+        return error_response("This page is for admins only", 403)
     return success_response(data=build_monitor_status())
 
 @link_monitor_bp.post("/run")
@@ -41,5 +46,5 @@ def run_now():
     except ValidationError as error:
         flash_error_list(error.error_list)
     else:
-        flash("Pemeriksaan diantrekan. Hasil akan diperbarui saat pemeriksaan selesai.", "success")
+        flash("The check has been queued. Results will update when the check finishes.", "success")
     return redirect(url_for("link_monitor.index"))

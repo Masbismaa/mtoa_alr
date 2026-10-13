@@ -42,7 +42,7 @@ def prepare_upload_list(file_storage_list, existing_count=0):
     if existing_count + len(upload_list) > ATTACHMENT_MAX_COUNT:
         return [], [build_error(
             ATTACHMENT_FIELD,
-            f"Maksimal {ATTACHMENT_MAX_COUNT} lampiran per data (yang sudah ada: {existing_count})",
+            f"Up to {ATTACHMENT_MAX_COUNT} attachments per link (already attached: {existing_count})",
         )]
 
     prepared_list = []
@@ -54,7 +54,7 @@ def prepare_upload_list(file_storage_list, existing_count=0):
 
         if len(content_bytes) > ATTACHMENT_MAX_SIZE_BYTES:
             max_size_mb = ATTACHMENT_MAX_SIZE_BYTES // (1024 * 1024)
-            error_list.append(build_error(ATTACHMENT_FIELD, f"{display_name}: lebih dari {max_size_mb}MB"))
+            error_list.append(build_error(ATTACHMENT_FIELD, f"{display_name}: larger than {max_size_mb}MB"))
             continue
 
         try:
@@ -82,7 +82,26 @@ def enforce_upload_quota(user, prepared_list):
                              .where(Attachment.user_id == user.id))
     incoming = sum(len(item["content_bytes"]) for item in prepared_list)
     if used + incoming > current_app.config["UPLOAD_USER_QUOTA_BYTES"]:
-        raise ValidationError([build_error(ATTACHMENT_FIELD, "Kuota lampiran akun sudah penuh")])
+        raise ValidationError([build_error(ATTACHMENT_FIELD, "Your account's attachment quota is full")])
+
+
+def enforce_entry_attachment_limit(entry, prepared_list, removed_id_list=()):
+    """Hitung ulang jumlah lampiran link SETELAH barisnya dikunci. Hitungan awal (prepare_upload_list) dibaca
+    sebelum ada kunci, jadi 2 upload barengan ke link yg sama bisa sama-sama liat 4 lalu masing-masing nambah 1.
+    removed_id_list = id lampiran yg dihapus di request yg sama; yg ga dihitung cuma yg emang MASIH ada di DB
+    (kalau request lain udah duluan ngehapus lampiran yg sama, penghapusannya ga kehitung dua kali)."""
+    if not prepared_list or entry.id is None:
+        return
+    db.session.execute(db.select(AccessEntry.id).where(AccessEntry.id == entry.id).with_for_update()).scalar_one()
+    remaining_count = db.session.scalar(
+        db.select(db.func.count(Attachment.id))
+        .where(Attachment.access_entry_id == entry.id, Attachment.id.not_in(list(removed_id_list)))
+    )
+    if remaining_count + len(prepared_list) > ATTACHMENT_MAX_COUNT:
+        raise ValidationError([build_error(
+            ATTACHMENT_FIELD,
+            f"Up to {ATTACHMENT_MAX_COUNT} attachments per link (already attached: {remaining_count})",
+        )])
 
 
 def store_prepared_attachment_list(entry, user, prepared_list):

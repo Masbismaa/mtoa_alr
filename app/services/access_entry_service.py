@@ -1,14 +1,16 @@
 """Logika CRUD Access Entry. Route tinggal manggil fungsi di sini."""
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload, undefer
 
 from app.extensions import db
-from app.models import AccessEntry, AccessEntryField, Category, User
+from app.models import AccessEntry, AccessEntryField, Category, User, UserFavorite
 from app.security.access_policy import build_visible_entry_filter, can_edit_entry, is_entry_owner
 from app.security.encryption_service import decrypt_credential, encrypt_credential
 from app.services.attachment_service import (
     pick_entry_attachment_list,
     prepare_upload_list,
     enforce_upload_quota,
+    enforce_entry_attachment_limit,
     remove_file_path_list,
     remove_stored_file_list,
     store_prepared_attachment_list,
@@ -28,6 +30,7 @@ from app.services.category_service import (
 from app.utils.constants import (
     AUDIT_ACTION_CREATE,
     AUDIT_ACTION_DELETE,
+    AUDIT_ACTION_REVEAL,
     AUDIT_ACTION_UPDATE,
     CATEGORY_FIELD_RULE_DICT,
     CATEGORY_SPECIFIC_FIELD_LIST,
@@ -102,6 +105,9 @@ def build_category_option_list(category_list):
         option_list.append({
             "id": category.id,
             "name": build_category_label(category),
+            # buat dropdown bertingkat (entry_form.js): induk + nama tanpa jalur
+            "parent_id": category.parent_id or "",
+            "short_name": category.name,
             "field_list": ",".join(rule["field_list"]),
             "required_field_list": ",".join(rule["required_field_list"]),
             "has_custom_field": "true" if rule["has_custom_field"] else "false",
@@ -114,7 +120,7 @@ def validate_entry_data(data_dict, current_category_id=None):
     """Cek & bersihin data utama. Return (clean_dict, category, error_list)."""
     category = get_category_from_id(data_dict.get("category_id"), current_category_id)
     if category is None:
-        return {}, None, [build_error("category_id", "Kategori tidak valid")]
+        return {}, None, [build_error("category_id", "Invalid category")]
 
     rule = get_category_rule(category)
     error_list = []
@@ -122,7 +128,7 @@ def validate_entry_data(data_dict, current_category_id=None):
 
     clean_dict["title"] = sanitize_text(data_dict.get("title"), max_length=MAX_TITLE_LENGTH)
     if not clean_dict["title"]:
-        error_list.append(build_error("title", "Judul wajib diisi"))
+        error_list.append(build_error("title", "Title is required"))
 
     # field yg ga dipake kategori ini dikosongin
     for field_name in CATEGORY_SPECIFIC_FIELD_LIST:
@@ -145,7 +151,7 @@ def validate_entry_data(data_dict, current_category_id=None):
         clean_dict["username"] = sanitize_text(data_dict.get("username"), max_length=MAX_USERNAME_LENGTH) or None
         raw_access_note = data_dict.get("access_note") or ""
         if len(raw_access_note) > MAX_ACCESS_NOTE_LENGTH:
-            error_list.append(build_error("access_note", f"Access note maksimal {MAX_ACCESS_NOTE_LENGTH} karakter"))
+            error_list.append(build_error("access_note", f"Access note can be at most {MAX_ACCESS_NOTE_LENGTH} characters"))
         # ga di-sanitize biar password utuh, nanti dienkripsi
         clean_dict["access_note"] = raw_access_note if raw_access_note.strip() else None
 
@@ -153,7 +159,7 @@ def validate_entry_data(data_dict, current_category_id=None):
 
     visibility = data_dict.get("visibility")
     if visibility not in VISIBILITY_LIST:
-        error_list.append(build_error("visibility", "Pilih Public atau Private"))
+        error_list.append(build_error("visibility", "Choose Public or Private"))
     clean_dict["visibility"] = visibility
 
     return clean_dict, category, error_list
@@ -166,7 +172,7 @@ def validate_custom_field_list(category, custom_field_pair_list):
 
     pair_list = list(custom_field_pair_list or [])
     if len(pair_list) > CUSTOM_FIELD_MAX_COUNT:
-        return [], [build_error("custom_field", f"Maksimal {CUSTOM_FIELD_MAX_COUNT} field tambahan")]
+        return [], [build_error("custom_field", f"Up to {CUSTOM_FIELD_MAX_COUNT} additional fields")]
 
     clean_list = []
     error_list = []
@@ -175,11 +181,11 @@ def validate_custom_field_list(category, custom_field_pair_list):
         clean_content = sanitize_rich_text(raw_content)
 
         if not clean_label:
-            error_list.append(build_error("custom_field", f"Judul field ke-{field_number} wajib diisi"))
+            error_list.append(build_error("custom_field", f"Title of field {field_number} is required"))
         if len(raw_content or "") > MAX_RICH_TEXT_LENGTH:
-            error_list.append(build_error("custom_field", f"Isi field ke-{field_number} kepanjangan"))
+            error_list.append(build_error("custom_field", f"Content of field {field_number} is too long"))
         elif not get_plain_text(clean_content):
-            error_list.append(build_error("custom_field", f"Isi field ke-{field_number} wajib diisi"))
+            error_list.append(build_error("custom_field", f"Content of field {field_number} is required"))
 
         clean_list.append({"field_label": clean_label, "field_content": clean_content, "sort_order": field_number})
     return clean_list, error_list
@@ -226,7 +232,7 @@ def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list
     if not error_list:
         duplicate_field, duplicate_entry = find_duplicate_entry(user, clean_dict, exclude_entry_id)
         if duplicate_entry is not None:
-            error_list.append(build_error(duplicate_field, f'Sudah terdaftar di data "{duplicate_entry.title}"'))
+            error_list.append(build_error(duplicate_field, f'Already registered in link "{duplicate_entry.title}"'))
 
     if error_list:
         raise ValidationError(error_list)
@@ -293,7 +299,7 @@ def update_access_entry(user, entry, data_dict, custom_field_pair_list=None,
                         upload_file_list=None, delete_attachment_id_list=None):
     """Ubah data link, bisa sekalian nambah & hapus lampiran."""
     if not can_edit_entry(user, entry):
-        raise PermissionDeniedError("Kamu tidak punya akses mengubah data ini")
+        raise PermissionDeniedError("You don't have access to change this link")
 
     # lampiran yg mau dihapus (cuma yg emang punya entry ini)
     delete_attachment_list = pick_entry_attachment_list(entry, delete_attachment_id_list)
@@ -304,6 +310,8 @@ def update_access_entry(user, entry, data_dict, custom_field_pair_list=None,
         existing_attachment_count=existing_attachment_count, exclude_entry_id=entry.id,
         current_category_id=entry.category_id,
     )
+    # dicek ulang setelah link dikunci (upload barengan ke link yg sama ga boleh lewat batas)
+    enforce_entry_attachment_limit(entry, prepared_upload_list, [attachment.id for attachment in delete_attachment_list])
     # visibilitas cuma boleh diganti pemiliknya
     if not is_entry_owner(user, entry):
         clean_dict["visibility"] = entry.visibility
@@ -329,7 +337,7 @@ def update_access_entry(user, entry, data_dict, custom_field_pair_list=None,
 def delete_access_entry(user, entry):
     """Hapus data link + field tambahan + lampiran (DB & file)."""
     if not can_edit_entry(user, entry):
-        raise PermissionDeniedError("Kamu tidak punya akses menghapus data ini")
+        raise PermissionDeniedError("You don't have access to delete this link")
 
     old_data_dict = build_entry_audit_dict(entry)
     stored_filename_list = [attachment.stored_filename for attachment in entry.attachment_list]
@@ -339,6 +347,28 @@ def delete_access_entry(user, entry):
     log_audit(AUDIT_ACTION_DELETE, AUDIT_ENTITY_TYPE, entity_id=entry_id, old_data_dict=old_data_dict, user=user)
     db.session.commit()
     remove_stored_file_list(stored_filename_list)
+
+def delete_access_entry_list(user, entry_id_list):
+    """Hapus banyak link sekaligus (admin, buat bersih-bersih). Cuma link yg boleh diliat & boleh dihapus user ini
+    yg kehapus, sisanya dilewatin (link Private orang lain tetep ga kesentuh). Satu transaksi, tiap link dicatat
+    di audit kayak hapus satuan. Return jumlah yg kehapus."""
+    entry_list = db.session.execute(
+        db.select(AccessEntry)
+        .options(selectinload(AccessEntry.custom_field_list), selectinload(AccessEntry.attachment_list))
+        .where(AccessEntry.id.in_(entry_id_list), build_visible_entry_filter(user))
+    ).scalars().all()
+    stored_filename_list = []
+    deleted_count = 0
+    for entry in entry_list:
+        if not can_edit_entry(user, entry):
+            continue
+        stored_filename_list.extend(attachment.stored_filename for attachment in entry.attachment_list)
+        log_audit(AUDIT_ACTION_DELETE, AUDIT_ENTITY_TYPE, entity_id=entry.id, old_data_dict=build_entry_audit_dict(entry), user=user)
+        db.session.delete(entry)
+        deleted_count += 1
+    db.session.commit()
+    remove_stored_file_list(stored_filename_list)
+    return deleted_count
 
 def delete_private_entry_list(actor, owner):
     """Hapus semua link Private punya owner (dipake pas akun dihapus). Belum di-commit, return nama file lampiran buat dihapus abis commit."""
@@ -436,6 +466,10 @@ def build_visible_entry_query(user, keyword=None, category_id=None, visibility=N
         query = query.where(AccessEntry.visibility == visibility)
     if selection:
         query = apply_entry_selection(query, selection, is_include_sub)
+        if selection.get("is_favorite_only"):
+            query = query.where(AccessEntry.id.in_(
+                db.select(UserFavorite.access_entry_id).where(UserFavorite.user_id == user.id)
+            ))
     default_order_list = [AccessEntry.updated_at.desc(), AccessEntry.id.desc()]
     return query.order_by(*build_order_list(sort, ENTRY_SORT_COLUMN_DICT, default_order_list, AccessEntry.id))
 
@@ -472,3 +506,35 @@ def read_access_note(entry):
         return decrypt_credential(entry.encrypted_access_note), False
     except InvalidCredentialError:
         return None, True
+
+def is_favorite_entry(user, entry):
+    return db.session.execute(
+        db.select(UserFavorite.id).filter_by(user_id=user.id, access_entry_id=entry.id)
+    ).first() is not None
+
+def toggle_favorite(user, entry):
+    """Tandain / lepas bintang link ini. Return True kalau sekarang jadi favorit. Cuma buat link yg boleh diliat
+    (dicek route); kalau nanti aksesnya ilang, favoritnya otomatis ga muncul karena filter favorit tetep lewat
+    build_visible_entry_filter."""
+    favorite = db.session.execute(
+        db.select(UserFavorite).filter_by(user_id=user.id, access_entry_id=entry.id)
+    ).scalar_one_or_none()
+    if favorite is not None:
+        db.session.delete(favorite)
+        db.session.commit()
+        return False
+    db.session.add(UserFavorite(user_id=user.id, access_entry_id=entry.id))
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # klik dobel barengan: yg satu udah nyimpen duluan, hasilnya tetep favorit
+        db.session.rollback()
+    return True
+
+def reveal_access_note(user, entry):
+    """Buka access note buat ditunjukin ke user (Show/Copy di detail, form edit) + catat di audit siapa buka
+    password link apa. Isi password-nya ga ikut dicatat. Return (isi, is_error); kosong -> ga dicatat."""
+    access_note, is_error = read_access_note(entry)
+    if access_note:
+        log_audit(AUDIT_ACTION_REVEAL, "access_entries", entity_id=entry.id, user=user, is_commit=True)
+    return access_note, is_error

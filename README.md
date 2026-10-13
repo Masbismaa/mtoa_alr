@@ -7,8 +7,10 @@ Aplikasi Flask untuk mencatat link, alamat, kredensial akses, lampiran, kategori
 1. Buat virtual environment dan pasang dependency.
 
    ```powershell
-   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+   .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
    ```
+
+   Server production cukup `requirements.txt` (tanpa alat test).
 
 2. Salin `.env.example` menjadi `.env`, lalu isi `SECRET_KEY`, `DATABASE_URL`, dan `ENCRYPTION_KEY`.
 
@@ -47,6 +49,7 @@ cd frontend; npm ci; npm test
 .\.venv\Scripts\python.exe -m flask --app run check-links
 .\.venv\Scripts\python.exe -m flask --app run recover-link-monitor
 .\.venv\Scripts\python.exe -m flask --app run cleanup-attachments
+.\.venv\Scripts\python.exe -m flask --app run cleanup-old-data
 ```
 
 Pemeriksaan status link hanya berjalan saat admin menekan tombol di halaman Link Monitoring (tidak ada jadwal
@@ -57,3 +60,4 @@ mengerjakannya. `check-links` menjalankan satu pemeriksaan langsung di terminal.
 ## Deploy
 
 Gunakan server WSGI dan HTTPS untuk production. Set `APP_ENV=production`, gunakan penyimpanan rate limit bersama seperti Redis, dan konfigurasi pengiriman OTP production sebelum aplikasi dibuka untuk pengguna.
+Checklist lengkap (dua service web & worker, role database hak minimum, `/health/ready`, backup) ada di [docs/deploy.md](docs/deploy.md).

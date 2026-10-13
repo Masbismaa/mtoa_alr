@@ -1,7 +1,7 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
 {% from "components/copy_button.html" import copy_button %}
-{% from "components/badge.html" import link_status_badge, visibility_badge %}
+{% from "components/badge.html" import audit_action_badge, link_status_badge, visibility_badge %}
 
 {% block title %}{{ entry.title }}{% endblock %}
 
@@ -10,7 +10,7 @@
 
 {# Kembali di toolbar: dibuka dari tabel -> balik ke tabel itu lagi (filter & urutan tetep), dibuka langsung -> ke Daftar Link #}
 {% set list_url = back_url or url_for('entries.index') %}
-{% block page_pretitle %}Data Link › Detail{% endblock %}
+{% block page_pretitle %}Links › Detail{% endblock %}
 
 {% block toolbar_back %}{{ list_url }}{% endblock %}
 
@@ -24,12 +24,16 @@
 {% endblock %}
 
 {% block page_actions %}
+  <form method="post" action="{{ url_for('entries.favorite', entry_id=entry.id, back=back_url) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn" aria-pressed="{{ 'true' if is_favorite else 'false' }}">{{ icon("star") }} {{ "Remove from Favorites" if is_favorite else "Add to Favorites" }}</button>
+  </form>
   {% if can_edit %}
     {# alamat tabel asal ikut ke Edit & Hapus, biar abis itu balik ke tabel yg sama #}
     <a href="{{ url_for('entries.edit', entry_id=entry.id, back=back_url) }}" class="btn">{{ icon("edit") }} Edit</a>
-    <form method="post" action="{{ url_for('entries.delete', entry_id=entry.id, back=back_url) }}" data-confirm-title="Hapus data link?" data-confirm-message="Data &quot;{{ entry.title }}&quot; beserta field tambahannya bakal dihapus permanen." data-confirm-ok="Ya, hapus">
+    <form method="post" action="{{ url_for('entries.delete', entry_id=entry.id, back=back_url) }}" data-confirm-title="Delete this link?" data-confirm-message="The link &quot;{{ entry.title }}&quot; and its additional fields will be permanently deleted." data-confirm-ok="Yes, delete">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="btn btn-danger">{{ icon("trash") }} Hapus</button>
+      <button type="submit" class="btn btn-danger" data-fkey="Shift+F2" title="Delete (Shift+F2)">{{ icon("trash") }} Delete</button>
     </form>
   {% endif %}
 {% endblock %}
@@ -39,7 +43,7 @@
     <div class="col-lg-8">
       <div class="card mb-3">
         <div class="card-header">
-          <h3 class="card-title">{{ icon("link") }} Akses</h3>
+          <h3 class="card-title">{{ icon("link") }} Access</h3>
         </div>
         <div class="card-body">
           {% if entry.url %}
@@ -64,13 +68,13 @@
             </div>
           {% endif %}
 
-          {% if access_note %}
+          {% if has_access_note %}
             <div class="mb-3">
               <div class="form-label">Access Note / Password</div>
               <div class="copy-row">
-                <pre class="copy-value secret-value" id="access_note_value" data-secret-value="{{ access_note }}">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</pre>
+                <pre class="copy-value secret-value" id="access_note_value" data-secret-url="{{ url_for('entries.reveal_access_note_api', entry_id=entry.id) }}">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</pre>
                 <div class="btn-list flex-nowrap">
-                  <button type="button" class="btn btn-sm" data-secret-toggle="access_note_value" aria-pressed="false">{{ icon("eye") }}<span data-secret-label>Tampilkan</span></button>
+                  <button type="button" class="btn btn-sm" data-secret-toggle="access_note_value" aria-pressed="false">{{ icon("eye") }}<span data-secret-label>Show</span></button>
                   {{ copy_button(target_id="access_note_value") }}
                 </div>
               </div>
@@ -79,13 +83,13 @@
 
           {% if entry.description %}
             <div class="mb-3">
-              <div class="form-label">Deskripsi</div>
+              <div class="form-label">Description</div>
               <div class="text-secondary detail-text">{{ entry.description }}</div>
             </div>
           {% endif %}
 
-          {% if not (entry.url or entry.address or entry.username or access_note or entry.description) %}
-            <p class="text-secondary mb-0">Belum ada data akses.</p>
+          {% if not (entry.url or entry.address or entry.username or has_access_note or entry.description) %}
+            <p class="text-secondary mb-0">No access data yet.</p>
           {% endif %}
         </div>
       </div>
@@ -93,7 +97,7 @@
       {% if entry.custom_field_list %}
         <div class="card mb-3">
           <div class="card-header">
-            <h3 class="card-title">{{ icon("plus") }} Field Tambahan</h3>
+            <h3 class="card-title">{{ icon("plus") }} Additional Fields</h3>
           </div>
           <div class="list-group list-group-flush">
             {% for custom_field in entry.custom_field_list %}
@@ -109,7 +113,7 @@
       {% if entry.attachment_list %}
         <div class="card mb-3">
           <div class="card-header">
-            <h3 class="card-title">{{ icon("paperclip") }} Lampiran ({{ entry.attachment_list | length }})</h3>
+            <h3 class="card-title">{{ icon("paperclip") }} Attachments ({{ entry.attachment_list | length }})</h3>
           </div>
           <div class="list-group list-group-flush">
             {% for attachment in entry.attachment_list %}
@@ -139,7 +143,7 @@
         <div class="card-body">
           <div class="datagrid">
             <div class="datagrid-item">
-              <div class="datagrid-title">Dibuat Oleh</div>
+              <div class="datagrid-title">Created By</div>
               <div class="datagrid-content">
                 <div class="d-flex align-items-center">
                   <span class="avatar avatar-xs me-2 bg-primary-lt">{{ entry.owner.full_name | initials }}</span>
@@ -149,24 +153,52 @@
               </div>
             </div>
             <div class="datagrid-item">
-              <div class="datagrid-title">Dibuat</div>
+              <div class="datagrid-title">Created</div>
               <div class="datagrid-content">{{ entry.created_at | local_datetime }}</div>
             </div>
             <div class="datagrid-item">
-              <div class="datagrid-title">Terakhir Diubah</div>
+              <div class="datagrid-title">Last Changed</div>
               <div class="datagrid-content">{{ entry.updated_at | local_datetime }}</div>
             </div>
             <div class="datagrid-item">
-              <div class="datagrid-title">Status Link</div>
+              <div class="datagrid-title">Link Status</div>
               <div class="datagrid-content">
                 {{ link_status_badge(entry.status) }}
                 {% if entry.status_note %}<div class="small text-secondary mt-1">{{ entry.status_note }}</div>{% endif %}
-                <div class="small text-secondary">{{ ("Dicek " ~ (entry.status_checked_at | time_ago)) if entry.status_checked_at else "Belum pernah dicek" }}</div>
+                <div class="small text-secondary">{{ ("Checked " ~ (entry.status_checked_at | time_ago)) if entry.status_checked_at else "Never checked" }}</div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {% if can_edit %}
+        <div class="card mt-3">
+          <div class="card-header">
+            <h3 class="card-title">{{ icon("history") }} History</h3>
+            <div class="card-actions"><span class="badge bg-secondary-lt">{{ history_list | length }}</span></div>
+          </div>
+          {% if history_list %}
+            <div class="list-group list-group-flush entry-history">
+              {% for history in history_list %}
+                {% set audit_log = history.audit_log %}
+                <div class="list-group-item">
+                  <div class="d-flex align-items-center gap-2">
+                    {{ audit_action_badge(audit_log.action) }}
+                    <span class="small text-secondary ms-auto text-nowrap">{{ audit_log.created_at | time_ago }}</span>
+                  </div>
+                  <div class="small mt-1 text-truncate" title="{{ audit_log.actor_email or 'System' }}">{{ audit_log.actor_email or "System" }}</div>
+                  {% if history.changed_field_list %}
+                    <div class="small text-secondary">Changed: {{ history.changed_field_list | join(", ") }}</div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="card-body text-secondary small">No history yet.</div>
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
   </div>
 {% endblock %}

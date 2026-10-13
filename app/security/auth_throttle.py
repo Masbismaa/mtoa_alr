@@ -23,6 +23,7 @@ from app.utils.constants import (
     REGISTER_CODE_MAX_COUNT,
     REGISTER_CODE_WINDOW_MINUTES,
     REGISTER_NOTICE_COOLDOWN_MINUTES,
+    RESET_ATTEMPT_MAX_COUNT,
 )
 
 EXTENSION_KEY = "auth_throttle"
@@ -32,6 +33,9 @@ REGISTER_CODE_LIMIT = parse(f"{REGISTER_CODE_MAX_COUNT} per {REGISTER_CODE_WINDO
 LOGIN_FAILURE_NAMESPACE = "login_failure"
 REGISTER_NOTICE_NAMESPACE = "register_notice"
 REGISTER_CODE_NAMESPACE = "register_code"
+RESET_CODE_NAMESPACE = "reset_code"
+RESET_ATTEMPT_LIMIT = parse(f"{RESET_ATTEMPT_MAX_COUNT} per 1 day")
+RESET_ATTEMPT_NAMESPACE = "reset_attempt"
 
 def init_auth_throttle(app):
     """Dipanggil sekali dari create_app: siapin penyimpanan hitungan buat app ini."""
@@ -73,3 +77,13 @@ def allow_register_code(email):
     """True kalau kode verifikasi daftar boleh dikirim ke alamat ini sekarang. Batasnya per email (bukan per IP),
     biar orang ga bisa ngebanjirin kotak masuk orang lain pake banyak percobaan daftar."""
     return get_limiter().hit(REGISTER_CODE_LIMIT, REGISTER_CODE_NAMESPACE, email)
+
+def allow_reset_code(email):
+    """True kalau kode lupa password boleh dikirim ke alamat ini sekarang. Batasnya sama kayak kode daftar (per email),
+    biar orang ga bisa ngebanjirin kotak masuk orang lain lewat halaman lupa password."""
+    return get_limiter().hit(REGISTER_CODE_LIMIT, RESET_CODE_NAMESPACE, email)
+
+def allow_reset_attempt(email):
+    """True kalau email ini masih boleh nyoba kode lupa password hari ini. Batasnya per email lintas kode baru
+    (kode baru bisa diminta tiap menit, jadi batas per kode doang ga cukup buat nahan tebakan 6 digit)."""
+    return get_limiter().hit(RESET_ATTEMPT_LIMIT, RESET_ATTEMPT_NAMESPACE, email)

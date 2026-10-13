@@ -1,0 +1,9 @@
+# Buat laptop developer & CI: semua library aplikasi + alat test. Server production cukup requirements.txt.
+-r requirements.txt
+
+pytest==9.1.1
+# dependensi turunan pytest, dikunci juga
+iniconfig==2.3.0
+pluggy==1.6.0
+Pygments==2.21.0
+colorama==0.4.6; sys_platform == "win32"

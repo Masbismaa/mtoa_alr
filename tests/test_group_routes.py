@@ -82,6 +82,16 @@ def test_groups_menu_available_in_sidebar(logged_in_client):
 
 
 def test_dashboard_counts_group(logged_in_client, registered_user):
-    """Positive: kartu Group di dashboard ngitung group beneran."""
-    create_group(registered_user, {"name": "Tim Network"})
-    assert 'stat-card-value">1<' in logged_in_client.get("/").get_data(as_text=True)
+    """Dashboard menampilkan group milik user beserta jumlah anggota dan link-nya."""
+    import re
+
+    group = create_group(registered_user, {"name": "Tim Network"})
+    response = logged_in_client.get("/")
+    assert response.status_code == 200
+    group_card = re.search(
+        rf'<a\b[^>]*href="/groups/{group.id}"[^>]*>(.*?)</a>', response.get_data(as_text=True), re.DOTALL,
+    )
+    assert group_card is not None
+    assert "Tim Network" in group_card.group(1)
+    assert "1 members" in group_card.group(1)
+    assert "0 links" in group_card.group(1)

@@ -48,17 +48,17 @@ def build_monitor_status():
     total_count = run.total_count if run else 0
     idle_seconds = (utc_now() - to_utc_aware(run.updated_at)).total_seconds() if run and run.updated_at else 0
     message_dict = {
-        "idle": "Belum ada pemeriksaan.",
-        "queued": "Menunggu pemeriksaan.",
-        "running": f"Pemeriksaan berjalan: {processed_count} dari {total_count} data.",
-        "completed": f"Pemeriksaan selesai: {processed_count} data diperiksa.",
-        "failed": "Pemeriksaan terhenti. Sebagian hasil mungkin sudah diperbarui; hubungi pengelola server.",
+        "idle": "No checks yet.",
+        "queued": "Waiting for the check.",
+        "running": f"Check running: {processed_count} of {total_count} links.",
+        "completed": f"Check finished: {processed_count} links checked.",
+        "failed": "The check stopped. Some results may already be updated; contact the server administrator.",
     }
     warning = None
     if state == "queued" and idle_seconds > MONITOR_WORKER_WAIT_WARNING_SECONDS:
-        warning = f"Antrean belum diambil lebih dari {MONITOR_WORKER_WAIT_WARNING_SECONDS} detik. Worker kemungkinan tidak berjalan."
+        warning = f"The queue hasn't been picked up for more than {MONITOR_WORKER_WAIT_WARNING_SECONDS} seconds. The worker is probably not running."
     elif state == "running" and idle_seconds > MONITOR_STALL_WARNING_SECONDS:
-        warning = f"Tidak ada kemajuan lebih dari {MONITOR_STALL_WARNING_SECONDS} detik. Worker kemungkinan berhenti."
+        warning = f"No progress for more than {MONITOR_STALL_WARNING_SECONDS} seconds. The worker has probably stopped."
     return {
         "state": state,
         "is_active": state in ("queued", "running"),
@@ -85,7 +85,7 @@ def request_monitor_run():
     ).values(token=token, state="queued", processed_count=0, total_count=0, updated_at=utc_now()))
     if result.rowcount != 1:
         db.session.rollback()
-        raise ValidationError([build_error("monitor", "Pemeriksaan masih menunggu atau sedang berjalan")])
+        raise ValidationError([build_error("monitor", "A check is still waiting or running")])
     db.session.commit()
     return token
 
@@ -149,6 +149,6 @@ def run_monitor():
 def build_run_summary_text(status_counter):
     """Hasil pemeriksaan jadi satu kalimat buat flash & output command."""
     return (
-        f"Pemeriksaan selesai: {sum(status_counter.values())} data · {status_counter[LINK_STATUS_UP]} aktif · "
-        f"{status_counter[LINK_STATUS_DOWN]} tidak aktif · {status_counter[LINK_STATUS_UNKNOWN]} belum dicek"
+        f"Check finished: {sum(status_counter.values())} links · {status_counter[LINK_STATUS_UP]} up · "
+        f"{status_counter[LINK_STATUS_DOWN]} down · {status_counter[LINK_STATUS_UNKNOWN]} not checked"
     )

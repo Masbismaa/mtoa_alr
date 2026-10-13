@@ -42,7 +42,7 @@ describe("api", () => {
 
   it("jaringan putus -> pesan jelas", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("Failed to fetch"); }));
-    await expect(getJson("/x")).rejects.toThrow("Koneksi ke server gagal");
+    await expect(getJson("/x")).rejects.toThrow("Could not connect to the server");
   });
 
   it("request dibatalin -> AbortError diterusin apa adanya (bukan dianggep error jaringan)", async () => {

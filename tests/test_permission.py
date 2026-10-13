@@ -64,7 +64,7 @@ def test_panel_cannot_touch_admin_account(app, admin_user, registered_user):
     ]:
         with pytest.raises(ValidationError) as error:
             action_function(admin_user, other_admin, *argument_list)
-        assert error.value.error_list == [{"field": "user", "message": "Akun admin cuma bisa diubah lewat command"}]
+        assert error.value.error_list == [{"field": "user", "message": "Admin accounts can only be changed via the command line"}]
     assert other_admin.is_active is True
 
 def test_granted_user_sees_only_granted_menu(app, admin_user, registered_user):
@@ -107,7 +107,7 @@ def test_cli_set_and_unset_admin(app, admin_user, registered_user):
     assert registered_user.role != ROLE_ADMIN
     result = runner.invoke(args=["unset-admin", "--email", admin_user.email])
     assert result.exit_code != 0
-    assert "Minimal" in result.output
+    assert "at least 1 active admin" in result.output
     assert admin_user.role == ROLE_ADMIN
 
 def test_cli_unknown_email(app):

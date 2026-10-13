@@ -19,11 +19,11 @@ def normalize_url(raw_url):
     """
     url_text = (raw_url or "").strip()
     if not url_text:
-        raise ValueError("URL wajib diisi")
+        raise ValueError("URL is required")
     if len(url_text) > MAX_URL_LENGTH:
-        raise ValueError(f"URL maksimal {MAX_URL_LENGTH} karakter")
+        raise ValueError(f"URL can be at most {MAX_URL_LENGTH} characters")
     if any(character.isspace() for character in url_text):
-        raise ValueError("URL tidak boleh mengandung spasi")
+        raise ValueError("URL must not contain spaces")
 
     try:
         url_part = urlsplit(url_text)
@@ -31,14 +31,14 @@ def normalize_url(raw_url):
         # dipanggil biar port yg ngaco (misal :99999) ketahuan
         url_part.port
     except ValueError as error:
-        raise ValueError("Format URL tidak valid") from error
+        raise ValueError("Invalid URL format") from error
 
     if url_part.scheme.lower() not in ALLOWED_URL_SCHEME_SET:
-        raise ValueError("URL wajib diawali http:// atau https://")
+        raise ValueError("URL must start with http:// or https://")
     if not hostname:
-        raise ValueError("Format URL tidak valid")
+        raise ValueError("Invalid URL format")
     if url_part.username or url_part.password:
-        raise ValueError("Jangan taruh username/password di URL, pakai kolom Username & Access Note")
+        raise ValueError("Don't put a username/password in the URL; use the Username & Access Note fields")
 
     return urlunsplit((
         url_part.scheme.lower(),
@@ -52,11 +52,11 @@ def normalize_address(raw_address):
     """Validasi address (IP / hostname), dirapihin jadi huruf kecil."""
     address_text = (raw_address or "").strip().lower()
     if not address_text:
-        raise ValueError("Address wajib diisi")
+        raise ValueError("Address is required")
     if len(address_text) > MAX_ADDRESS_LENGTH:
-        raise ValueError(f"Address maksimal {MAX_ADDRESS_LENGTH} karakter")
+        raise ValueError(f"Address can be at most {MAX_ADDRESS_LENGTH} characters")
     if not ADDRESS_PATTERN.match(address_text):
-        raise ValueError("Address cuma boleh huruf, angka, titik, strip, atau titik dua (contoh: 10.0.0.1)")
+        raise ValueError("Address may only contain letters, numbers, dots, hyphens, or colons (e.g. 10.0.0.1)")
     return address_text
 
 def parse_port(raw_port):
@@ -66,9 +66,9 @@ def parse_port(raw_port):
     try:
         port_number = int(str(raw_port).strip())
     except ValueError as error:
-        raise ValueError("Port harus berupa angka") from error
+        raise ValueError("Port must be a number") from error
     if not 1 <= port_number <= 65535:
-        raise ValueError("Port harus di antara 1 dan 65535")
+        raise ValueError("Port must be between 1 and 65535")
     return port_number
 def get_safe_back_url(raw_value):
     """Alamat balik dari ?back= (misal balik ke tabel + filternya). Cuma boleh path di dalem ALR sendiri (/...),

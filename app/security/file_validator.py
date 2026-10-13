@@ -136,9 +136,9 @@ def detect_content_type(filename, content_bytes):
     """Cek file boleh diupload atau nggak. Return (ekstensi, content_type), lempar ValueError kalau ditolak."""
     extension = get_file_extension(filename)
     if extension not in ATTACHMENT_CONTENT_TYPE_BY_EXTENSION_DICT:
-        raise ValueError(f"tipe file tidak diizinkan (yang boleh: {', '.join(ATTACHMENT_EXTENSION_LIST)})")
+        raise ValueError(f"file type not allowed (allowed: {', '.join(ATTACHMENT_EXTENSION_LIST)})")
     if not content_bytes:
-        raise ValueError("file kosong")
+        raise ValueError("empty file")
 
     if extension in SIGNATURE_BY_EXTENSION_DICT:
         is_valid = any(content_bytes.startswith(signature) for signature in SIGNATURE_BY_EXTENSION_DICT[extension])
@@ -148,5 +148,5 @@ def detect_content_type(filename, content_bytes):
         is_valid = is_valid_text(content_bytes)
 
     if not is_valid:
-        raise ValueError(f"isi file tidak sesuai dengan ekstensi .{extension} (atau berisi makro)")
+        raise ValueError(f"file content doesn't match the .{extension} extension (or contains macros)")
     return extension, ATTACHMENT_CONTENT_TYPE_BY_EXTENSION_DICT[extension]

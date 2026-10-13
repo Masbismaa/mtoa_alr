@@ -49,7 +49,7 @@ def test_page_header_remarked(logged_in_client):
 
 # DAFTAR LINK: TABEL ABIS JALANKAN
 def test_entry_list_hides_table_before_run(logged_in_client, registered_user, category_dict):
-    """Positive: buka Daftar Link -> cuma Kriteria Pencarian + petunjuk, tabel belum ada."""
+    """Positive: buka Daftar Link -> cuma Selection Criteria + petunjuk, tabel belum ada."""
     create_entry(registered_user, category_dict["Web"], "Portal HR")
     html_text = get_html(logged_in_client, "/entries/")
     assert "data-selection-form" in html_text and "data-selection-hint" in html_text
@@ -63,7 +63,7 @@ def test_entry_list_shows_table_after_run(logged_in_client, registered_user, cat
     assert 'id="daftar_link"' in html_text and "data-selection-hint" not in html_text
     payload = read_entry_table(logged_in_client, "/entries/?run=1")
     assert [row["title"] for row in payload["rows"]] == ["Portal HR"]
-    assert payload["heading"]["text"] == "Seluruh link: 1 data"
+    assert payload["heading"]["text"] == "All links: 1"
     assert payload["query"] == {"run": ["1"]}
     assert {column["key"]: column["next_sort"] for column in payload["columns"]}["title"] == "title"
 

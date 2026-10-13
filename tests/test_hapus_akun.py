@@ -179,7 +179,7 @@ def test_admin_sees_delete_page(admin_client, registered_user):
     """Positive: halaman konfirmasi nampilin email target & dampaknya."""
     html_text = admin_client.get(f"/users/{registered_user.id}/delete").get_data(as_text=True)
     assert registered_user.email in html_text
-    assert "tidak bisa dikembalikan" in html_text
+    assert "cannot be restored" in html_text
 
 def test_admin_delete_via_route(admin_client, registered_user):
     """Positive: konfirmasi bener -> akun kehapus, balik ke tabel bawa filter."""
@@ -194,7 +194,7 @@ def test_admin_wrong_email_via_route(admin_client, registered_user):
     """Negative: email salah -> tetep di halaman + pesan error."""
     response = admin_client.post(f"/users/{registered_user.id}/delete", data={"confirm_email": "salah@spindo.com"})
     assert response.status_code == 200
-    assert "tidak cocok" in response.get_data(as_text=True)
+    assert "match this account" in response.get_data(as_text=True)
     assert registered_user.deleted_at is None
 
 def test_admin_delete_page_redirects_for_admin_target(admin_client, admin_user):

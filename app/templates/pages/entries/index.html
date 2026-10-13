@@ -3,29 +3,29 @@
 {% from "components/entry_table.html" import entry_table %}
 {% from "components/selection_panel.html" import selection_panel %}
 
-{% block title %}Daftar Link{% endblock %}
+{% block title %}Link List{% endblock %}
 
 {# judul layar di title bar atas ala SAP #}
 {% block screen_title %}Display Access Link{% endblock %}
 
-{% block page_pretitle %}Data Link{% endblock %}
+{% block page_pretitle %}Links{% endblock %}
 
 {% block page_actions %}
-  <a href="{{ url_for('entries.create', back=request.full_path.rstrip('?')) }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
+  <a href="{{ url_for('entries.create', back=request.full_path.rstrip('?')) }}" class="btn btn-primary">{{ icon("plus") }} Add Link</a>
 {% endblock %}
 
 {% block page_help %}
-  <p>Isi <b>Kriteria Pencarian</b> lalu klik <b>Jalankan</b>. Pakai <code>*</code> sebagai pengganti huruf apa saja: <code>portal*</code> diawali portal, <code>*hr</code> diakhiri hr.</p>
-  <p>Tombol daftar di samping isian buat <b>Multi Selection</b> (banyak nilai, sertakan / kecualikan). Klik judul kolom buat mengurutkan, tombol <b>Kolom</b> buat milih kolom.</p>
+  <p>Fill in the <b>Selection Criteria</b>, then click <b>Execute</b>. Use <code>*</code> as a wildcard: <code>portal*</code> starts with portal, <code>*hr</code> ends with hr.</p>
+  <p>The list button next to a field opens <b>Multi Selection</b> (multiple values, include / exclude). Click a column header to sort, and the <b>Columns</b> button to choose columns.</p>
 {% endblock %}
 
 {% block content %}
   {# abis Jalankan, layar langsung ke tabel hasil (#daftar_link) #}
-  {{ selection_panel(selection_field_list, url_for("entries.index", _anchor="daftar_link"), "Cari judul, URL, address, deskripsi... (tekan /)", is_run_marked=true) }}
+  {{ selection_panel(selection_field_list, url_for("entries.index", _anchor="daftar_link"), "Search title, URL, address, description... (press /)", is_run_marked=true) }}
 
   {# ala Select Screen SAP: tabel baru muncul abis Jalankan #}
   {% if entry_table_payload is none %}
-    <p class="text-secondary selection-hint" data-selection-hint>{{ icon("info") }} Isi kriteria lalu klik <b>Jalankan</b> buat nampilin daftar link. Kriteria kosong = semua link yang bisa kamu lihat.</p>
+    <p class="text-secondary selection-hint" data-selection-hint>{{ icon("info") }} Fill in the criteria, then click <b>Execute</b> to show the links. Empty criteria = all links you can see.</p>
   {% else %}
     {{ entry_table(entry_table_payload) }}
   {% endif %}

@@ -32,11 +32,11 @@
   });
 
   function confirmLeave() {
-    if (!window.AlrConfirm) return Promise.resolve(window.confirm("Perubahan belum disimpan. Tetap keluar?"));
+    if (!window.AlrConfirm) return Promise.resolve(window.confirm("Changes are not saved. Leave anyway?"));
     return window.AlrConfirm.open({
-      title: "Buang perubahan?",
-      message: "Isian yang berubah belum disimpan. Kalau keluar sekarang, perubahannya hilang.",
-      okLabel: "Ya, buang"
+      title: "Discard changes?",
+      message: "Your changes are not saved. If you leave now, they will be lost.",
+      okLabel: "Yes, discard"
     });
   }
 

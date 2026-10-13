@@ -14,6 +14,7 @@ from app.security.link_target_guard import LinkTargetBlockedError, parse_check_u
 from app.utils.constants import (
     LINK_CHECK_MAX_REDIRECT_COUNT,
     LINK_CHECK_MAX_WORKER_COUNT,
+    LINK_CHECK_STUCK_LIMIT_SECONDS,
     LINK_CHECK_TARGET_DEADLINE_SECONDS,
     LINK_CHECK_TIMEOUT_SECONDS,
     LINK_CHECK_USER_AGENT,
@@ -68,14 +69,14 @@ def build_check_target(entry):
 def describe_connection_error(error):
     """Error koneksi jadi teks yg gampang dibaca."""
     if isinstance(error, TimeoutError):
-        return f"Timeout (lebih dari {LINK_CHECK_TIMEOUT_SECONDS} detik)"
+        return f"Timeout (more than {LINK_CHECK_TIMEOUT_SECONDS} seconds)"
     if isinstance(error, ConnectionRefusedError):
-        return "Koneksi ditolak"
+        return "Connection refused"
     if isinstance(error, socket.gaierror):
-        return "Alamat tidak ditemukan"
+        return "Address not found"
     if isinstance(error, ssl.SSLError):
         return "Error SSL"
-    return "Tidak bisa terhubung"
+    return "Can't connect"
 
 def send_request(parsed_url, pinned_ip, ssl_context):
     """Kirim GET sekali (redirect ga diikutin otomatis). Balikin (kode HTTP, header Location)."""
@@ -118,16 +119,16 @@ def follow_url(url, allow_private=None, ca_file=None):
             pinned_ip = resolve_safe_ip(parsed_url.hostname, parsed_url.port, allow_private)
         except (LinkTargetBlockedError, OSError):
             # server asal tetep hidup, cuma tujuan redirect-nya ga boleh didatengin
-            return build_http_result(status_code, " · redirect ke alamat terlarang tidak diikuti")
+            return build_http_result(status_code, " · redirect to a forbidden address not followed")
         current_url = next_url
-    return build_http_result(status_code, f" · redirect lebih dari {LINK_CHECK_MAX_REDIRECT_COUNT}x, berhenti")
+    return build_http_result(status_code, f" · more than {LINK_CHECK_MAX_REDIRECT_COUNT} redirects, stopped")
 
 def check_url(url, allow_private=None, ca_file=None):
     """Cek URL. Alamat terlarang -> Belum dicek + alasannya, gagal konek -> Tidak aktif."""
     try:
         return follow_url(url, allow_private, ca_file)
     except LinkTargetBlockedError as error:
-        return LinkCheckResult(LINK_STATUS_UNKNOWN, f"Diblokir: {error}")
+        return LinkCheckResult(LINK_STATUS_UNKNOWN, f"Blocked: {error}")
     except (OSError, http.client.HTTPException) as error:
         return LinkCheckResult(LINK_STATUS_DOWN, describe_connection_error(error))
 
@@ -138,10 +139,10 @@ def check_port(address, port, allow_private=None):
         with socket.create_connection((pinned_ip, port), timeout=LINK_CHECK_TIMEOUT_SECONDS):
             pass
     except LinkTargetBlockedError as error:
-        return LinkCheckResult(LINK_STATUS_UNKNOWN, f"Diblokir: {error}")
+        return LinkCheckResult(LINK_STATUS_UNKNOWN, f"Blocked: {error}")
     except OSError as error:
         return LinkCheckResult(LINK_STATUS_DOWN, describe_connection_error(error))
-    return LinkCheckResult(LINK_STATUS_UP, f"Port {port} terbuka")
+    return LinkCheckResult(LINK_STATUS_UP, f"Port {port} open")
 
 def check_target(target, allow_private=None, ca_file=None):
     """Pilih cara cek: URL dulu, kalau ga ada baru Address + Port. Sengaja ga pake ping (rawan command injection)."""
@@ -150,8 +151,8 @@ def check_target(target, allow_private=None, ca_file=None):
     if target.address and target.port:
         return check_port(target.address, target.port, allow_private)
     if target.address:
-        return LinkCheckResult(LINK_STATUS_UNKNOWN, "Port kosong, tidak bisa dicek")
-    return LinkCheckResult(LINK_STATUS_UNKNOWN, "Tidak ada URL atau Address")
+        return LinkCheckResult(LINK_STATUS_UNKNOWN, "Port is empty, can't be checked")
+    return LinkCheckResult(LINK_STATUS_UNKNOWN, "No URL or Address")
 
 def save_check_result(target, result):
     """Simpen hasil cek. updated_at sengaja ga ikut berubah, soalnya ngecek bukan ngedit data.
@@ -198,7 +199,7 @@ def read_future_result(future, target):
         return future.result()
     except Exception:  # noqa: BLE001
         current_app.logger.exception("Pemeriksaan link id=%s error tak terduga", target.entry_id)
-        return LinkCheckResult(LINK_STATUS_UNKNOWN, "Error saat memeriksa, lihat log server")
+        return LinkCheckResult(LINK_STATUS_UNKNOWN, "Error while checking, see the server log")
 
 def save_result_list(result_pair_list, counts, total, progress_callback):
     """Simpen hasil yg udah kelar + update progres. Callback dicek dulu sebelum nulis: kalau kepemilikan
@@ -212,14 +213,22 @@ def save_result_list(result_pair_list, counts, total, progress_callback):
         progress_callback(sum(counts.values()), total)
     db.session.commit()
 
+# thread pemeriksa yg udah lewat batas waktu tapi masih jalan, DIBAGI antar pemeriksaan dalam satu proses worker:
+# thread macet dari pemeriksaan sebelumnya tetep makan slot, jadi total thread se-proses ga pernah lebih dari batas
+OVERDUE_FUTURE_SET = set()
+
+class LinkCheckStuckError(RuntimeError):
+    """Semua slot pemeriksa kepake thread yg macet kelamaan: pemeriksaan dihentiin (status run jadi gagal)."""
+
 def check_all_entry_status(max_worker_count=LINK_CHECK_MAX_WORKER_COUNT, progress_callback=None):
     """Cek semua link. Pemeriksa jalan terus: begitu 1 link kelar, slot-nya langsung ngambil link berikutnya
     (ga nungguin link lain yg lebih lambat), dan hasilnya langsung disimpen.
 
     Tiap link dibatesin LINK_CHECK_TARGET_DEADLINE_SECONDS sejak mulai dicek. Timeout socket cuma ngebatesin
-    tiap operasi (DNS yg macet / server yg ngirim data dikit-dikit bisa nahan selamanya), jadi yg lewat batas
-    dianggap tidak aktif. Thread yg macet ga bisa dihentiin paksa: pool-nya ditinggal & link berikutnya pake
-    pool baru, biar kapasitas pemeriksa ga berkurang."""
+    tiap operasi (DNS yg macet / server yg ngirim data dikit-dikit bisa nahan lama), jadi yg lewat batas langsung
+    dilaporin tidak aktif. Thread-nya ga bisa dihentiin paksa, jadi slot-nya tetep diitung kepake sampe thread itu
+    beneran kelar: total thread ga pernah lebih dari max_worker_count. Kalau semua slot keisi thread macet lebih
+    lama dari LINK_CHECK_STUCK_LIMIT_SECONDS, pemeriksaan dihentiin (LinkCheckStuckError) biar worker ga ketahan."""
     upper_id = db.session.scalar(db.select(db.func.max(AccessEntry.id))) or 0
     total = db.session.scalar(db.select(db.func.count(AccessEntry.id)).where(AccessEntry.id <= upper_id))
     check = partial(check_target, allow_private=current_app.config["LINK_CHECK_ALLOW_PRIVATE_NETWORKS"],
@@ -230,38 +239,57 @@ def check_all_entry_status(max_worker_count=LINK_CHECK_MAX_WORKER_COUNT, progres
     db.session.commit()
     target_iter = iter_check_target(upper_id)
     executor = ThreadPoolExecutor(max_workers=max_worker_count)
-    # future -> (target, batas waktu). Jumlahnya ga pernah lebih dari max_worker_count, jadi tiap link yg
-    # dikirim ke pool langsung mulai dicek (batas waktunya ga kepotong antrean)
-    in_flight_dict = {}
+    # future -> (target, batas waktu): lagi dicek & hasilnya belum dilaporin
+    waiting_dict = {}
+    # future yg udah dilaporin "melebihi batas" tapi thread-nya masih jalan (tetep makan slot, termasuk sisa pemeriksaan lalu)
+    overdue_set = OVERDUE_FUTURE_SET
+    all_overdue_since = None
+    is_target_exhausted = False
+    # link berikutnya yg udah diambil tapi belum dapet slot (diintip pas semua slot dipake thread macet)
+    next_target = None
     try:
         while True:
-            while len(in_flight_dict) < max_worker_count:
-                target = next(target_iter, None)
+            overdue_set.difference_update([future for future in overdue_set if future.done()])
+            # slot kosong = thread pool beneran nganggur, jadi link yg dikirim langsung mulai dicek
+            # (batas waktunya ga kepotong antrean)
+            while len(waiting_dict) + len(overdue_set) < max_worker_count:
+                target, next_target = next_target or next(target_iter, None), None
                 if target is None:
+                    is_target_exhausted = True
                     break
                 future = executor.submit(check, target)
-                in_flight_dict[future] = (target, time.monotonic() + LINK_CHECK_TARGET_DEADLINE_SECONDS)
-            if not in_flight_dict:
-                break
-            nearest_deadline = min(deadline for _, deadline in in_flight_dict.values())
-            done_set, _ = wait(in_flight_dict, timeout=max(0, nearest_deadline - time.monotonic()),
+                waiting_dict[future] = (target, time.monotonic() + LINK_CHECK_TARGET_DEADLINE_SECONDS)
+            if not waiting_dict:
+                # semua hasil udah dilaporin & ga ada link sisa: thread macet ga perlu ditungguin
+                next_target = next_target or (None if is_target_exhausted else next(target_iter, None))
+                if next_target is None or not overdue_set:
+                    break
+                # masih ada link, tapi semua slot dipake thread macet: tunggu salah satu kelar, jangan selamanya
+                all_overdue_since = all_overdue_since or time.monotonic()
+                remaining = LINK_CHECK_STUCK_LIMIT_SECONDS - (time.monotonic() - all_overdue_since)
+                if remaining <= 0:
+                    raise LinkCheckStuckError("Semua pemeriksa macet; pemeriksaan dihentikan")
+                wait(overdue_set, timeout=remaining, return_when=FIRST_COMPLETED)
+                continue
+            all_overdue_since = None
+            nearest_deadline = min(deadline for _, deadline in waiting_dict.values())
+            done_set, _ = wait(set(waiting_dict) | overdue_set, timeout=max(0, nearest_deadline - time.monotonic()),
                                return_when=FIRST_COMPLETED)
             result_pair_list = []
-            for future in done_set:
-                target, _ = in_flight_dict.pop(future)
+            for future in done_set & set(waiting_dict):
+                target, _ = waiting_dict.pop(future)
                 result_pair_list.append((target, read_future_result(future, target)))
             now = time.monotonic()
-            expired_list = [future for future, (_, deadline) in in_flight_dict.items() if deadline <= now]
-            for future in expired_list:
-                target, _ = in_flight_dict.pop(future)
+            for future in [future for future, (_, deadline) in waiting_dict.items() if deadline <= now]:
+                target, _ = waiting_dict.pop(future)
+                overdue_set.add(future)
                 result_pair_list.append((target, LinkCheckResult(
-                    LINK_STATUS_DOWN, f"Pemeriksaan melebihi {LINK_CHECK_TARGET_DEADLINE_SECONDS} detik")))
-            if expired_list:
-                # link yg masih jalan normal di pool lama tetep ditungguin, link baru masuk pool baru
-                executor.shutdown(wait=False)
-                executor = ThreadPoolExecutor(max_workers=max_worker_count)
+                    LINK_STATUS_DOWN, f"Check took longer than {LINK_CHECK_TARGET_DEADLINE_SECONDS} seconds")))
             if result_pair_list:
                 save_result_list(result_pair_list, counts, total, progress_callback)
     finally:
+        # keluar lewat error (misal gagal nyimpen hasil): thread yg masih jalan tetep dicatet biar makan slot
+        # di pemeriksaan berikutnya. Thread ga bisa dihentiin paksa, dibiarin kelar sendiri; yg belum mulai dibatalin
+        overdue_set.update(future for future in waiting_dict if not future.done())
         executor.shutdown(wait=False, cancel_futures=True)
     return counts

@@ -13,10 +13,10 @@ DEFAULT_FONT_FAMILY = "system"
 
 # Kategori default yang di-seed ke tabel categories
 DEFAULT_CATEGORY_LIST = [
-    {"name": "Web", "description": "Link aplikasi berbasis web (URL)"},
-    {"name": "Application", "description": "Aplikasi desktop atau aplikasi internal"},
-    {"name": "Network", "description": "Perangkat jaringan (Address & Port)"},
-    {"name": "General", "description": "Akses lain yang tidak masuk kategori di atas"},
+    {"name": "Web", "description": "Web-based application links (URL)"},
+    {"name": "Application", "description": "Desktop or internal applications"},
+    {"name": "Network", "description": "Network devices (Address & Port)"},
+    {"name": "General", "description": "Other access that doesn't fit the categories above"},
 ]
 
 # nama kategori bawaan: ga bisa di ganti nama, dinonaktifkan, atau dihapus (Aturan formnya nempel ke nama)
@@ -46,6 +46,10 @@ AUDIT_ACTION_LOGIN = "login"
 AUDIT_ACTION_LOGIN_FAILED = "login_failed"
 AUDIT_ACTION_LOGOUT = "logout"
 AUDIT_ACTION_EXPORT = "export"
+# ganti password (lewat Settings / lupa password), buka-salin access note, import Excel
+AUDIT_ACTION_PASSWORD_CHANGE = "password_change"
+AUDIT_ACTION_REVEAL = "reveal"
+AUDIT_ACTION_IMPORT = "import"
 AUDIT_ACTION_LIST = [
     AUDIT_ACTION_CREATE,
     AUDIT_ACTION_UPDATE,
@@ -54,7 +58,13 @@ AUDIT_ACTION_LIST = [
     AUDIT_ACTION_LOGIN_FAILED,
     AUDIT_ACTION_LOGOUT,
     AUDIT_ACTION_EXPORT,
+    AUDIT_ACTION_PASSWORD_CHANGE,
+    AUDIT_ACTION_REVEAL,
+    AUDIT_ACTION_IMPORT,
 ]
+
+# riwayat per data (kartu History di detail link): sekian catatan terbaru aja
+ENTITY_HISTORY_LIMIT = 50
 
 # field yg isinya rahasia, di audit log diganti bintang-bintang
 SENSITIVE_FIELD_SET = {"password", "password_hash", "access_note", "encrypted_access_note", "otp_code"}
@@ -74,6 +84,8 @@ REGISTER_NOTICE_COOLDOWN_MINUTES = 10
 # kode verifikasi daftar ke satu email maksimal sekian kali per sekian menit (anti spam kotak masuk orang)
 REGISTER_CODE_MAX_COUNT = 5
 REGISTER_CODE_WINDOW_MINUTES = 15
+# lupa password: total percobaan masukin kode per email per hari (lintas kode baru), biar 6 digit ga bisa ditebak pelan-pelan
+RESET_ATTEMPT_MAX_COUNT = 10
 # percobaan daftar yg ga diverifikasi dibuang setelah sekian jam
 PENDING_REGISTRATION_EXPIRE_HOURS = 24
 
@@ -87,9 +99,11 @@ OTP_RESEND_COOLDOWN_SECONDS = 60
 OTP_DELIVERY_CONSOLE = "console"
 OTP_DELIVERY_SMTP = "smtp"
 
-# OTP dipake buat 2 hal: login & verifikasi email pendaftaran (beda judul email aja, tabelnya sama)
+# OTP dipake buat login, verifikasi email pendaftaran, & lupa password (beda judul email).
+# login & reset disimpen di otp_codes (kolom purpose), kode daftar di pending_registrations
 OTP_PURPOSE_LOGIN = "login"
 OTP_PURPOSE_REGISTER = "register"
+OTP_PURPOSE_RESET = "reset"
 
 # batas panjang password (argon2 lemot kalau inputnya kepanjangan)
 MAX_PASSWORD_LENGTH = 128
@@ -98,23 +112,25 @@ MAX_PASSWORD_LENGTH = 128
 SESSION_PENDING_USER_KEY = "pending_user_id"
 # data pendaftaran yg lagi nunggu kode verifikasi email: {"email", "sent_at", "attempt_count"}
 SESSION_PENDING_REGISTER_KEY = "pending_register"
+# lupa password yg lagi nunggu kode: {"email", "sent_at", "attempt_count"} (pola sama kayak daftar)
+SESSION_PASSWORD_RESET_KEY = "password_reset"
 
 # UI & Customizer
 # pilihan warna aksen: hex disimpen di DB, key dipake CSS (data-accent)
 ACCENT_COLOR_OPTION_LIST = [
-    {"key": "blue", "hex": "#0a6ed1", "label": "Biru"},
-    {"key": "yellow", "hex": "#ffd23f", "label": "Kuning"},
+    {"key": "blue", "hex": "#0a6ed1", "label": "Blue"},
+    {"key": "yellow", "hex": "#ffd23f", "label": "Yellow"},
     {"key": "pink", "hex": "#ff6b9d", "label": "Pink"},
     {"key": "lime", "hex": "#a3e635", "label": "Lime"},
-    {"key": "teal", "hex": "#2ec4b6", "label": "Tosca"},
-    {"key": "purple", "hex": "#b388ff", "label": "Ungu"},
+    {"key": "teal", "hex": "#2ec4b6", "label": "Teal"},
+    {"key": "purple", "hex": "#b388ff", "label": "Purple"},
 ]
 ACCENT_KEY_BY_HEX_DICT = {option["hex"]: option["key"] for option in ACCENT_COLOR_OPTION_LIST}
 DEFAULT_ACCENT_KEY = "blue"
 
 # pilihan font
 FONT_FAMILY_OPTION_LIST = [
-    {"key": "system", "label": "Sistem"},
+    {"key": "system", "label": "System"},
     {"key": "mono", "label": "Mono"},
     {"key": "serif", "label": "Serif"},
 ]
@@ -130,16 +146,16 @@ PERMISSION_EDIT_PUBLIC_ENTRIES = "edit_public_entries"
 PERMISSION_LIST = [PERMISSION_MANAGE_CATEGORIES, PERMISSION_VIEW_AUDIT_LOGS, PERMISSION_EDIT_PUBLIC_ENTRIES]
 PERMISSION_INFO_DICT = {
     PERMISSION_MANAGE_CATEGORIES: {
-        "label": "Kelola kategori", "short_label": "Kategori",
-        "description": "Tambah, edit, nonaktifkan, dan hapus kategori di menu Categories.",
+        "label": "Manage categories", "short_label": "Categories",
+        "description": "Add, edit, deactivate, and delete categories in the Categories menu.",
     },
     PERMISSION_VIEW_AUDIT_LOGS: {
-        "label": "Lihat audit log", "short_label": "Audit Log",
-        "description": "Buka menu Audit Logs. Isi data Private milik orang lain tetap tersembunyi.",
+        "label": "View audit logs", "short_label": "Audit Log",
+        "description": "Open the Audit Logs menu. Other people's Private data stays hidden.",
     },
     PERMISSION_EDIT_PUBLIC_ENTRIES: {
-        "label": "Edit link Public orang lain", "short_label": "Edit Public",
-        "description": "Ubah dan hapus link Public milik user lain. Link Private tetap tidak bisa.",
+        "label": "Edit other people's Public links", "short_label": "Edit Public",
+        "description": "Edit and delete other users' Public links. Private links are still off-limits.",
     },
 }
 
@@ -155,9 +171,9 @@ LINK_STATUS_UP = "up"
 LINK_STATUS_DOWN = "down"
 LINK_STATUS_LIST = [LINK_STATUS_UNKNOWN, LINK_STATUS_UP, LINK_STATUS_DOWN]
 LINK_STATUS_LABEL_DICT = {
-    LINK_STATUS_UNKNOWN: "Belum dicek",
-    LINK_STATUS_UP: "Aktif",
-    LINK_STATUS_DOWN: "Tidak aktif",
+    LINK_STATUS_UNKNOWN: "Not checked",
+    LINK_STATUS_UP: "Up",
+    LINK_STATUS_DOWN: "Down",
 }
 
 # cek status link
@@ -166,6 +182,8 @@ LINK_CHECK_MAX_WORKER_COUNT = 10
 LINK_CHECK_MAX_REDIRECT_COUNT = 3
 # batas waktu TOTAL 1 link (DNS + koneksi + redirect); lewat dari ini dianggap tidak aktif
 LINK_CHECK_TARGET_DEADLINE_SECONDS = 30
+# semua slot pemeriksa keisi thread macet selama ini -> pemeriksaan dihentiin biar worker ga ketahan
+LINK_CHECK_STUCK_LIMIT_SECONDS = 120
 # antrean ga diambil worker sekian detik -> halaman Link Monitoring kasih peringatan worker kemungkinan mati
 MONITOR_WORKER_WAIT_WARNING_SECONDS = 60
 # pemeriksaan jalan tapi ga ada kemajuan sekian detik -> peringatan (satu link paling lama 30 dtk)
@@ -234,6 +252,8 @@ PER_PAGE = 10
 # notifikasi lonceng
 MAX_NOTIFICATION_MESSAGE_LENGTH = 255
 NOTIFICATION_MENU_LIMIT = 8
+# notifikasi yg udah dibaca & lebih tua dari ini dibuang perintah cleanup-old-data
+NOTIFICATION_RETENTION_DAYS = 90
 MAX_SEARCH_KEYWORD_LENGTH = 100
 
 # Select Screen ala SAP: * = wildcard, tiap isian maksimal sekian nilai (Multi Selection)
@@ -260,28 +280,34 @@ GROUP_ENTRY_OPTION_LIMIT = 200
 
 # halaman audit log
 AUDIT_ACTION_LABEL_DICT = {
-    AUDIT_ACTION_CREATE: "Tambah",
-    AUDIT_ACTION_UPDATE: "Ubah",
-    AUDIT_ACTION_DELETE: "Hapus",
+    AUDIT_ACTION_CREATE: "Create",
+    AUDIT_ACTION_UPDATE: "Change",
+    AUDIT_ACTION_DELETE: "Delete",
     AUDIT_ACTION_LOGIN: "Login",
-    AUDIT_ACTION_LOGIN_FAILED: "Login Gagal",
+    AUDIT_ACTION_LOGIN_FAILED: "Login Failed",
     AUDIT_ACTION_LOGOUT: "Logout",
     AUDIT_ACTION_EXPORT: "Export",
+    AUDIT_ACTION_PASSWORD_CHANGE: "Password Change",
+    AUDIT_ACTION_REVEAL: "Reveal Password",
+    AUDIT_ACTION_IMPORT: "Import",
 }
 # nama tabel yg dicatat di audit log -> label di UI
 AUDIT_ENTITY_LABEL_DICT = {
     "users": "User",
-    "user_preferences": "Preferensi Tampilan",
-    "access_entries": "Data Link",
+    "user_preferences": "Display Preferences",
+    "access_entries": "Link",
     "groups": "Group",
-    "group_members": "Anggota Group",
-    "group_entries": "Link di Group",
-    "categories": "Kategori",
+    "group_members": "Group Member",
+    "group_entries": "Group Link",
+    "categories": "Category",
     "link_monitor_settings": "Link Monitoring",
 }
 
 # dashboard (grafik & aktivitas)
-DASHBOARD_CHART_DAY_COUNT = 7
+# feed aktivitas tim: sekian hari terakhir, maks sekian baris (abis digabung), link Down milik sendiri maks sekian
+DASHBOARD_ACTIVITY_DAY_COUNT = 7
+DASHBOARD_TEAM_ACTIVITY_LIMIT = 8
+DASHBOARD_ATTENTION_LIMIT = 5
 DASHBOARD_RECENT_ACTIVITY_LIMIT = 5
 
 # kelola user
@@ -289,13 +315,13 @@ USER_STATUS_ACTIVE = "active"
 USER_STATUS_LOCKED = "locked"
 USER_STATUS_INACTIVE = "inactive"
 USER_STATUS_LABEL_DICT = {
-    USER_STATUS_ACTIVE: "Aktif",
-    USER_STATUS_LOCKED: "Terkunci",
-    USER_STATUS_INACTIVE: "Nonaktif",
+    USER_STATUS_ACTIVE: "Active",
+    USER_STATUS_LOCKED: "Locked",
+    USER_STATUS_INACTIVE: "Inactive",
 }
 
 # hapus akun: data diri diganti biar email aslinya bisa dipake daftar lagi
-DELETED_USER_NAME = "Akun dihapus"
+DELETED_USER_NAME = "Deleted account"
 DELETED_USER_PROFILE_TEXT = "-"
 # .invalid itu domain cadangan, dijamin ga bakal jadi email beneran
 DELETED_USER_EMAIL_DOMAIN = "deleted.invalid"
@@ -304,5 +330,15 @@ UNUSABLE_PASSWORD_HASH = "!"
 
 # export kat excel
 EXPORT_MAX_ROW_COUNT = 5000
+# variant Kriteria Pencarian (Save as Variant): maks per layar per user
+SELECTION_VARIANT_MAX_COUNT = 20
+MAX_VARIANT_NAME_LENGTH = 50
+MAX_VARIANT_QUERY_LENGTH = 2000
+
+# hapus banyak link (admin): maks id per permintaan, sama kayak isi 1 halaman tabel paling banyak
+BULK_DELETE_MAX_COUNT = 100
+
+# import dari excel: maks baris per file (semua dicek dulu baru disimpen dalam 1 transaksi)
+IMPORT_MAX_ROW_COUNT = 500
 EXPORT_FORMULA_PREFIX_TUPLE = ("=", "+", "-", "@", "\t","\r")
 XLSX_MIMETYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

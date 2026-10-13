@@ -7,7 +7,7 @@ from app.security.file_validator import clean_display_filename, detect_content_t
 
 
 def test_legacy_doc_signature_alone_is_not_accepted():
-    with pytest.raises(ValueError, match="tidak diizinkan"):
+    with pytest.raises(ValueError, match="not allowed"):
         detect_content_type("fake.doc", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1not-a-word-document")
 
 
@@ -36,13 +36,13 @@ def test_valid_png_jpg_pdf(sample_file_dict):
 
 def test_fake_pdf_rejected(sample_file_dict):
     """Negative (security): file exe yg namanya diganti .pdf ketahuan."""
-    with pytest.raises(ValueError, match="tidak sesuai"):
+    with pytest.raises(ValueError, match="match the"):
         detect_content_type("tagihan.pdf", sample_file_dict["exe"])
 
 def test_extension_not_allowed(sample_file_dict):
     """Negative (security): exe, html, svg, tanpa ekstensi ditolak."""
     for filename in ["setup.exe", "halaman.html", "logo.svg", "tanpa_ekstensi"]:
-        with pytest.raises(ValueError, match="tidak diizinkan"):
+        with pytest.raises(ValueError, match="not allowed"):
             detect_content_type(filename, sample_file_dict["png"])
 
 def test_valid_docx(sample_file_dict):
@@ -68,7 +68,7 @@ def test_txt_rules(sample_file_dict):
 
 def test_empty_file_rejected():
     """Negative: file kosong ditolak."""
-    with pytest.raises(ValueError, match="kosong"):
+    with pytest.raises(ValueError, match="empty"):
         detect_content_type("kosong.pdf", b"")
 
 def test_clean_display_filename_strips_path():

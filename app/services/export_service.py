@@ -7,7 +7,6 @@ from openpyxl.drawing.image import Image
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from app.services.category_service import build_category_label, get_root_category
-from app.utils.chart_helper import calculate_percent
 from app.utils.constants import (
     EXPORT_FORMULA_PREFIX_TUPLE,
     LINK_STATUS_DOWN,
@@ -22,25 +21,25 @@ LOGO_PATH = Path(__file__).resolve().parent.parent / "static" / "images" / "spin
 LOGO_HEIGHT_PX = 38
 REPORT_TITLE = "Access Link Register"
 REPORT_SUBTITLE = "ALR · ICT"
-CONFIDENTIAL_TEXT = "RAHASIA · HANYA UNTUK INTERNAL"
-NOTE_TEXT = "Catatan: access note/password tidak ikut diekspor. Waktu dalam WIB."
+CONFIDENTIAL_TEXT = "CONFIDENTIAL · INTERNAL USE ONLY"
+NOTE_TEXT = "Note: access notes/passwords are not exported. Times are in WIB."
 
 # kolom sheet Detail
 DETAIL_COLUMN_LIST = [
     ("No", 6, True),
-    ("Judul", 30, False),
-    ("Kategori", 26, False),
+    ("Title", 30, False),
+    ("Category", 26, False),
     ("URL", 36, False),
     ("Address", 18, False),
     ("Port", 8, True),
     ("Username", 18, False),
-    ("Deskripsi", 40, False),
-    ("Visibilitas", 12, True),
-    ("Status Link", 13, True),
-    ("Lampiran", 10, True),
-    ("Dibuat Oleh", 22, False),
-    ("Dibuat", 18, True),
-    ("Diubah", 18, True),
+    ("Description", 40, False),
+    ("Visibility", 12, True),
+    ("Link Status", 13, True),
+    ("Attachments", 10, True),
+    ("Created By", 22, False),
+    ("Created", 18, True),
+    ("Changed", 18, True),
 ]
 DETAIL_URL_COLUMN = 4
 DETAIL_STATUS_COLUMN = 10
@@ -71,12 +70,17 @@ HEADER_FILL = PatternFill("solid", fgColor=COLOR_DARK)
 BAND_FILL = PatternFill("solid", fgColor=COLOR_BAND)
 TILE_FILL = PatternFill("solid", fgColor=COLOR_TILE)
 # [$-421] = locale Indonesia, jadi bulannya tampil "Okt", "Des", dst
-DATETIME_FORMAT = "[$-421]dd mmm yyyy hh:mm"
+DATETIME_FORMAT = "[$-409]dd mmm yyyy hh:mm"
 PERCENT_FORMAT = '0"%"'
 DETAIL_CENTER_ALIGNMENT = Alignment(horizontal="center", vertical="top", wrap_text=False, indent=0)
 DETAIL_TEXT_ALIGNMENT = Alignment(horizontal="left", vertical="top", wrap_text=True, indent=1)
 
 @lru_cache(maxsize=64)
+
+def calculate_percent(part, total):
+    """Persentase bulat, aman kalau total 0."""
+    return round(part / total * 100) if total else 0
+
 def make_font(size=10, is_bold=False, color=COLOR_DARK, is_italic=False, is_underline=False):
     """Font seragam satu laporan."""
     return Font(
@@ -165,7 +169,7 @@ def setup_print(sheet, last_column, last_row, orientation, title_row=None):
         sheet.print_title_rows = f"{title_row}:{title_row}"
     sheet.oddFooter.left.text = f"ICT · {CONFIDENTIAL_TEXT.title()}"
     sheet.oddFooter.left.size = 8
-    sheet.oddFooter.right.text = "Halaman &P dari &N"
+    sheet.oddFooter.right.text = "Page &P of &N"
     sheet.oddFooter.right.size = 8
 
 def build_summary_dict(entry_list):
@@ -189,10 +193,10 @@ def build_summary_dict(entry_list):
 def write_meta_block(sheet, start_row, user, filter_text_list, total):
     """Info laporan: siapa yg narik, kapan, filternya apa, berapa data."""
     meta_list = [
-        ("Diekspor oleh", f"{user.full_name} ({user.email})"),
-        ("Waktu ekspor", to_excel_time(utc_now())),
-        ("Filter", ", ".join(filter_text_list) or "Semua data yang dapat diakses"),
-        ("Jumlah data", f"{total} link"),
+        ("Exported by", f"{user.full_name} ({user.email})"),
+        ("Export time", to_excel_time(utc_now())),
+        ("Filter", ", ".join(filter_text_list) or "All accessible links"),
+        ("Link count", f"{total} links"),
     ]
     for offset, (label, value) in enumerate(meta_list):
         row = start_row + offset
@@ -200,7 +204,7 @@ def write_meta_block(sheet, start_row, user, filter_text_list, total):
         sheet.merge_cells(start_row=row, start_column=3, end_row=row, end_column=6)
         write_cell(
             sheet, row, 3, value, font=make_font(10), alignment=Alignment(horizontal="left"),
-            number_format=DATETIME_FORMAT if label == "Waktu ekspor" else None,
+            number_format=DATETIME_FORMAT if label == "Export time" else None,
         )
     return start_row + len(meta_list)
 
@@ -208,7 +212,7 @@ def write_kpi_tiles(sheet, row, summary_dict):
     """4 kotak angka besar: total, aktif, tidak aktif, belum dicek (+ persennya)."""    
     total = summary_dict["total"]
     status_counter = summary_dict["status_counter"]
-    tile_list = [("Total Link", total, COLOR_DARK, None)]
+    tile_list = [("Total Links", total, COLOR_DARK, None)]
     for status in (LINK_STATUS_UP, LINK_STATUS_DOWN, LINK_STATUS_UNKNOWN):
         tile_list.append((get_link_status_label(status), status_counter[status], STATUS_COLOR_DICT[status], status))
     sheet.row_dimensions[row].height = 34
@@ -231,7 +235,7 @@ def write_kpi_tiles(sheet, row, summary_dict):
 def write_category_table(sheet, row, summary_dict):
     """Tabel per kategori utama: jumlah + rincian status, ditutup baris Total."""
     status_order_list = [LINK_STATUS_UP, LINK_STATUS_DOWN, LINK_STATUS_UNKNOWN]
-    write_table_header(sheet, row, 2, ["Kategori Utama", "Jumlah"] + [get_link_status_label(status) for status in status_order_list])
+    write_table_header(sheet, row, 2, ["Main Category", "Count"] + [get_link_status_label(status) for status in status_order_list])
     for offset, (category_name, status_counter) in enumerate(summary_dict["category_row_list"]):
         current_row = row + 1 + offset
         fill = BAND_FILL if offset % 2 == 1 else None
@@ -252,7 +256,7 @@ def write_category_table(sheet, row, summary_dict):
 
 def write_visibility_table(sheet, row, summary_dict):
     """Tabel per visibilitas: jumlah + persen."""
-    write_table_header(sheet, row, 2, ["Visibilitas", "Jumlah", "Persentase"])
+    write_table_header(sheet, row, 2, ["Visibility", "Count", "Percentage"])
     total = summary_dict["total"]
     for offset, visibility in enumerate(VISIBILITY_LIST):
         current_row = row + 1 + offset
@@ -267,7 +271,7 @@ def write_visibility_table(sheet, row, summary_dict):
 
 def build_summary_sheet(sheet, entry_list, user, filter_text_list):
     """Sheet pertama yg dibuka: ringkasan buat dibaca sekilas (pimpinan), detailnya di sheet sebelah."""
-    sheet.title = "Ringkasan"
+    sheet.title = "Summary"
     sheet.sheet_view.showGridLines = False
     for column, width in enumerate(SUMMARY_COLUMN_WIDTH_LIST, start=1):
         sheet.column_dimensions[get_column_letter(column)].width = width
@@ -276,13 +280,13 @@ def build_summary_sheet(sheet, entry_list, user, filter_text_list):
 
     write_letterhead(sheet, 2, last_column, REPORT_TITLE, REPORT_SUBTITLE)
     row = write_meta_block(sheet, SUMMARY_META_START_ROW, user, filter_text_list, summary_dict["total"]) + 1
-    write_section_title(sheet, row, 2, "Status Link")
+    write_section_title(sheet, row, 2, "Link Status")
     row = write_kpi_tiles(sheet, row + 1, summary_dict) + 1
-    write_section_title(sheet, row, 2, "Per Kategori Utama")
+    write_section_title(sheet, row, 2, "By Main Category")
     row = write_category_table(sheet, row + 1, summary_dict) + 1
-    write_section_title(sheet, row, 2, "Per Visibilitas")
+    write_section_title(sheet, row, 2, "By Visibility")
     row = write_visibility_table(sheet, row + 1, summary_dict) + 1
-    write_cell(sheet, row, 2, "Rincian lengkap tiap link ada di sheet \"Detail\".", font=make_font(9, is_italic=True, color=COLOR_GRAY_TEXT))
+    write_cell(sheet, row, 2, "Full details for each link are in the \"Detail\" sheet.", font=make_font(9, is_italic=True, color=COLOR_GRAY_TEXT))
     write_cell(sheet, row + 1, 2, NOTE_TEXT, font=make_font(9, is_italic=True, color=COLOR_GRAY_TEXT))
     setup_print(sheet, last_column, row + 1, "portrait")
 
@@ -331,10 +335,10 @@ def build_detail_sheet(sheet, entry_list, user, filter_text_list):
     last_column = len(DETAIL_COLUMN_LIST)
     last_column_letter = get_column_letter(last_column)
 
-    subtitle = f"{REPORT_SUBTITLE}  |  Diekspor {format_local_datetime(utc_now())} oleh {user.full_name}"
+    subtitle = f"{REPORT_SUBTITLE}  |  Exported {format_local_datetime(utc_now())} by {user.full_name}"
     write_letterhead(sheet, 1, last_column, "Detail Access Link Register", subtitle)
     write_cell(
-        sheet, 4, 1, f"Filter: {', '.join(filter_text_list) or 'Semua data yang dapat diakses'}",
+        sheet, 4, 1, f"Filter: {', '.join(filter_text_list) or 'All accessible links'}",
         font=make_font(9, color=COLOR_GRAY_TEXT),
     )
     write_table_header(sheet, DETAIL_HEADER_ROW, 1, [title for title, _, _ in DETAIL_COLUMN_LIST])
@@ -346,7 +350,7 @@ def build_detail_sheet(sheet, entry_list, user, filter_text_list):
     last_row = DETAIL_HEADER_ROW + len(entry_list)
     if not entry_list:
         sheet.merge_cells(start_row=last_row + 1, start_column=1, end_row=last_row + 1, end_column=last_column)
-        write_cell(sheet, last_row + 1, 1, "Tidak ada data sesuai filter.", font=make_font(10, is_italic=True, color=COLOR_GRAY_TEXT),
+        write_cell(sheet, last_row + 1, 1, "No links match the filter.", font=make_font(10, is_italic=True, color=COLOR_GRAY_TEXT),
                    alignment=Alignment(horizontal="center"))
         last_row += 1
     sheet.auto_filter.ref = f"A{DETAIL_HEADER_ROW}:{last_column_letter}{max(last_row, DETAIL_HEADER_ROW)}"
