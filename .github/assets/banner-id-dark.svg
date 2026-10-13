@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-label="Access Link Register">
+  <style>
+    text { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
+    .title { font-size: 40px; font-weight: 700; fill: #e6edf3; }
+    .sub { font-size: 17px; fill: #8b949e; }
+    .tag { font-size: 13px; fill: #4c8ff0; font-weight: 600; letter-spacing: 1.5px; }
+    .cell { font-size: 13px; fill: #8b949e; }
+    .strong { fill: #e6edf3; font-weight: 600; }
+    .rule { stroke: #30363d; }
+    .key rect { fill: #21262d; stroke: #30363d; }
+    .key text { font-size: 12px; fill: #c9d1d9; font-family: ui-monospace, Consolas, monospace; }
+    .key { animation: press 7.5s infinite; }
+    .k1 { animation-delay: 1.5s; } .k2 { animation-delay: 3s; } .k3 { animation-delay: 4.5s; } .k4 { animation-delay: 6s; }
+    @keyframes press { 0%, 14%, 100% { opacity: .55; } 3%, 10% { opacity: 1; } }
+    .k0 rect, .k1 rect, .k2 rect, .k3 rect, .k4 rect { animation: keyfill 7.5s infinite; animation-delay: inherit; }
+    @keyframes keyfill { 0%, 14%, 100% { fill: #21262d; stroke: #30363d; } 3%, 10% { fill: #1b2a40; stroke: #4c8ff0; } }
+    .cursor { animation: move 8s infinite; }
+    @keyframes move { 0%, 20% { transform: translateY(0); } 25%, 45% { transform: translateY(34px); } 50%, 70% { transform: translateY(68px); } 75%, 95% { transform: translateY(102px); } 100% { transform: translateY(0); } }
+    .dot { animation: pulse 2.4s infinite; transform-box: fill-box; transform-origin: center; }
+    .d1 { animation-delay: .6s; } .d2 { animation-delay: 1.2s; } .d3 { animation-delay: 1.8s; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.75); } }
+    @media (prefers-reduced-motion: reduce) { .key, .key rect, .cursor, .dot { animation: none; } }
+  </style>
+  <rect width="1200" height="320" rx="14" fill="#0d1117"/>
+  <text x="56" y="106" class="tag">FLASK · POSTGRESQL · REACT</text>
+  <text x="56" y="156" class="title">Access Link Register</text>
+  <text x="56" y="192" class="sub">Simpan dan bagikan tautan, server, dan catatan akses tim.</text>
+  <text x="56" y="218" class="sub">Terenkripsi, berbasis izin, teraudit, berbasis keyboard.</text>
+  <rect x="564" y="28" width="592" height="264" rx="10" fill="#161b22" stroke="#30363d"/>
+  <path d="M564 38 a10 10 0 0 1 10 -10 h572 a10 10 0 0 1 10 10 v14 h-592 z" fill="#1f2a37"/>
+  <circle cx="582" cy="40" r="4" fill="#ff5f57"/><circle cx="596" cy="40" r="4" fill="#febc2e"/><circle cx="610" cy="40" r="4" fill="#28c840"/>
+  <g class="key k0"><rect x="584" y="64" width="34" height="24" rx="5"/><text x="601.0" y="80.5" text-anchor="middle">F3</text></g><g class="key k1"><rect x="626" y="64" width="34" height="24" rx="5"/><text x="643.0" y="80.5" text-anchor="middle">F8</text></g><g class="key k2"><rect x="668" y="64" width="58" height="24" rx="5"/><text x="697.0" y="80.5" text-anchor="middle">Ctrl+S</text></g><g class="key k3"><rect x="734" y="64" width="72" height="24" rx="5"/><text x="770.0" y="80.5" text-anchor="middle">Shift+F2</text></g><g class="key k4"><rect x="814" y="64" width="34" height="24" rx="5"/><text x="831.0" y="80.5" text-anchor="middle">F1</text></g>
+  <line x1="564" y1="100" x2="1156" y2="100" class="rule"/>
+  <text x="604" y="122" class="cell" font-weight="600">Judul</text><text x="764" y="122" class="cell" font-weight="600">Kategori</text><text x="922" y="122" class="cell" font-weight="600">Status</text>
+  <g class="cursor"><rect x="576" y="134" width="568" height="30" rx="5" fill="#1b2a40"/><rect x="576" y="134" width="3" height="30" fill="#4c8ff0"/></g>
+  <text x="604" y="153" class="cell strong">ERP Production</text>
+    <text x="764" y="153" class="cell">Web › ERP</text>
+    <circle cx="930" cy="149" r="5" fill="#2fb344" class="dot d0"/>
+    <text x="942" y="153" class="cell">Up</text>
+    <line x1="584" y1="166" x2="1136" y2="166" class="rule"/><text x="604" y="187" class="cell strong">Core Switch A</text>
+    <text x="764" y="187" class="cell">Network › Switch</text>
+    <circle cx="930" cy="183" r="5" fill="#2fb344" class="dot d1"/>
+    <text x="942" y="187" class="cell">Up</text>
+    <line x1="584" y1="200" x2="1136" y2="200" class="rule"/><text x="604" y="221" class="cell strong">Payroll Portal</text>
+    <text x="764" y="221" class="cell">Web › HR</text>
+    <circle cx="930" cy="217" r="5" fill="#d63939" class="dot d2"/>
+    <text x="942" y="221" class="cell">Down</text>
+    <line x1="584" y1="234" x2="1136" y2="234" class="rule"/><text x="604" y="255" class="cell strong">Edge Firewall</text>
+    <text x="764" y="255" class="cell">Network › Firewall</text>
+    <circle cx="930" cy="251" r="5" fill="#2fb344" class="dot d3"/>
+    <text x="942" y="255" class="cell">Up</text>
+    <line x1="584" y1="268" x2="1136" y2="268" class="rule"/>
+</svg>
