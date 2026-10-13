@@ -23,19 +23,24 @@ def test_dashboard_counts_follow_access(app, registered_user, other_user, catego
     dashboard_dict = build_dashboard_dict(registered_user)
     assert dashboard_dict["summary"] == {"total": 3, "public": 2, "private": 1}
     assert dashboard_dict["own_count"] == 2
-    assert dashboard_dict["own_percent"] == 67
-    assert dashboard_dict["new_link_count"] == 3
+    assert dashboard_dict["unknown_count"] == 3
+    assert dashboard_dict["down_count"] == 0
+    assert dashboard_dict["favorite_count"] == 0
+    count_by_name = {row["category"].name: row["entry_count"] for row in dashboard_dict["forum_row_list"]}
+    assert count_by_name["Web"] == 3
 
 
 def test_dashboard_category_and_activity(app, registered_user, category_dict):
     """Positive: jumlah per kategori & aktivitas sendiri kehitung."""
-    create_entry(registered_user, category_dict["Web"], "Portal HR", VISIBILITY_PUBLIC)
+    entry = create_entry(registered_user, category_dict["Web"], "Portal HR", VISIBILITY_PUBLIC)
     dashboard_dict = build_dashboard_dict(registered_user)
     count_by_name_dict = {row["category"].name: row["entry_count"] for row in dashboard_dict["forum_row_list"]}
     assert count_by_name_dict["Web"] == 1
     assert count_by_name_dict["Network"] == 0
-    assert dashboard_dict["activity_count"] >= 1
+    assert dashboard_dict["recent_activity_list"]
     assert dashboard_dict["recent_activity_list"][0].user_id == registered_user.id
+    assert dashboard_dict["recent_activity_list"][0].entity_type == "access_entries"
+    assert dashboard_dict["recent_activity_list"][0].entity_id == str(entry.id)
 
 
 def test_dashboard_group_and_invitation(app, registered_user, other_user):
@@ -50,6 +55,10 @@ def test_dashboard_group_and_invitation(app, registered_user, other_user):
 def test_dashboard_empty_data(app, registered_user):
     """Negative: belum ada data sama sekali ga bikin error."""
     dashboard_dict = build_dashboard_dict(registered_user)
-    assert dashboard_dict["summary"]["total"] == 0
-    assert dashboard_dict["public_percent"] == 0
-    assert dashboard_dict["new_link_change_percent"] is None
+    assert dashboard_dict["summary"] == {"total": 0, "public": 0, "private": 0}
+    assert dashboard_dict["own_count"] == 0
+    assert dashboard_dict["favorite_count"] == 0
+    assert dashboard_dict["down_count"] == 0
+    assert dashboard_dict["unknown_count"] == 0
+    assert dashboard_dict["own_down_entry_list"] == []
+    assert dashboard_dict["team_activity_list"] == []

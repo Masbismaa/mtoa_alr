@@ -33,29 +33,29 @@ def test_user_row_opens_access_only_for_editable_user(admin_client, admin_user, 
     assert f'data-row-url="/users/{admin_user.id}/access"' not in html_text
 
 def test_row_script_loaded(logged_in_client):
-    """Positive: script baris aktif & shortcut kepasang di layar aplikasi."""
+    """Positive: script baris aktif & shortcut kepasang di layar aplikasi (shortcut F-key dijalanin app_shell.js)."""
     html_text = get_html(logged_in_client, "/entries/")
-    assert "js/components/table_row.js" in html_text and "js/components/keyboard_shortcut.js" in html_text
+    assert "js/components/table_row.js" in html_text and "js/components/app_shell.js" in html_text
 
 # SHORTCUT
 def test_toolbar_shortcut_marks(logged_in_client, registered_user, category_dict):
     """Positive: tombol toolbar ditandain shortcut SAP + kelihatan di tooltip."""
     entry = create_entry(registered_user, category_dict["Web"], "Portal HR")
     html_text = get_html(logged_in_client, f"/entries/{entry.id}/edit")
-    assert 'title="Kembali ke layar sebelumnya (F3)" data-shortcut="back"' in html_text
-    assert 'title="Keluar dari layar ini ke Dashboard (Shift+F3)" data-shortcut="exit"' in html_text
-    assert 'data-shortcut="cancel" aria-keyshortcuts="F12"' in html_text
-    assert 'title="Simpan isian (Ctrl+S)" data-shortcut="save"' in html_text
-    assert 'data-shortcut="help" aria-keyshortcuts="F1"' in html_text
+    assert 'title="Back to the previous screen (F3)" data-fkey="F3"' in html_text
+    assert 'title="Exit this screen to the Dashboard (Shift+F3)" data-fkey="Shift+F3"' in html_text
+    assert 'data-fkey="F12" aria-keyshortcuts="F12"' in html_text
+    assert 'title="Save changes (Ctrl+S)" data-fkey="Ctrl+S"' in html_text
+    assert 'data-fkey="F1" aria-keyshortcuts="F1"' in html_text
 
 def test_disabled_toolbar_button_has_no_shortcut(logged_in_client):
     """Negative: tombol yg nonaktif di layar ini ga ditandain shortcut (jadi F12/Ctrl+S ga ngapa-ngapain)."""
     html_text = get_html(logged_in_client, "/entries/")
-    assert 'data-shortcut="cancel"' not in html_text and 'data-shortcut="save"' not in html_text
+    assert 'data-fkey="F12"' not in html_text and 'data-fkey="Ctrl+S"' not in html_text
 
 def test_run_shortcut_on_selection_panel(logged_in_client):
-    """Positive: tombol Jalankan di Kriteria Pencarian bisa dipanggil F8."""
-    assert 'title="Jalankan (F8)" data-shortcut="run"' in get_html(logged_in_client, "/entries/")
+    """Positive: tombol Execute di Kriteria Pencarian bisa dipanggil F8."""
+    assert 'data-fkey="F8" aria-keyshortcuts="F8" title="Execute (F8)"' in get_html(logged_in_client, "/entries/")
 
 def test_help_lists_shortcuts(logged_in_client):
     """Positive: Bantuan nampilin daftar shortcut keyboard."""

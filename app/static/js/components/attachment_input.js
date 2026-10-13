@@ -27,9 +27,9 @@
 
   // cek 1 file, balikin pesan masalahnya (kosong = aman)
   function getProblem(file) {
-    if (!allowedExtensionList.includes(getExtension(file.name))) return "tipe file tidak diizinkan";
-    if (file.size === 0) return "file kosong";
-    if (file.size > maxSize) return "lebih dari " + Math.floor(maxSize / 1048576) + "MB";
+    if (!allowedExtensionList.includes(getExtension(file.name))) return "file type not allowed";
+    if (file.size === 0) return "empty file";
+    if (file.size > maxSize) return "larger than " + Math.floor(maxSize / 1048576) + "MB";
     return "";
   }
 
@@ -73,7 +73,7 @@
       const removeButton = document.createElement("button");
       removeButton.type = "button";
       removeButton.className = "btn btn-icon btn-sm btn-ghost-danger";
-      removeButton.setAttribute("aria-label", "Batal pilih " + file.name);
+      removeButton.setAttribute("aria-label", "Unselect " + file.name);
       removeButton.textContent = "\u00d7";
       removeButton.addEventListener("click", function () {
         setFileList(Array.from(inputEl.files).filter(function (_, fileIndex) {
@@ -87,9 +87,9 @@
 
     const totalCount = countKeptExisting() + fileList.length;
     if (totalCount > maxTotal) {
-      warningEl.textContent = "Kebanyakan file: maks " + maxTotal + " (termasuk lampiran yang sudah ada).";
+      warningEl.textContent = "Too many files: max " + maxTotal + " (including existing attachments).";
     } else if (hasProblem) {
-      warningEl.textContent = "Ada file yang bakal ditolak, cek yang warna merah.";
+      warningEl.textContent = "Some files will be rejected; check the ones in red.";
     } else {
       warningEl.textContent = "";
     }

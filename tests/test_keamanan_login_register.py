@@ -50,9 +50,9 @@ def find_user(email):
 def test_attacker_ip_blocked_but_owner_can_still_login(client, registered_user, user_password, fixed_otp_code):
     """Positive & negative (security): 5x salah dari IP penyerang -> IP itu diblokir, pemilik dari IP lain tetep masuk."""
     for _ in range(LOGIN_MAX_FAILED_COUNT):
-        assert "Email atau password salah" in post_login(client, registered_user.email, WRONG_PASSWORD, ATTACKER_IP).get_data(as_text=True)
+        assert "Incorrect email or password" in post_login(client, registered_user.email, WRONG_PASSWORD, ATTACKER_IP).get_data(as_text=True)
     blocked_response = post_login(client, registered_user.email, user_password, ATTACKER_IP)
-    assert "Terlalu banyak percobaan login dari perangkat ini" in blocked_response.get_data(as_text=True)
+    assert "Too many login attempts from this device" in blocked_response.get_data(as_text=True)
 
     owner_response = post_login(client, registered_user.email, user_password, OWNER_IP)
     assert owner_response.status_code == 302
@@ -64,7 +64,7 @@ def test_unknown_email_blocked_with_same_message(client):
     for _ in range(LOGIN_MAX_FAILED_COUNT):
         post_login(client, "ga.ada@spindo.com", WRONG_PASSWORD, ATTACKER_IP)
     response = post_login(client, "ga.ada@spindo.com", WRONG_PASSWORD, ATTACKER_IP)
-    assert "Terlalu banyak percobaan login dari perangkat ini" in response.get_data(as_text=True)
+    assert "Too many login attempts from this device" in response.get_data(as_text=True)
 
 def test_owner_notified_once_with_attacker_ip(client, registered_user):
     """Positive: pemilik akun dapet 1 notifikasi lonceng berisi IP penyerang, ga dobel walau diserang terus."""
@@ -90,16 +90,16 @@ def test_otp_lock_message_needs_correct_password(client, registered_user, user_p
     registered_user.locked_until = utc_now() + timedelta(minutes=10)
     db.session.commit()
     wrong_text = post_login(client, registered_user.email, WRONG_PASSWORD, ATTACKER_IP).get_data(as_text=True)
-    assert "Email atau password salah" in wrong_text
-    assert "dikunci" not in wrong_text
-    assert "dikunci" in post_login(client, registered_user.email, user_password, OWNER_IP).get_data(as_text=True)
+    assert "Incorrect email or password" in wrong_text
+    assert "locked" not in wrong_text
+    assert "locked" in post_login(client, registered_user.email, user_password, OWNER_IP).get_data(as_text=True)
 
 def test_block_works_while_rate_limit_disabled(app, client, registered_user):
     """Positive: pembatas login tetep jalan walau rate limit Flask-Limiter dimatiin (kayak di config test)."""
     assert app.config["RATELIMIT_ENABLED"] is False
     for _ in range(LOGIN_MAX_FAILED_COUNT):
         post_login(client, registered_user.email, WRONG_PASSWORD, ATTACKER_IP)
-    assert "Terlalu banyak" in post_login(client, registered_user.email, WRONG_PASSWORD, ATTACKER_IP).get_data(as_text=True)
+    assert "Too many" in post_login(client, registered_user.email, WRONG_PASSWORD, ATTACKER_IP).get_data(as_text=True)
 
 # DAFTAR + VERIFIKASI EMAIL
 
@@ -129,7 +129,7 @@ def test_unverified_registration_cannot_login(client, user_password):
     post_register(client, NEW_EMAIL, password=user_password)
     response = post_login(client, NEW_EMAIL, user_password, OWNER_IP)
     assert response.status_code == 200
-    assert "Email atau password salah" in response.get_data(as_text=True)
+    assert "Incorrect email or password" in response.get_data(as_text=True)
 
 @pytest.mark.parametrize("is_cooldown_skipped", [False, True])
 def test_owner_keeps_own_password_when_someone_registers_later(app, monkeypatch, is_cooldown_skipped):
@@ -145,13 +145,13 @@ def test_owner_keeps_own_password_when_someone_registers_later(app, monkeypatch,
     post_register(other_client, NEW_EMAIL, password="PasswordOrangLain2", full_name="Orang Lain")
 
     wrong_text = owner_client.post("/auth/register/verify", data={"otp_code": "222222"}).get_data(as_text=True)
-    assert "Kode OTP salah" in wrong_text
+    assert "Incorrect OTP code" in wrong_text
     assert "/auth/login" in owner_client.post("/auth/register/verify", data={"otp_code": "111111"}).location
 
     user = find_user(NEW_EMAIL)
     assert user.full_name == "Pemilik Asli"
     assert "/auth/otp" in post_login(owner_client, NEW_EMAIL, "PasswordPemilik1", OWNER_IP).location
-    assert "Email atau password salah" in post_login(other_client, NEW_EMAIL, "PasswordOrangLain2", ATTACKER_IP).get_data(as_text=True)
+    assert "Incorrect email or password" in post_login(other_client, NEW_EMAIL, "PasswordOrangLain2", ATTACKER_IP).get_data(as_text=True)
 
 def test_other_attempt_cannot_change_finished_account(app, monkeypatch):
     """Negative (security): akun udah jadi -> percobaan orang lain yg masih nunggu ga bisa ngubah apa-apa
@@ -162,7 +162,7 @@ def test_other_attempt_cannot_change_finished_account(app, monkeypatch):
     post_register(other_client, NEW_EMAIL, password="PasswordOrangLain2", full_name="Orang Lain")
     owner_client.post("/auth/register/verify", data={"otp_code": "111111"})
     old_password_hash = find_user(NEW_EMAIL).password_hash
-    assert "Kode OTP salah" in other_client.post("/auth/register/verify", data={"otp_code": "999999"}).get_data(as_text=True)
+    assert "Incorrect OTP code" in other_client.post("/auth/register/verify", data={"otp_code": "999999"}).get_data(as_text=True)
     user = find_user(NEW_EMAIL)
     assert (user.full_name, user.password_hash) == ("Pemilik Asli", old_password_hash)
 
@@ -175,7 +175,7 @@ def test_second_own_attempt_after_account_made_goes_to_login(app, monkeypatch):
     post_register(second_client, NEW_EMAIL)
     first_client.post("/auth/register/verify", data={"otp_code": "111111"})
     response = second_client.post("/auth/register/verify", data={"otp_code": "222222"}, follow_redirects=True)
-    assert "Pendaftaran untuk email ini sudah selesai" in response.get_data(as_text=True)
+    assert "Registration for this email is already complete" in response.get_data(as_text=True)
     assert db.session.scalar(db.select(db.func.count(User.id)).filter_by(email=NEW_EMAIL)) == 1
     assert count_pending(NEW_EMAIL) == 0
 
@@ -195,7 +195,7 @@ def test_new_and_existing_email_look_identical(app, registered_user):
     new_resend = new_client.post("/auth/register/resend", follow_redirects=True)
     existing_resend = existing_client.post("/auth/register/resend", follow_redirects=True)
     assert normalize_page(new_resend) == normalize_page(existing_resend)
-    assert "Tunggu sebentar" in new_resend.get_data(as_text=True)
+    assert "Wait a moment" in new_resend.get_data(as_text=True)
 
 def test_existing_account_untouched_and_owner_notified_once(client, registered_user, capsys):
     """Negative (security): daftar pakai email orang yg udah punya akun ga ngubah akunnya & ga nyimpen percobaan;
@@ -206,15 +206,15 @@ def test_existing_account_untouched_and_owner_notified_once(client, registered_u
     user = find_user(registered_user.email)
     assert (user.password_hash, user.full_name) == (old_password_hash, "User Login")
     assert count_pending(registered_user.email) == 0
-    assert capsys.readouterr().out.count("Percobaan pendaftaran ALR") == 1
+    assert capsys.readouterr().out.count("ALR registration attempt") == 1
 
 def test_wrong_registration_code_exhausts_then_expires(client, fixed_otp_code):
     """Negative: salah kode sampe habis -> "terlalu banyak", kode bener pun udah ga berlaku (minta baru)."""
     post_register(client, NEW_EMAIL)
     for _ in range(OTP_MAX_ATTEMPT_COUNT):
         response = client.post("/auth/register/verify", data={"otp_code": "000000"})
-    assert "Terlalu banyak percobaan OTP" in response.get_data(as_text=True)
-    assert "kedaluwarsa" in client.post("/auth/register/verify", data={"otp_code": fixed_otp_code}).get_data(as_text=True)
+    assert "Too many OTP attempts" in response.get_data(as_text=True)
+    assert "expired" in client.post("/auth/register/verify", data={"otp_code": fixed_otp_code}).get_data(as_text=True)
     assert find_user(NEW_EMAIL) is None
 
 def test_resend_gives_new_code_after_cooldown(client, monkeypatch):
@@ -222,15 +222,15 @@ def test_resend_gives_new_code_after_cooldown(client, monkeypatch):
     use_code_sequence(monkeypatch, "111111", "222222")
     post_register(client, NEW_EMAIL)
     monkeypatch.setattr(auth_service, "OTP_RESEND_COOLDOWN_SECONDS", 0)
-    assert "Kode verifikasi baru sudah dikirim" in client.post("/auth/register/resend", follow_redirects=True).get_data(as_text=True)
-    assert "Kode OTP salah" in client.post("/auth/register/verify", data={"otp_code": "111111"}).get_data(as_text=True)
+    assert "A new verification code has been sent" in client.post("/auth/register/resend", follow_redirects=True).get_data(as_text=True)
+    assert "Incorrect OTP code" in client.post("/auth/register/verify", data={"otp_code": "111111"}).get_data(as_text=True)
     assert "/auth/login" in client.post("/auth/register/verify", data={"otp_code": "222222"}).location
 
 def test_register_code_limited_per_email(app, capsys):
     """Negative (anti spam): kode daftar ke 1 email maksimal 5x / 15 menit, walau percobaannya dari banyak session."""
     for _ in range(REGISTER_CODE_MAX_COUNT + 2):
         post_register(app.test_client(), NEW_EMAIL)
-    assert capsys.readouterr().out.count("Kode verifikasi pendaftaran ALR:") == REGISTER_CODE_MAX_COUNT
+    assert capsys.readouterr().out.count("ALR registration verification code:") == REGISTER_CODE_MAX_COUNT
 
 def test_expired_pending_registration_cleaned_up(client):
     """Positive: percobaan daftar yg udah lewat 24 jam dibuang pas ada yg daftar lagi (tabel ga numpuk)."""
@@ -253,9 +253,9 @@ def test_registration_without_account_expires_like_real_code(app):
     """Positive: cabang email udah terdaftar ikut "kedaluwarsa" setelah 5 menit, sama kayak kode asli."""
     state = {"email": "x@spindo.com", "token": "token-ga-ada", "sent_at": (utc_now() - timedelta(minutes=6)).timestamp(),
              "attempt_count": 0}
-    with pytest.raises(AuthError, match="kedaluwarsa"):
+    with pytest.raises(AuthError, match="expired"):
         check_registration_without_account(state)
-    with pytest.raises(AuthError, match="kedaluwarsa"):
+    with pytest.raises(AuthError, match="expired"):
         verify_registration(state, "000000")
 
 def test_smtp_failure_on_register_looks_the_same(app, registered_user, monkeypatch):
@@ -271,3 +271,15 @@ def test_smtp_failure_on_register_looks_the_same(app, registered_user, monkeypat
     new_page = normalize_page(new_client.get("/auth/register/verify"))
     assert new_page == normalize_page(existing_client.get("/auth/register/verify"))
     assert "belum bisa dikirim" not in new_page
+
+def test_resend_over_limit_keeps_previous_code_valid(client, monkeypatch):
+    """Negative (temuan audit): kirim ulang pas batas kirim per email udah habis -> kode lama tetep berlaku
+    (ga diganti kode baru yg ga pernah nyampe), layar tetep bilang terkirim (ga bocor)."""
+    from app.security import auth_throttle
+
+    use_code_sequence(monkeypatch, "111111", "222222")
+    post_register(client, NEW_EMAIL)
+    monkeypatch.setattr(auth_service, "OTP_RESEND_COOLDOWN_SECONDS", 0)
+    monkeypatch.setattr(auth_throttle, "allow_register_code", lambda email: False)
+    assert "A new verification code has been sent" in client.post("/auth/register/resend", follow_redirects=True).get_data(as_text=True)
+    assert "/auth/login" in client.post("/auth/register/verify", data={"otp_code": "111111"}).location

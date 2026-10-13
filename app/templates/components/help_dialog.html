@@ -2,28 +2,28 @@
 <dialog class="confirm-dialog help-dialog" id="help_dialog" aria-labelledby="help_dialog_title">
   <div class="modal-content">
     <div class="modal-header">
-      <h3 class="modal-title" id="help_dialog_title">Bantuan: {{ shell_title }}</h3>
+      <h3 class="modal-title" id="help_dialog_title">Help: {{ shell_title }}</h3>
     </div>
     <div class="modal-body">
       {% if page_help_html %}<div class="help-page">{{ page_help_html }}</div>{% endif %}
-      {# shortcut ala SAP GUI, yg dipake js/components/keyboard_shortcut.js #}
       <dl class="help-list">
-        <dt><kbd>F3</kbd></dt><dd>Kembali ke layar sebelumnya.</dd>
-        <dt><kbd>Shift+F3</kbd></dt><dd>Keluar: tutup layar ini, balik ke Dashboard.</dd>
-        <dt><kbd>F12</kbd></dt><dd>Batal: buang isian form yang belum disimpan (kalau F12 kepake browser, pakai <kbd>Shift+F12</kbd>).</dd>
-        <dt><kbd>Ctrl+S</kbd></dt><dd>Simpan isian form di layar ini.</dd>
-        <dt><kbd>F8</kbd></dt><dd>Jalankan Kriteria Pencarian.</dd>
-        <dt><kbd>F1</kbd></dt><dd>Buka Bantuan ini.</dd>
-        <dt><kbd>/</kbd></dt><dd>Langsung ke Cari cepat (di layar yang punya Kriteria Pencarian).</dd>
-        <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Pindah baris aktif di tabel (klik baris atau Tab ke tabel dulu). <kbd>Home</kbd>/<kbd>End</kbd> ke baris pertama/terakhir.</dd>
-        <dt><kbd>Enter</kbd></dt><dd>Buka baris aktif (bisa juga double-click baris).</dd>
-        <dt><kbd>Shift+F10</kbd></dt><dd>Menu baris aktif: buka, salin nilai (bisa juga klik kanan di baris).</dd>
-        <dt><kbd>Esc</kbd></dt><dd>Tutup dialog atau menu.</dd>
+        <dt>Back <kbd>F3</kbd></dt><dd>Go back to the previous screen.</dd>
+        <dt>Exit <kbd>Shift+F3</kbd></dt><dd>Close this screen and return to the Dashboard.</dd>
+        <dt>Cancel <kbd>F12</kbd></dt><dd>Discard unsaved form changes.</dd>
+        <dt>Save <kbd>Ctrl+S</kbd></dt><dd>Save the form on this screen.</dd>
+        <dt>Execute <kbd>F8</kbd></dt><dd>Run the Selection Criteria.</dd>
+        <dt>Delete <kbd>Shift+F2</kbd></dt><dd>Delete the data on this screen (or the selected rows), after a confirmation.</dd>
+        <dt>Help <kbd>F1</kbd></dt><dd>Open this help.</dd>
+        <dt><kbd>/</kbd></dt><dd>Jump to Quick search (on screens with Selection Criteria).</dd>
+        <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Move the active table row (click a row or Tab into the table first). <kbd>Home</kbd>/<kbd>End</kbd> jump to the first/last row.</dd>
+        <dt><kbd>Enter</kbd></dt><dd>Open the active row (or double-click the row).</dd>
+        <dt><kbd>Shift+F10</kbd></dt><dd>Row menu: open, copy a value (or right-click the row).</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Close the dialog or menu.</dd>
       </dl>
-      <p class="text-secondary small mb-0">Pesan terakhir selalu ada di status bar bawah, klik buat lihat riwayatnya.</p>
+      <p class="text-secondary small mb-0">The latest message is always shown in the status bar at the bottom; click it to see the history.</p>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-primary w-100" data-help-close>Tutup</button>
+      <button type="button" class="btn btn-primary w-100" data-help-close>Close</button>
     </div>
   </div>
 </dialog>

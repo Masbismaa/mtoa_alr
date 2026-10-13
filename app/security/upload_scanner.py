@@ -26,6 +26,19 @@ def scan_upload(content_bytes):
                     break
                 response += chunk
     except OSError:
-        raise ValueError("pemindai lampiran belum tersedia; coba lagi nanti") from None
+        raise ValueError("the attachment scanner is not available yet; try again later") from None
     if response != b"stream: OK\0":
-        raise ValueError("lampiran ditolak oleh pemindai keamanan")
+        raise ValueError("attachment rejected by the security scanner")
+
+
+def ping_scanner(timeout_seconds=2):
+    """True kalau ClamAV jawab PING dgn PONG (dipake /health/ready). Scanner belum diatur -> None (ga dicek)."""
+    host = current_app.config["UPLOAD_SCANNER_HOST"]
+    if not host:
+        return None
+    try:
+        with socket.create_connection((host, current_app.config["UPLOAD_SCANNER_PORT"]), timeout=timeout_seconds) as connection:
+            connection.sendall(b"zPING\0")
+            return connection.recv(64).startswith(b"PONG")
+    except OSError:
+        return False

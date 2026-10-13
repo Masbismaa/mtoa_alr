@@ -24,7 +24,7 @@ def test_invite_notifies_invited_user(registered_user, other_user):
     """Positive: diundang -> yg diundang dapet notifikasi, pemilik ga."""
     group = create_group(registered_user, {"name": "Tim Network"})
     invite_member(registered_user, group, other_user.email)
-    assert get_message_list(other_user) == [f"{registered_user.full_name} mengundangmu ke group Tim Network"]
+    assert get_message_list(other_user) == [f"{registered_user.full_name} invited you to the group Tim Network"]
     assert get_message_list(registered_user) == []
 
 def test_remove_and_cancel_invitation_notify(registered_user, other_user):
@@ -34,16 +34,16 @@ def test_remove_and_cancel_invitation_notify(registered_user, other_user):
     invitation = invite_member(registered_user, group, other_user.email)
     remove_member(registered_user, group, invitation.id)
     assert get_message_list(other_user)[1:] == [
-        "Kamu dikeluarkan dari group Tim Network",
-        f"{registered_user.full_name} mengundangmu ke group Tim Network",
-        "Undangan ke group Tim Network dibatalkan",
+        "You were removed from the group Tim Network",
+        f"{registered_user.full_name} invited you to the group Tim Network",
+        "Your invitation to the group Tim Network was canceled",
     ]
 
 def test_leave_notifies_owner(registered_user, other_user):
     """Positive: anggota keluar -> pemilik dikabarin."""
     group, _ = build_group_with_member(registered_user, other_user)
     leave_group(other_user, group)
-    assert get_message_list(registered_user) == [f"{other_user.full_name} keluar dari group Tim Network"]
+    assert get_message_list(registered_user) == [f"{other_user.full_name} left the group Tim Network"]
 
 def test_add_entry_permission_notifies_member(registered_user, other_user):
     """Positive: izin tambah link dikasih & dicabut -> anggota dikabarin, nyimpen ulang nilai sama ga dobel."""
@@ -52,15 +52,15 @@ def test_add_entry_permission_notifies_member(registered_user, other_user):
     set_member_can_add_entry(registered_user, group, member.id, True)
     set_member_can_add_entry(registered_user, group, member.id, False)
     assert get_message_list(other_user)[1:] == [
-        "Kamu sekarang boleh menambah link ke group Tim Network",
-        "Izin menambah link ke group Tim Network dicabut",
+        "You can now add links to the group Tim Network",
+        "Your permission to add links to the group Tim Network was revoked",
     ]
 
 def test_permission_grant_notifies_user(admin_user, registered_user):
     """Positive: admin ngasih & nyabut akses -> user dikabarin nama aksesnya."""
     set_user_permissions(admin_user, registered_user, [PERMISSION_MANAGE_CATEGORIES])
     set_user_permissions(admin_user, registered_user, [])
-    assert get_message_list(registered_user) == ["Kamu mendapat akses: Kelola kategori", "Akses dicabut: Kelola kategori"]
+    assert get_message_list(registered_user) == ["You were granted access: Manage categories", "Access revoked: Manage categories"]
 
 # LONCENG DI LAYAR
 def test_bell_shows_unread_count(logged_in_client, registered_user):
@@ -81,7 +81,7 @@ def test_open_marks_read_and_redirects(logged_in_client, registered_user):
 
 def test_open_without_target_goes_back(logged_in_client, registered_user):
     """Positive: notifikasi tanpa tujuan -> balik ke layar asal."""
-    notification = add_notification(registered_user.id, "Kamu mendapat akses: Kelola kategori")
+    notification = add_notification(registered_user.id, "Kamu mendapat akses: Manage categories")
     db.session.commit()
     response = logged_in_client.post(f"/notifications/{notification.id}/open", data={"back": "/entries/?run=1"})
     assert response.location.endswith("/entries/?run=1")

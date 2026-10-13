@@ -20,9 +20,9 @@ def test_normalize_url_rejects_non_http_scheme():
 
 def test_normalize_url_rejects_empty_and_spaces():
     """Negative: kosong / ada spasi ditolak."""
-    with pytest.raises(ValueError, match="wajib"):
+    with pytest.raises(ValueError, match="required"):
         normalize_url("")
-    with pytest.raises(ValueError, match="spasi"):
+    with pytest.raises(ValueError, match="spaces"):
         normalize_url("https://intra spindo.com")
 
 

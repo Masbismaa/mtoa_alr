@@ -406,3 +406,9 @@
     max-width: none;
   }
 }
+
+/* kolom centang paling kiri (hapus banyak, admin) */
+.cell-select {
+  width: 2.5rem;
+  text-align: center;
+}

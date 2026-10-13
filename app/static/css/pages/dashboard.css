@@ -1,24 +1,24 @@
 /* halaman dashboard */
 
-/* dashboard */
-/* kartu sambutan: garis aksen biru di kiri, tanpa gradasi */
-.welcome-card {
-  box-shadow: inset 0.25rem 0 0 var(--tblr-primary);
+.dashboard-welcome-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-.welcome-illustration {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 6.5rem;
-  height: 6.5rem;
-  color: var(--tblr-primary);
-  background: var(--tblr-primary-lt);
-  border-radius: 50%;
+/* angka ringkas: rata kiri, angka besar biar kebaca sekilas */
+.dashboard-stat .h2 {
+  line-height: 1.1;
 }
 
-.welcome-illustration .icon {
-  width: 3rem;
-  height: 3rem;
-  stroke-width: 1.5;
+/* feed aktivitas tim: avatar & teks sejajar atas */
+.team-activity .avatar {
+  margin-top: 0.125rem;
+}
+
+.team-activity-content {
+  min-width: 0;
+}
+
+.team-activity-summary {
+  overflow-wrap: anywhere;
 }

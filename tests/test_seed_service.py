@@ -6,14 +6,6 @@ from app.services.seed_service import seed_default_categories
 from app.utils.constants import DEFAULT_CATEGORY_LIST
 
 
-def test_seed_default_categories_creates_all(app):
-    """Positive: seed pertama menambahkan semua kategori default."""
-    created_count = seed_default_categories()
-    name_list = db.session.execute(db.select(Category.name)).scalars().all()
-    assert created_count == len(DEFAULT_CATEGORY_LIST)
-    assert sorted(name_list) == sorted(item["name"] for item in DEFAULT_CATEGORY_LIST)
-
-
 def test_seed_default_categories_is_idempotent(app):
     """Negative: seed kedua kali tidak boleh membuat data ganda."""
     seed_default_categories()

@@ -29,7 +29,7 @@ csrf = CSRFProtect()
 login_manager = LoginManager()
 # kalau belum login, lempar ke halaman ini
 login_manager.login_view = "auth.login"
-login_manager.login_message = "Silakan login dulu untuk membuka halaman ini."
+login_manager.login_message = "Please log in to open this page."
 login_manager.login_message_category = "warning"
 # Hapus sesi jika identitas sesi berubah secara signifikan.
 login_manager.session_protection = "strong"

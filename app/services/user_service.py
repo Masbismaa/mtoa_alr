@@ -124,13 +124,18 @@ def ensure_not_self(actor, target, message):
 def ensure_not_admin(target):
     """Akun admin cuma bisa diubah lewat command, bukan dari panel."""
     if target.role == ROLE_ADMIN:
-        raise ValidationError([build_error("user", "Akun admin cuma bisa diubah lewat command")])
+        raise ValidationError([build_error("user", "Admin accounts can only be changed via the command line")])
 
 def ensure_other_admin_left(target):
-    """Minimal harus nyisa 1 admin aktif selain target."""
-    other_admin_count = count_user(User.role == ROLE_ADMIN, User.is_active.is_(True), User.id != target.id)
-    if other_admin_count == 0:
-        raise ValidationError([build_error("user", "Minimal harus ada 1 admin aktif")])
+    """Minimal harus nyisa 1 admin aktif selain target. Baris semua admin aktif dikunci dulu (FOR UPDATE), jadi
+    2 perintah barengan yg nurunin 2 admin beda diproses satu-satu & ga bisa sama-sama liat "masih ada admin lain".
+    (FOR UPDATE ga boleh bareng COUNT di PostgreSQL, makanya id-nya yg diambil)"""
+    admin_id_list = db.session.scalars(
+        db.select(User.id).where(User.deleted_at.is_(None), User.role == ROLE_ADMIN, User.is_active.is_(True))
+        .with_for_update()
+    ).all()
+    if not [admin_id for admin_id in admin_id_list if admin_id != target.id]:
+        raise ValidationError([build_error("user", "There must be at least 1 active admin")])
 
 def save_user_change(actor, target, old_data_dict):
     """Catat perubahan ke audit log terus simpan."""
@@ -144,10 +149,10 @@ def save_user_change(actor, target, old_data_dict):
 def change_user_role(actor, target, new_role):
     """Ganti role user, cuma dipanggil dari command set-admin/unset-admin (actor None)."""
     if new_role not in ROLE_LIST:
-        raise ValidationError([build_error("role", "Role tidak valid")])
+        raise ValidationError([build_error("role", "Invalid role")])
     if new_role == target.role:
         return target
-    ensure_not_self(actor, target, "Kamu tidak bisa mengubah role akunmu sendiri")
+    ensure_not_self(actor, target, "You can't change the role of your own account")
     if target.role == ROLE_ADMIN and target.is_active:
         ensure_other_admin_left(target)
     old_data_dict = build_user_admin_audit_dict(target)
@@ -156,7 +161,7 @@ def change_user_role(actor, target, new_role):
 
 def toggle_user_active(actor, target):
     """Aktif <-> nonaktif. User nonaktif langsung ke-logout di request berikutnya & ga bisa login."""
-    ensure_not_self(actor, target, "Kamu tidak bisa menonaktifkan akunmu sendiri")
+    ensure_not_self(actor, target, "You can't deactivate your own account")
     ensure_not_admin(target)
     old_data_dict = build_user_admin_audit_dict(target)
     target.is_active = not target.is_active
@@ -168,7 +173,7 @@ def unlock_user(actor, target):
     """Buka kunci akun yg kekunci gara-gara kebanyakan salah password/OTP."""
     ensure_not_admin(target)
     if get_user_status(target) != USER_STATUS_LOCKED:
-        raise ValidationError([build_error("user", "Akun ini tidak sedang terkunci")])
+        raise ValidationError([build_error("user", "This account is not locked")])
     old_data_dict = build_user_admin_audit_dict(target)
     target.locked_until = None
     target.failed_login_count = 0
@@ -185,7 +190,7 @@ def set_user_permissions(actor, target, permission_key_list):
     ensure_not_admin(target)
     new_key_set = set(permission_key_list or [])
     if not new_key_set.issubset(PERMISSION_LIST):
-        raise ValidationError([build_error("permission", "Ada akses yang tidak dikenal")])
+        raise ValidationError([build_error("permission", "Some access types are unknown")])
     old_key_list = get_permission_key_list(target)
     if new_key_set == set(old_key_list):
         return target
@@ -210,15 +215,15 @@ def notify_permission_change(target, old_key_list, new_key_set):
     added_label_list = [PERMISSION_INFO_DICT[key]["label"] for key in PERMISSION_LIST if key in new_key_set and key not in old_key_list]
     removed_label_list = [PERMISSION_INFO_DICT[key]["label"] for key in old_key_list if key not in new_key_set]
     if added_label_list:
-        add_notification(target.id, "Kamu mendapat akses: " + ", ".join(added_label_list))
+        add_notification(target.id, "You were granted access: " + ", ".join(added_label_list))
     if removed_label_list:
-        add_notification(target.id, "Akses dicabut: " + ", ".join(removed_label_list))
+        add_notification(target.id, "Access revoked: " + ", ".join(removed_label_list))
 
 # HAPUS AKUN
 def ensure_delete_confirmed(target, confirm_email):
     """Admin wajib ngetik ulang email target biar ga salah hapus."""
     if normalize_email(confirm_email) != target.email:
-        raise ValidationError([build_error("confirm_email", "Email konfirmasi tidak cocok dengan email akun ini")])
+        raise ValidationError([build_error("confirm_email", "The confirmation email doesn't match this account's email")])
 
 def build_delete_preview(target):
     """Apa aja yg bakal kena kalau akun ini dihapus, ditampilin sebelum admin konfirmasi."""
@@ -247,10 +252,10 @@ def anonymize_user(target):
 
 def delete_user_account(actor, target, confirm_email):
     """Hapus akun: link Private + lampirannya dihapus, link Public tetep ada, group dilepas, akses dicabut, data diri dianonimkan."""
-    ensure_not_self(actor, target, "Kamu tidak bisa menghapus akunmu sendiri")
+    ensure_not_self(actor, target, "You can't delete your own account")
     ensure_not_admin(target)
     if target.deleted_at is not None:
-        raise ValidationError([build_error("user", "Akun ini sudah dihapus")])
+        raise ValidationError([build_error("user", "This account has already been deleted")])
     ensure_delete_confirmed(target, confirm_email)
     old_data_dict = {
         "email": target.email, "full_name": target.full_name, "department": target.department,

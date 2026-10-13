@@ -22,8 +22,8 @@ export default class ErrorBoundary extends Component {
     return (
       <div className="card-body">
         <div className="alert alert-danger m-0" role="alert">
-          Tabel gagal ditampilkan.{" "}
-          <button type="button" className="btn btn-sm ms-2" onClick={reloadPage}>Muat ulang</button>
+          The table could not be displayed.{" "}
+          <button type="button" className="btn btn-sm ms-2" onClick={reloadPage}>Reload</button>
         </div>
       </div>
     );

@@ -14,6 +14,7 @@ from flask import url_for
 
 from app.schemas.selection_schema import build_entry_field_list, read_entry_selection
 from app.schemas.table_schema import TABLE_ENTRY
+from app.security.access_policy import can_edit_entry, is_admin
 from app.services.access_entry_service import list_active_category_option, search_visible_entries
 from app.services.category_service import build_category_label
 from app.services.preference_service import get_table_layout
@@ -84,10 +85,12 @@ def build_status_title(entry):
         part_list.append(entry.status_note)
     return " · ".join(part_list)
 
-def build_entry_row(entry, back_url):
-    """Satu baris tabel. Semua teks udah jadi (label, tanggal WIB), React tinggal nampilin."""
+def build_entry_row(entry, back_url, can_delete=False):
+    """Satu baris tabel. Semua teks udah jadi (label, tanggal WIB), React tinggal nampilin.
+    can_delete = baris ini boleh dicentang buat hapus banyak (admin di Daftar Link)."""
     return {
         "id": entry.id,
+        "can_delete": can_delete,
         "title": entry.title,
         "detail_url": url_for("entries.detail", entry_id=entry.id, back=back_url),
         "category_label": build_category_label(entry.category),
@@ -107,37 +110,37 @@ def build_entry_row(entry, back_url):
 def build_heading(scope, total, is_filtered):
     """Judul kartu tabel. Daftar Link nyebut jumlah di judul, halaman kategori pake badge."""
     if scope.category is not None:
-        return {"icon": "link", "text": f"Link di {scope.category.name}", "count_text": f"{total} data"}
+        return {"icon": "link", "text": f"Links in {scope.category.name}", "count_text": f"{total} links"}
     if is_filtered:
-        return {"icon": "search", "text": f"Hasil pencarian: {total} data", "count_text": None}
-    return {"icon": "link", "text": f"Seluruh link: {total} data", "count_text": None}
+        return {"icon": "search", "text": f"Search results: {total}", "count_text": None}
+    return {"icon": "link", "text": f"All links: {total}", "count_text": None}
 
 def build_empty_state(scope, query_dict, is_filtered):
     """Isi kartu kalau ga ada data: beda antara 'ga ada yg cocok' & 'emang belum ada data'."""
     if scope.category is not None:
         category = scope.category
         if is_filtered:
-            return {"icon": "search", "title": "Tidak ada link yang cocok",
-                    "subtitle": "Coba ubah kriteria pencariannya, atau pakai * (misal portal*).", "action": None}
+            return {"icon": "search", "title": "No matching links",
+                    "subtitle": "Try changing the search criteria, or use * (e.g. portal*).", "action": None}
         return {
-            "icon": "link", "title": "Belum ada link langsung di sini",
-            "subtitle": ("Link lainnya ada di sub-kategori di atas." if scope.has_sub_category
-                         else "Jadi yang pertama nambahin link di kategori ini."),
-            "action": ({"url": url_for("entries.create", category_id=category.id), "label": "Tambah Link di sini",
+            "icon": "link", "title": "No links directly in here yet",
+            "subtitle": ("Other links are in the sub-categories above." if scope.has_sub_category
+                         else "Be the first to add a link to this category."),
+            "action": ({"url": url_for("entries.create", category_id=category.id), "label": "Add Link here",
                         "icon": "plus", "is_primary": True} if category.is_active else None),
         }
     if is_filtered:
         keyword_list = query_dict.get("q") or []
-        keyword_text = f' untuk "{keyword_list[0]}"' if keyword_list else ""
+        keyword_text = f' for "{keyword_list[0]}"' if keyword_list else ""
         return {
-            "icon": "search", "title": f"Tidak ada hasil{keyword_text}.",
-            "subtitle": "Coba ubah kriteria pencariannya, atau pakai * (misal portal*).",
+            "icon": "search", "title": f"No results{keyword_text}.",
+            "subtitle": "Try changing the search criteria, or use * (e.g. portal*).",
             "action": {"url": url_for("entries.index", run=1, _anchor=TABLE_ANCHOR), "label": "Reset filter",
                        "icon": None, "is_primary": False},
         }
     return {
-        "icon": "link", "title": "Belum ada data link", "subtitle": "Yuk tambah link pertama biar tim gampang nyarinya.",
-        "action": {"url": url_for("entries.create"), "label": "Tambah Link", "icon": "plus", "is_primary": True},
+        "icon": "link", "title": "No links yet", "subtitle": "Add the first link so your team can find it easily.",
+        "action": {"url": url_for("entries.create"), "label": "Add Link", "icon": "plus", "is_primary": True},
     }
 
 def build_sort_text(sort):
@@ -177,6 +180,8 @@ def build_entry_table_payload(user, args, scope):
     )
     back_url = build_page_url(scope, query_dict, pagination.page)
     has_export = scope.category is None and pagination.total > 0
+    # hapus banyak cuma buat admin di Daftar Link (bersih-bersih); tiap link tetep dicek lagi pas dihapus
+    is_bulk_delete = scope.category is None and is_admin(user)
     return {
         "table_key": TABLE_ENTRY,
         "api_url": url_for(scope.api_endpoint, **scope.url_kwargs),
@@ -197,10 +202,11 @@ def build_entry_table_payload(user, args, scope):
         "pages": pagination.pages,
         "total": pagination.total,
         "page_list": list(pagination.iter_pages(left_edge=1, left_current=1, right_current=2, right_edge=1)),
-        "rows": [build_entry_row(entry, back_url) for entry in pagination.items],
+        "rows": [build_entry_row(entry, back_url, is_bulk_delete and can_edit_entry(user, entry)) for entry in pagination.items],
         # ada kriteria: kalau hasilnya kosong, kepala tabel (+ filter kolom) tetep tampil biar filternya bisa dihapus
         "is_filtered": is_filtered,
         "heading": build_heading(scope, pagination.total, is_filtered),
         "empty": build_empty_state(scope, query_dict, is_filtered) if not pagination.items else None,
         "export_url": url_for("main.export_entries", **query_dict) if has_export else None,
+        "bulk_delete_url": url_for("entries.bulk_delete") if is_bulk_delete else None,
     }

@@ -12,7 +12,7 @@ def hash_password(plain_password):
     """Ubah password jadi hash Argon2 buat disimpen ke DB."""
     # tolak password kosong / kependekan dari awal
     if not plain_password or len(plain_password) < MIN_PASSWORD_LENGTH:
-        raise ValueError(f"Password minimal {MIN_PASSWORD_LENGTH} karakter")
+        raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
     return _password_hasher.hash(plain_password)
 
 def verify_password(password_hash, plain_password):

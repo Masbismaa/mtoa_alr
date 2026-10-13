@@ -10,10 +10,16 @@ export const MIN_WIDTH = 60;
 export const MAX_WIDTH = 800;
 // disimpen setelah user berhenti geser/klik sebentar, biar ga ngirim tiap piksel
 const SAVE_DELAY_MS = 600;
-export const IDLE_STATUS_TEXT = "Lebar & kolom tersimpan otomatis di akunmu.";
+export const IDLE_STATUS_TEXT = "Widths & columns are saved to your account automatically.";
 
 export function clampWidth(width) {
   return Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width)));
+}
+
+// id acak per tab: server nolak kiriman lama dari tab yg sama yg telat nyampe (sequence lebih kecil)
+function createClientId() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+  return `tab-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function normalizeLayout(layout) {
@@ -32,10 +38,22 @@ export default function useColumnLayout({ tableKey, layoutUrl, initialLayout, de
   // langsung kirim snapshot TERBARU. Tanpa ini 2 request bisa jalan bareng & yg lama telat nyampe nimpa yg baru.
   const isSavingRef = useRef(false);
   const isDirtyRef = useRef(false);
+  // nomor urut kiriman (naik terus). Kiriman pas halaman ditutup (keepalive) ga lewat antrean, jadi bisa aja
+  // request lama nyampe belakangan: server bandingin sequence & ngabaiin yg lebih lama (POST /settings/table-layout)
+  const clientIdRef = useRef(null);
+  const sequenceRef = useRef(0);
 
   const postLayout = useCallback((isKeepalive) => {
     const { hidden_list: hiddenList, width_dict: widthDict } = layoutRef.current;
-    return postJson(layoutUrl, { table_key: tableKey, hidden_list: hiddenList, width_dict: widthDict }, isKeepalive);
+    if (clientIdRef.current === null) clientIdRef.current = createClientId();
+    sequenceRef.current += 1;
+    return postJson(layoutUrl, {
+      table_key: tableKey,
+      hidden_list: hiddenList,
+      width_dict: widthDict,
+      client_id: clientIdRef.current,
+      sequence: sequenceRef.current,
+    }, isKeepalive);
   }, [layoutUrl, tableKey]);
 
   const sendLayout = useCallback(async () => {
@@ -51,12 +69,12 @@ export default function useColumnLayout({ tableKey, layoutUrl, initialLayout, de
         try {
           await postLayout(false);
           if (!isDirtyRef.current) {
-            setSaveStatus({ text: "Layout tabel tersimpan", isError: false });
+            setSaveStatus({ text: "Table layout saved", isError: false });
             // pesan sukses ga masuk riwayat status bar biar ga numpuk tiap kolom digeser
-            showStatus("Layout tabel tersimpan", "success", false);
+            showStatus("Table layout saved", "success", false);
           }
         } catch (saveError) {
-          const text = saveError.message || "Gagal menyimpan layout tabel";
+          const text = saveError.message || "Failed to save the table layout";
           setSaveStatus({ text, isError: true });
           showStatus(text, "danger");
         }
@@ -70,7 +88,7 @@ export default function useColumnLayout({ tableKey, layoutUrl, initialLayout, de
     layoutRef.current = nextLayout;
     setLayout(nextLayout);
     if (!isSaved) return;
-    setSaveStatus({ text: "Menyimpan layout...", isError: false });
+    setSaveStatus({ text: "Saving layout...", isError: false });
     window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => sendLayout(), SAVE_DELAY_MS);
   }, [sendLayout]);

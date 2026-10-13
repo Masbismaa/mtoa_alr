@@ -53,12 +53,46 @@ unit_test:
   image: python:3.13-slim
   script:
     - python --version
-    - python -m pip install -r requirements.txt
+    - python -m pip install -r requirements-dev.txt
     - python -m pytest -q --junitxml=report.xml
   artifacts:
     when: always
     reports:
       junit: report.xml
+
+# migrasi + test integrasi di PostgreSQL beneran. unit_test pake SQLite & db.create_all(), jadi ga ngebuktiin
+# jalur migrasi, FOR UPDATE (request barengan), index unik ekspresi, & trigger audit log. Butuh runner yg bisa "services".
+postgres_test:
+  stage: test
+  image: python:3.13-slim
+  services:
+    - name: postgres:17
+      alias: postgres
+  variables:
+    POSTGRES_DB: alr_ci
+    POSTGRES_USER: alr_ci
+    POSTGRES_PASSWORD: alr_ci_password
+    APP_ENV: development
+    DATABASE_URL: postgresql+psycopg://alr_ci:alr_ci_password@postgres:5432/alr_ci
+    TEST_POSTGRES_URL: postgresql+psycopg://alr_ci:alr_ci_password@postgres:5432/alr_ci
+  script:
+    - python -m pip install -r requirements-dev.txt
+    # kunci acak sekali pakai (database-nya dibuang abis job), sengaja ga ditulis di file ini
+    - export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+    - export ENCRYPTION_KEY="$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+    # tunggu PostgreSQL siap nerima koneksi (maks 60 detik)
+    - python scripts/wait_for_db.py
+    - python -m flask --app run db upgrade
+    - python -m flask --app run db check
+    # 2 migrasi terbaru harus bisa diturunin & dinaikin lagi
+    - python -m flask --app run db downgrade b4d9e2a7c1f3
+    - python -m flask --app run db downgrade f2b7c9d4e6a1
+    - python -m flask --app run db upgrade
+    - python -m pytest -q tests/test_postgres_integrasi.py --junitxml=report-postgres.xml
+  artifacts:
+    when: always
+    reports:
+      junit: report-postgres.xml
 
 # test komponen React + pastiin app/static/dist (yg di-commit) sama persis sama hasil build source-nya.
 # Gagal di langkah diff = ada yg ngubah frontend/src tapi lupa "npm run build" & commit app/static/dist

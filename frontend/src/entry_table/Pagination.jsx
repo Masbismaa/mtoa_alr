@@ -26,12 +26,12 @@ export default function Pagination({ page, pages, pageList, buildPageHref, onPag
 
   return (
     <div className="card-footer d-flex flex-wrap align-items-center gap-2">
-      <p className="m-0 text-secondary">Halaman <strong>{page}</strong> dari <strong>{pages}</strong></p>
-      <nav className="ms-auto" aria-label="Navigasi halaman">
+      <p className="m-0 text-secondary">Page <strong>{page}</strong> of <strong>{pages}</strong></p>
+      <nav className="ms-auto" aria-label="Page navigation">
         <ul className="pagination m-0">
           <li className={"page-item" + (page > 1 ? "" : " disabled")}>
             {page > 1
-              ? renderLink(page - 1, <Icon name="chevron_left" />, "Halaman sebelumnya")
+              ? renderLink(page - 1, <Icon name="chevron_left" />, "Previous page")
               : <span className="page-link" aria-hidden="true"><Icon name="chevron_left" /></span>}
           </li>
           {pageList.map((pageNumber, index) => {
@@ -46,7 +46,7 @@ export default function Pagination({ page, pages, pageList, buildPageHref, onPag
           })}
           <li className={"page-item" + (page < pages ? "" : " disabled")}>
             {page < pages
-              ? renderLink(page + 1, <Icon name="chevron_right" />, "Halaman berikutnya")
+              ? renderLink(page + 1, <Icon name="chevron_right" />, "Next page")
               : <span className="page-link" aria-hidden="true"><Icon name="chevron_right" /></span>}
           </li>
         </ul>

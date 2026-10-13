@@ -22,6 +22,13 @@
     return Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width)));
   }
 
+  // id acak per tab: server nolak kiriman lama dari tab yg sama yg telat nyampe (sequence lebih kecil).
+  // Protokolnya sama persis kayak tabel React (frontend/src/entry_table/useColumnLayout.js)
+  function createClientId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+    return "tab-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+  }
+
   function setupTable(tableEl) {
     const tableKey = tableEl.dataset.tableKey;
     const layoutDict = parseJson(tableEl.dataset.tableLayout, {});
@@ -31,6 +38,11 @@
     const menuEl = cardEl.querySelector('[data-table-menu="' + tableKey + '"]');
     const statusEl = menuEl ? menuEl.querySelector("[data-table-status]") : null;
     let saveTimer = null;
+    // antrean simpan: maksimal 1 request jalan; perubahan selama nunggu dikirim sekali (snapshot terbaru) abis itu
+    let isSaving = false;
+    let isDirty = false;
+    let clientId = null;
+    let sequence = 0;
 
     layoutDict.hidden_list = Array.isArray(layoutDict.hidden_list) ? layoutDict.hidden_list : [];
     layoutDict.width_dict = layoutDict.width_dict && typeof layoutDict.width_dict === "object" ? layoutDict.width_dict : {};
@@ -45,20 +57,56 @@
       if (isFinal && window.AlrStatusBar) window.AlrStatusBar.show(text, isError ? "danger" : "success", Boolean(isError));
     }
 
+    function postLayout(isKeepalive) {
+      clientId = clientId || createClientId();
+      sequence += 1;
+      return preference.saveToServer({
+        table_key: tableKey,
+        hidden_list: layoutDict.hidden_list,
+        width_dict: layoutDict.width_dict,
+        client_id: clientId,
+        sequence: sequence
+      }, tableEl.dataset.layoutUrl, isKeepalive);
+    }
+
+    async function sendLayout() {
+      saveTimer = null;
+      if (isSaving) {
+        isDirty = true;
+        return;
+      }
+      isSaving = true;
+      try {
+        do {
+          isDirty = false;
+          const resultDict = await postLayout(false);
+          if (!resultDict.is_success) {
+            showStatus(resultDict.message || "Failed to save the table layout", true, true);
+          } else if (!isDirty) {
+            showStatus("Table layout saved", false, true);
+          }
+        } while (isDirty);
+      } finally {
+        isSaving = false;
+      }
+    }
+
     // disimpen setelah user berhenti geser/klik sebentar, biar ga ngirim tiap piksel
     function scheduleSave() {
       if (!preference) return;
-      showStatus("Menyimpan layout...");
+      showStatus("Saving layout...");
       window.clearTimeout(saveTimer);
-      saveTimer = window.setTimeout(async function () {
-        const resultDict = await preference.saveToServer({
-          table_key: tableKey,
-          hidden_list: layoutDict.hidden_list,
-          width_dict: layoutDict.width_dict
-        }, tableEl.dataset.layoutUrl);
-        showStatus(resultDict.is_success ? "Layout tabel tersimpan" : (resultDict.message || "Gagal menyimpan layout tabel"), !resultDict.is_success, true);
-      }, SAVE_DELAY);
+      saveTimer = window.setTimeout(sendLayout, SAVE_DELAY);
     }
+
+    // halaman ditutup / pindah pas ada perubahan yg belum kekirim -> langsung kirim snapshot terbaru (keepalive)
+    window.addEventListener("pagehide", function () {
+      if (!preference || (saveTimer === null && !isDirty)) return;
+      window.clearTimeout(saveTimer);
+      saveTimer = null;
+      isDirty = false;
+      postLayout(true);
+    });
 
     function getHeadCell(key) {
       return tableEl.querySelector('th[data-column="' + key + '"]');

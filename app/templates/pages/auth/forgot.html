@@ -1,0 +1,22 @@
+{% extends "layouts/auth_base.html" %}
+{% from "components/form_field.html" import render_field %}
+
+{% block title %}Forgot Password{% endblock %}
+
+{% block content %}
+  <div class="text-secondary small text-uppercase fw-bold mb-1">Reset password · step 1 of 2</div>
+  <h2 class="h2 mb-2">Forgot Password</h2>
+  <p class="text-secondary mb-4">Enter your corporate email. If it is registered, we will send a code to reset your password.</p>
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.email, suffix="@" ~ config.ALLOWED_EMAIL_DOMAIN, value=(form.email.data or "").split("@")[0], placeholder="name", autocomplete="username") }}
+    <div class="form-footer">
+      {{ form.submit(class_="btn btn-primary w-100") }}
+    </div>
+  </form>
+{% endblock %}
+
+{% block after_card %}
+  <div class="text-center text-secondary mt-3"><a href="{{ url_for('auth.login') }}">Back to login</a></div>
+{% endblock %}

@@ -4,8 +4,8 @@
 {% macro entry_table(payload) %}
   <div class="card" id="{{ payload.anchor }}" data-entry-table='{{ payload | tojson }}'>
     {# kelihatan sebentar sebelum script React jalan #}
-    <div class="card-body text-secondary" data-entry-table-loading>Memuat tabel…</div>
-    <noscript><div class="card-body text-danger">Tabel butuh JavaScript. Aktifkan JavaScript di browser lalu muat ulang halaman.</div></noscript>
+    <div class="card-body text-secondary" data-entry-table-loading>Loading table…</div>
+    <noscript><div class="card-body text-danger">This table needs JavaScript. Enable JavaScript in your browser, then reload the page.</div></noscript>
   </div>
   {{ vite_tags("entry_table") }}
 {% endmacro %}

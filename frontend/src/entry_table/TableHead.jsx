@@ -7,7 +7,7 @@ import { clampWidth } from "./useColumnLayout.js";
 
 const KEYBOARD_STEP = 16;
 const ACTION_COLUMN_WIDTH = 80;
-const LOCKED_FILTER_TITLE = "Lebih dari satu nilai, ubah lewat Kriteria Pencarian";
+const LOCKED_FILTER_TITLE = "More than one value, change it via Selection Criteria";
 
 // garis geser lebar kolom: mouse/jari ditarik, atau fokus + panah kiri/kanan
 function ResizeHandle({ label, onResize, onResizeStateChange }) {
@@ -52,7 +52,7 @@ function ResizeHandle({ label, onResize, onResizeStateChange }) {
       tabIndex={0}
       role="separator"
       aria-orientation="vertical"
-      aria-label={`Lebar kolom ${label} (panah kiri/kanan)`}
+      aria-label={`Width of column ${label} (left/right arrows)`}
       onPointerDown={handlePointerDown}
       onKeyDown={handleKeyDown}
     />
@@ -81,7 +81,7 @@ function ColumnFilter({ column, value, onValueChange, onApply }) {
         }}
         {...lockedProps}
       >
-        <option value="">{filter.is_locked ? "(beberapa)" : "Semua"}</option>
+        <option value="">{filter.is_locked ? "(multiple)" : "All"}</option>
         {filter.option_list.map(([optionValue, optionLabel]) => (
           <option value={optionValue} key={optionValue}>{optionLabel}</option>
         ))}
@@ -93,7 +93,7 @@ function ColumnFilter({ column, value, onValueChange, onApply }) {
       type="search"
       className="form-control form-control-sm"
       aria-label={`Filter ${column.label}`}
-      placeholder={filter.is_locked ? "(beberapa)" : "Filter… (pakai *)"}
+      placeholder={filter.is_locked ? "(multiple)" : "Filter… (use *)"}
       maxLength={100}
       autoComplete="off"
       value={filter.is_locked ? "" : value}
@@ -117,7 +117,24 @@ function readFilterValueDict(columns) {
   return valueDict;
 }
 
-export default function TableHead({ columns, getWidth, onResize, onResizeStateChange, buildSortHref, onSort, onFilterApply }) {
+// kolom centang paling kiri ala ALV (hapus banyak, admin). selection = null kalau ga dipake
+function SelectAllCell({ selection }) {
+  return (
+    <th className="cell-select">
+      <input
+        type="checkbox"
+        className="form-check-input m-0"
+        aria-label="Select all rows on this page"
+        checked={selection.isAllChecked}
+        disabled={selection.isDisabled}
+        ref={(inputEl) => { if (inputEl) inputEl.indeterminate = selection.isSomeChecked; }}
+        onChange={selection.onToggleAll}
+      />
+    </th>
+  );
+}
+
+export default function TableHead({ columns, getWidth, onResize, onResizeStateChange, buildSortHref, onSort, onFilterApply, selection = null }) {
   // isian filter yg lagi diketik (belum diterapin). TableHead di-render ulang dgn key baru tiap data ganti,
   // jadi isiannya selalu mulai dari nilai yg dipake server
   const [filterValueDict, setFilterValueDict] = useState(() => readFilterValueDict(columns));
@@ -139,6 +156,7 @@ export default function TableHead({ columns, getWidth, onResize, onResizeStateCh
   return (
     <thead>
       <tr>
+        {selection && <SelectAllCell selection={selection} />}
         {columns.map((column) => (
           <th
             key={column.key}
@@ -149,7 +167,7 @@ export default function TableHead({ columns, getWidth, onResize, onResizeStateCh
               <a
                 href={buildSortHref(column.next_sort)}
                 className={"col-sort" + (column.sort_state ? " is-active" : "")}
-                title={`Urutkan ${column.label}`}
+                title={`Sort by ${column.label}`}
                 onClick={(event) => {
                   if (!isPlainClick(event)) return;
                   event.preventDefault();
@@ -170,11 +188,12 @@ export default function TableHead({ columns, getWidth, onResize, onResizeStateCh
           </th>
         ))}
         <th className="cell-action-head" style={{ width: ACTION_COLUMN_WIDTH + "px" }}>
-          <span className="visually-hidden">Aksi</span>
+          <span className="visually-hidden">Actions</span>
         </th>
       </tr>
       {hasFilter && (
         <tr className="table-filter-row">
+          {selection && <th className="cell-select" />}
           {columns.map((column) => (
             <th key={column.key}>
               {column.filter && (
@@ -188,7 +207,7 @@ export default function TableHead({ columns, getWidth, onResize, onResizeStateCh
             </th>
           ))}
           <th className="cell-action-head">
-            <button type="button" className="btn btn-sm btn-icon" title="Terapkan filter kolom" aria-label="Terapkan filter kolom" onClick={applyAllFilters}>
+            <button type="button" className="btn btn-sm btn-icon" title="Apply column filters" aria-label="Apply column filters" onClick={applyAllFilters}>
               <Icon name="search" />
             </button>
           </th>

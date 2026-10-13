@@ -17,15 +17,7 @@
   to { clip-path: inset(0 0 0 0); }
 }
 
-@keyframes app-grow-up {
-  from { transform: scaleY(0); }
-  to { transform: scaleY(1); }
-}
 
-/* busur gauge mulai dari kosong, terus naik ke nilai aslinya (dari atribut di HTML) */
-@keyframes app-gauge-fill {
-  from { stroke-dasharray: 0 251.33; }
-}
 
 @keyframes app-fade-out {
   to { opacity: 0; transform: translateX(12px); }

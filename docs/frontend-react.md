@@ -151,9 +151,9 @@ git add frontend app/static/dist   # dist WAJIB ikut
 | Python | `pytest -q` | API, hak akses, kontrak bentuk data, data awal = balasan API, XSS, CSP, manifest |
 | React | `cd frontend && npm test` | urut/filter/halaman, request balapan, layout + CSRF + keepalive, keyboard, menu klik kanan, sesi habis, respon rusak |
 
-Hal yg cuma kebukti di browser beneran (posisi popup, CSS, Bootstrap, scroll halus) dites manual sebelum rilis:
-login -> Daftar Link -> urutkan, filter kolom, halaman 2, Back browser, klik kanan baris (menu muncul di titik klik),
-Esc, sembunyikan kolom lalu reload, buka detail lalu Kembali. Console browser (F12) harus bersih.
+Hal yg cuma kebukti di browser beneran (posisi popup, CSS, Bootstrap, scroll halus) dites di Chrome sebelum rilis:
+`node scripts/e2e/table.mjs` (urut, filter, halaman 2, Back, keyboard, klik kanan di titik klik, Esc, simpan layout,
+Kembali dari detail, sesi habis + cek console bersih). Skenario lain & cara pakainya: [scripts/e2e/README.md](../scripts/e2e/README.md).
 
 ## Troubleshooting
 

@@ -23,7 +23,7 @@ from app.services.group_service import (
     list_user_group,
     count_active_member,
     list_viewer_candidate,
-    list_visible_group_entry,
+    search_visible_group_entry,
     remove_group_entry,
     remove_member,
     set_group_entry_viewers,
@@ -32,6 +32,7 @@ from app.services.group_service import (
 )
 from app.utils.exceptions import ValidationError
 from app.utils.form_helper import flash_error_list, read_form_data
+from app.utils.query_helper import parse_positive_int
 from app.utils.request_helper import get_current_user
 from app.utils.selection import build_selection_query_dict
 
@@ -91,9 +92,9 @@ def create():
         except ValidationError as error:
             flash_error_list(error.error_list)
         else:
-            flash(f'Group "{group.name}" berhasil dibuat', "success")
+            flash(f'Group "{group.name}" created', "success")
             return redirect(url_for("groups.detail", group_id=group.id))
-    return render_group_form(form, "Buat Group", url_for("groups.index"), "Create Group")
+    return render_group_form(form, "Create Group", url_for("groups.index"), "Create Group")
 
 
 @groups_bp.get("/<int:group_id>")
@@ -103,11 +104,12 @@ def detail(group_id):
     user = get_current_user()
     group = get_group_or_404(user, group_id)
     can_add_entry = can_add_group_entry(user, group)
+    page = parse_positive_int(request.args.get("page")) or 1
     return render_template(
         "pages/groups/detail.html",
         page_title="Group",
         group=group,
-        group_entry_list=list_visible_group_entry(user, group),
+        group_entry_pagination=search_visible_group_entry(user, group, page),
         can_add_entry=can_add_entry,
         addable_entry_list=list_addable_entry(user, group) if can_add_entry else [],
         can_remove_group_entry=can_remove_group_entry,
@@ -128,7 +130,7 @@ def edit(group_id):
         except ValidationError as error:
             flash_error_list(error.error_list)
         else:
-            flash("Group berhasil diperbarui", "success")
+            flash("Group updated", "success")
             return redirect(url_for("groups.detail", group_id=group.id))
     return render_group_form(form, "Edit Group", url_for("groups.detail", group_id=group.id), f"Change Group: {group.name}")
 
@@ -142,7 +144,7 @@ def delete(group_id):
     require_group_owner(user, group)
     group_name = group.name
     delete_group(user, group)
-    flash(f'Group "{group_name}" berhasil dihapus', "success")
+    flash(f'Group "{group_name}" deleted', "success")
     return redirect(url_for("groups.index"))
 
 
@@ -160,7 +162,7 @@ def invite(group_id):
     except ValidationError as error:
         flash_error_list(error.error_list)
     else:
-        flash(f"Undangan terkirim ke {email.strip().lower()}", "success")
+        flash(f"Invitation sent to {email.strip().lower()}", "success")
     return redirect(url_for("groups.detail", group_id=group.id))
 
 
@@ -176,7 +178,7 @@ def remove_group_member(group_id, member_id):
     except ValidationError as error:
         flash_error_list(error.error_list)
     else:
-        flash("Anggota berhasil dikeluarkan", "success")
+        flash("Member removed", "success")
     return redirect(url_for("groups.detail", group_id=group.id))
 
 
@@ -193,7 +195,7 @@ def update_member_permission(group_id, member_id):
     except ValidationError as error:
         flash_error_list(error.error_list)
     else:
-        status_text = "sekarang boleh menambah link" if can_add_entry else "sekarang hanya bisa melihat"
+        status_text = "can now add links" if can_add_entry else "can now only view"
         flash(f"{member.user.full_name} {status_text}", "success")
     return redirect(url_for("groups.detail", group_id=group.id))
 
@@ -209,7 +211,7 @@ def leave(group_id):
     except ValidationError as error:
         flash_error_list(error.error_list)
         return redirect(url_for("groups.detail", group_id=group.id))
-    flash("Kamu sudah keluar dari group", "info")
+    flash("You have left the group", "info")
     return redirect(url_for("groups.index"))
 
 
@@ -222,7 +224,7 @@ def accept(member_id):
     if invitation is None:
         abort(404)
     accept_invitation(user, invitation)
-    flash("Undangan diterima, selamat bergabung!", "success")
+    flash("Invitation accepted, welcome aboard!", "success")
     return redirect(url_for("groups.detail", group_id=invitation.group_id))
 
 
@@ -235,7 +237,7 @@ def decline(member_id):
     if invitation is None:
         abort(404)
     decline_invitation(user, invitation)
-    flash("Undangan ditolak", "info")
+    flash("Invitation declined", "info")
     return redirect(url_for("groups.index"))
 
 
@@ -250,7 +252,7 @@ def add_entry(group_id):
     except ValidationError as error:
         flash_error_list(error.error_list)
     else:
-        flash("Link berhasil ditambahkan ke group", "success")
+        flash("Link added to the group", "success")
     return redirect(url_for("groups.detail", group_id=group.id))
 
 
@@ -265,7 +267,7 @@ def remove_entry(group_id, group_entry_id):
     except ValidationError as error:
         flash_error_list(error.error_list)
     else:
-        flash("Link dicabut dari group", "success")
+        flash("Link removed from the group", "success")
     return redirect(url_for("groups.detail", group_id=group.id))
 
 
@@ -289,11 +291,11 @@ def entry_viewers(group_id, group_entry_id):
         except ValidationError as error:
             flash_error_list(error.error_list)
         else:
-            flash(f'Pengaturan akses "{group_entry.access_entry.title}" disimpan', "success")
+            flash(f'Access settings for "{group_entry.access_entry.title}" saved', "success")
             return redirect(url_for("groups.detail", group_id=group.id))
     return render_template(
         "pages/groups/viewers.html",
-        page_title="Atur Akses Link",
+        page_title="Link Access Settings",
         group=group,
         group_entry=group_entry,
         candidate_member_list=list_viewer_candidate(group),

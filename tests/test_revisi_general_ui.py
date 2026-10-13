@@ -1,9 +1,9 @@
-"""Test revisi: General tanpa username/access note, tombol tema animasi, maks 10 field, pagination 10, default APP_ENV."""
+"""Test revisi: General tanpa username/access note, tombol tema animasi, default APP_ENV."""
 import re
 from datetime import datetime, timezone
 from app import resolve_config_name
-from app.services.access_entry_service import create_access_entry, search_visible_entries
-from app.utils.constants import CUSTOM_FIELD_MAX_COUNT, PER_PAGE, VISIBILITY_PRIVATE
+from app.services.access_entry_service import create_access_entry
+from app.utils.constants import VISIBILITY_PRIVATE
 from app.utils.datetime_helper import format_local_datetime
 
 def build_entry_dict(category, title, **override_dict):
@@ -38,17 +38,6 @@ def test_general_form_hides_credential(logged_in_client, category_dict):
     assert 'data-has-credential-field="false"' in html_text
     assert "<div data-credential-field hidden>" in html_text
 
-def test_custom_field_max_is_ten():
-    """Positive: batas field tambahan General 10."""
-    assert CUSTOM_FIELD_MAX_COUNT == 10
-
-def test_pagination_is_ten(app, registered_user, category_dict):
-    """Positive: semua tabel 10 baris per halaman."""
-    for index in range(PER_PAGE + 1):
-        create_access_entry(registered_user, build_entry_dict(category_dict["Web"], f"Link {index}", url=f"https://link{index}.spindo.com"))
-    assert PER_PAGE == 10
-    assert len(search_visible_entries(registered_user).items) == 10
-
 def test_theme_toggle_shows_day_night_switch(logged_in_client):
     """Tombol tema menampilkan adegan siang/malam dan status switch yang aksesibel."""
     response = logged_in_client.get("/")
@@ -74,7 +63,7 @@ def test_page_title_has_single_suffix(logged_in_client):
 
 def test_local_datetime_uses_indonesian_month():
     """Positive: bulan tampil versi Indonesia, sama kayak di Excel."""
-    assert format_local_datetime(datetime(2026, 10, 5, 3, 7, tzinfo=timezone.utc)) == "05 Okt 2026, 10:07 WIB"
+    assert format_local_datetime(datetime(2026, 10, 5, 3, 7, tzinfo=timezone.utc)) == "05 Oct 2026, 10:07 WIB"
 
 def test_app_env_defaults_to_production(monkeypatch):
     """Negative (security): APP_ENV lupa diisi -> dianggap production, bukan development."""

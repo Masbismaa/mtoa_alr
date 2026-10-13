@@ -57,6 +57,12 @@ class AccessEntry(TimestampMixin, db.Model):
         cascade="all, delete-orphan",
     )
 
+    favorite_list = db.relationship(
+        "UserFavorite",
+        back_populates="access_entry",
+        cascade="all, delete-orphan",
+    )
+
     __table_args__ = (
         db.Index("ix_access_entries_category_created", "category_id", "created_at", "id"),
         db.CheckConstraint(f"visibility IN ({build_sql_in_list(VISIBILITY_LIST)})", name="visibility_valid"),

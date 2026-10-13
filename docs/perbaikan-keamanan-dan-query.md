@@ -1,12 +1,9 @@
 # Perbaikan keamanan dan query
 
-Perubahan ini belum dijalankan lewat pytest atau migrasi di database kerja. Jalankan
-pengujian dan uji migrasi PostgreSQL pada salinan database sebelum menerapkan ke server.
-
 ## Menjalankan versi baru
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python.exe -m flask --app run db upgrade
 .\.venv\Scripts\python.exe -m pytest -q
 ```

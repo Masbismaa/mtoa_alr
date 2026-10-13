@@ -46,7 +46,7 @@ def test_invalid_file_via_form_shows_error(logged_in_client, category_dict, samp
         content_type="multipart/form-data",
     )
     assert response.status_code == 200
-    assert "tidak sesuai" in response.get_data(as_text=True)
+    assert "match the" in response.get_data(as_text=True)
     assert db.session.execute(db.select(db.func.count(AccessEntry.id))).scalar() == 0
 
 def test_download_own_attachment(logged_in_client, registered_user, category_dict, sample_file_dict, make_file_storage):

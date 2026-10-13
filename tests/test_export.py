@@ -59,8 +59,8 @@ def test_export_returns_xlsx_file(logged_in_client, registered_user, category_di
     disposition_text = response.headers["Content-Disposition"]
     assert "attachment" in disposition_text
     assert "ALR_UL_" in disposition_text and ".xlsx" in disposition_text
-    assert load_report(response).sheetnames == ["Ringkasan", "Detail"]
-    assert read_table_row_list(response)[0][:2] == ["No", "Judul"]
+    assert load_report(response).sheetnames == ["Summary", "Detail"]
+    assert read_table_row_list(response)[0][:2] == ["No", "Title"]
 
 def test_export_only_visible_entries(logged_in_client, registered_user, other_user, category_dict):
     """Positive/Negative: private orang lain ga ikut, private sendiri & public orang lain ikut."""
@@ -84,8 +84,8 @@ def test_export_follows_filter(logged_in_client, registered_user, category_dict)
     response = logged_in_client.get(f"/export?category_id={category_dict['Network'].id}&q=switch")
     assert read_title_list(response) == ["Switch Core"]
     report_text = read_report_text(response)
-    assert 'Kata kunci "switch"' in report_text
-    assert "Kategori Network" in report_text
+    assert 'Keyword "switch"' in report_text
+    assert "Category Network" in report_text
 
 def test_export_never_contains_access_note(logged_in_client, registered_user, category_dict):
     """Negative: access note (password) ga boleh nongol di sel manapun."""
@@ -117,7 +117,7 @@ def test_export_summary_counts(logged_in_client, registered_user, other_user, ca
         category_dict["Network"], "Switch Core", "", address="10.0.0.2", port="22", visibility=VISIBILITY_PUBLIC,
     ))
     create_access_entry(other_user, build_entry_dict(web, "Private Orang", "https://orang.spindo.com"))
-    value_list = read_sheet_value_list(logged_in_client.get("/export"), "Ringkasan")
+    value_list = read_sheet_value_list(logged_in_client.get("/export"), "Summary")
     category_row_dict = {row[1]: row[2] for row in value_list if row[1] in ("Web", "Network", "Total")}
     assert category_row_dict == {"Web": 1, "Network": 1, "Total": 2}
 

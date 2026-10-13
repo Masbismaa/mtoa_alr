@@ -11,10 +11,10 @@ export class ApiError extends Error {
   }
 }
 
-const NETWORK_ERROR_MESSAGE = "Koneksi ke server gagal, cek jaringan lalu coba lagi";
-const INVALID_RESPONSE_MESSAGE = "Respon server tidak valid, coba muat ulang halaman";
+const NETWORK_ERROR_MESSAGE = "Could not connect to the server, check your network and try again";
+const INVALID_RESPONSE_MESSAGE = "Invalid server response, try reloading the page";
 // samain dgn SESSION_EXPIRED_MESSAGE di app/security/role_guard.py
-const SESSION_EXPIRED_MESSAGE = "Sesi login habis, muat ulang halaman lalu login lagi";
+const SESSION_EXPIRED_MESSAGE = "Your login session expired, reload the page and log in again";
 
 // token CSRF dari <meta name="csrf-token"> (layouts/base.html), wajib buat request POST
 export function readCsrfToken() {

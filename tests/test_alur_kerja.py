@@ -27,14 +27,14 @@ def test_detail_passes_back_to_edit_and_delete(logged_in_client, registered_user
     html_text = get_html(logged_in_client, f"/entries/{entry.id}?back={BACK_PARAM}")
     assert f'href="/entries/{entry.id}/edit?back={BACK_PARAM}"' in html_text
     assert f'action="/entries/{entry.id}/delete?back={BACK_PARAM}"' in html_text
-    assert f'href="{BACK_URL}" class="btn btn-sm app-toolbar-btn" title="Kembali ke layar sebelumnya (F3)"' in html_text
+    assert f'href="{BACK_URL}" class="btn btn-sm app-toolbar-btn" title="Back to the previous screen (F3)"' in html_text
 
 def test_edit_keeps_back_on_cancel_and_save(logged_in_client, registered_user, category_dict):
     """Positive: di Edit, Batal & Simpan balik ke detail yg masih inget tabel asalnya."""
     entry = create_entry(registered_user, category_dict["Web"])
     detail_url = f"/entries/{entry.id}?back={BACK_PARAM}"
     html_text = get_html(logged_in_client, f"/entries/{entry.id}/edit?back={BACK_PARAM}")
-    assert f'href="{detail_url}" class="btn btn-sm app-toolbar-btn" title="Batalkan' in html_text
+    assert f'href="{detail_url}" class="btn btn-sm app-toolbar-btn" title="Discard' in html_text
     assert f'action="/entries/{entry.id}/edit?back={BACK_PARAM}"' in html_text
     response = logged_in_client.post(f"/entries/{entry.id}/edit?back={BACK_PARAM}", data={
         "category_id": str(category_dict["Web"].id), "title": "Portal HR Baru", "url": "https://hr.spindo.com",
@@ -64,7 +64,7 @@ def test_edit_ignores_outside_back(logged_in_client, registered_user, category_d
 def test_create_from_list_cancel_back_to_list(logged_in_client):
     """Positive: Tambah Link dari Daftar Link -> Batal balik ke tabel yg sama."""
     html_text = get_html(logged_in_client, f"/entries/new?back={BACK_PARAM}")
-    assert f'href="{BACK_URL}" class="btn btn-sm app-toolbar-btn" title="Batalkan' in html_text
+    assert f'href="{BACK_URL}" class="btn btn-sm app-toolbar-btn" title="Discard' in html_text
 
 # TOOLBAR, FORM GUARD, STATUS BAR
 def test_form_page_toolbar_save_and_guard(logged_in_client, category_dict):
@@ -72,26 +72,26 @@ def test_form_page_toolbar_save_and_guard(logged_in_client, category_dict):
     html_text = get_html(logged_in_client, "/entries/new")
     assert '<button type="submit" form="entry_form"' in html_text
     assert 'id="entry_form"' in html_text and "data-form-guard" in html_text
-    assert "Mode: <strong>Ubah</strong>" in html_text
+    assert "Mode: <strong>Change</strong>" in html_text
 
 def test_view_page_toolbar_disables_save(logged_in_client):
     """Positive: layar lihat-lihat: Simpan & Batal dinonaktifin, posisinya tetep ada, mode Lihat."""
     html_text = get_html(logged_in_client, "/entries/")
-    assert 'title="Simpan ga tersedia di layar ini"' in html_text
-    assert 'title="Batal ga tersedia di layar ini"' in html_text
-    assert "Mode: <strong>Lihat</strong>" in html_text
+    assert 'title="Save is not available on this screen"' in html_text
+    assert 'title="Cancel is not available on this screen"' in html_text
+    assert "Mode: <strong>Display</strong>" in html_text
 
 def test_dashboard_toolbar_back_and_exit_disabled(logged_in_client):
     """Positive: di Dashboard (layar paling atas) Kembali & Keluar dinonaktifin."""
     html_text = get_html(logged_in_client, "/")
-    assert 'title="Kembali ga tersedia di layar ini"' in html_text
-    assert 'title="Keluar ga tersedia di layar ini"' in html_text
+    assert 'title="Back is not available on this screen"' in html_text
+    assert 'title="Exit is not available on this screen"' in html_text
 
 @pytest.mark.parametrize("url", ["/groups/new", "/settings/"])
 def test_toolbar_and_status_bar_on_every_page(logged_in_client, url):
     """Positive: toolbar & status bar ada di semua layar, environment kelihatan."""
     html_text = get_html(logged_in_client, url)
-    assert 'role="toolbar" aria-label="Toolbar layar"' in html_text
+    assert 'role="toolbar" aria-label="Screen toolbar"' in html_text
     assert 'title="Environment server">TEST</span>' in html_text
     assert 'id="help_dialog"' in html_text
 
@@ -99,7 +99,7 @@ def test_help_dialog_has_page_help(logged_in_client):
     """Positive: Bantuan di Daftar Link ngejelasin cara pakai layar itu."""
     html_text = get_html(logged_in_client, "/entries/")
     help_html = html_text.split('id="help_dialog"')[1]
-    assert "Multi Selection" in help_html and "Kriteria Pencarian" in help_html
+    assert "Multi Selection" in help_html and "Selection Criteria" in help_html
 
 def test_multi_selection_dialog_has_counter(logged_in_client):
     """Positive: dialog Multi Selection punya tempat jumlah nilai (batas 20 dikasih tahu, ga dipotong diam-diam)."""
@@ -110,13 +110,13 @@ def test_page_actions_live_in_toolbar(logged_in_client, registered_user, categor
     """Positive: tombol khusus halaman (Edit, Hapus) pindah ke toolbar, ga di kepala halaman lagi."""
     entry = create_entry(registered_user, category_dict["Web"])
     html_text = get_html(logged_in_client, f"/entries/{entry.id}")
-    toolbar_html = html_text.split('aria-label="Toolbar layar"')[1].split('id="main_content"')[0]
+    toolbar_html = html_text.split('aria-label="Screen toolbar"')[1].split('id="main_content"')[0]
     assert f'href="/entries/{entry.id}/edit"' in toolbar_html
     assert 'class="app-toolbar-actions"' in toolbar_html
 
 def test_old_buttons_removed(logged_in_client):
     """Positive: tombol Simpan/Batal lama di bawah form & tombol melayang udah ga ada (diganti toolbar)."""
     html_text = get_html(logged_in_client, "/entries/new")
-    assert 'class="btn">Batal</a>' not in html_text
+    assert 'class="btn">Cancel</a>' not in html_text
     assert '<button type="submit" class="btn btn-primary">' not in html_text
     assert "btn-floating" not in html_text

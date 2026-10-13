@@ -14,7 +14,7 @@
 {% block page_pretitle %}Admin{% endblock %}
 
 {% block page_subtitle %}
-  <div class="text-secondary mt-1">Admin cuma bisa dibuat lewat command. User biasa bisa dikasih akses tambahan lewat menu Aksi. Semua perubahan tercatat di Audit Logs.</div>
+  <div class="text-secondary mt-1">Admins can only be created via the command line. Regular users can be granted extra access from the Actions menu. All changes are recorded in Audit Logs.</div>
 {% endblock %}
 
 {% block content %}
@@ -22,10 +22,10 @@
   {% set is_filtered = pagination_query_dict | reject("equalto", "sort") | list | length > 0 %}
 
   {% set summary_card_list = [
-    ("Total user", summary_dict.total, "user", "bg-primary", url_for("users.index")),
+    ("Total users", summary_dict.total, "user", "bg-primary", url_for("users.index")),
     ("Admin", summary_dict.admin, "lock", "bg-azure", url_for("users.index", role="admin")),
-    ("Terkunci", summary_dict.locked, "alert_triangle", "bg-yellow", url_for("users.index", status="locked")),
-    ("Nonaktif", summary_dict.inactive, "eye_off", "bg-secondary", url_for("users.index", status="inactive")),
+    ("Locked", summary_dict.locked, "alert_triangle", "bg-yellow", url_for("users.index", status="locked")),
+    ("Inactive", summary_dict.inactive, "eye_off", "bg-secondary", url_for("users.index", status="inactive")),
   ] %}
   <div class="row row-cards mb-3">
     {% for card_label, card_count, card_icon, card_color, card_url in summary_card_list %}
@@ -45,14 +45,14 @@
     {% endfor %}
   </div>
 
-  {{ selection_panel(selection_field_list, url_for("users.index", _anchor="daftar_user"), "Cari nama, email, departemen, jabatan... (tekan /)") }}
+  {{ selection_panel(selection_field_list, url_for("users.index", _anchor="daftar_user"), "Search name, email, department, job title... (press /)") }}
 
   <div class="card" id="daftar_user">
     <div class="card-header">
-      <h3 class="card-title">{{ icon("user") }} Daftar User</h3>
+      <h3 class="card-title">{{ icon("user") }} User List</h3>
       <div class="card-actions">
         {% if user_row_list %}{{ column_menu(table_view) }}{% endif %}
-        <span class="badge bg-secondary-lt">{{ pagination.total }} user</span>
+        <span class="badge bg-secondary-lt">{{ pagination.total }} users</span>
       </div>
     </div>
 
@@ -73,23 +73,23 @@
                     <div class="text-truncate">
                       <div class="fw-medium text-truncate">
                         {{ user.full_name }}
-                        {% if user.id == current_user.id %}<span class="badge bg-primary-lt ms-1">Kamu</span>{% endif %}
+                        {% if user.id == current_user.id %}<span class="badge bg-primary-lt ms-1">You</span>{% endif %}
                       </div>
                       <div class="small text-secondary text-truncate">{{ user.email }}</div>
                     </div>
                   </div>
                 </td>
-                <td data-label="Departemen" {{ cell_attr(table_view, "department") }}>
+                <td data-label="Department" {{ cell_attr(table_view, "department") }}>
                   <div>
                     {{ user.department }}
                     <div class="small text-secondary">{{ user.job_title }}</div>
                   </div>
                 </td>
-                <td data-label="Role & Akses" {{ cell_attr(table_view, "role") }}>
+                <td data-label="Role & Access" {{ cell_attr(table_view, "role") }}>
                   <div class="d-flex flex-wrap gap-1">
                     {{ role_badge(user.role) }}
                     {% if is_admin(user) %}
-                      <span class="badge bg-azure-lt">Semua akses</span>
+                      <span class="badge bg-azure-lt">All access</span>
                     {% else %}
                       {% for permission_key in row.permission_key_list %}
                         <span class="badge bg-green-lt" title="{{ permission_info_dict[permission_key].description }}">{{ permission_info_dict[permission_key].short_label }}</span>
@@ -98,42 +98,42 @@
                   </div>
                 </td>
                 <td data-label="Status" {{ cell_attr(table_view, "status") }}>{{ user_status_badge(row.status) }}</td>
-                <td class="text-nowrap text-secondary" data-label="Login Terakhir" {{ cell_attr(table_view, "last_login") }}>{{ user.last_login_at | time_ago if user.last_login_at else "Belum pernah" }}</td>
-                <td class="text-nowrap text-secondary" data-label="Terdaftar" {{ cell_attr(table_view, "created") }}>{{ user.created_at | local_datetime("%d %b %Y") }}</td>
+                <td class="text-nowrap text-secondary" data-label="Last Login" {{ cell_attr(table_view, "last_login") }}>{{ user.last_login_at | time_ago if user.last_login_at else "Never" }}</td>
+                <td class="text-nowrap text-secondary" data-label="Registered" {{ cell_attr(table_view, "created") }}>{{ user.created_at | local_datetime("%d %b %Y") }}</td>
                 <td class="cell-action">
                   {% if user.id == current_user.id %}
-                    <span class="small text-secondary">Akunmu</span>
+                    <span class="small text-secondary">Your account</span>
                     {% elif is_admin(user) %}
-                    <span class="small text-secondary" title="Akun admin diubah lewat command">Lewat command</span>
+                    <span class="small text-secondary" title="Admin accounts are changed via the command line">Via command</span>
                     {% else %}
                     {# strategy fixed biar menunya ga kepotong kotak tabel yg bisa di-scroll #}
                     <div class="dropdown">
-                      <button type="button" class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">Aksi</button>
+                      <button type="button" class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">Actions</button>
                       <div class="dropdown-menu dropdown-menu-end">
-                        <a href="{{ url_for('users.access', user_id=user.id, **back_param_dict) }}" class="dropdown-item">{{ icon("settings", "dropdown-item-icon") }} Atur Akses</a>
+                        <a href="{{ url_for('users.access', user_id=user.id, **back_param_dict) }}" class="dropdown-item">{{ icon("settings", "dropdown-item-icon") }} Manage Access</a>
                         <div class="dropdown-divider"></div>
                         {% if row.status == "locked" %}
                           <form method="post" action="{{ url_for('users.unlock', user_id=user.id) }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             {{ back_field_list(back_param_dict) }}
-                            <button type="submit" class="dropdown-item">{{ icon("refresh", "dropdown-item-icon") }} Buka kunci</button>
+                            <button type="submit" class="dropdown-item">{{ icon("refresh", "dropdown-item-icon") }} Unlock</button>
                           </form>
                         {% endif %}
                         {% if user.is_active %}
-                          <form method="post" action="{{ url_for('users.toggle_active', user_id=user.id) }}" data-confirm-title="Nonaktifkan akun?" data-confirm-message="{{ user.full_name }} langsung ke-logout dan tidak bisa login lagi sampai diaktifkan. Datanya tetap aman." data-confirm-ok="Ya, nonaktifkan">
+                          <form method="post" action="{{ url_for('users.toggle_active', user_id=user.id) }}" data-confirm-title="Deactivate account?" data-confirm-message="{{ user.full_name }} will be logged out right away and can't log in until reactivated. Their data stays safe." data-confirm-ok="Yes, deactivate">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             {{ back_field_list(back_param_dict) }}
-                            <button type="submit" class="dropdown-item text-danger">{{ icon("eye_off", "dropdown-item-icon") }} Nonaktifkan</button>
+                            <button type="submit" class="dropdown-item text-danger">{{ icon("eye_off", "dropdown-item-icon") }} Deactivate</button>
                           </form>
                         {% else %}
                           <form method="post" action="{{ url_for('users.toggle_active', user_id=user.id) }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             {{ back_field_list(back_param_dict) }}
-                            <button type="submit" class="dropdown-item">{{ icon("eye", "dropdown-item-icon") }} Aktifkan</button>
+                            <button type="submit" class="dropdown-item">{{ icon("eye", "dropdown-item-icon") }} Activate</button>
                           </form>
                         {% endif %}
                         <div class="dropdown-divider"></div>
-                        <a href="{{ url_for('users.delete', user_id=user.id, **back_param_dict) }}" class="dropdown-item text-danger">{{ icon("trash", "dropdown-item-icon") }} Hapus akun</a>
+                        <a href="{{ url_for('users.delete', user_id=user.id, **back_param_dict) }}" class="dropdown-item text-danger">{{ icon("trash", "dropdown-item-icon") }} Delete account</a>
                       </div>
                     </div>
                   {% endif %}
@@ -147,8 +147,8 @@
     {% else %}
       <div class="empty">
         <div class="empty-icon">{{ icon("search") }}</div>
-        <p class="empty-title">Tidak ada user yang cocok</p>
-        <p class="empty-subtitle text-secondary">Coba ubah kriteria pencariannya, atau pakai * (misal budi*).</p>
+        <p class="empty-title">No matching users</p>
+        <p class="empty-subtitle text-secondary">Try changing the search criteria, or use * (e.g. budi*).</p>
         <div class="empty-action">
           <a href="{{ url_for('users.index') }}" class="btn">Reset filter</a>
         </div>

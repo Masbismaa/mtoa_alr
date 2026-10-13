@@ -1,10 +1,10 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
 
-{% block title %}Atur Akses {{ group_entry.access_entry.title }}{% endblock %}
+{% block title %}Access Settings {{ group_entry.access_entry.title }}{% endblock %}
 
 {# judul layar di title bar atas ala SAP #}
-{% block screen_title %}Change Akses Link: {{ group_entry.access_entry.title }}{% endblock %}
+{% block screen_title %}Change Link Access: {{ group_entry.access_entry.title }}{% endblock %}
 
 {% block page_pretitle %}Group › {{ group.name }}{% endblock %}
 
@@ -21,20 +21,20 @@
         <div class="card-header">
           <div>
             <h3 class="card-title mb-1">{{ icon("lock") }} {{ group_entry.access_entry.title }}</h3>
-            <div class="small text-secondary">Ditambah oleh {{ group_entry.added_by.full_name }}</div>
+            <div class="small text-secondary">Added by {{ group_entry.added_by.full_name }}</div>
           </div>
         </div>
 
         <div class="card-body">
-          <label class="form-label">Siapa yang bisa melihat link ini di group?</label>
+          <label class="form-label">Who can see this link in the group?</label>
           <div class="form-selectgroup form-selectgroup-boxes d-flex flex-column mb-3">
             <label class="form-selectgroup-item flex-fill">
               <input type="radio" name="is_restricted" value="0" class="form-selectgroup-input"{% if not group_entry.is_restricted %} checked{% endif %}>
               <div class="form-selectgroup-label d-flex align-items-center p-3">
                 <div class="me-3"><span class="form-selectgroup-check"></span></div>
                 <div class="text-start">
-                  <div class="fw-medium">Semua anggota</div>
-                  <div class="small text-secondary">Termasuk anggota yang bergabung nanti.</div>
+                  <div class="fw-medium">All members</div>
+                  <div class="small text-secondary">Including members who join later.</div>
                 </div>
               </div>
             </label>
@@ -43,8 +43,8 @@
               <div class="form-selectgroup-label d-flex align-items-center p-3">
                 <div class="me-3"><span class="form-selectgroup-check"></span></div>
                 <div class="text-start">
-                  <div class="fw-medium">Anggota tertentu</div>
-                  <div class="small text-secondary">Cuma anggota yang dicentang di bawah. Kamu, yang menambahkan link, dan pemilik link tetap bisa melihat.</div>
+                  <div class="fw-medium">Selected members</div>
+                  <div class="small text-secondary">Only the members checked below. You, whoever added the link, and the link owner can always see it.</div>
                 </div>
               </div>
             </label>
@@ -63,9 +63,9 @@
                 </label>
               {% endfor %}
             </div>
-            <div class="form-hint mt-2">Centangan cuma dipakai kalau pilihannya "Anggota tertentu".</div>
+            <div class="form-hint mt-2">The checkboxes are only used when "Selected members" is chosen.</div>
           {% else %}
-            <div class="text-secondary small">Belum ada anggota lain yang aktif di group ini.</div>
+            <div class="text-secondary small">There are no other active members in this group yet.</div>
           {% endif %}
         </div>
 

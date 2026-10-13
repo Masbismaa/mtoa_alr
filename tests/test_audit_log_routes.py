@@ -89,7 +89,7 @@ def test_detail_hides_private_data_of_other_user(admin_client, registered_user, 
     html_text = response.get_data(as_text=True)
     assert response.status_code == 200
     assert "VPN Rahasia" not in html_text
-    assert "disembunyikan" in html_text
+    assert "data is hidden" in html_text
 
 def test_detail_not_found(admin_client):
     """Negative: id ga ada -> 404."""

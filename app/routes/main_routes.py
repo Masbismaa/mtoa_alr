@@ -31,7 +31,7 @@ def build_export_filename(user):
 @main_bp.get("/")
 @login_required
 def home():
-    """Dashboard: ringkasan seluruh data + grafik mini. Pencarian & tabel ada di halaman Daftar Link."""
+    """Dashboard: ringkasan data, tindak lanjut, dan aktivitas tim. Pencarian ada di Daftar Link."""
     # link lama yg masih bawa kriteria (misal /?q=router) dilempar ke Daftar Link, langsung ke tabelnya.
     # query string-nya diterusin apa adanya (bukan lewat url_for, biar parameter kayak _anchor ga ikut kebaca)
     if request.query_string:
@@ -53,7 +53,7 @@ def export_entries():
     entry_list, is_truncated = list_visible_entries_for_export(user, keyword=selection["keyword"], selection=selection, sort=sort)
     filter_text_list = describe_selection(request.args, build_entry_field_list(list_active_category_option()))
     if is_truncated:
-        filter_text_list.append(f"dibatasi {EXPORT_MAX_ROW_COUNT} data terbaru")
+        filter_text_list.append(f"limited to the {EXPORT_MAX_ROW_COUNT} newest links")
     file_buffer = build_entry_workbook(entry_list, user, filter_text_list)
     # export dicatat, biar ketahuan siapa yg pernah narik data keluar
     log_audit(

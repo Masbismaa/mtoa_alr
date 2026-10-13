@@ -16,30 +16,30 @@ TableColumn = namedtuple(
 )
 
 ENTRY_COLUMN_LIST = [
-    TableColumn("title", "Judul", 180, is_hideable=False, filter_key="title"),
-    TableColumn("category", "Kategori", 110, filter_key="category_id"),
+    TableColumn("title", "Title", 180, is_hideable=False, filter_key="title"),
+    TableColumn("category", "Category", 110, filter_key="category_id"),
     TableColumn("access", "URL / Address", 170, filter_key="access"),
-    TableColumn("description", "Deskripsi", 180, is_sortable=False, is_default_hidden=True),
-    TableColumn("visibility", "Visibilitas", 90, filter_key="visibility"),
-    TableColumn("status", "Status Link", 110, filter_key="status"),
-    TableColumn("attachment", "Lampiran", 80, is_sortable=False, is_default_hidden=True),
-    TableColumn("owner", "Dibuat Oleh", 110, filter_key="owner"),
-    TableColumn("created", "Dibuat", 130),
+    TableColumn("description", "Description", 180, is_sortable=False, is_default_hidden=True),
+    TableColumn("visibility", "Visibility", 90, filter_key="visibility"),
+    TableColumn("status", "Link Status", 110, filter_key="status"),
+    TableColumn("attachment", "Attachments", 80, is_sortable=False, is_default_hidden=True),
+    TableColumn("owner", "Created By", 110, filter_key="owner"),
+    TableColumn("created", "Created", 130),
 ]
 
 USER_COLUMN_LIST = [
     TableColumn("name", "User", 210, is_hideable=False, filter_key="name"),
-    TableColumn("department", "Departemen", 140, filter_key="department"),
-    TableColumn("role", "Role & Akses", 180, filter_key="role"),
+    TableColumn("department", "Department", 140, filter_key="department"),
+    TableColumn("role", "Role & Access", 180, filter_key="role"),
     TableColumn("status", "Status", 100, is_sortable=False, filter_key="status"),
-    TableColumn("last_login", "Login Terakhir", 120),
-    TableColumn("created", "Terdaftar", 110),
+    TableColumn("last_login", "Last Login", 120),
+    TableColumn("created", "Registered", 110),
 ]
 
 AUDIT_COLUMN_LIST = [
-    TableColumn("time", "Waktu", 170, is_hideable=False),
-    TableColumn("actor", "Pelaku", 230, filter_key="actor"),
-    TableColumn("action", "Aksi", 130, filter_key="action"),
+    TableColumn("time", "Time", 170, is_hideable=False),
+    TableColumn("actor", "Actor", 230, filter_key="actor"),
+    TableColumn("action", "Action", 130, filter_key="action"),
     TableColumn("entity", "Data", 170, filter_key="entity_type"),
     TableColumn("ip", "IP Address", 130),
 ]

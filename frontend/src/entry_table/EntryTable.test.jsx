@@ -41,7 +41,7 @@ describe("tampilan awal", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     render(<EntryTable initialPayload={makePayload()} />);
-    expect(screen.getByText("Seluruh link: 3 data")).toBeInTheDocument();
+    expect(screen.getByText("All links: 3")).toBeInTheDocument();
     expect(getRowList()).toHaveLength(3);
     expect(screen.getByRole("link", { name: /Export Excel/ })).toHaveAttribute("href", "/export?run=1");
     expect(fetchMock).not.toHaveBeenCalled();
@@ -49,7 +49,7 @@ describe("tampilan awal", () => {
 
   it("judul kolom tetep link beneran (Ctrl+klik buka tab baru)", () => {
     render(<EntryTable initialPayload={makePayload()} />);
-    expect(screen.getByTitle("Urutkan Judul")).toHaveAttribute("href", "/entries/?run=1&sort=title#daftar_link");
+    expect(screen.getByTitle("Sort by Title")).toHaveAttribute("href", "/entries/?run=1&sort=title#daftar_link");
   });
 
   it("teks dari server ditampilin sebagai teks, bukan HTML (anti XSS)", () => {
@@ -62,22 +62,22 @@ describe("tampilan awal", () => {
   it("hasil filter kosong: kepala tabel + filter kolom tetep ada biar filternya bisa dihapus", () => {
     const payload = makePayload({
       rows: [], total: 0, pages: 0, page_list: [], is_filtered: true, export_url: null,
-      heading: { icon: "search", text: "Hasil pencarian: 0 data", count_text: null },
-      empty: { icon: "search", title: "Tidak ada hasil.", subtitle: "Coba ubah kriteria.", action: null },
+      heading: { icon: "search", text: "Search results: 0", count_text: null },
+      empty: { icon: "search", title: "No results.", subtitle: "Coba ubah kriteria.", action: null },
     });
     render(<EntryTable initialPayload={payload} />);
-    expect(screen.getByRole("searchbox", { name: "Filter Judul" })).toBeInTheDocument();
-    expect(screen.getByText("Tidak ada hasil.")).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "Filter Title" })).toBeInTheDocument();
+    expect(screen.getByText("No results.")).toBeInTheDocument();
   });
 
   it("belum ada data sama sekali: cuma pesan kosong + tombol tambah", () => {
     const payload = makePayload({
       rows: [], total: 0, pages: 0, page_list: [], export_url: null,
-      empty: { icon: "link", title: "Belum ada data link", subtitle: "Yuk tambah.", action: { url: "/entries/new", label: "Tambah Link", icon: "plus", is_primary: true } },
+      empty: { icon: "link", title: "No links yet", subtitle: "Add one.", action: { url: "/entries/new", label: "Add Link", icon: "plus", is_primary: true } },
     });
     render(<EntryTable initialPayload={payload} />);
     expect(screen.queryByRole("table")).toBeNull();
-    expect(screen.getByRole("link", { name: /Tambah Link/ })).toHaveAttribute("href", "/entries/new");
+    expect(screen.getByRole("link", { name: /Add Link/ })).toHaveAttribute("href", "/entries/new");
   });
 });
 
@@ -89,7 +89,7 @@ describe("ngambil data baru", () => {
     document.addEventListener(QUERY_CHANGED_EVENT, listener);
     render(<EntryTable initialPayload={makePayload()} />);
 
-    await userEvent.click(screen.getByTitle("Urutkan Judul"));
+    await userEvent.click(screen.getByTitle("Sort by Title"));
     expect(pendingList[0].url).toBe("/entries/table-data?run=1&sort=title");
     expect(screen.getByRole("table")).toHaveAttribute("aria-busy", "true");
 
@@ -107,8 +107,8 @@ describe("ngambil data baru", () => {
     const { pendingList } = mockFetchSequence();
     render(<EntryTable initialPayload={makePayload()} />);
 
-    await userEvent.click(screen.getByTitle("Urutkan Judul"));
-    await userEvent.click(screen.getByTitle("Urutkan Dibuat Oleh"));
+    await userEvent.click(screen.getByTitle("Sort by Title"));
+    await userEvent.click(screen.getByTitle("Sort by Created By"));
     // request pertama dibatalin
     const abortError = new DOMException("dibatalin", "AbortError");
     await act(async () => pendingList[0].reject(abortError));
@@ -122,7 +122,7 @@ describe("ngambil data baru", () => {
     const { pendingList } = mockFetchSequence();
     render(<EntryTable initialPayload={makePayload({ page: 3, pages: 5, page_list: [1, 2, 3, 4, 5] })} />);
 
-    const inputEl = screen.getByRole("searchbox", { name: "Filter Judul" });
+    const inputEl = screen.getByRole("searchbox", { name: "Filter Title" });
     await userEvent.type(inputEl, "portal*{Enter}");
     expect(pendingList[0].url).toBe("/entries/table-data?run=1&title=portal*");
   });
@@ -131,7 +131,7 @@ describe("ngambil data baru", () => {
     const { pendingList } = mockFetchSequence();
     render(<EntryTable initialPayload={makePayload({ query: { run: ["1"], visibility: ["public"] } })} />);
 
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Filter Visibilitas" }), "");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Filter Visibility" }), "");
     expect(pendingList[0].url).toBe("/entries/table-data?run=1");
   });
 
@@ -139,7 +139,7 @@ describe("ngambil data baru", () => {
     const payload = makePayload();
     payload.columns[0].filter = { ...payload.columns[0].filter, is_locked: true };
     render(<EntryTable initialPayload={payload} />);
-    expect(screen.getByRole("searchbox", { name: "Filter Judul" })).toBeDisabled();
+    expect(screen.getByRole("searchbox", { name: "Filter Title" })).toBeDisabled();
   });
 
   it("pindah halaman lewat klik biasa, Ctrl+klik dibiarin ke browser", async () => {
@@ -177,21 +177,21 @@ describe("ngambil data baru", () => {
     window.AlrStatusBar = { show: statusSpy };
     render(<EntryTable initialPayload={makePayload()} />);
 
-    await userEvent.click(screen.getByTitle("Urutkan Judul"));
-    await act(async () => pendingList[0].resolve(jsonResponse(null, 401, { message: "Sesi login habis, muat ulang halaman lalu login lagi" })));
+    await userEvent.click(screen.getByTitle("Sort by Title"));
+    await act(async () => pendingList[0].resolve(jsonResponse(null, 401, { message: "Your login session expired, reload the page and log in again" })));
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Sesi login habis");
-    expect(screen.getByRole("button", { name: "Muat ulang" })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Your login session expired");
+    expect(screen.getByRole("button", { name: "Reload" })).toBeInTheDocument();
     expect(getRowList()).toHaveLength(3);
-    expect(statusSpy).toHaveBeenCalledWith("Sesi login habis, muat ulang halaman lalu login lagi", "danger", true);
+    expect(statusSpy).toHaveBeenCalledWith("Your login session expired, reload the page and log in again", "danger", true);
   });
 
   it("server ngebales HTML (bukan JSON) -> pesan error, bukan crash", async () => {
     const { pendingList } = mockFetchSequence();
     render(<EntryTable initialPayload={makePayload()} />);
-    await userEvent.click(screen.getByTitle("Urutkan Judul"));
+    await userEvent.click(screen.getByTitle("Sort by Title"));
     await act(async () => pendingList[0].resolve({ ok: true, status: 200, redirected: false, json: async () => { throw new SyntaxError("bukan json"); } }));
-    expect(screen.getByRole("alert")).toHaveTextContent("Respon server tidak valid");
+    expect(screen.getByRole("alert")).toHaveTextContent("Invalid server response");
   });
 });
 
@@ -203,9 +203,9 @@ describe("layout kolom", () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<EntryTable initialPayload={makePayload()} />);
 
-    await user.click(screen.getByRole("button", { name: /Kolom/ }));
-    await user.click(screen.getByRole("checkbox", { name: "Kategori" }));
-    expect(screen.queryByRole("columnheader", { name: /Kategori/ })).toBeNull();
+    await user.click(screen.getByRole("button", { name: /Columns/ }));
+    await user.click(screen.getByRole("checkbox", { name: "Category" }));
+    expect(screen.queryByRole("columnheader", { name: /Category/ })).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
 
     await act(async () => vi.advanceTimersByTime(700));
@@ -213,7 +213,9 @@ describe("layout kolom", () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(url).toBe("/settings/table-layout");
     expect(options.headers["X-CSRFToken"]).toBe("token-csrf");
-    expect(JSON.parse(options.body)).toEqual({ table_key: "entry", hidden_list: ["category"], width_dict: {} });
+    const body = JSON.parse(options.body);
+    expect(body).toMatchObject({ table_key: "entry", hidden_list: ["category"], width_dict: {}, sequence: 1 });
+    expect(body.client_id).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
   });
 
   it("simpan layout diantre: cuma 1 request jalan, perubahan selama nunggu dikirim sekali (snapshot terbaru) abis itu", async () => {
@@ -221,16 +223,16 @@ describe("layout kolom", () => {
     const { fetchMock, pendingList } = mockFetchSequence();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<EntryTable initialPayload={makePayload()} />);
-    await user.click(screen.getByRole("button", { name: /Kolom/ }));
+    await user.click(screen.getByRole("button", { name: /Columns/ }));
 
-    await user.click(screen.getByRole("checkbox", { name: "Kategori" }));
+    await user.click(screen.getByRole("checkbox", { name: "Category" }));
     await act(async () => vi.advanceTimersByTime(700));
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     // 2 perubahan lagi pas request pertama belum dibales -> belum boleh ada request kedua
     await user.click(screen.getByRole("checkbox", { name: "URL / Address" }));
     await act(async () => vi.advanceTimersByTime(700));
-    await user.click(screen.getByRole("checkbox", { name: "Kategori" }));
+    await user.click(screen.getByRole("checkbox", { name: "Category" }));
     await act(async () => vi.advanceTimersByTime(700));
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
@@ -241,15 +243,35 @@ describe("layout kolom", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("tutup halaman pas simpanan lama masih jalan -> kiriman keepalive bawa nomor urut lebih tinggi (server buang yg lama)", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { fetchMock } = mockFetchSequence();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<EntryTable initialPayload={makePayload()} />);
+    await user.click(screen.getByRole("button", { name: /Columns/ }));
+    await user.click(screen.getByRole("checkbox", { name: "Category" }));
+    await act(async () => vi.advanceTimersByTime(700));
+    // request pertama belum dibales, user ngubah lagi terus langsung nutup halaman
+    await user.click(screen.getByRole("checkbox", { name: "URL / Address" }));
+    act(() => window.dispatchEvent(new Event("pagehide")));
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [firstBody, keepaliveBody] = fetchMock.mock.calls.map((call) => JSON.parse(call[1].body));
+    expect(fetchMock.mock.calls[1][1].keepalive).toBe(true);
+    expect(keepaliveBody.client_id).toBe(firstBody.client_id);
+    expect(keepaliveBody.sequence).toBeGreaterThan(firstBody.sequence);
+    expect(keepaliveBody.hidden_list).toEqual(["category", "access"]);
+  });
+
   it("layout ga ketimpa balasan API yg bawa layout lama", async () => {
     const { pendingList } = mockFetchSequence();
     render(<EntryTable initialPayload={makePayload()} />);
-    await userEvent.click(screen.getByRole("button", { name: /Kolom/ }));
-    await userEvent.click(screen.getByRole("checkbox", { name: "Kategori" }));
-    await userEvent.click(screen.getByTitle("Urutkan Judul"));
+    await userEvent.click(screen.getByRole("button", { name: /Columns/ }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Category" }));
+    await userEvent.click(screen.getByTitle("Sort by Title"));
     const sortRequest = pendingList.find((item) => item.url.includes("table-data"));
     await act(async () => sortRequest.resolve(jsonResponse(makePayload({ layout: { hidden_list: [], width_dict: {} } }))));
-    expect(screen.queryByRole("columnheader", { name: /Kategori/ })).toBeNull();
+    expect(screen.queryByRole("columnheader", { name: /Category/ })).toBeNull();
   });
 
   it("halaman ditutup pas simpanan masih nunggu -> langsung dikirim (keepalive)", async () => {
@@ -258,8 +280,8 @@ describe("layout kolom", () => {
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<EntryTable initialPayload={makePayload()} />);
-    await user.click(screen.getByRole("button", { name: /Kolom/ }));
-    await user.click(screen.getByRole("checkbox", { name: "Kategori" }));
+    await user.click(screen.getByRole("button", { name: /Columns/ }));
+    await user.click(screen.getByRole("checkbox", { name: "Category" }));
 
     act(() => window.dispatchEvent(new Event("pagehide")));
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -271,7 +293,7 @@ describe("layout kolom", () => {
     const fetchMock = vi.fn(async () => jsonResponse({}));
     vi.stubGlobal("fetch", fetchMock);
     render(<EntryTable initialPayload={makePayload()} />);
-    const handleEl = screen.getByRole("separator", { name: /Lebar kolom Judul/ });
+    const handleEl = screen.getByRole("separator", { name: /Width of column Title/ });
     // jsdom ga ngitung layout, lebar awal dianggep 0 -> dijepit ke lebar minimal + 16
     fireEvent.keyDown(handleEl, { key: "ArrowRight" });
     await act(async () => vi.advanceTimersByTime(700));
@@ -295,14 +317,18 @@ describe("keyboard & menu klik kanan", () => {
     expect(navigateTo).toHaveBeenCalledWith(makeRow(2).detail_url);
   });
 
+  it("panah bawah pindah baris aktif, Enter buka detail", async () => {
+    render(<EntryTable initialPayload={makePayload()}/>);
+  })
+
   it("klik kanan di sel -> Salin nilai sel itu", async () => {
     render(<EntryTable initialPayload={makePayload()} />);
     const cellEl = getRowList()[0].querySelector('td[data-column="category"]');
     fireEvent.contextMenu(cellEl, { clientX: 10, clientY: 10 });
 
-    const menuEl = screen.getByRole("menu", { name: "Menu baris" });
-    expect(within(menuEl).getAllByRole("menuitem").map((itemEl) => itemEl.textContent)).toEqual(["Buka", "Salin Kategori", "Salin baris"]);
-    await userEvent.click(within(menuEl).getByRole("menuitem", { name: "Salin Kategori" }));
+    const menuEl = screen.getByRole("menu", { name: "Row menu" });
+    expect(within(menuEl).getAllByRole("menuitem").map((itemEl) => itemEl.textContent)).toEqual(["Open", "Copy Category", "Copy row"]);
+    await userEvent.click(within(menuEl).getByRole("menuitem", { name: "Copy Category" }));
     expect(copyText).toHaveBeenCalledWith("Web › SAP");
     expect(screen.queryByRole("menu")).toBeNull();
   });
@@ -310,7 +336,7 @@ describe("keyboard & menu klik kanan", () => {
   it("Salin baris = kolom yg tampil dipisah tab", async () => {
     render(<EntryTable initialPayload={makePayload()} />);
     fireEvent.contextMenu(getRowList()[0].querySelector('td[data-column="title"]'), { clientX: 10, clientY: 10 });
-    await userEvent.click(screen.getByRole("menuitem", { name: "Salin baris" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Copy row" }));
     expect(copyText).toHaveBeenCalledWith("Link 1\tWeb › SAP\thttps://link1.spindo.com\tPublic\tUser Login");
   });
 
@@ -320,7 +346,7 @@ describe("keyboard & menu klik kanan", () => {
     act(() => firstRowEl.focus());
     fireEvent.keyDown(firstRowEl, { key: "F10", shiftKey: true });
     const menuEl = screen.getByRole("menu");
-    expect(within(menuEl).getByRole("menuitem", { name: "Buka" })).toHaveFocus();
+    expect(within(menuEl).getByRole("menuitem", { name: "Open" })).toHaveFocus();
 
     fireEvent.keyDown(menuEl, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
@@ -337,14 +363,14 @@ describe("keyboard & menu klik kanan", () => {
     render(<EntryTable initialPayload={makePayload()} />);
 
     fireEvent.contextMenu(getRowList()[0].querySelector('td[data-column="owner"]'), { clientX: 10, clientY: 10 });
-    fireEvent.keyDown(screen.getByRole("menuitem", { name: "Buka" }), { key: "ArrowDown" });
+    fireEvent.keyDown(screen.getByRole("menuitem", { name: "Open" }), { key: "ArrowDown" });
     fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
-    await userEvent.click(screen.getByRole("button", { name: /Kolom/ }));
-    fireEvent.keyDown(screen.getByRole("checkbox", { name: "Kategori" }), { key: "Escape" });
+    await userEvent.click(screen.getByRole("button", { name: /Columns/ }));
+    fireEvent.keyDown(screen.getByRole("checkbox", { name: "Category" }), { key: "Escape" });
 
     expect(bootstrapHitList).toEqual([]);
     expect(screen.queryByRole("menu")).toBeNull();
-    expect(screen.queryByRole("checkbox", { name: "Kategori" })).toBeNull();
+    expect(screen.queryByRole("checkbox", { name: "Category" })).toBeNull();
     document.removeEventListener("keydown", bootstrapListener, true);
   });
 
@@ -363,5 +389,59 @@ describe("keyboard & menu klik kanan", () => {
     const linkEl = within(getRowList()[0]).getByRole("link", { name: "Link 1" });
     fireEvent.contextMenu(linkEl);
     expect(screen.queryByRole("menu")).toBeNull();
+  });
+});
+
+describe("hapus banyak (admin)", () => {
+  function renderBulkTable() {
+    const payload = makePayload({
+      bulk_delete_url: "/entries/bulk-delete",
+      rows: [makeRow(1, { can_delete: true }), makeRow(2, { can_delete: true }), makeRow(3, { can_delete: false })],
+    });
+    render(<EntryTable initialPayload={payload} />);
+    return payload;
+  }
+
+  it("user biasa (tanpa bulk_delete_url) ga dapet kolom centang & tombol hapus", () => {
+    render(<EntryTable initialPayload={makePayload()} />);
+    expect(screen.queryByRole("checkbox", { name: /Select/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Delete selected/ })).toBeNull();
+  });
+
+  it("centang semua cuma milih baris yg boleh dihapus, tombol nunjukin jumlahnya", async () => {
+    renderBulkTable();
+    const deleteButton = screen.getByRole("button", { name: /Delete selected/ });
+    expect(deleteButton).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Select Link 3" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select all rows on this page" }));
+    expect(deleteButton).toHaveTextContent("Delete selected (2)");
+    expect(screen.getByRole("checkbox", { name: "Select Link 3" })).not.toBeChecked();
+  });
+
+  it("konfirmasi -> kirim id yg dicentang + token CSRF -> data diambil ulang", async () => {
+    renderBulkTable();
+    const fetchMock = vi.fn(async (url) => (url === "/entries/bulk-delete"
+      ? jsonResponse({ deleted_count: 1 })
+      : jsonResponse(makePayload({ rows: [makeRow(2)] }))));
+    vi.stubGlobal("fetch", fetchMock);
+    window.AlrConfirm = { open: vi.fn(async () => true) };
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select Link 1" }));
+    await userEvent.click(screen.getByRole("button", { name: /Delete selected/ }));
+    await waitFor(() => expect(getRowList()).toHaveLength(1));
+    const [, deleteOptions] = fetchMock.mock.calls[0];
+    expect(JSON.parse(deleteOptions.body)).toEqual({ entry_id_list: [1] });
+    expect(deleteOptions.headers["X-CSRFToken"]).toBe("token-csrf");
+    delete window.AlrConfirm;
+  });
+
+  it("batal di konfirmasi -> ga ada request", async () => {
+    renderBulkTable();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    window.AlrConfirm = { open: vi.fn(async () => false) };
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select Link 1" }));
+    await userEvent.click(screen.getByRole("button", { name: /Delete selected/ }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    delete window.AlrConfirm;
   });
 });

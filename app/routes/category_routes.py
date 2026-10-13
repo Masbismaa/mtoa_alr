@@ -89,10 +89,10 @@ def create():
         except ValidationError as error:
             flash_error_list(attach_form_error_list(form, error.error_list))
         else:
-            flash(f'Kategori "{category.name}" berhasil ditambahkan', "success")
+            flash(f'Category "{category.name}" added', "success")
             return redirect(url_for("categories.index"))
-    return render_category_form(form, "Tambah Kategori", url_for("categories.create"), url_for("categories.index"),
-                                screen_title="Create Kategori")
+    return render_category_form(form, "Add Category", url_for("categories.create"), url_for("categories.index"),
+                                screen_title="Create Category")
 
 @categories_bp.get("/<int:category_id>")
 @login_required
@@ -123,7 +123,7 @@ def table_data(category_id):
     user = get_current_user()
     category = get_category(category_id)
     if category is None or (not is_category_usable(category) and not can_manage_category_master(user)):
-        return error_response("Kategori tidak ditemukan", 404)
+        return error_response("Category not found", 404)
     scope = build_category_scope(category, has_sub_category=has_active_child_category(category))
     return success_response(data=build_entry_table_payload(user, request.args, scope))
 
@@ -134,7 +134,7 @@ def create_sub(category_id):
     user = get_current_user()
     parent = get_visible_category_or_404(user, category_id)
     if not can_add_sub_category(parent):
-        flash(f"Kategori ini udah tingkat paling dalam (maksimal {MAX_CATEGORY_DEPTH} tingkat)", "warning")
+        flash(f"This category is already at the deepest level (max {MAX_CATEGORY_DEPTH} levels)", "warning")
         return redirect(url_for("categories.browse", category_id=parent.id))
 
     form = CategoryForm()
@@ -144,11 +144,11 @@ def create_sub(category_id):
         except ValidationError as error:
             flash_error_list(attach_form_error_list(form, error.error_list))
         else:
-            flash(f'Sub-kategori "{category.name}" berhasil ditambahkan', "success")
+            flash(f'Sub-category "{category.name}" added', "success")
             return redirect(url_for("categories.browse", category_id=category.id))
     return render_category_form(
-        form, "Tambah Sub-kategori", url_for("categories.create_sub", category_id=parent.id),
-        url_for("categories.browse", category_id=parent.id), parent=parent, screen_title="Create Sub-kategori",
+        form, "Add Sub-category", url_for("categories.create_sub", category_id=parent.id),
+        url_for("categories.browse", category_id=parent.id), parent=parent, screen_title="Create Sub-category",
     )
 
 @categories_bp.route("/<int:category_id>/edit", methods=["GET", "POST"])
@@ -167,12 +167,12 @@ def edit(category_id):
         except ValidationError as error:
             flash_error_list(attach_form_error_list(form, error.error_list))
         else:
-            flash(f'Kategori "{category.name}" berhasil diperbarui', "success")
+            flash(f'Category "{category.name}" updated', "success")
             return redirect(url_for("categories.browse", category_id=category.id))
     return render_category_form(
-        form, "Edit Kategori", url_for("categories.edit", category_id=category.id),
+        form, "Edit Category", url_for("categories.edit", category_id=category.id),
         url_for("categories.browse", category_id=category.id),
-        parent=category.parent, is_name_locked=is_default_category(category), screen_title=f"Change Kategori: {category.name}",
+        parent=category.parent, is_name_locked=is_default_category(category), screen_title=f"Change Category: {category.name}",
     )
 
 @categories_bp.post("/<int:category_id>/toggle")
@@ -186,8 +186,8 @@ def toggle(category_id):
     except ValidationError as error:
         flash_error_list(error.error_list)
     else:
-        status_text = "diaktifkan" if category.is_active else "dinonaktifkan"
-        flash(f'Kategori "{category.name}" {status_text}', "success")
+        status_text = "activated" if category.is_active else "deactivated"
+        flash(f'Category "{category.name}" {status_text}', "success")
     return redirect(url_for("categories.index"))
 
 @categories_bp.post("/<int:category_id>/delete")
@@ -206,5 +206,5 @@ def delete(category_id):
     except ValidationError as error:
         flash_error_list(error.error_list)
         return redirect(url_for("categories.browse", category_id=category.id))
-    flash(f'Kategori "{category_name}" berhasil dihapus', "success")
+    flash(f'Category "{category_name}" deleted', "success")
     return redirect(build_back_url(user, parent_id))

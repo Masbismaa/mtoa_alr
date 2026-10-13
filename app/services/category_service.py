@@ -1,5 +1,6 @@
 """Logika kategori bertingkat: pohon kategori, tambah/ubah/hapus, sama data tampilan forum."""
 from flask import g, has_request_context
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import AccessEntry, Category
@@ -148,17 +149,17 @@ def validate_category_data(data_dict, category=None, parent=None):
 
     if category is not None and is_default_category(category):
         if clean_name != category.name:
-            raise ValidationError([build_error("name", "Nama kategori bawaan tidak bisa diubah")])
+            raise ValidationError([build_error("name", "Built-in category names can't be changed")])
         return {"name": category.name, "description": clean_description}
 
     if len(clean_name) < MIN_CATEGORY_NAME_LENGTH:
-        raise ValidationError([build_error("name", f"Nama kategori minimal {MIN_CATEGORY_NAME_LENGTH} karakter")])
+        raise ValidationError([build_error("name", f"Category name must be at least {MIN_CATEGORY_NAME_LENGTH} characters")])
     if category is not None:
         parent_id, exclude_category_id = category.parent_id, category.id
     else:
         parent_id, exclude_category_id = (parent.id if parent is not None else None), None
     if find_sibling_by_name(clean_name, parent_id, exclude_category_id) is not None:
-        raise ValidationError([build_error("name", f'Kategori "{clean_name}" sudah ada di tingkat ini')])
+        raise ValidationError([build_error("name", f'Category "{clean_name}" already exists at this level')])
     return {"name": clean_name, "description": clean_description}
 
 def build_category_audit_dict(category):
@@ -171,12 +172,28 @@ def build_category_audit_dict(category):
     }
 
 # SIMPAN
+def commit_category_name(name):
+    """Commit perubahan nama kategori. Kalau 2 request barengan bikin nama yg sama (lolos cek find_sibling_by_name
+    dua-duanya), index unik di database nolak yg kalah -> dijadiin pesan validasi biasa, bukan error 500."""
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        raise ValidationError([build_error("name", f'Category "{name}" already exists at this level')]) from None
+
 def save_new_category(user, category):
     """Simpan kategori baru + catat audit."""
     db.session.add(category)
-    db.session.flush()
+    try:
+        db.session.flush()
+    except IntegrityError:
+        db.session.rollback()
+        # induknya keburu dihapus orang lain (foreign key) vs nama kembar (index unik)
+        if category.parent_id is not None and db.session.get(Category, category.parent_id) is None:
+            raise ValidationError([build_error("name", "The parent category was just deleted")]) from None
+        raise ValidationError([build_error("name", f'Category "{category.name}" already exists at this level')]) from None
     log_audit(AUDIT_ACTION_CREATE, AUDIT_CATEGORY, entity_id=category.id, new_data_dict=build_category_audit_dict(category), user=user)
-    db.session.commit()
+    commit_category_name(category.name)
     clear_request_category_cache()
     return category
 
@@ -188,16 +205,16 @@ def create_category(user, data_dict):
 def create_sub_category(user, parent, data_dict):
     """Tambah sub-kategori, semua user boleh. Maksimal 4 tingkat."""
     if not is_category_usable(parent):
-        raise ValidationError([build_error("parent", "Kategori induknya lagi nonaktif")])
+        raise ValidationError([build_error("parent", "The parent category is inactive")])
     if get_category_depth(parent) >= MAX_CATEGORY_DEPTH:
-        raise ValidationError([build_error("parent", f"Kategori maksimal {MAX_CATEGORY_DEPTH} tingkat")])
+        raise ValidationError([build_error("parent", f"Categories can be at most {MAX_CATEGORY_DEPTH} levels deep")])
     clean_dict = validate_category_data(data_dict, parent=parent)
     return save_new_category(user, Category(**clean_dict, parent_id=parent.id, user_id=user.id, is_active=True))
 
 def update_category(user, category, data_dict):
     """Ubah nama/deskripsi. Kategori bawaan cuma bisa ganti deskripsi."""
     if not can_manage_category(user, category):
-        raise PermissionDeniedError("Kamu tidak punya akses mengubah kategori ini")
+        raise PermissionDeniedError("You don't have access to change this category")
     clean_dict = validate_category_data(data_dict, category)
     old_data_dict = build_category_audit_dict(category)
     category.name = clean_dict["name"]
@@ -206,13 +223,13 @@ def update_category(user, category, data_dict):
         AUDIT_ACTION_UPDATE, AUDIT_CATEGORY, entity_id=category.id,
         old_data_dict=old_data_dict, new_data_dict=build_category_audit_dict(category), user=user,
     )
-    db.session.commit()
+    commit_category_name(category.name)
     return category
 
 def toggle_category_active(user, category):
     """Aktif <-> nonaktif (route-nya khusus admin). Nonaktif = dia & anak-anaknya ilang dari form."""
     if is_default_category(category):
-        raise ValidationError([build_error("is_active", "Kategori bawaan tidak bisa dinonaktifkan")])
+        raise ValidationError([build_error("is_active", "Built-in categories can't be deactivated")])
     old_data_dict = build_category_audit_dict(category)
     category.is_active = not category.is_active
     log_audit(
@@ -233,17 +250,30 @@ def count_child_category(category_id):
 def delete_category(user, category):
     """Hapus kategori. Cuma boleh kalau bukan bawaan, ga punya sub, & belum dipake link sama sekali."""
     if not can_manage_category(user, category):
-        raise PermissionDeniedError("Kamu tidak punya akses menghapus kategori ini")
+        raise PermissionDeniedError("You don't have access to delete this category")
     if is_default_category(category):
-        raise ValidationError([build_error("category", "Kategori bawaan tidak bisa dihapus")])
+        raise ValidationError([build_error("category", "Built-in categories can't be deleted")])
+    # baris dikunci dulu: hapus barengan -> yg kedua nunggu, terus dapet pesan ini (bukan audit hapus dobel).
+    # Sub/link yg lagi ditambah barengan juga ketauan di cek bawah, karena dicek abis kunci kepegang
+    is_still_there = db.session.execute(
+        db.select(Category.id).where(Category.id == category.id).with_for_update()
+    ).scalar_one_or_none() is not None
+    if not is_still_there:
+        db.session.rollback()
+        raise ValidationError([build_error("category", "This category was already deleted")])
     if count_child_category(category.id) > 0:
-        raise ValidationError([build_error("category", "Hapus dulu sub-kategori di dalamnya")])
+        raise ValidationError([build_error("category", "Delete its sub-categories first")])
     entry_count = count_category_entry(category.id)
     if entry_count > 0:
-        raise ValidationError([build_error("category", f"Kategori masih dipakai {entry_count} link")])
+        raise ValidationError([build_error("category", f"Category is still used by {entry_count} links")])
     log_audit(AUDIT_ACTION_DELETE, AUDIT_CATEGORY, entity_id=category.id, old_data_dict=build_category_audit_dict(category), user=user)
     db.session.delete(category)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # sub-kategori / link baru masuk pas detik yg sama (database nolak karena foreign key)
+        db.session.rollback()
+        raise ValidationError([build_error("category", "The category just got a new link or sub-category. Reload and try again.")]) from None
     clear_request_category_cache()
 
 # TAMPILAN

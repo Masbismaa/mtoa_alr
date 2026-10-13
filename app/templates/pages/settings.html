@@ -1,49 +1,73 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
+{% from "components/form_field.html" import render_field %}
 
 {% block title %}Settings{% endblock %}
+
+{% block page_help %}
+  <p>Edit your name, department, and job title under <b>Profile</b>. Your email and role can't be changed here.</p>
+  <p><b>Change Password</b> logs out all your other sessions; this one stays logged in.</p>
+{% endblock %}
 
 {% block content %}
   <div class="row row-cards">
     <div class="col-lg-7">
-      <div class="card">
+      <form method="post" action="{{ url_for('settings.update_profile_page') }}" class="card mb-3" id="profile_form" novalidate data-form-guard>
+        {{ profile_form.hidden_tag() }}
         <div class="card-header">
-          <h3 class="card-title">{{ icon("user") }} Profil</h3>
+          <h3 class="card-title">{{ icon("user") }} Profile</h3>
         </div>
         <div class="card-body">
           <div class="d-flex align-items-center mb-4">
-            <span class="avatar avatar-lg bg-primary-lt me-3">{{ current_user.full_name | initials }}</span>
+            <span class="avatar avatar-lg {{ account_access.color_class }} me-3">{{ current_user.full_name | initials }}</span>
             <div>
-              <div class="h3 mb-1">{{ current_user.full_name }}</div>
               <div class="text-secondary">{{ current_user.email }}</div>
+              <span class="badge {{ account_access.color_class }} mt-1">{{ account_access.label }}</span>
+              {% if account_access.permission_list %}
+                <div class="d-flex flex-wrap gap-1 mt-2">
+                  {% for permission in account_access.permission_list %}
+                    <span class="badge bg-secondary-lt" title="{{ permission.description }}">{{ permission.label }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
             </div>
           </div>
-          <div class="datagrid">
-            <div class="datagrid-item">
-              <div class="datagrid-title">Departemen</div>
-              <div class="datagrid-content">{{ current_user.department }}</div>
-            </div>
-            <div class="datagrid-item">
-              <div class="datagrid-title">Jabatan</div>
-              <div class="datagrid-content">{{ current_user.job_title }}</div>
-            </div>
-            <div class="datagrid-item">
-              <div class="datagrid-title">Role</div>
-              <div class="datagrid-content"><span class="badge bg-primary-lt">{{ current_user.role | role_label }}</span></div>
-            </div>
+          {{ render_field(profile_form.full_name, autocomplete="name") }}
+          <div class="row g-2">
+            <div class="col-sm-6">{{ render_field(profile_form.department) }}</div>
+            <div class="col-sm-6">{{ render_field(profile_form.job_title) }}</div>
           </div>
         </div>
-      </div>
+        <div class="card-footer text-end">
+          {{ profile_form.submit(class_="btn btn-primary") }}
+        </div>
+      </form>
+
+      <form method="post" action="{{ url_for('settings.change_password_page') }}" class="card" id="password_form" novalidate>
+        {{ password_form.hidden_tag() }}
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("lock") }} Change Password</h3>
+        </div>
+        <div class="card-body">
+          {{ render_field(password_form.current_password, autocomplete="current-password") }}
+          {{ render_field(password_form.password, autocomplete="new-password") }}
+          {{ render_field(password_form.confirm_password, autocomplete="new-password") }}
+          <div class="form-text mt-n2">At least 8 characters with letters and numbers. All your other sessions will be logged out.</div>
+        </div>
+        <div class="card-footer text-end">
+          {{ password_form.submit(class_="btn btn-primary") }}
+        </div>
+      </form>
     </div>
 
     <div class="col-lg-5">
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">{{ icon("palette") }} Tampilan</h3>
+          <h3 class="card-title">{{ icon("palette") }} Appearance</h3>
         </div>
         <div class="card-body">
-          <p class="text-secondary">Atur mode terang/gelap, warna aksen, kerapatan, dan font. Perubahan langsung kelihatan, klik <strong>Simpan</strong> di panel biar tersimpan ke akunmu.</p>
-          <button type="button" class="btn btn-primary" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer">{{ icon("palette") }} Buka UI Customizer</button>
+          <p class="text-secondary">Set light/dark mode, accent color, density, and font. Changes show right away; click <strong>Save</strong> in the panel to store them in your account.</p>
+          <button type="button" class="btn btn-primary" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer">{{ icon("palette") }} Open UI Customizer</button>
         </div>
       </div>
     </div>

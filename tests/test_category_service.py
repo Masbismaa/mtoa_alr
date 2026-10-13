@@ -129,3 +129,32 @@ def test_category_summary_counts_entry(app, admin_user, registered_user, categor
     summary_dict = {summary["category"].name: summary for summary in list_category_summary()}
     assert summary_dict["Network"]["entry_count"] == 1
     assert summary_dict["Network"]["is_default"] is True
+
+def test_database_rejects_same_name_different_case(app, admin_user, category_dict):
+    """Negative (temuan audit): database sendiri nolak "sap" kalau "SAP" udah ada di induk yg sama
+    (biar 2 request barengan ga bisa lolos dua-duanya), tapi nama sama di induk beda tetep boleh."""
+    from sqlalchemy.exc import IntegrityError
+
+    web, application = category_dict["Web"], category_dict["Application"]
+    db.session.add(Category(parent_id=web.id, name="SAP"))
+    db.session.commit()
+    db.session.add(Category(parent_id=application.id, name="sap"))
+    db.session.commit()
+    db.session.add(Category(parent_id=web.id, name="sap"))
+    with pytest.raises(IntegrityError):
+        db.session.commit()
+    db.session.rollback()
+    db.session.add(Category(name="WEB"))
+    with pytest.raises(IntegrityError):
+        db.session.commit()
+    db.session.rollback()
+
+
+def test_race_on_same_category_name_gives_validation_error(app, admin_user, category_dict, monkeypatch):
+    """Negative: 2 request barengan sama-sama lolos cek nama -> yg kalah dapet pesan validasi, bukan error 500."""
+    from app.services import category_service
+
+    create_category(admin_user, {"name": "Database", "description": ""})
+    monkeypatch.setattr(category_service, "find_sibling_by_name", lambda *args, **kwargs: None)
+    with pytest.raises(ValidationError):
+        create_category(admin_user, {"name": "DATABASE", "description": ""})

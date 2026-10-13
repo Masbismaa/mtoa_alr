@@ -19,9 +19,9 @@ def test_user_can_browse_category(logged_in_client, registered_user, category_di
     """Positive: user biasa bisa buka halaman kategori, keliatan sub-nya & breadcrumb."""
     create_sub_category(registered_user, category_dict["Web"], {"name": "SAP", "description": ""})
     html_text = logged_in_client.get(f"/categories/{category_dict['Web'].id}").get_data(as_text=True)
-    assert "Sub-kategori" in html_text
+    assert "Sub-categories" in html_text
     assert "SAP" in html_text
-    assert "Tambah Link di sini" in html_text
+    assert "Add Link here" in html_text
 
 def test_user_can_create_sub_via_form(logged_in_client, category_dict):
     """Positive: user biasa nambah sub lewat form."""
@@ -45,7 +45,7 @@ def test_inactive_category_hidden_from_user(logged_in_client, registered_user, a
     assert logged_in_client.get(f"/categories/{sap.id}").status_code == 404
 
 def test_add_link_here_preselects_category(logged_in_client, registered_user, category_dict):
-    """Positive: tombol 'Tambah Link di sini' bikin kategorinya langsung kepilih."""
+    """Positive: tombol 'Add Link here' bikin kategorinya langsung kepilih."""
     sap = create_sub_category(registered_user, category_dict["Web"], {"name": "SAP", "description": ""})
     html_text = logged_in_client.get(f"/entries/new?category_id={sap.id}").get_data(as_text=True)
     assert f'value="{sap.id}"' in html_text

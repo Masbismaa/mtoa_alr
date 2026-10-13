@@ -13,9 +13,10 @@ API_URL = "/entries/table-data"
 PAYLOAD_KEY_SET = {
     "table_key", "api_url", "page_url", "layout_url", "anchor", "columns", "layout", "default_layout", "default_width_dict",
     "sort", "query", "page", "pages", "total", "page_list", "rows", "is_filtered", "heading", "empty", "export_url",
+    "bulk_delete_url",
 }
 ROW_KEY_SET = {
-    "id", "title", "detail_url", "category_label", "category_url", "access_text", "description", "visibility",
+    "id", "can_delete", "title", "detail_url", "category_label", "category_url", "access_text", "description", "visibility",
     "visibility_label", "status", "status_label", "status_title", "attachment_count", "owner_name", "created_text",
 }
 COLUMN_KEY_SET = {"key", "label", "width", "is_hidden", "is_sortable", "is_hideable", "sort_state", "next_sort", "filter"}
@@ -67,7 +68,7 @@ def test_row_values(logged_in_client, registered_user, category_dict):
     entry = create_entry(registered_user, category_dict["Network"], "Switch Core", url="", address="10.0.0.1", port="22")
     row = get_api_data(logged_in_client, API_URL + "?run=1")["rows"][0]
     assert row["access_text"] == "10.0.0.1:22"
-    assert row["visibility_label"] == "Private" and row["status_label"] == "Belum dicek"
+    assert row["visibility_label"] == "Private" and row["status_label"] == "Not checked"
     assert row["detail_url"] == f"/entries/{entry.id}?back=/entries/?run%3D1%23daftar_link"
     assert row["created_text"].endswith("WIB")
 
@@ -77,7 +78,7 @@ def test_api_requires_login_with_json_401(client):
     response = client.get(API_URL + "?run=1")
     assert response.status_code == 401
     assert response.get_json()["is_success"] is False
-    assert "Sesi login habis" in response.get_json()["message"]
+    assert "Your login session expired" in response.get_json()["message"]
 
 def test_api_respects_visibility(logged_in_client, registered_user, other_user, category_dict):
     """Negative (security): link Private orang lain ga pernah ikut, Public ikut."""
@@ -135,13 +136,13 @@ def test_sort_and_next_sort(logged_in_client, registered_user, category_dict):
 def test_empty_states(logged_in_client, category_dict):
     """Positive: kosong karena filter vs emang belum ada data, teks & tombolnya beda."""
     filtered = get_api_data(logged_in_client, API_URL + "?run=1&q=zzzz")
-    assert filtered["is_filtered"] is True and filtered["empty"]["title"] == 'Tidak ada hasil untuk "zzzz".'
+    assert filtered["is_filtered"] is True and filtered["empty"]["title"] == 'No results for "zzzz".'
     assert filtered["empty"]["action"]["label"] == "Reset filter" and filtered["export_url"] is None
     unfiltered = get_api_data(logged_in_client, API_URL + "?run=1")
     assert unfiltered["is_filtered"] is False and unfiltered["empty"]["action"]["url"] == "/entries/new"
 
 def test_index_without_run_has_no_table(logged_in_client, registered_user, category_dict):
-    """Positive: Daftar Link belum Jalankan -> cuma Kriteria Pencarian, tabel & script-nya ga dimuat."""
+    """Positive: Daftar Link belum Jalankan -> cuma Selection Criteria, tabel & script-nya ga dimuat."""
     create_entry(registered_user, category_dict["Web"], "Portal HR")
     html_text = logged_in_client.get("/entries/").get_data(as_text=True)
     assert "data-entry-table" not in html_text and "data-selection-hint" in html_text
@@ -156,7 +157,7 @@ def test_category_api_only_direct_entries(logged_in_client, registered_user, cat
     data = get_api_data(logged_in_client, f"/categories/{web.id}/table-data")
     assert [row["title"] for row in data["rows"]] == ["Langsung Web"]
     assert "category" not in {column["key"] for column in data["columns"]}
-    assert data["export_url"] is None and data["heading"] == {"icon": "link", "text": "Link di Web", "count_text": "1 data"}
+    assert data["export_url"] is None and data["heading"] == {"icon": "link", "text": "Links in Web", "count_text": "1 links"}
     assert data["api_url"] == f"/categories/{web.id}/table-data" and data["page_url"] == f"/categories/{web.id}"
     assert "run" not in data["query"]
 
@@ -165,7 +166,7 @@ def test_category_api_empty_text_mentions_sub_category(logged_in_client, categor
     web = category_dict["Web"]
     make_sub_category(web, "SAP")
     data = get_api_data(logged_in_client, f"/categories/{web.id}/table-data")
-    assert data["empty"]["subtitle"] == "Link lainnya ada di sub-kategori di atas."
+    assert data["empty"]["subtitle"] == "Other links are in the sub-categories above."
 
 def test_category_api_not_found_and_inactive(logged_in_client, admin_user, category_dict):
     """Negative: kategori ga ada / nonaktif (buat user biasa) -> 404 JSON."""
@@ -193,3 +194,53 @@ def test_unknown_vite_entry(app):
     with app.test_request_context("/"):
         with pytest.raises(RuntimeError, match="vite.config.js"):
             vite_manifest.vite_tags("salah_ketik")
+
+
+# ERROR JSON BUAT SCRIPT (temuan audit): script yg nunggu JSON ga boleh dapet halaman HTML / redirect login
+
+def test_settings_api_session_expired_returns_json(client):
+    """Negative: simpan layout/preferensi pas sesi habis -> 401 JSON (bukan redirect ke halaman login)."""
+    for url in ("/settings/table-layout", "/settings/preferences"):
+        response = client.post(url, json={})
+        assert response.status_code == 401
+        assert response.get_json()["is_success"] is False
+
+def test_json_request_gets_json_errors_browser_gets_html(client):
+    """Positive: 404 buat fetch JSON dibales JSON, buat navigasi browser biasa tetep halaman HTML."""
+    json_response = client.get("/ga-ada", headers={"Accept": "application/json"})
+    assert (json_response.status_code, json_response.get_json()["is_success"]) == (404, False)
+    html_response = client.get("/ga-ada", headers={"Accept": "text/html,application/xhtml+xml,*/*;q=0.8"})
+    assert html_response.status_code == 404
+    assert html_response.mimetype == "text/html"
+
+def test_csrf_and_rate_limit_errors_are_json_for_scripts(monkeypatch):
+    """Negative: token CSRF basi & kena rate limit pas fetch JSON -> pesan JSON yg bisa dibaca script."""
+    from app import create_app
+    from app.config import TestingConfig
+
+    monkeypatch.setattr(TestingConfig, "WTF_CSRF_ENABLED", True)
+    monkeypatch.setattr(TestingConfig, "RATELIMIT_ENABLED", True)
+    test_client = create_app("testing").test_client()
+    csrf_response = test_client.post("/settings/preferences", json={})
+    assert csrf_response.status_code == 400
+    assert "Reload" in csrf_response.get_json()["message"]
+
+    monkeypatch.setattr(TestingConfig, "WTF_CSRF_ENABLED", False)
+    limited_client = create_app("testing").test_client()
+    json_header = {"Accept": "application/json"}
+    status_list = [limited_client.post("/auth/login", data={}, headers=json_header).status_code for _ in range(11)]
+    assert status_list[-1] == 429
+    limited_response = limited_client.post("/auth/login", data={}, headers=json_header)
+    assert (limited_response.status_code, limited_response.get_json()["is_success"]) == (429, False)
+
+
+def test_description_is_plain_text_in_table(logged_in_client, registered_user, category_dict, read_entry_table):
+    """Positive (temuan audit, dibantah): deskripsi link itu teks polos (input <textarea>, tag HTML dibuang pas disimpan),
+    bukan rich text. Jadi tabel React ga pernah nerima/nampilin tag HTML."""
+    create_access_entry(registered_user, {
+        "category_id": category_dict["Web"].id, "title": "Portal", "url": "https://portal.spindo.com", "address": "",
+        "port": "", "username": "", "access_note": "", "visibility": VISIBILITY_PRIVATE,
+        "description": "<p><strong>Penting</strong> buat <em>tim</em></p>",
+    })
+    row = read_entry_table(logged_in_client, "/entries/?run=1")["rows"][0]
+    assert row["description"] == "Penting buat tim"

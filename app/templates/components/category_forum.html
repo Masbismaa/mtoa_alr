@@ -24,7 +24,7 @@
           </div>
           <div class="col-auto category-forum-count">
             <div class="h2 mb-0">{{ row.entry_count }}</div>
-            <div class="small text-secondary">link</div>
+            <div class="small text-secondary">links</div>
           </div>
           <div class="col-12 col-md-4 col-xl-3 category-forum-latest">
             {% if row.latest_entry %}
@@ -32,11 +32,11 @@
                 <span class="avatar avatar-sm bg-primary-lt">{{ row.latest_entry.owner.full_name | initials }}</span>
                 <div class="text-truncate">
                   <a href="{{ url_for('entries.detail', entry_id=row.latest_entry.id) }}" class="category-forum-latest-title" title="{{ row.latest_entry.title }}">{{ row.latest_entry.title }}</a>
-                  <div class="small text-secondary text-truncate">Oleh {{ row.latest_entry.owner.full_name }}, {{ row.latest_entry.created_at | time_ago }}</div>
+                  <div class="small text-secondary text-truncate">By {{ row.latest_entry.owner.full_name }}, {{ row.latest_entry.created_at | time_ago }}</div>
                 </div>
               </div>
             {% else %}
-              <span class="small text-secondary">Belum ada link</span>
+              <span class="small text-secondary">No links yet</span>
             {% endif %}
           </div>
         </div>

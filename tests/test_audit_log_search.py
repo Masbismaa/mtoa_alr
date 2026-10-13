@@ -51,8 +51,8 @@ def test_build_audit_change_list_marks_changed_field(app):
 
 def test_format_audit_value():
     """Positive: nilai kebaca manusiawi."""
-    assert format_audit_value(True) == "Ya"
-    assert format_audit_value(False) == "Tidak"
+    assert format_audit_value(True) == "Yes"
+    assert format_audit_value(False) == "No"
     assert format_audit_value(["a.pdf", "b.png"]) == "a.pdf, b.png"
     assert format_audit_value([]) == "-"
     assert format_audit_value(None) == "-"

@@ -1,12 +1,12 @@
 {% extends "layouts/auth_base.html" %}
 {% from "components/form_field.html" import render_field %}
 
-{% block title %}Verifikasi OTP{% endblock %}
+{% block title %}OTP Verification{% endblock %}
 
 {% block content %}
-  <div class="text-secondary small text-uppercase fw-bold mb-1">Langkah 2 dari 2</div>
-  <h2 class="h2 mb-2">Verifikasi OTP</h2>
-  <p class="text-secondary mb-4">Masukkan {{ otp_length }} digit kode OTP yang dikirim ke <strong>{{ masked_email }}</strong>.</p>
+  <div class="text-secondary small text-uppercase fw-bold mb-1">Step 2 of 2</div>
+  <h2 class="h2 mb-2">OTP Verification</h2>
+  <p class="text-secondary mb-4">Enter the {{ otp_length }}-digit OTP code sent to <strong>{{ masked_email }}</strong>.</p>
 
   <form method="post" novalidate>
     {{ form.hidden_tag() }}
@@ -18,12 +18,12 @@
 
   <form method="post" action="{{ url_for('auth.resend_otp') }}" class="text-center mt-3">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="btn btn-link" id="resend_button" data-cooldown-seconds="{{ resend_cooldown_seconds }}">Kirim ulang OTP</button>
+    <button type="submit" class="btn btn-link" id="resend_button" data-cooldown-seconds="{{ resend_cooldown_seconds }}">Resend OTP</button>
   </form>
 {% endblock %}
 
 {% block after_card %}
-  <div class="text-center text-secondary mt-3"><a href="{{ url_for('auth.login') }}">Kembali ke login</a></div>
+  <div class="text-center text-secondary mt-3"><a href="{{ url_for('auth.login') }}">Back to login</a></div>
 {% endblock %}
 
 {% block scripts %}

@@ -28,12 +28,18 @@ def parse_positive_int(raw_value, default=None):
         return default
     return number if number > 0 else default
 
+# tanggal filter di luar rentang ini dianggap ga valid (diabaikan): tahun 0001 / 9999 bikin konversi WIB->UTC
+# & "sampe akhir hari" (+1 hari) kelewat batas datetime Python -> OverflowError (error 500)
+MIN_FILTER_DATE = date(1900, 1, 1)
+MAX_FILTER_DATE = date(2999, 12, 31)
+
 def parse_date_arg(raw_value):
-    """Ubah teks YYYY-MM-DD jadi date, kalau ga valid balikin None."""
+    """Ubah teks YYYY-MM-DD jadi date, kalau ga valid / di luar rentang wajar balikin None."""
     try:
-        return date.fromisoformat(raw_value or "")
+        value = date.fromisoformat(raw_value or "")
     except ValueError:
         return None
+    return value if MIN_FILTER_DATE <= value <= MAX_FILTER_DATE else None
 
 def clean_keyword_arg(raw_value):
     """Rapihin kata kunci search: buang spasi di ujung + potong kepanjangan."""

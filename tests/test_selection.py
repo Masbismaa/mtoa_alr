@@ -48,7 +48,7 @@ def test_read_text_selection_cleans_and_limits():
 def test_describe_selection_text():
     """Positive: kriteria ditulis jadi teks buat sheet Info export."""
     args = MultiDict([("q", "vpn"), ("title", "portal*"), ("title__not", "*test*")])
-    assert describe_selection(args, [text_field("title", "Judul")]) == ['Kata kunci "vpn"', 'Judul "portal*" kecuali "*test*"']
+    assert describe_selection(args, [text_field("title", "Title")]) == ['Keyword "vpn"', 'Title "portal*" except "*test*"']
 
 def test_dashboard_wildcard_prefix_suffix(logged_in_client, registered_user, category_dict):
     """Positive: portal* = diawali portal, *hr = diakhiri hr."""
@@ -117,7 +117,7 @@ def test_category_browse_selection(logged_in_client, registered_user, category_d
     create_entry(registered_user, web, "Portal HR", "https://hr.spindo.com")
     create_entry(registered_user, web, "Router Lantai", "https://router.spindo.com")
     html_text = get_html(logged_in_client, f"/categories/{web.id}?title=*hr")
-    assert "Kriteria Pencarian" in html_text
+    assert "Selection Criteria" in html_text
     assert "Portal HR" in html_text and "Router Lantai" not in html_text
 
 def test_users_selection(admin_client, admin_user, registered_user):
@@ -149,5 +149,5 @@ def test_locked_menu_visible_but_not_clickable(logged_in_client):
     assert "Audit Logs" in html_text and "Users" in html_text
     assert 'href="/audit-logs/"' not in html_text and 'href="/users/"' not in html_text
     assert "nav-link-locked" in html_text
-    assert 'data-locked-message="Kamu belum punya otoritas buat buka menu Users. Khusus admin."' in html_text
+    assert 'data-locked-message="You are not authorized to open the Users menu. Admins only."' in html_text
     assert logged_in_client.get("/users/").status_code == 403

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id"
+<html lang="en"
   {% if ui_preference_dict %}
     data-pref-source="server"
     data-pref-url="{{ url_for('settings.update_preferences') }}"
@@ -30,7 +30,7 @@
   {# CSS app dipisah per bagian. urutannya penting: dasar dulu, animasi paling akhir #}
   {% set css_file_list = [
     "base/theme", "base/page",
-    "components/control", "components/brand", "components/avatar", "components/chart", "components/flash", "components/table",
+    "components/control", "components/brand", "components/avatar", "components/flash", "components/table",
     "components/rich_text_editor", "components/custom_field", "components/attachment",
     "components/theme_customizer", "components/category_forum", "components/confirm_dialog", "components/selection", "components/app_shell",
     "layouts/sidebar", "layouts/topbar",

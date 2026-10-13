@@ -24,7 +24,7 @@ def test_admin_sees_category_table(admin_client, category_dict):
     html_text = admin_client.get("/categories/").get_data(as_text=True)
     for name in ["Web", "Application", "Network", "General"]:
         assert name in html_text
-    assert "Bawaan" in html_text
+    assert "Built-in" in html_text
 
 def test_admin_sidebar_category_menu_is_link(admin_client, category_dict):
     """Positive: menu Categories udah bisa diklik (bukan 'Segera' lagi)."""
@@ -40,7 +40,7 @@ def test_admin_create_duplicate_shows_error(admin_client, category_dict):
     """Negative: nama dobel balik ke form + pesan error."""
     response = admin_client.post("/categories/new", data={"name": "WEB", "description": ""})
     assert response.status_code == 200
-    assert "sudah ada" in response.get_data(as_text=True)
+    assert "already exists" in response.get_data(as_text=True)
 
 def test_admin_toggle_category(admin_client, admin_user, category_dict):
     """Positive: nonaktifin kategori, ilang dari form tambah link."""
@@ -53,7 +53,7 @@ def test_admin_toggle_category(admin_client, admin_user, category_dict):
 def test_admin_delete_default_category_blocked(admin_client, category_dict):
     """Negative: hapus kategori bawaan ditolak, datanya tetep ada."""
     response = admin_client.post(f"/categories/{category_dict['Web'].id}/delete", follow_redirects=True)
-    assert "tidak bisa dihapus" in response.get_data(as_text=True)
+    assert "be deleted" in response.get_data(as_text=True)
     assert get_category_by_name("Web") is not None
 
 def test_unknown_category_returns_404(admin_client):

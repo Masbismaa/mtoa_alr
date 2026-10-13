@@ -25,11 +25,13 @@
     copyWithFallback(text);
   }
 
-  // ambil teks yg mau dicopy dari tombol (langsung / dari elemen target)
-  function getCopyText(buttonEl) {
+  // ambil teks yg mau dicopy dari tombol (langsung / dari elemen target). Target rahasia (access note) diambil
+  // dulu dari server lewat secret_toggle.js, biar kecatat di audit kayak tombol Show
+  async function getCopyText(buttonEl) {
     if (buttonEl.dataset.copyTarget) {
       const targetEl = document.getElementById(buttonEl.dataset.copyTarget);
       if (!targetEl) return "";
+      if (targetEl.dataset.secretUrl && window.AlrSecret) return window.AlrSecret.load(targetEl);
       return targetEl.dataset.secretValue || targetEl.textContent;
     }
     return buttonEl.dataset.copyText || "";
@@ -43,15 +45,15 @@
     const originalLabel = labelEl ? labelEl.textContent : "";
 
     try {
-      await copyText(getCopyText(buttonEl));
-      if (labelEl) labelEl.textContent = "Tersalin \u2713";
+      await copyText(await getCopyText(buttonEl));
+      if (labelEl) labelEl.textContent = "Copied \u2713";
       buttonEl.classList.add("is-copied");
       window.setTimeout(function () {
         if (labelEl) labelEl.textContent = originalLabel;
         buttonEl.classList.remove("is-copied");
       }, RESET_MS);
     } catch (error) {
-      if (window.AlrFlash) window.AlrFlash.show("Gagal menyalin, coba blok teksnya manual", "danger");
+      if (window.AlrFlash) window.AlrFlash.show("Copy failed; select the text and copy it manually", "danger");
     }
   });
 

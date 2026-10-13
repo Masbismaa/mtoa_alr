@@ -5,7 +5,7 @@ from app.security.access_policy import has_permission, is_admin
 from app.utils.constants import PERMISSION_INFO_DICT, PERMISSION_MANAGE_CATEGORIES, PERMISSION_VIEW_AUDIT_LOGS
 
 # parameter URL yg ikut nentuin menu mana yg aktif (misal filter visibilitas di Daftar Link)
-NAV_MATCH_QUERY_KEY_LIST = ["visibility"]
+NAV_MATCH_QUERY_KEY_LIST = ["visibility", "favorite"]
 
 # endpoint yg belum dibikin otomatis tampil "Segera" (ga bisa diklik).
 # menu yg user ga punya aksesnya tetep tampil tapi dikunci (ikon gembok), biar user tau menunya ada
@@ -14,21 +14,23 @@ SIDEBAR_SECTION_LIST = [
         {"label": "Dashboard", "endpoint": "main.home", "icon": "dashboard"},
     ]},
     {"title": "Data", "item_list": [
-        {"label": "Data Link", "icon": "link", "child_list": [
-            {"label": "Daftar Link", "endpoint": "entries.index"},
-            {"label": "Tambah Link", "endpoint": "entries.create"},
-            {"label": "Link Public", "endpoint": "entries.index", "query_dict": {"visibility": "public"}},
-            {"label": "Link Private", "endpoint": "entries.index", "query_dict": {"visibility": "private"}},
+        {"label": "Links", "icon": "link", "child_list": [
+            {"label": "Link List", "endpoint": "entries.index"},
+            {"label": "Add Link", "endpoint": "entries.create"},
+            {"label": "Import Links", "endpoint": "entries.import_page"},
+            {"label": "Public Links", "endpoint": "entries.index", "query_dict": {"visibility": "public"}},
+            {"label": "Private Links", "endpoint": "entries.index", "query_dict": {"visibility": "private"}},
+            {"label": "Favorites", "endpoint": "entries.index", "query_dict": {"favorite": "1"}},
         ]},
         {"label": "Groups", "endpoint": "groups.index", "icon": "group"},
     ]},
-    {"title": "Kelola", "item_list": [
+    {"title": "Manage", "item_list": [
         {"label": "Users", "endpoint": "users.index", "icon": "user", "is_admin_only": True},
         {"label": "Link Monitoring", "endpoint": "link_monitor.index", "icon": "refresh", "is_admin_only": True},
         {"label": "Categories", "endpoint": "categories.index", "icon": "category", "permission": PERMISSION_MANAGE_CATEGORIES},
         {"label": "Audit Logs", "endpoint": "audit.index", "icon": "audit", "permission": PERMISSION_VIEW_AUDIT_LOGS},
     ]},
-    {"title": "Akun", "item_list": [
+    {"title": "Account", "item_list": [
         {"label": "Settings", "endpoint": "settings.index", "icon": "settings"},
     ]},
 ]
@@ -57,8 +59,8 @@ def can_open_nav_item(user, nav_item):
 def build_lock_reason(nav_item):
     """Keterangan kenapa menu dikunci, tampil pas kursor diarahin ke menunya."""
     if nav_item.get("is_admin_only"):
-        return "Khusus admin"
-    return f'Butuh akses "{PERMISSION_INFO_DICT[nav_item["permission"]]["label"]}" dari admin'
+        return "Admins only"
+    return f'Requires "{PERMISSION_INFO_DICT[nav_item["permission"]]["label"]}" access from an admin'
 
 def build_sidebar_section_list(user, active_endpoint):
     """Susun semua menu per bagian + tandain yg lagi aktif & yg dikunci karena user ga punya aksesnya."""
@@ -75,5 +77,8 @@ def build_sidebar_section_list(user, active_endpoint):
                 item_list.append({**nav_item, "child_list": child_list, "is_open": any(child["is_active"] for child in child_list)})
             else:
                 item_list.append(build_nav_link(nav_item, active_endpoint))
-        section_list.append({"title": section["title"], "item_list": item_list})
+        section_list.append({
+            "title": section["title"], "item_list": item_list,
+            "is_open": any(item.get("is_active") or item.get("is_open") for item in item_list),
+        })
     return section_list

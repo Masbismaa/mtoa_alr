@@ -3,6 +3,7 @@ import pytest
 from werkzeug.datastructures import MultiDict
 from app import create_app
 from app.config import TestingConfig
+from app.extensions import db
 from app.services.access_entry_service import create_access_entry, list_visible_entries_for_export
 from app.services.audit_service import log_audit
 from app.utils.constants import AUDIT_ACTION_LOGIN_FAILED, PER_PAGE, VISIBILITY_PRIVATE
@@ -125,9 +126,9 @@ def test_save_layout_requires_json_object(logged_in_client):
     assert logged_in_client.post(LAYOUT_URL, data="bukan json", content_type="text/plain").status_code == 400
 
 def test_save_layout_requires_login(client):
-    """Negative (security): belum login dilempar ke halaman login."""
+    """Negative (security): belum login ditolak 401 JSON (dipanggil dari script, jadi bukan redirect ke halaman login)."""
     response = client.post(LAYOUT_URL, json={"table_key": "entry"})
-    assert response.status_code == 302 and "/auth/login" in response.location
+    assert response.status_code == 401 and response.get_json()["is_success"] is False
 
 def test_save_layout_rejects_missing_csrf_token(monkeypatch):
     """Negative (security): CSRF nyala -> request tanpa token ditolak."""
@@ -144,7 +145,7 @@ def test_search_form_and_back_link(logged_in_client, registered_user, category_d
     payload = read_entry_table(logged_in_client, "/entries/?title=portal*")
     assert payload["rows"][0]["detail_url"] == f"/entries/{entry.id}?back=/entries/?run%3D1%26title%3Dportal*%23daftar_link"
     detail_html = logged_in_client.get(f"/entries/{entry.id}?back=/entries/?title%3Dportal*%23daftar_link").get_data(as_text=True)
-    assert 'href="/entries/?title=portal*#daftar_link" class="btn btn-sm app-toolbar-btn" title="Kembali' in detail_html
+    assert 'href="/entries/?title=portal*#daftar_link" class="btn btn-sm app-toolbar-btn" title="Back' in detail_html
 
 @pytest.mark.parametrize("bad_back", ["//evil.com", "https://evil.com", "/\\evil.com", "javascript:alert(1)", "evil.com"])
 def test_detail_back_rejects_outside_url(logged_in_client, registered_user, category_dict, bad_back):
@@ -152,7 +153,7 @@ def test_detail_back_rejects_outside_url(logged_in_client, registered_user, cate
     entry = create_entry(registered_user, category_dict["Web"], "Portal HR")
     detail_html = logged_in_client.get(f"/entries/{entry.id}", query_string={"back": bad_back}).get_data(as_text=True)
     assert "evil.com" not in detail_html
-    assert 'href="/entries/" class="btn btn-sm app-toolbar-btn" title="Kembali' in detail_html
+    assert 'href="/entries/" class="btn btn-sm app-toolbar-btn" title="Back' in detail_html
 
 def test_safe_back_url():
     """Positive & negative: cuma path di dalem ALR yg diterima."""
@@ -164,4 +165,43 @@ def test_settings_text_matches_save_button(logged_in_client):
     """Positive: petunjuk di Settings sesuai perilaku customizer (harus klik Simpan)."""
     html_text = logged_in_client.get("/settings/").get_data(as_text=True)
     assert "tersimpan otomatis" not in html_text
-    assert "klik <strong>Simpan</strong>" in html_text
+    assert "click <strong>Save</strong>" in html_text
+
+
+def test_stale_layout_save_from_same_tab_ignored(logged_in_client, registered_user):
+    """Negative (temuan audit): kiriman lama dari tab yg sama telat nyampe (sequence lebih kecil) -> diabaikan,
+    layout terbaru ga ketimpa. Tab lain (client_id beda) tetep boleh nimpa."""
+    from app.services.preference_service import get_table_layout
+
+    newer = {"table_key": "entry", "hidden_list": ["owner"], "width_dict": {}, "client_id": "tab-satu-123", "sequence": 5}
+    older = {"table_key": "entry", "hidden_list": [], "width_dict": {}, "client_id": "tab-satu-123", "sequence": 4}
+    assert logged_in_client.post(LAYOUT_URL, json=newer).get_json()["data"]["is_stale"] is False
+    stale_response = logged_in_client.post(LAYOUT_URL, json=older)
+    assert stale_response.status_code == 200
+    assert stale_response.get_json()["data"]["is_stale"] is True
+    db.session.expire_all()
+    assert get_table_layout(registered_user, "entry")["hidden_list"] == ["owner"]
+
+    other_tab = {"table_key": "entry", "hidden_list": [], "width_dict": {}, "client_id": "tab-dua-4567", "sequence": 1}
+    assert logged_in_client.post(LAYOUT_URL, json=other_tab).get_json()["data"]["is_stale"] is False
+    db.session.expire_all()
+    assert get_table_layout(registered_user, "entry")["hidden_list"] == []
+
+def test_layout_save_order_must_be_valid(logged_in_client):
+    """Negative: client_id/sequence aneh ditolak (ga bisa dipake nyelipin data)."""
+    bad_payload = {"table_key": "entry", "hidden_list": [], "width_dict": {}, "client_id": "<script>", "sequence": -1}
+    assert logged_in_client.post(LAYOUT_URL, json=bad_payload).status_code == 400
+
+def test_stale_layout_save_rejected_even_after_other_tab(logged_in_client, registered_user):
+    """Negative (temuan audit): urutan nyampe A-2 -> B-1 -> A-1. A-1 lebih lama dari A-2 (tab yg sama) ->
+    tetep diabaikan walau di antaranya ada kiriman tab B."""
+    from app.services.preference_service import get_table_layout
+
+    def payload(client_id, sequence, hidden_list):
+        return {"table_key": "entry", "hidden_list": hidden_list, "width_dict": {}, "client_id": client_id, "sequence": sequence}
+
+    assert logged_in_client.post(LAYOUT_URL, json=payload("tab-aaaa-1111", 2, ["owner"])).get_json()["data"]["is_stale"] is False
+    assert logged_in_client.post(LAYOUT_URL, json=payload("tab-bbbb-2222", 1, ["category"])).get_json()["data"]["is_stale"] is False
+    assert logged_in_client.post(LAYOUT_URL, json=payload("tab-aaaa-1111", 1, [])).get_json()["data"]["is_stale"] is True
+    db.session.expire_all()
+    assert get_table_layout(registered_user, "entry")["hidden_list"] == ["category"]

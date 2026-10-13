@@ -28,8 +28,8 @@
     }
     const copyPromise = navigator.clipboard && window.isSecureContext ? navigator.clipboard.writeText(text).catch(fallback) : fallback();
     return copyPromise.then(
-      function () { notify("Disalin: " + (text.length > 60 ? text.slice(0, 60) + "…" : text), "success"); },
-      function () { notify("Gagal menyalin, browser ga ngizinin", "danger"); }
+      function () { notify("Copied: " + (text.length > 60 ? text.slice(0, 60) + "…" : text), "success"); },
+      function () { notify("Copy failed; the browser did not allow it", "danger"); }
     );
   }
 
@@ -45,7 +45,7 @@
 
   function readColumnLabel(tableEl, cellEl) {
     const labelEl = tableEl.querySelector('thead tr:first-child th[data-column="' + cellEl.dataset.column + '"] .col-sort-label');
-    return labelEl ? labelEl.textContent.trim() : "kolom";
+    return labelEl ? labelEl.textContent.trim() : "column";
   }
 
   function closeMenu(isRefocus) {
@@ -74,7 +74,7 @@
       menuEl = document.createElement("div");
       menuEl.className = "dropdown-menu row-context-menu show";
       menuEl.setAttribute("role", "menu");
-      menuEl.setAttribute("aria-label", "Menu baris");
+      menuEl.setAttribute("aria-label", "Row menu");
       menuEl.hidden = true;
       menuEl.addEventListener("keydown", function (event) {
         const itemList = Array.from(menuEl.querySelectorAll("[role=menuitem]"));
@@ -93,12 +93,12 @@
     menuEl.replaceChildren();
     menuRowEl = rowEl;
     if (rowEl.dataset.rowUrl) {
-      addMenuItem("Buka", function () { window.location.href = rowEl.dataset.rowUrl; });
+      addMenuItem("Open", function () { window.location.href = rowEl.dataset.rowUrl; });
     }
     if (cellEl && cellEl.dataset.column) {
-      addMenuItem("Salin " + readColumnLabel(tableEl, cellEl), function () { copyText(readCellValue(cellEl)); });
+      addMenuItem("Copy " + readColumnLabel(tableEl, cellEl), function () { copyText(readCellValue(cellEl)); });
     }
-    addMenuItem("Salin baris", function () {
+    addMenuItem("Copy row", function () {
       const visibleCellList = Array.from(rowEl.cells).filter(function (rowCellEl) { return rowCellEl.dataset.column && !rowCellEl.hidden; });
       copyText(visibleCellList.map(readCellValue).join("\t"));
     });
@@ -115,7 +115,7 @@
     const rowList = bodyEl ? Array.from(bodyEl.rows) : [];
     if (!rowList.length) return;
     let activeIndex = -1;
-    bodyEl.setAttribute("aria-label", "Baris data, pakai panah atas/bawah");
+    bodyEl.setAttribute("aria-label", "Data rows, use the up/down arrows");
 
     // cuma baris aktif yg bisa di-Tab (roving tabindex), jadi Tab ga mampir ke tiap baris
     rowList.forEach(function (rowEl, index) {

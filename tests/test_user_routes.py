@@ -16,7 +16,7 @@ def test_admin_sees_user_list(admin_client, admin_user, registered_user):
     html_text = admin_client.get("/users/").get_data(as_text=True)
     assert admin_user.email in html_text
     assert registered_user.email in html_text
-    assert "Kamu" in html_text
+    assert 'bg-primary-lt ms-1">You</span>' in html_text
     assert registered_user.password_hash not in html_text
     assert "argon2" not in html_text
 
@@ -34,7 +34,7 @@ def test_admin_sidebar_users_menu_is_link(admin_client):
 def test_admin_cannot_deactivate_self_via_route(admin_client, admin_user):
     """Negative: nonaktifin diri sendiri ditolak + pesan error."""
     response = admin_client.post(f"/users/{admin_user.id}/toggle-active", follow_redirects=True)
-    assert "tidak bisa menonaktifkan akunmu sendiri" in response.get_data(as_text=True)
+    assert "deactivate your own account" in response.get_data(as_text=True)
     assert admin_user.is_active is True
 
 def test_deactivated_user_logged_out_immediately(logged_in_client, admin_user, registered_user):
@@ -60,7 +60,7 @@ def test_admin_grant_access_keeps_filter(admin_client, registered_user):
     """Positive: admin centang akses, balik ke tabel dgn filter yg sama."""
     page = admin_client.get(f"/users/{registered_user.id}/access?back_q=user")
     assert page.status_code == 200
-    assert "Kelola kategori" in page.get_data(as_text=True)
+    assert "Manage categories" in page.get_data(as_text=True)
     response = admin_client.post(
         f"/users/{registered_user.id}/access",
         data={"permission": ["manage_categories", "view_audit_logs"], "back_q": "user"},

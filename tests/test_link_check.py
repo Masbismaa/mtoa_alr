@@ -4,9 +4,10 @@ import ssl
 from collections import Counter
 import pytest
 from app.extensions import db
+from app.models import AccessEntry
 from app.security.link_target_guard import LinkTargetBlockedError, parse_check_url, resolve_safe_ip
 from app.services import link_check_service, link_monitor_service
-from app.services.access_entry_service import create_access_entry
+from app.services.access_entry_service import create_access_entry, update_access_entry
 from app.services.link_check_service import LinkCheckResult, LinkCheckTarget, save_check_result
 from app.utils.constants import LINK_STATUS_DOWN, LINK_STATUS_UNKNOWN, LINK_STATUS_UP, VISIBILITY_PRIVATE
 
@@ -58,6 +59,16 @@ def test_forbidden_ip_blocked(ip_text):
     with pytest.raises(LinkTargetBlockedError):
         resolve_safe_ip(ip_text, 80)
 
+@pytest.mark.parametrize("ip_text", ["169.254.169.254", "fd00:ec2::254", "100.100.100.200"])
+def test_cloud_metadata_blocked_even_in_intranet_mode(ip_text):
+    """Negative (SSRF): alamat metadata cloud (AWS IPv4/IPv6, Alibaba) tetep ditolak walau jaringan private diizinin."""
+    with pytest.raises(LinkTargetBlockedError):
+        resolve_safe_ip(ip_text, 80, allow_private=True)
+
+def test_other_private_ipv6_allowed_in_intranet_mode():
+    """Positive: IPv6 private kantor lain (bukan punya AWS) tetep boleh dicek kalau jaringan private diizinin."""
+    assert resolve_safe_ip("fd12:3456::10", 443, allow_private=True) == "fd12:3456::10"
+
 def test_internal_and_public_ip_allowed():
     """Positive: IP internal kantor & IP publik boleh dicek."""
     assert resolve_safe_ip("10.10.1.5", 22, allow_private=True) == "10.10.1.5"
@@ -66,7 +77,7 @@ def test_internal_and_public_ip_allowed():
 def test_hostname_resolving_to_loopback_blocked(monkeypatch):
     """Negative (SSRF): nama domain yg ternyata nunjuk ke 127.0.0.1 ditolak."""
     fake_dns(monkeypatch, ["127.0.0.1"])
-    with pytest.raises(LinkTargetBlockedError, match="terlarang"):
+    with pytest.raises(LinkTargetBlockedError, match="forbidden"):
         resolve_safe_ip("jebakan.contoh.com", 443)
 
 def test_dns_with_one_bad_ip_blocked(monkeypatch):
@@ -100,7 +111,7 @@ def test_url_with_500_is_down(monkeypatch):
 def test_url_refused_is_down(monkeypatch):
     """Negative: koneksi ditolak -> Tidak aktif + alasannya."""
     fake_send_sequence(monkeypatch, [ConnectionRefusedError()])
-    assert check_target(build_url_target("http://10.10.1.5/")) == LinkCheckResult(LINK_STATUS_DOWN, "Koneksi ditolak")
+    assert check_target(build_url_target("http://10.10.1.5/")) == LinkCheckResult(LINK_STATUS_DOWN, "Connection refused")
 
 def test_url_timeout_is_down(monkeypatch):
     """Negative: kelamaan ga dijawab -> Tidak aktif (Timeout)."""
@@ -120,7 +131,7 @@ def test_forbidden_url_never_contacted(monkeypatch):
     for url in ("http://127.0.0.1:5432/", "http://169.254.169.254/latest/meta-data/"):
         result = check_target(build_url_target(url))
         assert result.status == LINK_STATUS_UNKNOWN
-        assert result.note.startswith("Diblokir")
+        assert result.note.startswith("Blocked")
     assert call_list == []
 
 def test_redirect_to_forbidden_target_not_followed(monkeypatch):
@@ -128,7 +139,7 @@ def test_redirect_to_forbidden_target_not_followed(monkeypatch):
     call_list = fake_send_sequence(monkeypatch, [(302, "http://169.254.169.254/")])
     result = check_target(build_url_target("http://10.10.1.5/"))
     assert result.status == LINK_STATUS_UP
-    assert "tidak diikuti" in result.note
+    assert "not followed" in result.note
     assert len(call_list) == 1
 
 def test_redirect_to_safe_target_followed(monkeypatch):
@@ -140,7 +151,7 @@ def test_redirect_to_safe_target_followed(monkeypatch):
 def test_redirect_loop_stops(monkeypatch):
     """Edge: redirect muter terus -> berhenti setelah batasnya."""
     call_list = fake_send_sequence(monkeypatch, [(302, "/loop")] * 10)
-    assert "redirect lebih dari" in check_target(build_url_target("http://10.10.1.5/loop")).note
+    assert "more than" in check_target(build_url_target("http://10.10.1.5/loop")).note
     assert len(call_list) == 4
 
 def test_address_port_open_is_up(monkeypatch):
@@ -151,7 +162,7 @@ def test_address_port_open_is_up(monkeypatch):
         def __exit__(self, *args):
             return False
     monkeypatch.setattr(socket, "create_connection", lambda address_pair, timeout: FakeConnection())
-    assert check_target(LinkCheckTarget(1, None, "10.10.0.2", 22)) == LinkCheckResult(LINK_STATUS_UP, "Port 22 terbuka")
+    assert check_target(LinkCheckTarget(1, None, "10.10.0.2", 22)) == LinkCheckResult(LINK_STATUS_UP, "Port 22 open")
 
 def test_address_port_closed_is_down(monkeypatch):
     """Negative: port ketutup -> Tidak aktif."""
@@ -166,19 +177,45 @@ def test_forbidden_address_never_contacted(monkeypatch):
 def test_address_without_port_not_checked():
     """Edge: address tanpa port -> tetep Belum dicek (sengaja ga pake ping)."""
     assert check_target(LinkCheckTarget(1, None, "10.10.0.2", None)) == LinkCheckResult(
-        LINK_STATUS_UNKNOWN, "Port kosong, tidak bisa dicek",
+        LINK_STATUS_UNKNOWN, "Port is empty, can't be checked",
     )
 
 def test_save_result_keeps_updated_at(app, registered_user, category_dict):
     """Positive: hasil cek kesimpen, tapi 'Terakhir Diubah' ga ikut berubah."""
     entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr.spindo.com"))
     old_updated_at = entry.updated_at
-    save_check_result(entry.id, LinkCheckResult(LINK_STATUS_UP, "HTTP 200"))
+    assert save_check_result(link_check_service.build_check_target(entry), LinkCheckResult(LINK_STATUS_UP, "HTTP 200"))
     db.session.commit()
     db.session.refresh(entry)
     assert (entry.status, entry.status_note) == (LINK_STATUS_UP, "HTTP 200")
     assert entry.status_checked_at is not None
     assert entry.updated_at == old_updated_at
+
+def test_result_for_old_address_not_saved_after_edit(app, registered_user, category_dict):
+    """Negative: link diedit pas pengecekan lagi jalan -> hasil buat URL lama ga nempel ke URL baru."""
+    entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr-lama.spindo.com"))
+    old_target = link_check_service.build_check_target(entry)
+    update_access_entry(registered_user, entry, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr-baru.spindo.com"))
+    assert save_check_result(old_target, LinkCheckResult(LINK_STATUS_UP, "HTTP 200")) is False
+    db.session.commit()
+    db.session.refresh(entry)
+    assert (entry.status, entry.status_checked_at) == (LINK_STATUS_UNKNOWN, None)
+
+def test_edit_target_resets_status(app, registered_user, category_dict):
+    """Positive: URL diganti -> status lama dihapus (balik "belum dicek"), soalnya hasilnya punya alamat lama."""
+    entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr.spindo.com"))
+    save_check_result(link_check_service.build_check_target(entry), LinkCheckResult(LINK_STATUS_UP, "HTTP 200"))
+    db.session.commit()
+    update_access_entry(registered_user, entry, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr2.spindo.com"))
+    assert (entry.status, entry.status_note, entry.status_checked_at) == (LINK_STATUS_UNKNOWN, None, None)
+
+def test_edit_without_target_change_keeps_status(app, registered_user, category_dict):
+    """Positive: yg diganti cuma judul -> status cek tetep (alamatnya sama)."""
+    entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", "https://hr.spindo.com"))
+    save_check_result(link_check_service.build_check_target(entry), LinkCheckResult(LINK_STATUS_UP, "HTTP 200"))
+    db.session.commit()
+    update_access_entry(registered_user, entry, build_entry_dict(category_dict["Web"], "Portal HR Baru", "https://hr.spindo.com"))
+    assert (entry.status, entry.status_note) == (LINK_STATUS_UP, "HTTP 200")
 
 def test_user_cannot_trigger_check(logged_in_client, registered_user, category_dict):
     """Negative: ga ada tombol/route cek manual, user ga bisa memicu cek lewat URL langsung."""
@@ -191,4 +228,181 @@ def test_check_links_command_runs_monitor(app, monkeypatch):
     monkeypatch.setattr(link_monitor_service, "check_all_entry_status", lambda **kwargs: Counter({LINK_STATUS_UP: 2, LINK_STATUS_DOWN: 1}))
     result = app.test_cli_runner().invoke(args=["check-links"])
     assert result.exit_code == 0
-    assert "3 data · 2 aktif · 1 tidak aktif" in result.output
+    assert "3 links · 2 up · 1 down" in result.output
+
+def test_stuck_target_does_not_hold_whole_check(app, registered_user, category_dict, monkeypatch):
+    """Negative: 1 link macet (misal DNS ga jawab) -> ditandai tidak aktif setelah batas waktu,
+    link lain tetep kesimpen, dan pemeriksaan ga nungguin selamanya."""
+    import threading
+    import time
+
+    stuck_event = threading.Event()
+    stuck_entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Lemot", "https://lemot.spindo.com"))
+    normal_entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Normal", "https://normal.spindo.com"))
+    # id diambil di luar thread (objek ORM ga boleh dibaca dari thread pemeriksa)
+    stuck_id = stuck_entry.id
+
+    def fake_check(target, **kwargs):
+        if target.entry_id == stuck_id:
+            stuck_event.wait(10)
+        return LinkCheckResult(LINK_STATUS_UP, "HTTP 200")
+
+    monkeypatch.setattr(link_check_service, "check_target", fake_check)
+    monkeypatch.setattr(link_check_service, "LINK_CHECK_TARGET_DEADLINE_SECONDS", 0.3)
+    start = time.perf_counter()
+    try:
+        counts = link_check_service.check_all_entry_status()
+    finally:
+        stuck_event.set()
+    assert time.perf_counter() - start < 3
+    db.session.refresh(stuck_entry)
+    db.session.refresh(normal_entry)
+    assert stuck_entry.status == LINK_STATUS_DOWN
+    assert "longer than" in stuck_entry.status_note
+    assert normal_entry.status == LINK_STATUS_UP
+    assert counts == Counter({LINK_STATUS_UP: 1, LINK_STATUS_DOWN: 1})
+
+def test_unexpected_error_on_one_target_does_not_stop_check(app, registered_user, category_dict, monkeypatch):
+    """Negative: error tak terduga di 1 link -> link itu "belum dicek", link lain tetep dicek & kesimpen."""
+    broken_entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Rusak", "https://rusak.spindo.com"))
+    normal_entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Normal", "https://normal.spindo.com"))
+    broken_id = broken_entry.id
+
+    def fake_check(target, **kwargs):
+        if target.entry_id == broken_id:
+            raise RuntimeError("bug tak terduga")
+        return LinkCheckResult(LINK_STATUS_UP, "HTTP 200")
+
+    monkeypatch.setattr(link_check_service, "check_target", fake_check)
+    link_check_service.check_all_entry_status()
+    db.session.refresh(broken_entry)
+    db.session.refresh(normal_entry)
+    assert (broken_entry.status, normal_entry.status) == (LINK_STATUS_UNKNOWN, LINK_STATUS_UP)
+
+def test_slow_links_do_not_hold_other_links(app, registered_user, category_dict, monkeypatch):
+    """Positive (kecepatan): pemeriksa ga saling nunggu. 40 link, 2 di antaranya lambat (1 dtk) & beda kelompok baca DB;
+    dgn 2 pemeriksa harusnya selesai ~1 dtk (link lambat jalan barengan), bukan ~2 dtk (nunggu per kelompok)."""
+    import time
+
+    entry_id_list = [
+        create_access_entry(registered_user, build_entry_dict(category_dict["Web"], f"Link {number}", f"https://l{number}.spindo.com")).id
+        for number in range(40)
+    ]
+    slow_id_set = {entry_id_list[0], entry_id_list[20]}
+
+    def fake_check(target, **kwargs):
+        time.sleep(1 if target.entry_id in slow_id_set else 0.01)
+        return LinkCheckResult(LINK_STATUS_UP, "HTTP 200")
+
+    monkeypatch.setattr(link_check_service, "check_target", fake_check)
+    start = time.perf_counter()
+    counts = link_check_service.check_all_entry_status(max_worker_count=2)
+    assert counts == Counter({LINK_STATUS_UP: 40})
+    assert time.perf_counter() - start < 1.7
+
+def make_concurrency_probe(slow_seconds_by_id, release_event=None):
+    """fake check_target yg nyatet berapa pemeriksaan jalan barengan (buat ngecek thread ga numpuk)."""
+    import threading
+    import time
+
+    lock = threading.Lock()
+    state = {"active": 0, "peak": 0}
+
+    def fake_check(target, **kwargs):
+        with lock:
+            state["active"] += 1
+            state["peak"] = max(state["peak"], state["active"])
+        try:
+            if release_event is not None and target.entry_id in slow_seconds_by_id:
+                release_event.wait(slow_seconds_by_id[target.entry_id])
+            else:
+                time.sleep(slow_seconds_by_id.get(target.entry_id, 0.01))
+        finally:
+            with lock:
+                state["active"] -= 1
+        return LinkCheckResult(LINK_STATUS_UP, "HTTP 200")
+
+    return fake_check, state
+
+def test_overdue_threads_still_count_toward_worker_limit(app, registered_user, category_dict, monkeypatch):
+    """Negative (resource): link yg lewat batas waktu dilaporin duluan, tapi thread-nya tetep ngisi slot sampe kelar,
+    jadi pemeriksaan yg jalan barengan ga pernah lebih dari jumlah pemeriksa."""
+    entry_id_list = [create_access_entry(registered_user, build_entry_dict(
+        category_dict["Web"], f"Link {number}", f"https://l{number}.spindo.com")).id for number in range(9)]
+    fake_check, state = make_concurrency_probe({entry_id: 0.6 for entry_id in entry_id_list[:3]})
+    monkeypatch.setattr(link_check_service, "check_target", fake_check)
+    monkeypatch.setattr(link_check_service, "LINK_CHECK_TARGET_DEADLINE_SECONDS", 0.2)
+    counts = link_check_service.check_all_entry_status(max_worker_count=3)
+    assert sum(counts.values()) == 9
+    assert counts[LINK_STATUS_DOWN] == 3
+    assert state["peak"] <= 3
+
+def test_all_workers_stuck_stops_check_instead_of_hanging(app, registered_user, category_dict, monkeypatch):
+    """Negative (resource): semua pemeriksa macet & masih ada link -> pemeriksaan dihentiin dgn error yg jelas
+    (bukan nambah thread terus / nungguin selamanya). Hasil yg udah ada tetep kesimpen."""
+    import threading
+    import time
+
+    release_event = threading.Event()
+    entry_id_list = [create_access_entry(registered_user, build_entry_dict(
+        category_dict["Web"], f"Link {number}", f"https://l{number}.spindo.com")).id for number in range(6)]
+    fake_check, state = make_concurrency_probe({entry_id: 10 for entry_id in entry_id_list}, release_event)
+    monkeypatch.setattr(link_check_service, "check_target", fake_check)
+    monkeypatch.setattr(link_check_service, "LINK_CHECK_TARGET_DEADLINE_SECONDS", 0.2)
+    monkeypatch.setattr(link_check_service, "LINK_CHECK_STUCK_LIMIT_SECONDS", 0.5)
+    start = time.perf_counter()
+    try:
+        with pytest.raises(link_check_service.LinkCheckStuckError):
+            link_check_service.check_all_entry_status(max_worker_count=2)
+    finally:
+        release_event.set()
+    assert time.perf_counter() - start < 3
+    assert state["peak"] <= 2
+    reported_count = db.session.scalar(db.select(db.func.count()).select_from(AccessEntry).where(AccessEntry.status == LINK_STATUS_DOWN))
+    assert reported_count == 2
+
+def test_stuck_threads_still_count_in_next_check(app, registered_user, category_dict, monkeypatch):
+    """Negative (temuan audit): thread macet sisa pemeriksaan sebelumnya tetep ngisi slot di pemeriksaan berikutnya,
+    jadi total thread se-proses worker ga lewat batas (pemeriksaan kedua berhenti, bukan bikin thread baru)."""
+    import threading
+
+    release_event = threading.Event()
+    entry_id_list = [create_access_entry(registered_user, build_entry_dict(
+        category_dict["Web"], f"Link {number}", f"https://l{number}.spindo.com")).id for number in range(2)]
+    fake_check, state = make_concurrency_probe({entry_id: 10 for entry_id in entry_id_list}, release_event)
+    monkeypatch.setattr(link_check_service, "check_target", fake_check)
+    monkeypatch.setattr(link_check_service, "LINK_CHECK_TARGET_DEADLINE_SECONDS", 0.2)
+    monkeypatch.setattr(link_check_service, "LINK_CHECK_STUCK_LIMIT_SECONDS", 0.5)
+    try:
+        link_check_service.check_all_entry_status(max_worker_count=2)
+        with pytest.raises(link_check_service.LinkCheckStuckError):
+            link_check_service.check_all_entry_status(max_worker_count=2)
+        assert state["peak"] <= 2
+    finally:
+        release_event.set()
+
+def test_running_threads_recorded_when_check_fails_midway(app, registered_user, category_dict, monkeypatch):
+    """Negative (temuan audit): pemeriksaan gagal di tengah jalan (misal gagal nyimpen hasil) pas thread lain masih
+    jalan -> thread itu tetep dicatet makan slot, biar pemeriksaan berikutnya ga bikin thread baru di atasnya."""
+    import threading
+
+    release_event = threading.Event()
+    fast_id, slow_id = [create_access_entry(registered_user, build_entry_dict(
+        category_dict["Web"], f"Link {number}", f"https://l{number}.spindo.com")).id for number in range(2)]
+    fake_check, _ = make_concurrency_probe({slow_id: 10}, release_event)
+    monkeypatch.setattr(link_check_service, "check_target", fake_check)
+
+    call_list = []
+
+    def failing_progress(processed, total):
+        # panggilan pertama (sebelum mulai) lolos; begitu link cepet kelar & mau disimpen -> gagal
+        call_list.append(processed)
+        if len(call_list) > 1:
+            raise RuntimeError("gagal nyimpen progres")
+
+    try:
+        with pytest.raises(RuntimeError):
+            link_check_service.check_all_entry_status(max_worker_count=2, progress_callback=failing_progress)
+        assert any(not future.done() for future in link_check_service.OVERDUE_FUTURE_SET)
+    finally:
+        release_event.set()

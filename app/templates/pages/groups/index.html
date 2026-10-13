@@ -10,14 +10,14 @@
 {% block page_pretitle %}Workspace{% endblock %}
 
 {% block page_actions %}
-  <a href="{{ url_for('groups.create') }}" class="btn btn-primary">{{ icon("plus") }} Buat Group</a>
+  <a href="{{ url_for('groups.create') }}" class="btn btn-primary">{{ icon("plus") }} Create Group</a>
 {% endblock %}
 
 {% block content %}
   {% if invitation_list %}
     <div class="card mb-3">
       <div class="card-header">
-        <h3 class="card-title">{{ icon("mail") }} Undangan</h3>
+        <h3 class="card-title">{{ icon("mail") }} Invitations</h3>
         <div class="card-actions"><span class="badge bg-primary-lt">{{ invitation_list | length }}</span></div>
       </div>
       <div class="list-group list-group-flush">
@@ -27,17 +27,17 @@
               <div class="col-auto"><span class="avatar bg-primary-lt">{{ invitation.group.name | initials }}</span></div>
               <div class="col text-truncate">
                 <div class="fw-bold text-truncate">{{ invitation.group.name }}</div>
-                <div class="small text-secondary">dari {{ invitation.group.owner.full_name }}</div>
+                <div class="small text-secondary">from {{ invitation.group.owner.full_name }}</div>
               </div>
               <div class="col-12 col-sm-auto">
                 <div class="btn-list">
                   <form method="post" action="{{ url_for('groups.accept', member_id=invitation.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-primary btn-sm">{{ icon("check") }} Terima</button>
+                    <button type="submit" class="btn btn-primary btn-sm">{{ icon("check") }} Accept</button>
                   </form>
-                  <form method="post" action="{{ url_for('groups.decline', member_id=invitation.id) }}" data-confirm-title="Tolak undangan?" data-confirm-message="Kamu tidak akan jadi anggota group &quot;{{ invitation.group.name }}&quot;." data-confirm-ok="Ya, tolak">
+                  <form method="post" action="{{ url_for('groups.decline', member_id=invitation.id) }}" data-confirm-title="Decline invitation?" data-confirm-message="You will not become a member of the group &quot;{{ invitation.group.name }}&quot;." data-confirm-ok="Yes, decline">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-sm">Tolak</button>
+                    <button type="submit" class="btn btn-sm">Decline</button>
                   </form>
                 </div>
               </div>
@@ -49,10 +49,10 @@
   {% endif %}
 
   {% set is_filtered = selection_query_dict | length > 0 %}
-  {{ selection_panel(selection_field_list, url_for("groups.index"), "Cari nama atau deskripsi group... (tekan /)", is_open=is_filtered) }}
+  {{ selection_panel(selection_field_list, url_for("groups.index"), "Search group name or description... (press /)", is_open=is_filtered) }}
 
   {% if group_list %}
-    <div class="row row-cards" aria-label="Daftar group">
+    <div class="row row-cards" aria-label="Group list">
       {% for group in group_list %}
         {% set is_owner = group.user_id == current_user.id %}
         {% set active_member_count = active_member_count_dict.get(group.id, 0) %}
@@ -63,14 +63,14 @@
                 <span class="avatar bg-primary-lt me-3">{{ group.name | initials }}</span>
                 <div class="text-truncate">
                   <h3 class="card-title mb-0 text-truncate" title="{{ group.name }}">{{ group.name }}</h3>
-                  <span class="badge {{ 'bg-primary-lt' if is_owner else 'bg-secondary-lt' }} mt-1">{{ "Pemilik" if is_owner else "Anggota" }}</span>
+                  <span class="badge {{ 'bg-primary-lt' if is_owner else 'bg-secondary-lt' }} mt-1">{{ "Owner" if is_owner else "Member" }}</span>
                 </div>
               </div>
-              <p class="text-secondary mb-0">{{ group.description | truncate(100, true, "…", 0) if group.description else "Belum ada deskripsi." }}</p>
+              <p class="text-secondary mb-0">{{ group.description | truncate(100, true, "…", 0) if group.description else "No description yet." }}</p>
             </div>
             <div class="card-footer d-flex gap-3 text-secondary small">
-              <span>{{ icon("user") }} {{ active_member_count }} anggota</span>
-              <span>{{ icon("link") }} {{ visible_entry_count_dict[group.id] }} link</span>
+              <span>{{ icon("user") }} {{ active_member_count }} members</span>
+              <span>{{ icon("link") }} {{ visible_entry_count_dict[group.id] }} links</span>
             </div>
           </a>
         </div>
@@ -80,18 +80,18 @@
     <div class="card">
       <div class="empty">
         <div class="empty-icon">{{ icon("search") }}</div>
-        <p class="empty-title">Tidak ada group yang cocok</p>
-        <p class="empty-subtitle text-secondary">Coba ubah kriteria pencariannya, atau pakai * (misal tim*).</p>
+        <p class="empty-title">No matching groups</p>
+        <p class="empty-subtitle text-secondary">Try changing the search criteria, or use * (e.g. team*).</p>
       </div>
     </div>
   {% else %}
     <div class="card">
       <div class="empty">
         <div class="empty-icon">{{ icon("group") }}</div>
-        <p class="empty-title">Kamu belum punya group</p>
-        <p class="empty-subtitle text-secondary">Bikin group buat ngumpulin link tim kamu!</p>
+        <p class="empty-title">You don't have any groups yet</p>
+        <p class="empty-subtitle text-secondary">Create a group to collect your team's links!</p>
         <div class="empty-action">
-          <a href="{{ url_for('groups.create') }}" class="btn btn-primary">{{ icon("plus") }} Buat Group</a>
+          <a href="{{ url_for('groups.create') }}" class="btn btn-primary">{{ icon("plus") }} Create Group</a>
         </div>
       </div>
     </div>

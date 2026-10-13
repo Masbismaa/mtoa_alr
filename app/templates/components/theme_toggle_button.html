@@ -1,34 +1,52 @@
-{% from "components/icon.html" import icon %}
+{# sakelar siang/malam. pemandangan digambar SVG di dalam tombol, gerakannya diatur di base/theme.css #}
 <button type="button" class="theme-toggle" data-theme-toggle role="switch" aria-checked="{{ 'true' if ui_preference_dict and ui_preference_dict.theme_mode == 'dark' else 'false' }}" aria-label="Mode gelap" title="Ganti mode tampilan">
   <span class="theme-toggle-scene" aria-hidden="true">
     <span class="theme-toggle-day">
-      <span class="theme-toggle-sun">{{ icon("sun") }}</span>
-      <svg class="theme-toggle-landscape" viewBox="0 0 100 40" fill="none" focusable="false">
-        <path class="theme-toggle-motion theme-toggle-clouds" d="M52 8h9m-5-2h11M79 15h12m-9-2h5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".7"/>
-        <path d="M-10 30Q5 26 20 30T50 30T80 30T110 30V40H-10Z" fill="#6de2d3"/>
-        <path class="theme-toggle-motion theme-toggle-waves" d="M-10 35Q8 31 26 35T62 35T98 35T134 35V42H-10Z" fill="#32c5c3"/>
-        <g class="theme-toggle-motion theme-toggle-boat">
-          <path d="M53 12V31" stroke="#c68a55" stroke-width="1"/>
-          <path d="M51 13L39 29H51Z" fill="#fff"/>
-          <path d="M55 18L63 28H55Z" fill="#e7f8ff"/>
-          <path d="M37 31H64L58 35H43Z" fill="#ed785c"/>
+      <svg class="theme-toggle-landscape" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid slice" fill="none" focusable="false">
+        <circle cx="70" cy="1" r="3.4" fill="#f9d65c"/>
+        <path class="theme-toggle-motion theme-toggle-cloud-near" d="M47 9q.4-2.4 2.8-1.8q1.6-1.8 3.6-.2q2-.2 2 2Z" stroke="#fff" stroke-width=".7" stroke-linejoin="round"/>
+        <path class="theme-toggle-motion theme-toggle-cloud-far" d="M85 11q.3-1.8 2.2-1.4q1.3-1.4 2.8-.1q1.6-.1 1.6 1.5Z" stroke="#fff" stroke-width=".6" stroke-linejoin="round"/>
+        <g fill="#e2553d">
+          <path d="M-2 30a5.5 5.5 0 0 1 11 0Z"/>
+          <path d="M59 30a5 5 0 0 1 10 0Z"/>
+          <path d="M84 30a5.5 5.5 0 0 1 11 0Z"/>
         </g>
-        <path d="M82 31l-2-10m0 0q-6-5-9 0m9 0q5-7 10-3m-10 3q-5-8-8-6" stroke="#318e78" stroke-width="1.2" stroke-linecap="round"/>
-        <path d="M73 33q10-6 22 0" fill="#f6d491"/>
+        <g stroke="#f39a6b" stroke-width=".45">
+          <path d="M1 30a2.5 2.5 0 0 1 5 0M2.5 30a1 1 0 0 1 2 0M61.5 30a2.5 2.5 0 0 1 5 0M63 30a1 1 0 0 1 2 0M86.5 30a3 3 0 0 1 6 0M88 30a1.5 1.5 0 0 1 3 0"/>
+        </g>
+        <path class="theme-toggle-motion theme-toggle-waves-back" d="M-10 30Q5 28.5 20 30T50 30T80 30T110 30V40H-10Z" fill="#a2fff6"/>
+        <path d="M68 31q7-3.4 14 0Z" fill="#f6d491"/>
+        <path d="M72 30.5q1-5 -.4-9.5m0 0q-3.6-1.6-5.6 1m5.6-1q2.6-2.8 5.6-1.2m-5.6 1.2q-1-2.8-4-2.6m4 2.6q3-.6 4 2.2M76.5 30.5q.6-3.6-.4-6.6m0 0q-2.4-1-3.8.8m3.8-.8q1.8-2 4-.8m-4 .8q2.2-.2 2.8 1.8" stroke="#3b6b63" stroke-width=".4" stroke-linecap="round"/>
+        <path class="theme-toggle-motion theme-toggle-waves" d="M-10 34Q8 32.5 26 34T62 34T98 34T134 34V42H-10Z" fill="#86ece6"/>
+        <g class="theme-toggle-motion theme-toggle-boat">
+          <path d="M44 3Q35.5 15 34 30H44Z" fill="#fff"/>
+          <path d="M44 3Q47.5 16 46 29.5H44Z" fill="#e3eef5"/>
+          <path d="M30 31.5L56 28.5L52.8 32.6L34.2 34.6Z" fill="#d9432f"/>
+        </g>
       </svg>
     </span>
     <span class="theme-toggle-night">
-      <span class="theme-toggle-moon">{{ icon("moon") }}</span>
-      <svg class="theme-toggle-landscape" viewBox="0 0 100 40" fill="none" focusable="false">
-        <g class="theme-toggle-motion theme-toggle-stars" fill="#e1e4ff"><circle cx="14" cy="10" r=".7"/><circle cx="29" cy="6" r=".5"/><circle cx="57" cy="14" r=".7"/><circle cx="66" cy="6" r=".5"/><circle cx="20" cy="22" r=".5"/></g>
-        <path class="theme-toggle-motion theme-toggle-comet" d="M43 8l15-3" stroke="#e9edc8" stroke-linecap="round" opacity=".6"/>
-        <path d="M0 30l17-7 14 8 14-5 19 6 18-9 18 8V40H0Z" fill="#383b70"/>
-        <path d="M0 34q20-5 40 0t40 0 20 0V40H0Z" fill="#183953"/>
-        <path class="theme-toggle-motion theme-toggle-waves" d="M37 35l12-2-4 3 10 2-18 2" fill="#749da9" opacity=".6"/>
-        <path d="M33 32l1-12h3l1 12Z" fill="#c5c5d7"/>
-        <path d="M33 19h5v3h-5Z" fill="#f9edb0"/>
-        <path d="M32 19l3.5-3 3.5 3Z" fill="#69688d"/>
-        <path class="theme-toggle-motion theme-toggle-beam" d="M34 20L5 15v11Z" fill="#fff3be" opacity=".14"/>
+      <svg class="theme-toggle-landscape" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid slice" fill="none" focusable="false">
+        <g class="theme-toggle-motion theme-toggle-stars" fill="#e1e4ff"><circle cx="14" cy="9" r=".6"/><circle cx="27" cy="20" r=".45"/><circle cx="56" cy="16" r=".6"/><circle cx="63" cy="6" r=".45"/><circle cx="21" cy="5" r=".5"/></g>
+        <g class="theme-toggle-moon">
+          <circle cx="42" cy="13" r="4.2" fill="#f4f1c4"/>
+          <circle cx="40.6" cy="11.6" r=".95" fill="#cfcb98"/>
+          <circle cx="43.8" cy="14.4" r=".7" fill="#cfcb98"/>
+          <circle cx="40.4" cy="15" r=".5" fill="#cfcb98"/>
+          <circle cx="44" cy="11" r=".4" fill="#cfcb98"/>
+        </g>
+        <g class="theme-toggle-motion theme-toggle-beam">
+          <path d="M78 4.2L46 2Q44.4 4.6 46 7.2Z" fill="#fff6c8" opacity=".4"/>
+          <path d="M78 4.2L54 3.2Q53.2 4.6 54 6Z" fill="#fffbe6" opacity=".9"/>
+        </g>
+        <path d="M-1 31H101V40H-1Z" fill="#183861"/>
+        <path class="theme-toggle-motion theme-toggle-waves" d="M39.5 32.2h5M37 33.9h9.5M38.5 35.6h8M40 37.3h5" stroke="#9fb4e6" stroke-width=".8" stroke-linecap="round" opacity=".75"/>
+        <path d="M29 33.4q3.5-2.2 7 0Z" fill="#111d3c"/>
+        <path d="M57 31.5Q67 26.5 74 24.5L83 23.5Q94 24 101 27V40H57Z" fill="#1d2148"/>
+        <path d="M76.6 24L77.3 5.6H78.7L79.4 24Z" fill="#d8d8e8"/>
+        <path d="M77.1 10.5H78.9V12.8H77M76.9 16H79.1V18.4H76.8" fill="#3b3f78"/>
+        <path d="M77.2 3.6H78.8V5.6H77.2Z" fill="#fff3be"/>
+        <path d="M76.8 3.6L78 2.2L79.2 3.6Z" fill="#2b2f5f"/>
       </svg>
     </span>
     <span class="theme-toggle-thumb"></span>

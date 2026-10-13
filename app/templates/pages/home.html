@@ -1,133 +1,247 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
-{% from "components/badge.html" import audit_action_badge %}
+{% from "components/badge.html" import audit_action_badge, link_status_badge %}
 {% from "components/category_forum.html" import category_forum %}
-{% from "components/chart.html" import bar_chart, change_badge, gauge, sparkline %}
 
 {% block title %}Dashboard{% endblock %}
 
 {% block page_pretitle %}Overview{% endblock %}
 
-{# dashboard cuma ringkasan, biar ga ketuker sama hasil pencarian di Daftar Link #}
+{# keterangan halaman (tampil di atas konten) #}
 {% block page_subtitle %}
-  <div class="text-secondary mt-1">Ringkasan seluruh data yang bisa kamu lihat. Cari &amp; olah data di <a href="{{ url_for('entries.index') }}">Daftar Link</a>.</div>
+  <div class="text-secondary mt-1">A summary of all data you can see. Click a number to open those links. Search &amp; work with data in the <a href="{{ url_for('entries.index') }}">Link List</a>.</div>
 {% endblock %}
 
 {% block page_actions %}
-  <a href="{{ url_for('entries.index') }}" class="btn">{{ icon("list") }} Daftar Link</a>
-  <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Tambah Link</a>
+  <a href="{{ url_for('entries.index') }}" class="btn">{{ icon("list") }} Link List</a>
+  <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Add Link</a>
 {% endblock %}
 
 {% block content %}
+  <section class="card dashboard-welcome mb-3" data-access-level="{{ account_access.kind }}" aria-labelledby="dashboard-welcome-title">
+    <div class="card-body d-flex align-items-center gap-3">
+      <span class="avatar avatar-lg {{ account_access.color_class }} flex-shrink-0" aria-hidden="true">
+        {{ current_user.full_name | initials }}
+      </span>
+      <div class="dashboard-welcome-content">
+        <span class="badge {{ account_access.color_class }} mb-2">{{ account_access.label }}</span>
+        <h2 class="mb-1" id="dashboard-welcome-title">{{ dashboard_dict.greeting }}, {{ current_user.full_name }}!</h2>
+        <p class="text-secondary mb-0">
+          {% if account_access.kind == "admin" %}Manage accounts, access, and link monitoring.
+          {% elif account_access.kind == "granted" %}Your account has additional access granted by an admin.
+          {% else %}Your links, favorites, and groups in one place.{% endif %}
+        </p>
+      </div>
+    </div>
+  </section>
   {% set summary = dashboard_dict.summary %}
-
-  <div class="row row-deck row-cards mb-3">
-    <div class="col-lg-6">
-      <div class="card welcome-card">
-        <div class="card-body">
-          <div class="row align-items-center">
-            <div class="col">
-              <h3 class="h2 mb-1">Selamat datang, {{ current_user.full_name.split() | first }}</h3>
-              <p class="text-secondary mb-4">
-                {% if dashboard_dict.invitation_count %}
-                  Ada <a href="{{ url_for('groups.index') }}">{{ dashboard_dict.invitation_count }} undangan group</a> yang nunggu jawabanmu.
-                {% else %}
-                  Semua link tim ada di sini. Tinggal cari, copy, beres.
-                {% endif %}
-              </p>
-              <div class="row g-4">
-                <div class="col-sm-6">
-                  <div class="subheader">Link milikmu</div>
-                  <div class="h3 mb-2"><span data-count-up>{{ dashboard_dict.own_count }}</span> <span class="text-secondary small fw-normal">{{ dashboard_dict.own_percent }}%</span></div>
-                  <progress class="app-progress" value="{{ dashboard_dict.own_percent }}" max="100" aria-label="Persentase link milikmu"></progress>
-                </div>
-                <div class="col-sm-6">
-                  <div class="subheader">Punya lampiran</div>
-                  <div class="h3 mb-2"><span data-count-up>{{ dashboard_dict.attachment_entry_count }}</span> <span class="text-secondary small fw-normal">{{ dashboard_dict.attachment_percent }}%</span></div>
-                  <progress class="app-progress app-progress-success" value="{{ dashboard_dict.attachment_percent }}" max="100" aria-label="Persentase link yang punya lampiran"></progress>
+  {% if dashboard_dict.access_kind == "admin" %}
+    {# ADMIN: ringkasan sistem. Tiap angka buka layar admin yg sesuai #}
+    {% set admin_panel = dashboard_dict.admin_panel %}
+    {% set user_summary = admin_panel.user_summary %}
+    {% set monitor_summary = admin_panel.monitor_summary %}
+    {% set system_stat_list = [
+      ("Users", user_summary.total, "user", "bg-primary", url_for("users.index")),
+      ("Locked", user_summary.locked, "alert_triangle", "bg-yellow", url_for("users.index", status="locked")),
+      ("Inactive", user_summary.inactive, "eye_off", "bg-secondary", url_for("users.index", status="inactive")),
+      ("All links", monitor_summary.total_count, "link", "bg-azure", url_for("entries.index", run=1)),
+      ("Up", monitor_summary.up_count, "check", "bg-green", url_for("link_monitor.index")),
+      ("Down", monitor_summary.down_count, "alert_triangle", "bg-red", url_for("link_monitor.index")),
+    ] %}
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+      <h3 class="h4 mb-0">{{ icon("settings") }} System Overview</h3>
+      <span class="small text-secondary">Last link check: {{ (monitor_summary.last_checked_at | time_ago) if monitor_summary.last_checked_at else "never" }}{% if admin_panel.monitor_state in ("queued", "running") %} · <span class="text-primary">a check is {{ admin_panel.monitor_state }}</span>{% endif %}</span>
+    </div>
+    <div class="row row-cards mb-3">
+      {% for stat_label, stat_count, stat_icon, stat_color, stat_url in system_stat_list %}
+        <div class="col-6 col-md-4 col-xl-2">
+          <a href="{{ stat_url }}" class="card card-sm card-link card-link-pop text-reset dashboard-stat">
+            <div class="card-body">
+              <div class="row align-items-center g-2">
+                <div class="col-auto"><span class="avatar {{ stat_color }} text-white">{{ icon(stat_icon) }}</span></div>
+                <div class="col">
+                  <div class="h2 mb-0" data-count-up>{{ stat_count }}</div>
+                  <div class="text-secondary small">{{ stat_label }}</div>
                 </div>
               </div>
             </div>
-            <div class="col-auto d-none d-md-block">
-              <div class="welcome-illustration" aria-hidden="true">{{ icon("link") }}</div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    {# angka ringkas: diklik langsung buka Link List dgn filter yg sesuai #}
+    {% set stat_list = [
+      ("All links", summary.total, "link", "bg-primary", url_for("entries.index", run=1)),
+      ("Your links", dashboard_dict.own_count, "user", "bg-azure", url_for("entries.index", run=1, owner=current_user.email)),
+      ("Public", summary.public, "globe", "bg-green", url_for("entries.index", run=1, visibility="public")),
+      ("Private", summary.private, "lock", "bg-orange", url_for("entries.index", run=1, visibility="private")),
+      ("Favorites", dashboard_dict.favorite_count, "star", "bg-yellow", url_for("entries.index", run=1, favorite=1)),
+      ("Down", dashboard_dict.down_count, "alert_triangle", "bg-red", url_for("entries.index", run=1, status="down")),
+    ] %}
+    <div class="row row-cards mb-3">
+      {% for stat_label, stat_count, stat_icon, stat_color, stat_url in stat_list %}
+        <div class="col-6 col-md-4 col-xl-2">
+          <a href="{{ stat_url }}" class="card card-sm card-link card-link-pop text-reset dashboard-stat">
+            <div class="card-body">
+              <div class="row align-items-center g-2">
+                <div class="col-auto"><span class="avatar {{ stat_color }} text-white">{{ icon(stat_icon) }}</span></div>
+                <div class="col">
+                  <div class="h2 mb-0" data-count-up>{{ stat_count }}</div>
+                  <div class="text-secondary small">{{ stat_label }}</div>
+                </div>
+              </div>
             </div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if dashboard_dict.access_kind == "granted" %}
+      {# USER WITH ACCESS: satu panel kerja per akses yg dikasih admin #}
+      <div class="card mb-3 dashboard-access">
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("lock") }} Your Access</h3>
+          <div class="card-actions small text-secondary">Granted by an admin</div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            {% for panel in dashboard_dict.access_panel_list %}
+              <div class="col-md-4">
+                <div class="border rounded p-3 h-100 d-flex flex-column">
+                  <div class="fw-bold mb-2">{{ icon(panel.icon) }} {{ panel.title }}</div>
+                  <div class="d-flex gap-4 mb-3">
+                    {% for fact_count, fact_label in panel.fact_list %}
+                      <div><div class="h2 mb-0">{{ fact_count }}</div><div class="small text-secondary">{{ fact_label }}</div></div>
+                    {% endfor %}
+                  </div>
+                  <a href="{{ panel.url }}" class="btn btn-sm mt-auto">{{ panel.action }}</a>
+                </div>
+              </div>
+            {% endfor %}
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="col-sm-6 col-lg-3">
-      <div class="card">
-        <div class="card-body pb-0">
-          <div class="subheader">Total link</div>
-          <div class="h1 mb-1"><span data-count-up>{{ summary.total }}</span>{{ change_badge(dashboard_dict.new_link_change_percent) }}</div>
-          <div class="text-secondary">{{ dashboard_dict.new_link_count }} link baru dalam 7 hari terakhir</div>
-        </div>
-        <div class="card-chart">{{ sparkline(dashboard_dict.trend_chart) }}</div>
-      </div>
-    </div>
-
-    <div class="col-sm-6 col-lg-3">
-      <div class="card">
+    {% elif dashboard_dict.own_count == 0 %}
+      {# USER ENTRY yg belum punya link: panduan mulai #}
+      <div class="card mb-3 dashboard-start">
         <div class="card-body">
-          <div class="subheader">Link public</div>
-          <div class="h1 mb-2" data-count-up>{{ summary.public }}</div>
-          {{ gauge(dashboard_dict.public_percent, "Public") }}
+          <h3 class="card-title mb-1">{{ icon("plus") }} Get started</h3>
+          <p class="text-secondary mb-3">You don't have any links yet. Save the links and access you use every day, so you and your team can find them quickly.</p>
+          <div class="btn-list">
+            <a href="{{ url_for('entries.create') }}" class="btn btn-primary">{{ icon("plus") }} Add your first link</a>
+            <a href="{{ url_for('entries.import_page') }}" class="btn">{{ icon("upload") }} Import from Excel</a>
+            <a href="{{ url_for('entries.index', run=1, visibility='public') }}" class="btn">{{ icon("globe") }} Browse public links</a>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
+    {% endif %}
+  {% endif %}
 
   <div class="row row-deck row-cards mb-3">
-    <div class="col-sm-6 col-lg-3">
+    {% if dashboard_dict.access_kind == "admin" %}
+    <div class="col-lg-5">
       <div class="card">
-        <div class="card-body">
-          <div class="subheader">Link private</div>
-          <div class="h1 mb-3" data-count-up>{{ summary.private }}</div>
-          <div class="d-flex mb-2">
-            <div>Dari total link</div>
-            <div class="ms-auto fw-medium">{{ dashboard_dict.private_percent }}%</div>
-          </div>
-          <progress class="app-progress" value="{{ dashboard_dict.private_percent }}" max="100" aria-label="Persentase link private"></progress>
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("alert_triangle") }} Admin To-Do</h3>
+        </div>
+        <div class="list-group list-group-flush">
+          {% for locked_user in admin_panel.locked_user_list %}
+            <a href="{{ url_for('users.index', status='locked') }}" class="list-group-item list-group-item-action">
+              {{ icon("lock", "text-yellow") }} <strong>{{ locked_user.full_name }}</strong> is locked out after too many wrong codes.
+              <div class="small text-secondary">Unlock it from Users if it was really them.</div>
+            </a>
+          {% endfor %}
+          {% if monitor_summary.down_count %}
+            <a href="{{ url_for('entries.index', run=1, status='down') }}" class="list-group-item list-group-item-action">
+              {{ icon("alert_triangle", "text-red") }} <strong>{{ monitor_summary.down_count }}</strong> links were down at the last check.
+            </a>
+          {% endif %}
+          {% if monitor_summary.unknown_count %}
+            <a href="{{ url_for('link_monitor.index') }}" class="list-group-item list-group-item-action">
+              {{ icon("refresh", "text-secondary") }} <strong>{{ monitor_summary.unknown_count }}</strong> links have never been checked. Run a check from Link Monitoring.
+            </a>
+          {% endif %}
+          {% if dashboard_dict.invitation_count %}
+            <a href="{{ url_for('groups.index') }}" class="list-group-item list-group-item-action">
+              {{ icon("mail", "text-primary") }} You have <strong>{{ dashboard_dict.invitation_count }}</strong> group invitation(s) waiting for your answer.
+            </a>
+          {% endif %}
+          {% if not (admin_panel.locked_user_list or monitor_summary.down_count or monitor_summary.unknown_count or dashboard_dict.invitation_count) %}
+            <div class="list-group-item text-secondary">{{ icon("check", "text-green") }} All good. Nothing needs an admin right now.</div>
+          {% endif %}
         </div>
       </div>
     </div>
-
-    <div class="col-sm-6 col-lg-3">
+    {% else %}
+    <div class="col-lg-5">
       <div class="card">
-        <div class="card-body pb-0">
-          <div class="d-flex align-items-center">
-            <div class="subheader">Link baru</div>
-            <div class="ms-auto small text-secondary">7 hari terakhir</div>
-          </div>
-          <div class="h1 mb-0"><span data-count-up>{{ dashboard_dict.new_link_count }}</span>{{ change_badge(dashboard_dict.new_link_change_percent) }}</div>
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("alert_triangle") }} Needs Your Attention</h3>
         </div>
-        <div class="card-chart">{{ sparkline(dashboard_dict.new_link_chart) }}</div>
+        <div class="list-group list-group-flush">
+          {% if dashboard_dict.invitation_count %}
+            <a href="{{ url_for('groups.index') }}" class="list-group-item list-group-item-action">
+              {{ icon("mail", "text-primary") }} You have <strong>{{ dashboard_dict.invitation_count }}</strong> group invitation(s) waiting for your answer.
+            </a>
+          {% endif %}
+          {% for entry in dashboard_dict.own_down_entry_list %}
+            <a href="{{ url_for('entries.detail', entry_id=entry.id) }}" class="list-group-item list-group-item-action">
+              <div class="d-flex align-items-center gap-2">
+                {{ link_status_badge(entry.status, entry.status_note, entry.status_checked_at) }}
+                <span class="fw-medium text-truncate">{{ entry.title }}</span>
+              </div>
+              {% if entry.status_note %}<div class="small text-secondary text-truncate mt-1">{{ entry.status_note }}</div>{% endif %}
+            </a>
+          {% endfor %}
+          {% if dashboard_dict.unknown_count %}
+            <a href="{{ url_for('entries.index', run=1, status='unknown') }}" class="list-group-item list-group-item-action text-secondary small">
+              {{ icon("info") }} {{ dashboard_dict.unknown_count }} links you can see have never been checked.
+            </a>
+          {% endif %}
+          {% if not (dashboard_dict.invitation_count or dashboard_dict.own_down_entry_list or dashboard_dict.unknown_count) %}
+            <div class="list-group-item text-secondary">{{ icon("check", "text-green") }} All good. Nothing needs your attention.</div>
+          {% endif %}
+        </div>
       </div>
     </div>
+    {% endif %}
 
-    <div class="col-sm-6 col-lg-3">
+    <div class="col-lg-7">
       <div class="card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="subheader">Aktivitas kamu</div>
-            <div class="ms-auto small text-secondary">7 hari terakhir</div>
-          </div>
-          <div class="h1 mb-3" data-count-up>{{ dashboard_dict.activity_count }}</div>
-          {{ bar_chart(dashboard_dict.activity_bar_list) }}
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("activity") }} Team Activity</h3>
+          {% if has_permission(current_user, PERMISSION_VIEW_AUDIT_LOGS) %}
+            <div class="card-actions"><a href="{{ url_for('audit.index') }}" class="btn btn-sm">{{ icon("audit") }} Audit Logs</a></div>
+          {% endif %}
         </div>
-      </div>
-    </div>
-
-    <div class="col-sm-6 col-lg-3">
-      <div class="card">
-        <div class="card-body">
-          <div class="subheader">Group</div>
-          <div class="h1 mb-0 stat-card-value">{{ dashboard_dict.group_list | length }}</div>
-          <div class="text-secondary mb-3">
-            {% if dashboard_dict.invitation_count %}{{ dashboard_dict.invitation_count }} undangan menunggu{% else %}Tidak ada undangan baru{% endif %}
+        {% if dashboard_dict.team_activity_list %}
+          <div class="list-group list-group-flush team-activity">
+            {% for activity in dashboard_dict.team_activity_list %}
+              <div class="list-group-item">
+                <div class="d-flex align-items-start gap-2">
+                  <span class="avatar avatar-sm bg-primary-lt flex-shrink-0">{{ activity.actor_name | initials }}</span>
+                  <div class="flex-fill team-activity-content">
+                    <div class="team-activity-summary">
+                      <strong>{{ activity.actor_name }}</strong> {{ activity.text }}{% if activity.title_text %}:
+                        {% if activity.entry_id %}<a href="{{ url_for('entries.detail', entry_id=activity.entry_id) }}">{{ activity.title_text }}</a>{% else %}<span class="text-secondary">{{ activity.title_text }}</span>{% endif %}
+                      {% endif %}
+                    </div>
+                    <div class="small text-secondary">
+                      {{ activity.created_at | time_ago }}
+                      {% if activity.is_admin_only %}<span class="badge bg-secondary-lt ms-1" title="Only admins see this">{{ icon("lock") }} Admin only</span>{% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
           </div>
-          <a href="{{ url_for('groups.index') }}" class="btn btn-sm w-100">{{ icon("group") }} Buka Groups</a>
+        {% else %}
+          <div class="card-body text-secondary">No team activity in the last {{ DASHBOARD_ACTIVITY_DAY_COUNT }} days.</div>
+        {% endif %}
+        <div class="card-footer small text-secondary">
+          Last {{ DASHBOARD_ACTIVITY_DAY_COUNT }} days. Repeated activity is grouped into one update per person and day.
+          {% if is_admin(current_user) %}Restricted activity is shown as an admin-only summary, without private link details.{% else %}Only public link and category updates are shared here.{% endif %}
         </div>
       </div>
     </div>
@@ -135,17 +249,17 @@
 
   <div class="card mb-3" id="kategori">
     <div class="card-header">
-      <h3 class="card-title">{{ icon("category") }} Kategori</h3>
+      <h3 class="card-title">{{ icon("category") }} Categories</h3>
       {% if has_permission(current_user, PERMISSION_MANAGE_CATEGORIES) %}
         <div class="card-actions">
-          <a href="{{ url_for('categories.index') }}" class="btn btn-sm">{{ icon("settings") }} Kelola</a>
+          <a href="{{ url_for('categories.index') }}" class="btn btn-sm">{{ icon("settings") }} Manage</a>
         </div>
       {% endif %}
     </div>
     {% if dashboard_dict.forum_row_list %}
       {{ category_forum(dashboard_dict.forum_row_list) }}
     {% else %}
-      <div class="card-body text-secondary">Belum ada kategori aktif.</div>
+      <div class="card-body text-secondary">No active categories yet.</div>
     {% endif %}
   </div>
 
@@ -153,7 +267,7 @@
     <div class="col-lg-6">
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">{{ icon("audit") }} Aktivitas Terakhir Kamu</h3>
+          <h3 class="card-title">{{ icon("audit") }} Your Recent Activity</h3>
         </div>
         {% if dashboard_dict.recent_activity_list %}
           <div class="list-group list-group-flush">
@@ -170,7 +284,7 @@
             {% endfor %}
           </div>
         {% else %}
-          <div class="card-body text-secondary">Belum ada aktivitas.</div>
+          <div class="card-body text-secondary">No activity yet.</div>
         {% endif %}
       </div>
     </div>
@@ -178,9 +292,9 @@
     <div class="col-lg-6">
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">{{ icon("group") }} Group Kamu</h3>
+          <h3 class="card-title">{{ icon("group") }} Your Groups</h3>
           <div class="card-actions">
-            <a href="{{ url_for('groups.create') }}" class="btn btn-sm">{{ icon("plus") }} Buat Group</a>
+            <a href="{{ url_for('groups.create') }}" class="btn btn-sm">{{ icon("plus") }} Create Group</a>
           </div>
         </div>
         {% if dashboard_dict.group_list %}
@@ -191,7 +305,7 @@
                   <div class="col-auto"><span class="avatar avatar-sm bg-primary-lt">{{ group.name | initials }}</span></div>
                   <div class="col text-truncate">
                     <div class="text-truncate">{{ group.name }}</div>
-                    <div class="small text-secondary">{{ dashboard_dict.active_member_count_dict.get(group.id, 0) }} anggota · {{ dashboard_dict.group_entry_count_dict.get(group.id, 0) }} link</div>
+                    <div class="small text-secondary">{{ dashboard_dict.active_member_count_dict.get(group.id, 0) }} members · {{ dashboard_dict.group_entry_count_dict.get(group.id, 0) }} links</div>
                   </div>
                   <div class="col-auto">{{ icon("chevron_right", "text-secondary") }}</div>
                 </div>
@@ -199,7 +313,7 @@
             {% endfor %}
           </div>
         {% else %}
-          <div class="card-body text-secondary">Kamu belum gabung group mana pun.</div>
+          <div class="card-body text-secondary">You haven't joined any group yet.</div>
         {% endif %}
       </div>
     </div>

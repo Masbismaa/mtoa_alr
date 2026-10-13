@@ -5,12 +5,15 @@ import ssl
 from email.message import EmailMessage
 from flask import current_app
 
-from app.utils.constants import OTP_DELIVERY_CONSOLE, OTP_EXPIRE_MINUTES, OTP_PURPOSE_LOGIN, OTP_PURPOSE_REGISTER
+from app.utils.constants import (
+    OTP_DELIVERY_CONSOLE, OTP_EXPIRE_MINUTES, OTP_PURPOSE_LOGIN, OTP_PURPOSE_REGISTER, OTP_PURPOSE_RESET,
+)
 
 # judul email per tujuan OTP (kodenya sama-sama dari tabel otp_codes)
 OTP_SUBJECT_DICT = {
-    OTP_PURPOSE_LOGIN: "Kode login ALR",
-    OTP_PURPOSE_REGISTER: "Kode verifikasi pendaftaran ALR",
+    OTP_PURPOSE_LOGIN: "ALR login code",
+    OTP_PURPOSE_REGISTER: "ALR registration verification code",
+    OTP_PURPOSE_RESET: "ALR password reset code",
 }
 
 def send_email(to_address, subject, body):
@@ -56,14 +59,23 @@ def send_email(to_address, subject, body):
 def send_otp_code(user, otp_code, purpose=OTP_PURPOSE_LOGIN):
     """Kirim kode OTP (login / verifikasi pendaftaran). `user` = User atau PendingRegistration, yg dipake cuma .email."""
     subject = OTP_SUBJECT_DICT[purpose]
-    send_email(user.email, subject, f"{subject}: {otp_code}\nBerlaku {OTP_EXPIRE_MINUTES} menit. Jangan bagikan kode ini.")
+    send_email(user.email, subject, f"{subject}: {otp_code}\nValid for {OTP_EXPIRE_MINUTES} minutes. Do not share this code.")
 
 def send_registration_notice(user):
     """Ada yg nyoba daftar pakai email yg udah punya akun. Pemiliknya dikabarin lewat email (bukan lewat layar,
     biar orang lain ga bisa ngecek email mana yg udah terdaftar)."""
     send_email(
         user.email,
-        "Percobaan pendaftaran ALR",
-        "Ada yang mencoba mendaftar di ALR memakai email ini, padahal kamu sudah punya akun.\n"
-        "Kalau itu kamu, langsung login saja. Kalau bukan, abaikan email ini; akunmu tidak berubah.",
+        "ALR registration attempt",
+        "Someone tried to register on ALR with this email, but you already have an account.\n"
+        "If that was you, just log in. If not, ignore this email; your account has not changed.",
+    )
+
+def send_password_changed_notice(user):
+    """Password akun baru aja diganti (lewat Settings / lupa password). Biar pemilik sadar kalau itu bukan dia."""
+    send_email(
+        user.email,
+        "ALR password changed",
+        "The password for your ALR account was just changed, and all other sessions were logged out.\n"
+        "If this wasn't you, contact the ICT admin right away.",
     )

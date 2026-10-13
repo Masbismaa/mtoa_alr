@@ -35,16 +35,16 @@ export default function ColumnMenu({ tableKey, columns, isHidden, onToggle, onRe
         type="button"
         className="btn btn-sm"
         aria-expanded={isOpen}
-        title="Atur kolom tabel"
+        title="Configure table columns"
         ref={buttonRef}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <Icon name="columns" /> Kolom
+        <Icon name="columns" /> Columns
       </button>
       {isOpen && (
         // class app-menu, BUKAN dropdown-menu: lihat komentar .app-menu di static/css/components/table.css
         <div className="app-menu app-menu-end table-column-menu">
-          <span className="dropdown-header">Tampilkan kolom</span>
+          <span className="dropdown-header">Show columns</span>
           {columns.filter((column) => column.is_hideable).map((column) => (
             <label className="dropdown-item" key={column.key}>
               <input
@@ -58,7 +58,7 @@ export default function ColumnMenu({ tableKey, columns, isHidden, onToggle, onRe
           ))}
           <div className="dropdown-divider" />
           <button type="button" className="dropdown-item" onClick={onReset}>
-            <Icon name="refresh" className="dropdown-item-icon" /> Kembalikan layout awal
+            <Icon name="refresh" className="dropdown-item-icon" /> Restore default layout
           </button>
           <div className={"dropdown-item-text small " + (saveStatus.isError ? "text-danger" : "text-secondary")} role="status">
             {saveStatus.text}

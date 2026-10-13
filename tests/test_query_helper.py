@@ -25,3 +25,14 @@ def test_build_selection_query_dict():
     """Positive: cuma kriteria yg dikenal & ga kosong yg dibawa ke link halaman berikutnya."""
     args = MultiDict([("q", "vpn"), ("title", "portal*"), ("title__not", ""), ("hack", "x")])
     assert build_selection_query_dict(args, [text_field("title", "Judul")]) == {"q": ["vpn"], "title": ["portal*"]}
+def test_parse_date_arg_extreme_dates_ignored():
+    """Negative (temuan audit): tahun 0001 / 9999 dianggap ga valid (diabaikan), biar ga OverflowError pas diubah ke UTC."""
+    assert parse_date_arg("9999-12-31") is None
+    assert parse_date_arg("0001-01-01") is None
+    assert parse_date_arg("1900-01-01") == date(1900, 1, 1)
+    assert parse_date_arg("2999-12-31") == date(2999, 12, 31)
+
+def test_extreme_date_filter_does_not_crash_page(admin_client):
+    """Negative (temuan audit): filter tanggal ekstrem di halaman Audit Logs -> halaman tetep kebuka (bukan error 500)."""
+    response = admin_client.get("/audit-logs/?run=1&date_from=0001-01-01&date_to=9999-12-31")
+    assert response.status_code == 200

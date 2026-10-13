@@ -118,7 +118,7 @@ def test_last_active_admin_cannot_be_demoted(app, admin_user):
     """Negative: admin aktif terakhir ga bisa diturunin lewat command."""
     with pytest.raises(ValidationError) as error:
         change_user_role(None, admin_user, ROLE_USER_ENTRY)
-    assert error.value.error_list == [{"field": "user", "message": "Minimal harus ada 1 admin aktif"}]
+    assert error.value.error_list == [{"field": "user", "message": "There must be at least 1 active admin"}]
     assert admin_user.role == ROLE_ADMIN
 
 def test_deactivated_user_cannot_login(app, admin_user, registered_user, user_password):
@@ -149,4 +149,4 @@ def test_unlock_not_locked_rejected(app, admin_user, registered_user):
     """Negative: akun yg ga kekunci ga bisa dibuka kuncinya."""
     with pytest.raises(ValidationError) as error:
         unlock_user(admin_user, registered_user)
-    assert error.value.error_list == [{"field": "user", "message": "Akun ini tidak sedang terkunci"}]
+    assert error.value.error_list == [{"field": "user", "message": "This account is not locked"}]

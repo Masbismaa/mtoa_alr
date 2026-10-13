@@ -23,6 +23,32 @@ OFFICE_CONTENT_TYPE_FILE = "[Content_Types].xml"
 
 UTF16_BOM_LIST = [b"\xff\xfe", b"\xfe\xff"]
 
+# batas isi zip Office (dicek dari header DAN pas dibaca beneran, soalnya header bisa dibohongin)
+MAX_ZIP_PART_BYTES = 10 * 1024 * 1024
+MAX_ZIP_TOTAL_BYTES = 50 * 1024 * 1024
+ZIP_READ_CHUNK_BYTES = 64 * 1024
+# Office cuma pake stored & deflate; metode lain (bzip2, lzma) ditolak biar ga ada jalur dekompresi aneh
+ALLOWED_ZIP_COMPRESS_TYPE_SET = {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}
+
+def read_zip_part(zip_file, name):
+    """Baca 1 isi zip sedikit-sedikit dgn batas ukuran NYATA. Angka ukuran di header zip bisa dipalsuin
+    (ngaku kecil padahal isinya ratusan MB) dan zip_file.read() langsung ngebuka semuanya ke RAM sebelum
+    ketauan, jadi di sini dibaca per 64 KB dan langsung ditolak begitu lewat batas."""
+    info = zip_file.getinfo(name)
+    limit = min(info.file_size, MAX_ZIP_PART_BYTES)
+    chunk_list = []
+    total = 0
+    with zip_file.open(info) as part_file:
+        while True:
+            chunk = part_file.read(ZIP_READ_CHUNK_BYTES)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > limit:
+                raise ValueError("isi zip lebih besar dari yang tertulis di header")
+            chunk_list.append(chunk)
+    return b"".join(chunk_list)
+
 def clean_display_filename(filename):
     """Nama file buat ditampilin: buang tag HTML dulu, baru buang path (..\\..\\)."""
     # tag HTML dibuang duluan, soalnya </b> juga ada garis miringnya
@@ -48,20 +74,21 @@ def is_valid_office_zip(content_bytes, extension):
             names = [info.filename for info in info_list]
             if len(names) > 2000 or len(names) != len(set(names)):
                 return False
-            if sum(info.file_size for info in info_list) > 50 * 1024 * 1024:
+            if sum(info.file_size for info in info_list) > MAX_ZIP_TOTAL_BYTES:
                 return False
             if not {OFFICE_CONTENT_TYPE_FILE, "_rels/.rels", main_part}.issubset(names):
                 return False
             for info in info_list:
                 name = info.filename.lower()
                 if (PurePosixPath(name).is_absolute() or ".." in PurePosixPath(name).parts or "\\" in name
-                        or info.flag_bits & 1 or info.file_size > 10 * 1024 * 1024
+                        or info.flag_bits & 1 or info.file_size > MAX_ZIP_PART_BYTES
                         or info.file_size > max(info.compress_size, 1) * 200
+                        or info.compress_type not in ALLOWED_ZIP_COMPRESS_TYPE_SET
                         or any(part in name for part in ("vbaproject", "/embeddings/", "/activex/"))):
                     return False
-            types_xml = zip_file.read(OFFICE_CONTENT_TYPE_FILE)
-            relations_xml = zip_file.read("_rels/.rels")
-            main_xml = zip_file.read(main_part)
+            types_xml = read_zip_part(zip_file, OFFICE_CONTENT_TYPE_FILE)
+            relations_xml = read_zip_part(zip_file, "_rels/.rels")
+            main_xml = read_zip_part(zip_file, main_part)
             for xml in (types_xml, relations_xml, main_xml):
                 if b"\0" in xml or b"<!DOCTYPE" in xml.upper() or b"<!ENTITY" in xml.upper():
                     return False
@@ -109,9 +136,9 @@ def detect_content_type(filename, content_bytes):
     """Cek file boleh diupload atau nggak. Return (ekstensi, content_type), lempar ValueError kalau ditolak."""
     extension = get_file_extension(filename)
     if extension not in ATTACHMENT_CONTENT_TYPE_BY_EXTENSION_DICT:
-        raise ValueError(f"tipe file tidak diizinkan (yang boleh: {', '.join(ATTACHMENT_EXTENSION_LIST)})")
+        raise ValueError(f"file type not allowed (allowed: {', '.join(ATTACHMENT_EXTENSION_LIST)})")
     if not content_bytes:
-        raise ValueError("file kosong")
+        raise ValueError("empty file")
 
     if extension in SIGNATURE_BY_EXTENSION_DICT:
         is_valid = any(content_bytes.startswith(signature) for signature in SIGNATURE_BY_EXTENSION_DICT[extension])
@@ -121,5 +148,5 @@ def detect_content_type(filename, content_bytes):
         is_valid = is_valid_text(content_bytes)
 
     if not is_valid:
-        raise ValueError(f"isi file tidak sesuai dengan ekstensi .{extension} (atau berisi makro)")
+        raise ValueError(f"file content doesn't match the .{extension} extension (or contains macros)")
     return extension, ATTACHMENT_CONTENT_TYPE_BY_EXTENSION_DICT[extension]

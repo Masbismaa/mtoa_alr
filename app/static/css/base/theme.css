@@ -73,8 +73,14 @@ body {
   animation-timing-function: ease;
 }
 
-/* Sakelar siang/malam: seluruh ilustrasi berada di dalam tombol. */
+/* Sakelar siang/malam: seluruh ilustrasi berada di dalam tombol.
+   ukuran & gerak dicontoh dari "Dark Mode Toggle Button" hellocode: pil 2,65:1, bulatan 60% tinggi pil,
+   pindah mode = bulatan geser + pemandangan crossfade 0,5 detik (ease) */
 .theme-toggle {
+  --theme-toggle-height: 2.075rem;
+  --theme-toggle-thumb: 1.25rem;
+  /* jarak bulatan ke tepi dalam pil (atas = bawah = samping) */
+  --theme-toggle-gap: calc((var(--theme-toggle-height) - 4px - var(--theme-toggle-thumb)) / 2);
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -90,15 +96,19 @@ body {
   vertical-align: middle;
   -webkit-tap-highlight-color: transparent;
 }
+/* tombol di title bar ga ikut di-crossfade View Transition (ui_preference.js), biar animasinya sendiri yg kelihatan.
+   cuma yg di title bar: nama ini harus unik, versi HP juga punya tombol di sidebar */
+.app-topbar .theme-toggle { view-transition-name: theme-toggle; }
+::view-transition-old(theme-toggle) { display: none; }
+::view-transition-new(theme-toggle) { animation: none; }
 .theme-toggle-scene {
   position: relative;
   display: block;
   width: 100%;
-  height: 2.125rem;
+  height: var(--theme-toggle-height);
   overflow: hidden;
-  border: 2px solid #b5def0;
+  border: 2px solid rgb(90 79 136 / .2);
   border-radius: inherit;
-  box-shadow: 0 0 8px #83d9ed55, inset 0 1px 3px #20344733;
   isolation: isolate;
 }
 .theme-toggle-day,
@@ -106,95 +116,90 @@ body {
   position: absolute;
   inset: 0;
 }
-.theme-toggle-day { background: linear-gradient(#79c9ed, #ddf7fc); }
+.theme-toggle-day { background: linear-gradient(#99d3fd, #b8e9fd 55%, #eef6ec 75%); }
 .theme-toggle-night {
   opacity: 0;
-  transform: translateY(-15%);
-  background: linear-gradient(#172d67, #5e5895);
+  background: linear-gradient(#2c3a80, #374387 55%, #4a4589 78%);
 }
 .theme-toggle-landscape { position: absolute; inset: 0; width: 100%; height: 100%; }
-.theme-toggle-sun,
-.theme-toggle-moon { position: absolute; display: grid; place-items: center; }
-.theme-toggle-sun { top: 2px; right: 16px; color: #ffdb70; }
-.theme-toggle-moon { top: 5px; left: 40px; color: #f2f4c4; }
-.theme-toggle .theme-toggle-sun .icon,
-.theme-toggle .theme-toggle-moon .icon { width: 10px; height: 10px; margin: 0; }
+.theme-toggle-moon { filter: drop-shadow(0 0 2px #f4f1c4b3); }
 .theme-toggle-thumb {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 26px;
-  height: 26px;
+  top: var(--theme-toggle-gap);
+  left: var(--theme-toggle-gap);
+  width: var(--theme-toggle-thumb);
+  height: var(--theme-toggle-thumb);
   border-radius: 50%;
-  background: #fffdf5;
-  box-shadow: 0 1px 4px #20344740, 0 0 0 2px #ffffff40;
+  background: #f7f7f7;
+  /* cincin transparan di sekeliling bulatan */
+  box-shadow: 0 0 0 2px rgb(90 79 136 / .2);
 }
-[data-bs-theme="dark"] .theme-toggle-scene {
-  border-color: #4e5183;
-  box-shadow: 0 0 8px #7773c033, inset 0 1px 3px #0c183a66;
-}
-[data-bs-theme="dark"] .theme-toggle-day { opacity: 0; transform: translateY(15%); }
-[data-bs-theme="dark"] .theme-toggle-night { opacity: 1; transform: translateY(0); }
+[data-bs-theme="dark"] .theme-toggle-day { opacity: 0; }
+[data-bs-theme="dark"] .theme-toggle-night { opacity: 1; }
 [data-bs-theme="dark"] .theme-toggle-thumb {
-  transform: translateX(54px);
-  background: #a5a4d0;
-  box-shadow: 0 1px 4px #101c4d66, 0 0 0 2px #c6c5eb33;
+  left: calc(100% - var(--theme-toggle-gap) - var(--theme-toggle-thumb));
+  background: #777ba5;
 }
-.is-ready .theme-toggle-scene,
 .is-ready .theme-toggle-day,
-.is-ready .theme-toggle-night,
-.is-ready .theme-toggle-thumb {
-  transition: transform 560ms cubic-bezier(.22, .8, .25, 1), opacity 400ms ease, background 560ms ease, border-color 560ms ease, box-shadow 560ms ease;
-}
+.is-ready .theme-toggle-night { transition: opacity 500ms ease; }
+.is-ready .theme-toggle-thumb { transition: left 500ms ease, background-color 500ms ease; }
 .theme-toggle:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 3px; }
 .theme-toggle:disabled { cursor: wait; }
 
-/* Gerakan latar hanya aktif pada pemandangan yang sedang ditampilkan. */
-.theme-toggle-clouds { animation: theme-toggle-cloud-drift 8s ease-in-out infinite alternate; }
+/* Gerakan latar hanya aktif pada pemandangan yang sedang ditampilkan.
+   durasi tiap lapisan dibikin beda biar ga gerak barengan (itu yg bikin kesannya kaku) */
+.theme-toggle-cloud-near { animation: theme-toggle-cloud-drift 7s ease-in-out infinite alternate; }
+.theme-toggle-cloud-far { animation: theme-toggle-cloud-drift 11s ease-in-out -4s infinite alternate-reverse; }
 .theme-toggle-waves { animation: theme-toggle-wave-drift 3s ease-in-out infinite alternate; }
+.theme-toggle-waves-back { animation: theme-toggle-wave-drift 4.2s ease-in-out -1s infinite alternate-reverse; }
 .theme-toggle-boat {
   transform-box: fill-box;
   transform-origin: center bottom;
   animation: theme-toggle-boat-float 3s ease-in-out infinite;
 }
-.theme-toggle-stars { animation: theme-toggle-star-glow 4s ease-in-out infinite alternate; }
-.theme-toggle-comet { animation: theme-toggle-comet-pass 7s linear infinite; }
+.theme-toggle-stars circle { animation: theme-toggle-star-twinkle 2.6s ease-in-out infinite alternate; }
+.theme-toggle-stars circle:nth-child(2) { animation-delay: -.6s; animation-duration: 3.1s; }
+.theme-toggle-stars circle:nth-child(3) { animation-delay: -1.4s; animation-duration: 2.2s; }
+.theme-toggle-stars circle:nth-child(4) { animation-delay: -2s; animation-duration: 3.4s; }
+.theme-toggle-stars circle:nth-child(5) { animation-delay: -.9s; animation-duration: 2.8s; }
+/* sorot mercusuar nyapu pelan, porosnya di lampu */
 .theme-toggle-beam {
-  transform-origin: 34px 20px;
-  animation: theme-toggle-beam-sweep 5s ease-in-out infinite alternate;
+  transform-origin: 78px 4.2px;
+  filter: blur(.5px);
+  animation: theme-toggle-beam-sweep 4s ease-in-out infinite alternate;
 }
-.theme-toggle .theme-toggle-motion { animation-play-state: paused; }
+.theme-toggle .theme-toggle-motion,
+.theme-toggle .theme-toggle-motion * { animation-play-state: paused; }
 .is-ready .theme-toggle-day .theme-toggle-motion { animation-play-state: running; }
 [data-bs-theme="dark"].is-ready .theme-toggle-day .theme-toggle-motion { animation-play-state: paused; }
-[data-bs-theme="dark"].is-ready .theme-toggle-night .theme-toggle-motion { animation-play-state: running; }
+[data-bs-theme="dark"].is-ready .theme-toggle-night .theme-toggle-motion,
+[data-bs-theme="dark"].is-ready .theme-toggle-night .theme-toggle-motion * { animation-play-state: running; }
 @keyframes theme-toggle-cloud-drift {
-  from { transform: translateX(-5px); }
-  to { transform: translateX(7px); }
+  from { transform: translateX(-6px); }
+  to { transform: translateX(8px); }
 }
 @keyframes theme-toggle-wave-drift {
-  from { transform: translate(-3px, 0); }
-  to { transform: translate(3px, 1px); }
+  from { transform: translate(-4px, 0); }
+  to { transform: translate(4px, 1px); }
 }
+/* goyang perahu ikut irama ombak (sama-sama 3 detik) */
 @keyframes theme-toggle-boat-float {
-  0%, 100% { transform: translateY(0) rotate(-3deg); }
-  50% { transform: translateY(-1.5px) rotate(3deg); }
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  25% { transform: translateY(-.6px) rotate(0deg); }
+  50% { transform: translateY(-1px) rotate(1.5deg); }
+  75% { transform: translateY(-.3px) rotate(0deg); }
 }
-@keyframes theme-toggle-star-glow {
-  from { opacity: .35; }
+@keyframes theme-toggle-star-twinkle {
+  from { opacity: .2; }
   to { opacity: 1; }
 }
-@keyframes theme-toggle-comet-pass {
-  0%, 60%, 100% { opacity: 0; transform: translate(-16px, -4px); }
-  65% { opacity: .85; transform: translate(-12px, -3px); }
-  85% { opacity: 0; transform: translate(20px, 6px); }
-}
 @keyframes theme-toggle-beam-sweep {
-  from { transform: rotate(-12deg); opacity: .1; }
-  to { transform: rotate(12deg); opacity: .3; }
+  from { transform: rotate(-4deg); opacity: .6; }
+  to { transform: rotate(5deg); opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .theme-toggle .theme-toggle-motion { animation: none; }
-  .is-ready .theme-toggle-scene,
+  .theme-toggle .theme-toggle-motion,
+  .theme-toggle .theme-toggle-motion * { animation: none; }
   .is-ready .theme-toggle-day,
   .is-ready .theme-toggle-night,
   .is-ready .theme-toggle-thumb { transition: none; }
