@@ -1,3 +1,8 @@
+<p align="center">
+  <a href="README.md"><img src="https://img.shields.io/badge/English-1f6feb?style=for-the-badge" alt="English (selected)"></a>
+  <a href="README.id.md"><img src="https://img.shields.io/badge/Bahasa%20Indonesia-30363d?style=for-the-badge" alt="Bahasa Indonesia"></a>
+</p>
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.svg">
   <img alt="Access Link Register" src="assets/banner-light.svg" width="100%">
@@ -6,18 +11,19 @@
 <h1 align="center">Access Link Register</h1>
 
 <p align="center">
-  A web app for an ICT team to store, find, and share the links, servers, and access notes they use every day.<br>
-  Encrypted, permission-aware, fully audited, and driven by the keyboard like SAP GUI.
+  A secure internal web application for managing and sharing access information across an ICT team.<br>
+  Encrypted at rest, permission-aware, fully audited, and built for keyboard-driven workflows inspired by SAP GUI.
 </p>
 
 <p align="center">
+  <a href="#overview">Overview</a> &nbsp;·&nbsp;
   <a href="#screenshots">Screenshots</a> &nbsp;·&nbsp;
   <a href="#features">Features</a> &nbsp;·&nbsp;
-  <a href="#roles-and-permissions">Roles</a> &nbsp;·&nbsp;
-  <a href="#how-it-works">How it works</a> &nbsp;·&nbsp;
+  <a href="#access-control">Access Control</a> &nbsp;·&nbsp;
+  <a href="#architecture">Architecture</a> &nbsp;·&nbsp;
   <a href="#security">Security</a> &nbsp;·&nbsp;
-  <a href="#testing">Testing</a> &nbsp;·&nbsp;
-  <a href="#running-locally">Run it</a>
+  <a href="#quality-assurance">Quality</a> &nbsp;·&nbsp;
+  <a href="#getting-started">Getting Started</a>
 </p>
 
 <p align="center">
@@ -25,154 +31,175 @@
 </p>
 
 > [!NOTE]
-> Built for an internal team and published as a portfolio project with permission. No company data, credentials, or infrastructure details are included. All screenshots use demo data.
+> This system was developed for internal use and is published as a portfolio project with the organization's permission. The repository contains no organizational data, credentials, or infrastructure details. All screenshots use synthetic demo data.
 
 <br>
 
-## At a glance
+## Overview
+
+Access Link Register (ALR) is the single source of truth for the access information an ICT team relies on daily: application URLs, server and network device addresses, and the credentials or instructions required to reach them.
+
+The application is designed around three principles:
+
+| Principle | Implementation |
+|---|---|
+| **Confidentiality** | Credentials are encrypted at rest, never embedded in page markup, and revealed only on explicit request |
+| **Accountability** | Every change, sign-in, export, and credential reveal is recorded in an append-only audit log |
+| **Efficiency** | SAP GUI conventions (function keys, selection screens, variants, ALV tables) for users who work in ERP systems every day |
 
 <div align="center">
 
 | 16 | 67 | 18 | 25 | 770+ |
 |:---:|:---:|:---:|:---:|:---:|
-| screens | routes | database tables | migrations | automated tests |
+| screens | HTTP endpoints | database tables | schema migrations | automated tests |
 
 </div>
+
+### Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | Python 3.13, Flask 3.1, SQLAlchemy 2.0, Alembic |
+| Database | PostgreSQL 17 |
+| Frontend | Jinja templates, Tabler UI, React 19 island built with Vite |
+| Security | Argon2id, Fernet (AES), Flask-WTF CSRF, Flask-Limiter with Redis, nh3 sanitizer |
+| Documents | openpyxl with defusedxml for Excel import and export |
+| Testing | pytest, Vitest, Testing Library, headless Chrome via the DevTools Protocol |
 
 <br>
 
 ## Screenshots
 
-Click a group to open it. Images follow your GitHub theme (light or dark).
+Select a group to expand it. Images adapt to the active GitHub theme.
 
 <details open>
-<summary><b>Dashboards</b> &nbsp;·&nbsp; Each role sees a different home screen.</summary>
+<summary><b>Dashboards</b> &nbsp;·&nbsp; A dedicated home screen for each role.</summary>
 <br>
 <table>
   <tr>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/dashboard-admin-dark.png">
-        <img src="assets/dashboard-admin-light.png" alt="Admin: System overview, admin to-do list, full team activity" width="100%">
+        <img src="assets/dashboard-admin-light.png" alt="Administrator: System overview, administrative tasks, and complete team activity" width="100%">
       </picture>
-      <p align="center"><b>Admin</b><br><sub>System overview, admin to-do list, full team activity</sub></p>
+      <p align="center"><b>Administrator</b><br><sub>System overview, administrative tasks, and complete team activity</sub></p>
     </td>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/dashboard-access-dark.png">
-        <img src="assets/dashboard-access-light.png" alt="User with access: Personal counts and one panel per granted permission" width="100%">
+        <img src="assets/dashboard-access-light.png" alt="User with Access: Personal metrics and one panel for each granted permission" width="100%">
       </picture>
-      <p align="center"><b>User with access</b><br><sub>Personal counts and one panel per granted permission</sub></p>
+      <p align="center"><b>User with Access</b><br><sub>Personal metrics and one panel for each granted permission</sub></p>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/dashboard-entry-dark.png">
-        <img src="assets/dashboard-entry-light.png" alt="User Entry: Personal counts and a getting-started guide" width="100%">
+        <img src="assets/dashboard-entry-light.png" alt="User Entry: Personal metrics and an onboarding guide" width="100%">
       </picture>
-      <p align="center"><b>User Entry</b><br><sub>Personal counts and a getting-started guide</sub></p>
+      <p align="center"><b>User Entry</b><br><sub>Personal metrics and an onboarding guide</sub></p>
     </td>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/login-dark.png">
-        <img src="assets/login-light.png" alt="Login: Step 1 of 2: password, then a one-time code" width="100%">
+        <img src="assets/login-light.png" alt="Sign In: Step 1 of 2: password verification before the one-time code" width="100%">
       </picture>
-      <p align="center"><b>Login</b><br><sub>Step 1 of 2: password, then a one-time code</sub></p>
+      <p align="center"><b>Sign In</b><br><sub>Step 1 of 2: password verification before the one-time code</sub></p>
     </td>
   </tr>
 </table>
 </details>
 
 <details>
-<summary><b>Working with links</b> &nbsp;·&nbsp; Search, read, add, and import links.</summary>
+<summary><b>Link Management</b> &nbsp;·&nbsp; Search, review, create, and import records.</summary>
 <br>
 <table>
   <tr>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/links-dark.png">
-        <img src="assets/links-light.png" alt="Link List: ALV-like table: filters, status, copy buttons, bulk select" width="100%">
+        <img src="assets/links-light.png" alt="Link List: ALV-style table with filters, status, copy actions, and bulk selection" width="100%">
       </picture>
-      <p align="center"><b>Link List</b><br><sub>ALV-like table: filters, status, copy buttons, bulk select</sub></p>
+      <p align="center"><b>Link List</b><br><sub>ALV-style table with filters, status, copy actions, and bulk selection</sub></p>
     </td>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/detail-dark.png">
-        <img src="assets/detail-light.png" alt="Link Detail: Masked access note, link status, change history" width="100%">
+        <img src="assets/detail-light.png" alt="Link Detail: Masked access note, availability status, and change history" width="100%">
       </picture>
-      <p align="center"><b>Link Detail</b><br><sub>Masked access note, link status, change history</sub></p>
+      <p align="center"><b>Link Detail</b><br><sub>Masked access note, availability status, and change history</sub></p>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/form-dark.png">
-        <img src="assets/form-light.png" alt="Add Link: Cascading category selects and visibility choice" width="100%">
+        <img src="assets/form-light.png" alt="Create Link: Cascading category selection and visibility settings" width="100%">
       </picture>
-      <p align="center"><b>Add Link</b><br><sub>Cascading category selects and visibility choice</sub></p>
+      <p align="center"><b>Create Link</b><br><sub>Cascading category selection and visibility settings</sub></p>
     </td>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/import-dark.png">
-        <img src="assets/import-light.png" alt="Import from Excel: Template download and all-or-nothing upload" width="100%">
+        <img src="assets/import-light.png" alt="Excel Import: Template download and transactional upload" width="100%">
       </picture>
-      <p align="center"><b>Import from Excel</b><br><sub>Template download and all-or-nothing upload</sub></p>
+      <p align="center"><b>Excel Import</b><br><sub>Template download and transactional upload</sub></p>
     </td>
   </tr>
 </table>
 </details>
 
 <details>
-<summary><b>Administration</b> &nbsp;·&nbsp; Screens for admins and users with extra access.</summary>
+<summary><b>Administration</b> &nbsp;·&nbsp; Screens for administrators and delegated users.</summary>
 <br>
 <table>
   <tr>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/users-dark.png">
-        <img src="assets/users-light.png" alt="Users: Selection screen, status, roles, and actions" width="100%">
+        <img src="assets/users-light.png" alt="User Management: Selection screen, account status, roles, and actions" width="100%">
       </picture>
-      <p align="center"><b>Users</b><br><sub>Selection screen, status, roles, and actions</sub></p>
+      <p align="center"><b>User Management</b><br><sub>Selection screen, account status, roles, and actions</sub></p>
     </td>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/user-access-dark.png">
-        <img src="assets/user-access-light.png" alt="Change User Access: Grant or revoke extra permissions" width="100%">
+        <img src="assets/user-access-light.png" alt="Access Assignment: Grant or revoke delegated permissions" width="100%">
       </picture>
-      <p align="center"><b>Change User Access</b><br><sub>Grant or revoke extra permissions</sub></p>
+      <p align="center"><b>Access Assignment</b><br><sub>Grant or revoke delegated permissions</sub></p>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/categories-dark.png">
-        <img src="assets/categories-light.png" alt="Categories: Up to 4 levels, built-in and custom categories" width="100%">
+        <img src="assets/categories-light.png" alt="Category Management: Up to four levels with built-in and custom categories" width="100%">
       </picture>
-      <p align="center"><b>Categories</b><br><sub>Up to 4 levels, built-in and custom categories</sub></p>
+      <p align="center"><b>Category Management</b><br><sub>Up to four levels with built-in and custom categories</sub></p>
     </td>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/monitoring-dark.png">
-        <img src="assets/monitoring-light.png" alt="Link Monitoring: Queue a check and follow its progress" width="100%">
+        <img src="assets/monitoring-light.png" alt="Link Monitoring: Queue an availability check and track its progress" width="100%">
       </picture>
-      <p align="center"><b>Link Monitoring</b><br><sub>Queue a check and follow its progress</sub></p>
+      <p align="center"><b>Link Monitoring</b><br><sub>Queue an availability check and track its progress</sub></p>
     </td>
   </tr>
 </table>
 </details>
 
 <details>
-<summary><b>Collaboration and account</b> &nbsp;·&nbsp; Audit trail, groups, settings, and help.</summary>
+<summary><b>Collaboration and Account</b> &nbsp;·&nbsp; Audit trail, groups, settings, and help.</summary>
 <br>
 <table>
   <tr>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/audit-dark.png">
-        <img src="assets/audit-light.png" alt="Audit Logs: Read-only record of every change, login, and password reveal" width="100%">
+        <img src="assets/audit-light.png" alt="Audit Logs: Immutable record of changes, sign-ins, and credential reveals" width="100%">
       </picture>
-      <p align="center"><b>Audit Logs</b><br><sub>Read-only record of every change, login, and password reveal</sub></p>
+      <p align="center"><b>Audit Logs</b><br><sub>Immutable record of changes, sign-ins, and credential reveals</sub></p>
     </td>
     <td width="50%" valign="top">
       <picture>
@@ -186,16 +213,16 @@ Click a group to open it. Images follow your GitHub theme (light or dark).
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/settings-dark.png">
-        <img src="assets/settings-light.png" alt="Settings: Edit profile and change password" width="100%">
+        <img src="assets/settings-light.png" alt="Settings: Profile maintenance and password change" width="100%">
       </picture>
-      <p align="center"><b>Settings</b><br><sub>Edit profile and change password</sub></p>
+      <p align="center"><b>Settings</b><br><sub>Profile maintenance and password change</sub></p>
     </td>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/help-dark.png">
-        <img src="assets/help-light.png" alt="Help (F1): Screen help and the full keyboard shortcut list" width="100%">
+        <img src="assets/help-light.png" alt="Help (F1): Context help and the complete keyboard reference" width="100%">
       </picture>
-      <p align="center"><b>Help (F1)</b><br><sub>Screen help and the full keyboard shortcut list</sub></p>
+      <p align="center"><b>Help (F1)</b><br><sub>Context help and the complete keyboard reference</sub></p>
     </td>
   </tr>
 </table>
@@ -205,139 +232,139 @@ Click a group to open it. Images follow your GitHub theme (light or dark).
 
 ## Features
 
-Each module below opens to show what it does.
+Expand a module to view its capabilities.
 
 <details>
-<summary><b>Links</b> &nbsp;·&nbsp; the core register</summary>
+<summary><b>Link Register</b> &nbsp;·&nbsp; the core record</summary>
 <br>
 
-| Capability | Details |
+| Capability | Description |
 |---|---|
-| Link types | A URL, a host or IP with a port, or a written guide with up to 10 custom fields |
-| Categories | Up to 4 levels (for example Web › ERP), picked with cascading selects |
-| Visibility | Private (owner only) or Public (everyone can view and copy, read-only) |
-| Access note | Password or access hint, encrypted in the database and hidden until revealed |
-| Attachments | Up to 5 files per link: images, PDF, Excel, Word, text |
-| Favorites | Star a link; filter the list to favorites only |
-| History | Who created, changed, or revealed the password of a link, and when |
-| Import | Excel template with dropdowns; every row is checked and saved all-or-nothing |
-| Export | Excel file of the current search, with a summary sheet |
+| Record types | URL, host or IP address with port, or a structured guide with up to ten custom fields |
+| Categorization | Hierarchical categories up to four levels deep (for example, Web › ERP), selected through cascading inputs |
+| Visibility | Private (owner only) or Public (all users, read-only) |
+| Access note | Encrypted in the database and masked until a user explicitly reveals it |
+| Attachments | Up to five files per record: images, PDF, Excel, Word, and plain text |
+| Favorites | Bookmark records and filter the list to favorites only |
+| History | Chronological record of creation, modification, and credential reveals per link |
+| Import | Excel template with validated dropdowns; rows are processed in a single all-or-nothing transaction |
+| Export | Excel workbook of the current search result, including a summary sheet |
 
 </details>
 
 <details>
-<summary><b>SAP GUI style screens</b> &nbsp;·&nbsp; familiar for ERP users</summary>
+<summary><b>SAP GUI Conventions</b> &nbsp;·&nbsp; familiar to ERP users</summary>
 <br>
 
-| Element | Details |
+| Element | Description |
 |---|---|
-| Toolbar | Back, Exit, Cancel, Save, and Help always in the same place; unused buttons are disabled |
-| Function keys | Every toolbar button has a key (see [Keyboard shortcuts](#keyboard-shortcuts)) |
-| Selection screen | Search criteria with wildcards (`ad*`, `*ad`, `*ad*`) and multiple values per field |
-| Variants | Save a set of criteria under a name and load it again later |
-| ALV-like table | Sort, filter per column, resize and hide columns (saved per user), active row, right-click menu |
-| Status bar | Last message with history, screen mode, environment, user, and clock |
+| Application toolbar | Back, Exit, Cancel, Save, and Help in fixed positions; unavailable actions are disabled |
+| Function keys | Every toolbar action is bound to a key (see [Keyboard Reference](#keyboard-reference)) |
+| Selection screen | Search criteria with wildcard patterns (`ad*`, `*ad`, `*ad*`) and multiple values per field |
+| Variants | Named, reusable sets of selection criteria per screen |
+| ALV-style table | Sorting, per-column filters, adjustable and hideable columns persisted per user, active row, context menu |
+| Status bar | Message history, screen mode, environment, current user, and clock |
 
 </details>
 
 <details>
-<summary><b>Dashboards</b> &nbsp;·&nbsp; different for each role</summary>
+<summary><b>Role-Based Dashboards</b> &nbsp;·&nbsp; tailored to each role</summary>
 <br>
 
-| Role | What the dashboard shows |
+| Role | Dashboard Content |
 |---|---|
-| Admin | Users, locked and inactive accounts, link status, last check time, and an admin to-do list |
-| User with access | Personal counts plus one work panel for each permission an admin granted |
-| User Entry | Personal counts, links that need attention, and a getting-started guide for new users |
+| Administrator | User totals, locked and inactive accounts, link availability, last check time, and an administrative task list |
+| User with Access | Personal metrics and a dedicated panel for each delegated permission |
+| User Entry | Personal metrics, items requiring attention, and an onboarding guide |
 
-All roles also see a **team activity feed**. Repeated actions are grouped into one line per person per day ("Rina added 6 public links"), so the feed does not turn into noise. Only public activity is shown to regular users; account and security events are visible to admins only.
-
-</details>
-
-<details>
-<summary><b>Groups</b> &nbsp;·&nbsp; sharing with specific people</summary>
-<br>
-
-- Create a group, invite members by email, members accept or decline
-- Share your own or public links into the group
-- Limit a shared link to selected members only
-- The owner decides which members may add links
+Every role includes a **team activity feed**. Repeated actions are consolidated into a single entry per person per day to keep the feed concise. Regular users see public activity only; account and security events are restricted to administrators.
 
 </details>
 
 <details>
-<summary><b>Link monitoring</b> &nbsp;·&nbsp; is it up or down?</summary>
+<summary><b>Groups</b> &nbsp;·&nbsp; controlled sharing</summary>
 <br>
 
-- An admin starts a check from the web page; a separate worker process does the work
-- Progress updates live on the page; results show as Up, Down, or Not checked everywhere in the app
-- Every target, including each redirect, is checked against a block list of private, loopback, and cloud metadata addresses
+- Create groups and invite members by email; invitations can be accepted or declined
+- Share owned or public links with a group
+- Restrict an individual shared link to selected members
+- Group owners decide which members may contribute links
 
 </details>
 
 <details>
-<summary><b>Account</b> &nbsp;·&nbsp; sign-in and personal settings</summary>
+<summary><b>Link Monitoring</b> &nbsp;·&nbsp; availability checks</summary>
 <br>
 
-- Register with a company email and confirm it with a code
-- Two-step login: password, then a one-time code sent by email
-- Forgot password, change password, and edit profile
-- Notification bell for access changes, blocked logins, and password changes
-- Light and dark theme with an animated switch, accent colors, fonts, and compact mode
+- Administrators queue a check from the web interface; a dedicated worker process executes it
+- Progress is reported in real time; results appear as Up, Down, or Not Checked throughout the application
+- Every target, including each redirect hop, is validated against private, loopback, and cloud metadata address ranges
+
+</details>
+
+<details>
+<summary><b>Account and Identity</b> &nbsp;·&nbsp; authentication and preferences</summary>
+<br>
+
+- Self-registration restricted to the corporate email domain, confirmed by a verification code
+- Two-step sign-in: password followed by a one-time code delivered by email
+- Password recovery, password change, and profile maintenance
+- In-app notifications for permission changes, blocked sign-in attempts, and password changes
+- Light and dark themes, accent colors, font selection, and a compact layout
 
 </details>
 
 <br>
 
-## Roles and permissions
+## Access Control
 
-There are two roles. An admin can grant a regular user extra permissions, which gives the "User with access" experience.
+The system defines two roles. Administrators may delegate selected permissions to regular users, resulting in the *User with Access* profile.
 
 <div align="center">
 
-| Action | User Entry | User with access | Admin |
+| Action | User Entry | User with Access | Administrator |
 |---|:---:|:---:|:---:|
-| Add, edit, and delete own links | ✓ | ✓ | ✓ |
+| Create, edit, and delete own links | ✓ | ✓ | ✓ |
 | View and copy public links | ✓ | ✓ | ✓ |
-| View other people's private links | – | – | – |
+| View other users' private links | – | – | – |
 | Create groups and share links | ✓ | ✓ | ✓ |
-| Import and export Excel | ✓ | ✓ | ✓ |
+| Import and export Excel files | ✓ | ✓ | ✓ |
 | Manage categories | – | if granted | ✓ |
-| Edit or delete other people's public links | – | if granted | ✓ |
+| Edit or delete other users' public links | – | if granted | ✓ |
 | View audit logs | – | if granted | ✓ |
-| Manage users and grant access | – | – | ✓ |
+| Manage users and delegate permissions | – | – | ✓ |
 | Run link monitoring | – | – | ✓ |
-| Delete many links at once | – | – | ✓ |
+| Delete links in bulk | – | – | ✓ |
 
 </div>
 
-Private links stay private for everyone, admins included. Admin accounts can only be created from the command line.
+Private links remain private to their owner, including from administrators. Administrator accounts can only be provisioned through the command line.
 
 <br>
 
-## Keyboard shortcuts
+## Keyboard Reference
 
 <div align="center">
 
 | Key | Action | Key | Action |
 |:---:|---|:---:|---|
-| <kbd>F3</kbd> | Back | <kbd>F1</kbd> | Help for this screen |
-| <kbd>Shift</kbd> + <kbd>F3</kbd> | Exit to Dashboard | <kbd>/</kbd> | Jump to quick search |
-| <kbd>F12</kbd> | Cancel changes | <kbd>↑</kbd> <kbd>↓</kbd> | Move the active table row |
-| <kbd>Ctrl</kbd> + <kbd>S</kbd> | Save | <kbd>Enter</kbd> | Open the active row |
-| <kbd>F8</kbd> | Execute search | <kbd>Shift</kbd> + <kbd>F10</kbd> | Row menu |
+| <kbd>F3</kbd> | Back | <kbd>F1</kbd> | Context help |
+| <kbd>Shift</kbd> + <kbd>F3</kbd> | Exit to dashboard | <kbd>/</kbd> | Focus quick search |
+| <kbd>F12</kbd> | Cancel changes | <kbd>↑</kbd> <kbd>↓</kbd> | Move active table row |
+| <kbd>Ctrl</kbd> + <kbd>S</kbd> | Save | <kbd>Enter</kbd> | Open active row |
+| <kbd>F8</kbd> | Execute selection | <kbd>Shift</kbd> + <kbd>F10</kbd> | Row context menu |
 | <kbd>Shift</kbd> + <kbd>F2</kbd> | Delete | <kbd>Esc</kbd> | Close dialog or menu |
 
 </div>
 
 <br>
 
-## How it works
+## Architecture
 
-Each diagram opens on click. GitHub renders them, and you can zoom and pan.
+Expand a diagram to view it. GitHub renders each diagram with zoom and pan controls.
 
 <details>
-<summary><b>Architecture</b></summary>
+<summary><b>System Context</b></summary>
 <br>
 
 ```mermaid
@@ -345,53 +372,53 @@ flowchart LR
     subgraph Client
         B[Browser<br/>Jinja pages + Tabler<br/>React table island]
     end
-    subgraph Server
-        W[Flask web app]
-        K[Monitor worker]
+    subgraph Application
+        W[Flask web application]
+        K[Monitoring worker]
     end
     subgraph Storage
         DB[(PostgreSQL)]
         R[(Redis<br/>rate limits)]
-        F[/Attachment files/]
+        F[/Attachment storage/]
     end
     B -->|HTTPS| W
     W --> DB
     W --> R
     W --> F
-    W -->|OTP and notices| M[SMTP]
+    W -->|codes and notices| M[SMTP]
     K -->|claims queued run| DB
-    K -->|HEAD / GET| T((Checked links))
+    K -->|HEAD / GET| T((Monitored targets))
 ```
 
-The web app and the worker are separate processes that only talk through the database, so a long check never blocks a web request.
+The web application and the monitoring worker run as independent processes and coordinate exclusively through the database, so long-running checks never occupy a web request.
 
 </details>
 
 <details>
-<summary><b>Code layers</b></summary>
+<summary><b>Application Layers</b></summary>
 <br>
 
 ```mermaid
 flowchart TB
-    R[Routes<br/>request, form, redirect] --> S[Services<br/>business rules, transactions, audit]
-    S --> P[Security<br/>access policy, throttling, file and URL checks, encryption]
-    S --> M[Models<br/>SQLAlchemy tables]
+    R[Routes<br/>request handling, forms, redirects] --> S[Services<br/>business rules, transactions, auditing]
+    S --> P[Security<br/>access policy, throttling, file and URL validation, encryption]
+    S --> M[Models<br/>SQLAlchemy entities]
     M --> DB[(PostgreSQL)]
 ```
 
-| Folder | Job |
+| Module | Responsibility |
 |---|---|
-| `app/routes/` | HTTP in and out. No business rules here. |
-| `app/services/` | Business rules, one transaction per action, audit logging |
-| `app/security/` | Access policy, rate limiting, upload checks, link target checks, encryption |
-| `app/models/` | Tables and constraints; schema changes go through Alembic migrations |
+| `app/routes/` | HTTP boundary: input parsing, responses, and redirects. Contains no business logic. |
+| `app/services/` | Business rules, transaction boundaries, and audit logging |
+| `app/security/` | Access policy, rate limiting, upload validation, outbound URL validation, and encryption |
+| `app/models/` | Entities and constraints; all schema changes are versioned with Alembic |
 | `app/schemas/` | Form and selection screen definitions |
-| `frontend/` | React 19 + Vite source for the link table, built into `app/static/dist` |
+| `frontend/` | React 19 and Vite source for the link table, compiled into `app/static/dist` |
 
 </details>
 
 <details>
-<summary><b>Data model</b></summary>
+<summary><b>Data Model</b></summary>
 <br>
 
 ```mermaid
@@ -399,20 +426,20 @@ erDiagram
     USER ||--o{ ACCESS_ENTRY : owns
     USER ||--o{ USER_PERMISSION : "is granted"
     USER ||--o| USER_PREFERENCE : has
-    USER ||--o{ USER_FAVORITE : stars
+    USER ||--o{ USER_FAVORITE : bookmarks
     USER ||--o{ SELECTION_VARIANT : saves
     USER ||--o{ USER_NOTIFICATION : receives
     USER ||--o{ OTP_CODE : receives
     CATEGORY ||--o{ CATEGORY : "parent of"
-    CATEGORY ||--o{ ACCESS_ENTRY : contains
+    CATEGORY ||--o{ ACCESS_ENTRY : classifies
     ACCESS_ENTRY ||--o{ ACCESS_ENTRY_FIELD : has
     ACCESS_ENTRY ||--o{ ATTACHMENT : has
-    ACCESS_ENTRY ||--o{ USER_FAVORITE : "starred in"
+    ACCESS_ENTRY ||--o{ USER_FAVORITE : "bookmarked in"
     GROUP ||--o{ GROUP_MEMBER : has
     GROUP ||--o{ GROUP_ENTRY : shares
     ACCESS_ENTRY ||--o{ GROUP_ENTRY : "shared as"
-    GROUP_ENTRY ||--o{ GROUP_ENTRY_VIEWER : "limited to"
-    USER ||--o{ AUDIT_LOG : "acts in"
+    GROUP_ENTRY ||--o{ GROUP_ENTRY_VIEWER : "restricted to"
+    USER ||--o{ AUDIT_LOG : "recorded in"
 
     ACCESS_ENTRY {
         int id
@@ -433,34 +460,34 @@ erDiagram
     }
 ```
 
-Categories use one self-referencing table (`parent_id`). Users can add sub-categories at any level without a schema change.
+Categories are modeled as a self-referencing adjacency list (`parent_id`), allowing users to add sub-categories at any level without schema changes.
 
 </details>
 
 <details>
-<summary><b>Who can see a link</b></summary>
+<summary><b>Visibility Rule</b></summary>
 <br>
 
 ```mermaid
 flowchart TD
-    A[User opens a link] --> B{Owner?}
-    B -->|yes| V[Can view]
-    B -->|no| C{Public?}
+    A[Request for a link] --> B{Requester is the owner?}
+    B -->|yes| V[Access granted]
+    B -->|no| C{Link is public?}
     C -->|yes| V
-    C -->|no| D{Shared in a group<br/>where the user is an active member?}
-    D -->|no| N[404 Not found]
-    D -->|yes| E{Limited to selected members?}
+    C -->|no| D{Shared in a group where<br/>the requester is an active member?}
+    D -->|no| N[404 Not Found]
+    D -->|yes| E{Restricted to selected members?}
     E -->|no| V
-    E -->|yes, user is selected| V
-    E -->|yes, user is not selected| N
+    E -->|yes, requester selected| V
+    E -->|yes, requester not selected| N
 ```
 
-The same rule is a single SQL filter used by every list, count, search, export, and detail page, so they can never disagree. A hidden link returns 404, so its existence is not revealed.
+This rule is implemented as a single SQL predicate reused by every list, count, search, export, and detail view, which guarantees consistent results. Inaccessible records return 404 so that their existence is not disclosed.
 
 </details>
 
 <details>
-<summary><b>Login</b></summary>
+<summary><b>Sign-In Sequence</b></summary>
 <br>
 
 ```mermaid
@@ -469,18 +496,18 @@ sequenceDiagram
     participant A as ALR
     participant E as Email
     U->>A: Email and password
-    A->>A: Verify Argon2id hash<br/>rate limit by email and IP
+    A->>A: Verify Argon2id hash<br/>throttle by email and IP
     A->>E: One-time code
-    A-->>U: Code screen (same response for unknown emails)
-    U->>A: 6-digit code
-    A->>A: Check hash, attempts, and expiry
-    A-->>U: Session started (versioned, can be revoked)
+    A-->>U: Code entry (identical response for unknown emails)
+    U->>A: Six-digit code
+    A->>A: Validate hash, attempt count, and expiry
+    A-->>U: Versioned session established
 ```
 
 </details>
 
 <details>
-<summary><b>Forgot password</b></summary>
+<summary><b>Password Recovery Sequence</b></summary>
 <br>
 
 ```mermaid
@@ -488,57 +515,57 @@ sequenceDiagram
     actor U as User
     participant A as ALR
     participant E as Email
-    U->>A: Email
-    A-->>U: "If the email is registered, a code was sent"
-    A->>E: Reset code (only for active accounts)
+    U->>A: Email address
+    A-->>U: Neutral response ("If the email is registered, a code was sent")
+    A->>E: Reset code (active accounts only)
     U->>A: Code and new password
-    A->>A: Check code, attempt limits per code and per email
-    A->>A: Save new hash, end all sessions, unlock account
-    A->>E: "Your password was changed"
-    A-->>U: Log in with the new password
+    A->>A: Validate code; enforce per-code and per-email limits
+    A->>A: Store new hash, revoke all sessions, unlock account
+    A->>E: Password change notice
+    A-->>U: Redirect to sign-in
 ```
 
-Reset codes and login codes are stored separately, so one can never be used as the other.
+Reset codes and sign-in codes are stored under separate purposes and can never be used interchangeably.
 
 </details>
 
 <details>
-<summary><b>Link monitoring</b></summary>
+<summary><b>Link Monitoring Sequence</b></summary>
 <br>
 
 ```mermaid
 sequenceDiagram
-    actor Ad as Admin
-    participant W as Web app
+    actor Ad as Administrator
+    participant W as Web application
     participant DB as Database
     participant K as Worker
     participant T as Target
-    Ad->>W: Check all links now
-    W->>DB: Queue one run (only one at a time)
-    K->>DB: Claim the queued run
-    loop every link
-        K->>K: Is the target allowed?
-        K->>T: Request, follow redirects with the same check
-        K->>DB: Save status and progress
+    Ad->>W: Start availability check
+    W->>DB: Enqueue a single run
+    K->>DB: Claim queued run
+    loop for each link
+        K->>K: Validate target address
+        K->>T: Request; validate every redirect hop
+        K->>DB: Persist status and progress
     end
-    Ad->>W: Page polls status
+    Ad->>W: Poll run status
     W-->>Ad: Live progress, then summary
 ```
 
 </details>
 
 <details>
-<summary><b>Excel import</b></summary>
+<summary><b>Excel Import Pipeline</b></summary>
 <br>
 
 ```mermaid
 flowchart LR
-    U[Upload .xlsx] --> C{Real Excel file?<br/>no macros, not a zip bomb}
+    U[Upload .xlsx] --> C{Valid workbook?<br/>no macros, no zip bomb}
     C -->|no| X[Rejected]
-    C -->|yes| R[Read rows]
-    R --> V{Every row valid?<br/>same rules as the form}
-    V -->|no| E[Show errors per row<br/>nothing saved]
-    V -->|yes| S[Save all rows in one transaction<br/>audit each link and the import]
+    C -->|yes| R[Parse rows]
+    R --> V{All rows valid?<br/>same rules as the form}
+    V -->|no| E[Report errors per row<br/>nothing persisted]
+    V -->|yes| S[Persist in one transaction<br/>audit each record and the import]
 ```
 
 </details>
@@ -549,123 +576,123 @@ flowchart LR
 
 <div align="center">
 
-| Risk | How ALR handles it |
+| Threat | Mitigation |
 |---|---|
-| Database leak | Access notes encrypted with Fernet (AES); passwords hashed with Argon2id; one-time codes stored as hashes |
-| Finding out which emails exist | Login, registration, and password reset respond the same way for known and unknown emails |
-| Password guessing | Rate limits per IP and per email, temporary lockout, attempt limits per code |
-| Stolen session | Sessions carry a version; a password change or reset ends every other session |
-| Seeing private data | One shared visibility filter for every query; hidden data returns 404 |
-| "Who opened the password?" | Access notes are not in the page HTML; each reveal is a separate request written to the audit log |
-| XSS | Input sanitizing and a Content Security Policy that only allows the app's own scripts |
-| CSRF | Tokens on every form and every JSON call |
-| Malicious uploads | File signature checks, macro and zip bomb checks, XXE-safe Excel parsing |
-| SSRF through the link checker | Private, loopback, and metadata addresses blocked, including after redirects and for IPv6 |
-| Two people changing the same thing | Row locks on critical updates, tested on PostgreSQL with parallel requests |
-| Changing history | Audit log rows cannot be updated or deleted through the app |
+| Database disclosure | Access notes encrypted with Fernet (AES); passwords hashed with Argon2id; one-time codes stored as hashes |
+| Account enumeration | Sign-in, registration, and password recovery return identical responses for known and unknown emails |
+| Credential brute force | Rate limiting per IP and per email, temporary account lockout, and attempt limits per code |
+| Session hijacking | Versioned sessions; a password change or reset revokes all other sessions |
+| Unauthorized data access | One shared visibility predicate for all queries; inaccessible data returns 404 |
+| Untracked credential access | Access notes are excluded from page markup; each reveal is a separate audited request |
+| Cross-site scripting | Input sanitization and a Content Security Policy restricted to first-party scripts |
+| Cross-site request forgery | Tokens on every form submission and JSON request |
+| Malicious uploads | File signature verification, macro and zip bomb detection, and XXE-safe Excel parsing |
+| Server-side request forgery | Private, loopback, and metadata ranges blocked, including redirects and IPv6 |
+| Race conditions | Row-level locks on critical updates, verified on PostgreSQL with concurrent requests |
+| Audit tampering | Audit records cannot be modified or deleted through the application |
 
 </div>
 
 <br>
 
-## Engineering decisions
+## Design Decisions
 
 <details>
-<summary><b>Why one table for categories?</b></summary>
+<summary><b>Adjacency list for categories</b></summary>
 <br>
 
-Users add their own sub-categories, so the depth is not fixed. One self-referencing table (`parent_id`) handles any level with the same queries. Depth is capped at 4 in the service layer, and the full tree is small enough to load once per request and build in memory.
+Users create their own sub-categories, so the hierarchy depth is not fixed. A single self-referencing table supports any level with uniform queries. Depth is limited to four in the service layer, and the complete tree is small enough to load once per request and assemble in memory.
 
 </details>
 
 <details>
-<summary><b>Why a React "island" instead of a full single-page app?</b></summary>
+<summary><b>React island instead of a single-page application</b></summary>
 <br>
 
-Most screens are forms and lists that work well as server-rendered pages. Only the link table needs rich client behavior (column layout, active row, right-click menu, live filtering), so only that part is React. The built files are committed, so running the app does not need Node.js.
+Most screens are forms and lists that are well served by server rendering. Only the link table requires rich client-side behavior (column layout, active row, context menu, live filtering), so React is limited to that component. Compiled assets are committed, so running the application does not require Node.js.
 
 </details>
 
 <details>
-<summary><b>Why is the visibility rule one SQL filter?</b></summary>
+<summary><b>A single visibility predicate</b></summary>
 <br>
 
-When lists, counts, exports, and detail pages each check access their own way, they drift apart and leak data. One filter function is used by all of them, and tests check that a private link never shows up anywhere for another user.
+When lists, counts, exports, and detail pages each enforce access independently, the rules diverge over time and data leaks. One predicate is shared by all of them, and the test suite verifies that a private link never appears anywhere for an unauthorized user.
 
 </details>
 
 <details>
-<summary><b>Why does the link checker run in a separate worker?</b></summary>
+<summary><b>Dedicated monitoring worker</b></summary>
 <br>
 
-Checking hundreds of links takes minutes. Running it inside a web request would hit timeouts and block a web worker. The page only queues a run in the database; the worker claims it, saves progress, and can recover a run that was interrupted.
+Checking hundreds of targets can take several minutes. Executing that work inside a web request would cause timeouts and exhaust web workers. The interface only enqueues a run; the worker claims it, persists progress, and can recover an interrupted run.
 
 </details>
 
 <details>
-<summary><b>Why is the access note fetched on demand?</b></summary>
+<summary><b>On-demand credential retrieval</b></summary>
 <br>
 
-If the password is in the page HTML, anyone who opens the page has it, and there is no record of who looked. Fetching it only when someone clicks Show or Copy keeps it out of the page and makes every reveal visible in the audit log and the link history.
+Embedding a credential in page markup exposes it to anyone who opens the page and leaves no record of access. Retrieving it only when a user selects Show or Copy keeps it out of the markup and records every reveal in both the audit log and the link history.
 
 </details>
 
 <br>
 
-## Testing
+## Quality Assurance
 
 <div align="center">
 
-| Suite | Tool | Count | What it covers |
+| Suite | Tooling | Count | Scope |
 |---|---|:---:|---|
-| Backend | pytest | 718 | Services, routes, permissions, and security cases |
-| Database concurrency | pytest on PostgreSQL | 6 | Parallel requests, row locks, unique constraints |
-| Frontend | Vitest, Testing Library | 46 | React table, columns, selection, keyboard |
-| End to end | Headless Chrome | 8 scenarios | Login, tables, accounts, categories, groups, monitoring, SAP keys |
+| Backend | pytest | 718 | Services, routes, authorization, and security scenarios |
+| Database concurrency | pytest on PostgreSQL | 6 | Concurrent requests, row locks, and unique constraints |
+| Frontend | Vitest, Testing Library | 46 | Link table, columns, selection, and keyboard behavior |
+| End-to-end | Headless Chrome | 8 scenarios | Authentication, tables, accounts, categories, groups, monitoring, and function keys |
 
 </div>
 
-Every feature is tested for the normal flow and for misuse: the wrong role, another user's private data, invalid input, and repeated submits. A CI pipeline runs the backend, PostgreSQL, and frontend suites, plus secret detection, on every push.
+Each feature is tested for the expected flow and for misuse: incorrect roles, access to another user's private data, invalid input, and duplicate submissions. The CI pipeline runs the backend, PostgreSQL, and frontend suites together with secret detection on every push.
 
 <br>
 
-## Project structure
+## Project Structure
 
 <details>
-<summary><b>Show folder tree</b></summary>
+<summary><b>Repository layout</b></summary>
 <br>
 
 ```text
 .
 ├── app/
-│   ├── models/         SQLAlchemy models (18 tables)
+│   ├── models/         SQLAlchemy entities (18 tables)
 │   ├── routes/         Blueprints: auth, entries, categories, groups, users, audit, monitoring, settings
-│   ├── schemas/        Forms and selection screen definitions
-│   ├── security/       Access policy, throttling, file and URL checks, encryption
-│   ├── services/       Business rules, import/export, link checking, notifications
-│   ├── static/         CSS, JavaScript, built React table (dist/)
+│   ├── schemas/        Form and selection screen definitions
+│   ├── security/       Access policy, throttling, file and URL validation, encryption
+│   ├── services/       Business rules, import and export, link checking, notifications
+│   ├── static/         Stylesheets, scripts, and the compiled React table (dist/)
 │   ├── templates/      Jinja layouts, components, and pages
-│   ├── utils/          Constants and small helpers
-│   ├── cli.py          Admin and maintenance commands
-│   └── config.py       Settings per environment
-├── frontend/           React 19 + Vite source for the link table
+│   ├── utils/          Constants and shared helpers
+│   ├── cli.py          Administrative and maintenance commands
+│   └── config.py       Environment-specific configuration
+├── frontend/           React 19 and Vite source for the link table
 ├── migrations/         Alembic migrations
 ├── scripts/e2e/        End-to-end scenarios (headless Chrome)
 ├── tests/              pytest suites
-└── run.py              App entry point
+└── run.py              Application entry point
 ```
 
 </details>
 
 <br>
 
-## Running locally
+## Getting Started
 
 <details>
-<summary><b>Setup steps</b></summary>
+<summary><b>Local setup</b></summary>
 <br>
 
-Requires Python 3.13 and PostgreSQL 17. Node.js 24 is only needed to change the React table.
+Prerequisites: Python 3.13 and PostgreSQL 17. Node.js 24 is required only to modify the React table.
 
 ```bash
 python -m venv .venv
@@ -674,7 +701,7 @@ python -m venv .venv
 pip install -r requirements-dev.txt
 
 cp .env.example .env
-# Set SECRET_KEY, DATABASE_URL, and ENCRYPTION_KEY. To create an encryption key:
+# Configure SECRET_KEY, DATABASE_URL, and ENCRYPTION_KEY. Generate an encryption key with:
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 
 flask --app run db upgrade
@@ -686,32 +713,32 @@ flask --app run run
 </details>
 
 <details>
-<summary><b>Command line tools</b></summary>
+<summary><b>Command-line interface</b></summary>
 <br>
 
 | Command | Purpose |
 |---|---|
-| `create-admin` | Create the first admin account |
+| `create-admin` | Provision the initial administrator account |
 | `set-admin` / `unset-admin` | Promote or demote an account |
-| `seed-categories` | Add the built-in categories |
-| `monitor-worker` | Run the link monitoring worker (long-running) |
-| `check-links` | Run one link check in the terminal |
-| `recover-link-monitor` | Recover an interrupted check |
-| `cleanup-attachments` | Find and remove orphaned attachment files |
-| `cleanup-old-data` | Remove expired codes and old records |
+| `seed-categories` | Create the built-in categories |
+| `monitor-worker` | Run the link monitoring worker as a long-lived process |
+| `check-links` | Execute a single availability check from the terminal |
+| `recover-link-monitor` | Recover an interrupted monitoring run |
+| `cleanup-attachments` | Detect and remove orphaned attachment files |
+| `cleanup-old-data` | Purge expired codes and obsolete records |
 
-Run each as `flask --app run <command>`.
+Invoke each command as `flask --app run <command>`.
 
 </details>
 
 <details>
-<summary><b>Running the tests</b></summary>
+<summary><b>Running the test suites</b></summary>
 <br>
 
 ```bash
 pytest -q                          # backend
-cd frontend && npm ci && npm test  # React table
-node scripts/e2e/table.mjs         # one end-to-end scenario (needs Chrome)
+cd frontend && npm ci && npm test  # frontend
+node scripts/e2e/table.mjs         # an end-to-end scenario (requires Chrome)
 ```
 
 </details>
