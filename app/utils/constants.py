@@ -84,8 +84,10 @@ REGISTER_NOTICE_COOLDOWN_MINUTES = 10
 # kode verifikasi daftar ke satu email maksimal sekian kali per sekian menit (anti spam kotak masuk orang)
 REGISTER_CODE_MAX_COUNT = 5
 REGISTER_CODE_WINDOW_MINUTES = 15
-# lupa password: total percobaan masukin kode per email per hari (lintas kode baru), biar 6 digit ga bisa ditebak pelan-pelan
+# lupa password: percobaan masukin kode per email + IP per hari. Per IP biar tebakan orang lain ga ngabisin jatah pemiliknya
 RESET_ATTEMPT_MAX_COUNT = 10
+# lupa password: kode reset per email per hari. Tiap kode cuma 5x coba, jadi total tebakan lintas IP maks. 10 x 5 sehari
+RESET_CODE_DAILY_MAX_COUNT = 10
 # percobaan daftar yg ga diverifikasi dibuang setelah sekian jam
 PENDING_REGISTRATION_EXPIRE_HOURS = 24
 

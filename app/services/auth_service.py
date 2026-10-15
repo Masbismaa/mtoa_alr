@@ -518,7 +518,7 @@ def verify_otp_code(user, otp_code):
 # (purpose=reset), kepisah dari OTP login. Salah kode reset sengaja ga ngunci akun: kalau ngunci, orang iseng tinggal
 # minta reset ke email orang lain terus salahin kodenya. Tebakan udah kebatas per kode (OTP_MAX_ATTEMPT_COUNT) & per email.
 
-RESET_BLOCKED_ERROR = "Too many reset attempts for this email. Try again tomorrow or contact the ICT admin."
+RESET_BLOCKED_ERROR = "Too many reset attempts from this device. Try again tomorrow or contact the ICT admin."
 PASSWORD_CHANGED_NOTIFICATION = "Your password was changed. If this wasn't you, contact the ICT admin right away."
 
 
@@ -537,6 +537,8 @@ def issue_password_reset_code(user):
     (cuma dicatat di log), soalnya kalau nongol di layar ketauan email ini terdaftar."""
     if not auth_throttle.allow_reset_code(user.email):
         return
+    # dikunci kayak verifikasi: 2 permintaan barengan ga bisa sama-sama ninggalin kode aktif
+    user = lock_auth_user(user)
     db.session.execute(
         db.update(OtpCode)
         .where(OtpCode.user_id == user.id, OtpCode.purpose == OTP_PURPOSE_RESET, OtpCode.is_used.is_(False))
@@ -582,7 +584,11 @@ def resend_password_reset_code(state):
 
 
 def apply_new_password(user, password_hash, method):
-    """Simpen password baru + logout semua sesi lama (session_version naik) + catat audit. Commit di pemanggil."""
+    """Simpen password baru + logout semua sesi lama (session_version naik, login yg lagi nunggu OTP ikut batal)
+    + semua OTP aktif (login & reset) hangus + catat audit. Dipake reset & ganti password. Commit di pemanggil."""
+    db.session.execute(
+        db.update(OtpCode).where(OtpCode.user_id == user.id, OtpCode.is_used.is_(False)).values(is_used=True)
+    )
     user.password_hash = password_hash
     user.session_version += 1
     log_audit(AUDIT_ACTION_PASSWORD_CHANGE, "users", entity_id=user.id, user=user, new_data_dict={"method": method})
@@ -608,8 +614,8 @@ def hash_new_password(new_password):
 def reset_password(state, code, new_password):
     """Cek kode reset; bener -> password diganti, semua sesi & OTP lama hangus, kunci akun dibuka. Return User."""
     password_hash = hash_new_password(new_password)
-    # dihitung per email buat SEMUA email (terdaftar atau nggak), biar pesannya ga bocorin email mana yg terdaftar
-    if not auth_throttle.allow_reset_attempt(state["email"]):
+    # dihitung buat SEMUA email (terdaftar atau nggak), biar pesannya ga bocorin email mana yg terdaftar
+    if not auth_throttle.allow_reset_attempt(state["email"], auth_throttle.get_client_ip()):
         raise AuthError(RESET_BLOCKED_ERROR)
     user = find_resettable_user(state["email"])
     if user is None:
@@ -626,10 +632,7 @@ def reset_password(state, code, new_password):
         db.session.commit()
         raise AuthError(OTP_EXHAUSTED_ERROR if is_attempt_exhausted else OTP_WRONG_ERROR)
 
-    # kode bener = pemilik email. Semua OTP yg masih aktif (login & reset) ikut hangus
-    db.session.execute(
-        db.update(OtpCode).where(OtpCode.user_id == user.id, OtpCode.is_used.is_(False)).values(is_used=True)
-    )
+    # kode bener = pemilik email (OTP lain ikut hangus di apply_new_password)
     user.failed_login_count = 0
     user.locked_until = None
     apply_new_password(user, password_hash, "reset")

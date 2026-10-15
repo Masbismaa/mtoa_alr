@@ -277,11 +277,14 @@ def delete_category(user, category):
     clear_request_category_cache()
 
 # TAMPILAN
-def count_entry_by_category(user=None):
-    """{category_id: jumlah link}. Kalau user diisi, cuma link yg boleh dia liat yg kehitung."""
+def count_entry_by_category(user=None, category_id_list=None):
+    """{category_id: jumlah link}. Kalau user diisi, cuma link yg boleh dia liat yg kehitung.
+    category_id_list diisi = cuma kategori itu yg dihitung (hemat pas buka satu cabang)."""
     query = db.select(AccessEntry.category_id, db.func.count(AccessEntry.id)).group_by(AccessEntry.category_id)
     if user is not None:
         query = query.where(build_visible_entry_filter(user))
+    if category_id_list is not None:
+        query = query.where(AccessEntry.category_id.in_(category_id_list))
     return dict(db.session.execute(query).all())
 
 def get_latest_visible_entry(user, category_id_list):
@@ -297,12 +300,19 @@ def get_latest_visible_entry(user, category_id_list):
 def build_forum_row_list(user, parent=None):
     """Baris ala forum: kategori + sub-nya + jumlah link (termasuk turunannya) + link terbaru."""
     child_dict = build_child_dict(list_all_category())
-    count_dict = count_entry_by_category(user)
-    ranked = db.select(
+    # buka satu cabang -> cuma link di cabang itu yg dihitung & diranking (beranda: semua kategori emang ditampilin)
+    scope_id_list = None
+    if parent is not None:
+        scope_id_list = [category_id for category_id in collect_descendant_id_list(parent.id, child_dict) if category_id != parent.id]
+    count_dict = count_entry_by_category(user, scope_id_list)
+    ranked_query = db.select(
         AccessEntry.id.label("entry_id"),
         db.func.row_number().over(partition_by=AccessEntry.category_id,
                                   order_by=(AccessEntry.created_at.desc(), AccessEntry.id.desc())).label("position"),
-    ).where(build_visible_entry_filter(user)).subquery()
+    ).where(build_visible_entry_filter(user))
+    if scope_id_list is not None:
+        ranked_query = ranked_query.where(AccessEntry.category_id.in_(scope_id_list))
+    ranked = ranked_query.subquery()
     latest_by_category = {entry.category_id: entry for entry in db.session.execute(
         db.select(AccessEntry).join(ranked, ranked.c.entry_id == AccessEntry.id)
         .where(ranked.c.position == 1).options(joinedload(AccessEntry.owner))

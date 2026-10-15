@@ -50,7 +50,7 @@ def test_theme_toggle_shows_day_night_switch(logged_in_client):
     assert toggle_match is not None, "Tombol pengganti tema tidak ditemukan"
     toggle_html = toggle_match.group(0)
     assert 'role="switch"' in toggle_html
-    assert 'aria-label="Mode gelap"' in toggle_html
+    assert 'aria-label="Dark mode"' in toggle_html
     assert 'aria-checked="false"' in toggle_html
     assert 'class="theme-toggle-day"' in toggle_html
     assert 'class="theme-toggle-night"' in toggle_html

@@ -218,7 +218,8 @@ def test_update_profile_empty_rejected(logged_in_client, registered_user):
 
 
 def test_reset_attempts_limited_per_email_across_new_codes(app, registered_user, monkeypatch):
-    """Negative (security): minta kode baru terus ga bikin tebakan tanpa batas; email ga terdaftar kena batas yg sama."""
+    """Negative (security): minta kode baru terus ga bikin tebakan tanpa batas dari 1 perangkat; email ga terdaftar
+    kena batas yg sama."""
     from app.utils.constants import RESET_ATTEMPT_MAX_COUNT
 
     use_code_sequence(monkeypatch, *[f"{index:06d}" for index in range(100, 200)])
@@ -228,3 +229,38 @@ def test_reset_attempts_limited_per_email_across_new_codes(app, registered_user,
         for _ in range(RESET_ATTEMPT_MAX_COUNT):
             submit_reset(client, "999999")
         assert "Too many reset attempts" in submit_reset(client, "999999").get_data(as_text=True)
+
+
+def test_reset_guesses_from_other_device_do_not_block_owner(app, registered_user, monkeypatch):
+    """Negative (security, temuan audit): orang lain salahin kode reset sampe kena batas -> pemilik akun
+    (perangkat lain) tetep bisa reset hari itu."""
+    from app.utils.constants import RESET_ATTEMPT_MAX_COUNT
+
+    use_code_sequence(monkeypatch, "111111", "222222")
+    attacker = app.test_client()
+    attacker.environ_base["REMOTE_ADDR"] = "203.0.113.9"
+    request_reset(attacker, registered_user.email)
+    for _ in range(RESET_ATTEMPT_MAX_COUNT):
+        submit_reset(attacker, "999999")
+    assert "Too many reset attempts" in submit_reset(attacker, "999999").get_data(as_text=True)
+
+    owner = app.test_client()
+    request_reset(owner, registered_user.email)
+    response = submit_reset(owner, "222222")
+    assert response.status_code == 302 and "/auth/login" in response.location
+
+
+def test_change_password_cancels_pending_login_and_codes(app, registered_user, fixed_otp_code):
+    """Negative (security, temuan audit): orang yg udah lolos password lama & lagi nunggu OTP -> pemilik ganti
+    password -> login itu batal walau kode OTP-nya bener, dan semua OTP yg masih aktif hangus."""
+    from app.models import OtpCode
+
+    intruder = app.test_client()
+    intruder.post("/auth/login", data={"email": registered_user.email, "password": USER_PASSWORD})
+    auth_service.change_password(registered_user, USER_PASSWORD, NEW_PASSWORD)
+
+    response = intruder.post("/auth/otp", data={"otp_code": fixed_otp_code})
+    assert response.status_code == 302 and "/auth/login" in response.location
+    assert db.session.execute(
+        db.select(OtpCode).filter_by(user_id=registered_user.id, is_used=False)
+    ).first() is None

@@ -1,6 +1,7 @@
 """Import link dari Excel: download template, upload, cek SEMUA baris dulu, baru simpen semua (atau ga sama sekali).
 
-Tiap baris dicek pake aturan yg sama persis kayak form Add Link (prepare_entry_data), termasuk duplikat ke database.
+Tiap baris dicek pake aturan yg sama persis kayak form Add Link (prepare_entry_data); duplikat ke database dicek
+sekaligus semua baris (find_duplicate_entry_dict, aturannya sama kayak find_duplicate_entry).
 Duplikat antar baris di file yg sama dicek di sini (belum ada di database). Link hasil import milik yg upload.
 """
 import io
@@ -16,6 +17,7 @@ from app.services.access_entry_service import (
     apply_entry_data,
     get_category_rule,
     build_entry_audit_dict,
+    find_duplicate_entry_dict,
     prepare_entry_data,
 )
 from app.services.audit_service import log_audit
@@ -176,14 +178,16 @@ def import_entries(user, file_storage):
     Semua bener -> disimpen dalam 1 transaksi + dicatat (per link & 1 catatan import). Return jumlah link."""
     row_list = read_import_row_list(file_storage)
     category_dict = build_category_dict()
+    # (nomor baris, clean_dict, field tambahan) yg lolos validasi per baris
     prepared_list = []
-    error_text_list = []
+    error_by_row_dict = {}
     seen_dict = {}
     for row_number, row_dict in row_list:
         data_dict, row_error_list = build_row_data(row_dict, category_dict)
         if not row_error_list:
             try:
-                clean_dict, clean_custom_field_list, _ = prepare_entry_data(user, data_dict, [])
+                # duplikat ke database dicek sekaligus di bawah (1 query, bukan 1 query per baris)
+                clean_dict, clean_custom_field_list, _ = prepare_entry_data(user, data_dict, [], check_duplicate=False)
             except ValidationError as error:
                 row_error_list = [error_dict["message"] for error_dict in error.error_list]
             else:
@@ -191,26 +195,37 @@ def import_entries(user, file_storage):
                 if duplicate_text:
                     row_error_list = [duplicate_text]
                 else:
-                    prepared_list.append((clean_dict, clean_custom_field_list))
-        error_text_list.extend(f"Row {row_number}: {message}" for message in row_error_list)
+                    prepared_list.append((row_number, clean_dict, clean_custom_field_list))
+        if row_error_list:
+            error_by_row_dict[row_number] = row_error_list
+    duplicate_dict = find_duplicate_entry_dict(user, [clean_dict for _, clean_dict, _ in prepared_list])
+    for index, message in duplicate_dict.items():
+        error_by_row_dict[prepared_list[index][0]] = [message]
 
-    if error_text_list:
+    if error_by_row_dict:
+        error_text_list = [f"Row {row_number}: {message}"
+                           for row_number in sorted(error_by_row_dict) for message in error_by_row_dict[row_number]]
         shown_list = error_text_list[:MAX_SHOWN_ERROR_COUNT]
         if len(error_text_list) > MAX_SHOWN_ERROR_COUNT:
             shown_list.append(f"...and {len(error_text_list) - MAX_SHOWN_ERROR_COUNT} more errors")
         raise ValidationError([build_error("import_file", text) for text in shown_list])
 
     try:
-        for clean_dict, clean_custom_field_list in prepared_list:
-            entry = AccessEntry(user_id=user.id)
+        entry_list = []
+        for _, clean_dict, clean_custom_field_list in prepared_list:
+            # lampiran diisi kosong dari awal: audit di bawah baca daftar ini, biar ga 1 SELECT per link
+            entry = AccessEntry(user_id=user.id, attachment_list=[])
             apply_entry_data(entry, clean_dict, clean_custom_field_list)
-            db.session.add(entry)
-            db.session.flush()
+            entry_list.append(entry)
+        db.session.add_all(entry_list)
+        # sekali flush buat semua link (id-nya kepake di audit), bukan flush per baris
+        db.session.flush()
+        for entry in entry_list:
             log_audit(AUDIT_ACTION_CREATE, AUDIT_ENTITY_TYPE, entity_id=entry.id, new_data_dict=build_entry_audit_dict(entry), user=user)
         log_audit(AUDIT_ACTION_IMPORT, AUDIT_ENTITY_TYPE, user=user,
-                  new_data_dict={"row_count": len(prepared_list), "filename": (file_storage.filename or "")[:255]})
+                  new_data_dict={"row_count": len(entry_list), "filename": (file_storage.filename or "")[:255]})
         db.session.commit()
     except Exception:
         db.session.rollback()
         raise
-    return len(prepared_list)
+    return len(entry_list)
