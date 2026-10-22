@@ -43,7 +43,7 @@ IMPORT_COLUMN_LIST = [
     ImportColumn("Address", "address", False, 20, "IP address or host name. Required for Network.", "10.0.0.1"),
     ImportColumn("Port", "port", False, 9, "Number from 1 to 65535.", "22"),
     ImportColumn("Username", "username", False, 20, "Login username (not used by General).", "hr.admin"),
-    ImportColumn("Access Note", "access_note", False, 26, "Password or access hint. Stored encrypted after import (not used by General).", "(your password)"),
+    ImportColumn("Access Note", "access_note", False, 26, "Access hint, not a password (not used by General).", "Login via SSO"),
     ImportColumn("Description", "description", False, 40, "Short note about the link.", "Payroll & leave portal"),
     ImportColumn("Visibility", "visibility", False, 12, "Private (only you) or Public (all users, read-only). Empty = Private.", "Private"),
 ]

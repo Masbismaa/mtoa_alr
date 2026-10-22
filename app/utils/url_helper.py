@@ -38,7 +38,7 @@ def normalize_url(raw_url):
     if not hostname:
         raise ValueError("Invalid URL format")
     if url_part.username or url_part.password:
-        raise ValueError("Don't put a username/password in the URL; use the Username & Access Note fields")
+        raise ValueError("Don't put a username/password in the URL; use the Username field")
 
     return urlunsplit((
         url_part.scheme.lower(),

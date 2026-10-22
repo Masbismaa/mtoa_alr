@@ -37,6 +37,8 @@ def test_general_form_hides_credential(logged_in_client, category_dict):
     html_text = logged_in_client.get(f"/entries/new?category_id={category_dict['General'].id}").get_data(as_text=True)
     assert 'data-has-credential-field="false"' in html_text
     assert "<div data-credential-field hidden>" in html_text
+    # access note bukan tempat password
+    assert "Do not enter passwords here." in html_text
 
 def test_theme_toggle_shows_day_night_switch(logged_in_client):
     """Tombol tema menampilkan adegan siang/malam dan status switch yang aksesibel."""

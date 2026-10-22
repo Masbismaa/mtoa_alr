@@ -24,7 +24,7 @@ class AccessEntryForm(FlaskForm):
     # sengaja StringField, dicek angkanya di service biar pesannya bisa diatur sendiri
     port = StringField("Port", validators=[Optional(), Length(max=5)])
     username = StringField("Username", validators=[Optional(), Length(max=MAX_USERNAME_LENGTH)])
-    access_note = TextAreaField("Access Note / Password", validators=[Optional(), Length(max=MAX_ACCESS_NOTE_LENGTH)])
+    access_note = TextAreaField("Access Note", validators=[Optional(), Length(max=MAX_ACCESS_NOTE_LENGTH)])
     description = TextAreaField("Description", validators=[Optional(), Length(max=MAX_TEXT_LENGTH)])
     visibility = RadioField(
         "Visibility",
