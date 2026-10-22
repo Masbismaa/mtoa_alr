@@ -199,6 +199,8 @@ def test_owner_saves_viewers_via_route(logged_in_client, registered_user, other_
     assert response.status_code == 302
     assert group_entry.is_restricted is True
     assert [viewer.user_id for viewer in group_entry.viewer_list] == [other_user.id]
+    # dropdown nampilin nama member yg kepilih
+    assert f'data-selection-summary data-empty-text="Choose members…">{other_user.full_name}<' in logged_in_client.get(url).get_data(as_text=True)
 
 def test_unknown_group_entry_viewer_page_404(logged_in_client, registered_user):
     """Negative: id link ngasal -> 404."""

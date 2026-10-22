@@ -4,6 +4,17 @@
 (function () {
   "use strict";
 
+  // tulisan di tombol pilihan ngikutin yg dicentang (dropdown ini dipake juga di luar panel, mis. akses link grup)
+  function updateChoiceSummary(choiceEl) {
+    const summaryEl = choiceEl.querySelector("[data-selection-summary]");
+    const labelList = Array.from(choiceEl.querySelectorAll("input:checked"), function (el) { return el.dataset.label; });
+    summaryEl.textContent = labelList.length ? labelList.join(", ") : summaryEl.dataset.emptyText;
+  }
+
+  document.querySelectorAll("[data-selection-choice]").forEach(function (choiceEl) {
+    choiceEl.addEventListener("change", function () { updateChoiceSummary(choiceEl); });
+  });
+
   const formEl = document.querySelector("[data-selection-form]");
   if (!formEl) return;
 
@@ -106,17 +117,6 @@
     });
     dialogEl.addEventListener("cancel", function () { activeKey = null; });
   }
-
-  // tulisan di tombol pilihan ngikutin yg dicentang
-  function updateChoiceSummary(choiceEl) {
-    const summaryEl = choiceEl.querySelector("[data-selection-summary]");
-    const labelList = Array.from(choiceEl.querySelectorAll("input:checked"), function (el) { return el.dataset.label; });
-    summaryEl.textContent = labelList.length ? labelList.join(", ") : summaryEl.dataset.emptyText;
-  }
-
-  formEl.querySelectorAll("[data-selection-choice]").forEach(function (choiceEl) {
-    choiceEl.addEventListener("change", function () { updateChoiceSummary(choiceEl); });
-  });
 
   // tabel React (frontend/src/entry_table) ganti urutan / filter kolom tanpa reload halaman ->
   // isian panel ini disamain sama kriteria yg dipake tabel, biar Jalankan ga ngirim nilai lama.
