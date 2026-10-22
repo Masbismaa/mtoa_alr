@@ -230,6 +230,10 @@ def register_template_helpers(app):
     app.add_template_filter(build_category_label, "category_label")
     app.add_template_filter(format_time_ago, "time_ago")
     app.add_template_filter(get_user_status_label, "user_status_label")
+    # pilihan toolbar editor teks (components/rich_text_editor.html)
+    from app.utils.constants import RICH_TEXT_BLOCK_LIST, RICH_TEXT_COLOR_LIST, RICH_TEXT_FONT_LIST, RICH_TEXT_SIZE_LIST
+    app.add_template_global({"block_list": RICH_TEXT_BLOCK_LIST, "font_list": RICH_TEXT_FONT_LIST,
+                             "size_list": RICH_TEXT_SIZE_LIST, "color_list": RICH_TEXT_COLOR_LIST}, "rich_text_option")
 
     from app.security.access_policy import has_permission, is_admin
     from app.services.preference_service import list_selection_variant

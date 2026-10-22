@@ -37,6 +37,23 @@ def test_sanitize_rich_text_drops_event_attribute():
     cleaned_html = sanitize_rich_text('<p onclick="hack()" style="color:red">hai</p>')
     assert cleaned_html == "<p>hai</p>"
 
+def test_sanitize_rich_text_keeps_word_like_format():
+    """Positive: heading, quote, garis, coret, rata tengah, font/ukuran/warna dari toolbar tetep ada."""
+    raw_html = ('<h1>Judul</h1><blockquote>kutipan</blockquote><hr><strike>coret</strike>'
+                '<p style="text-align: center;">tengah</p><p align="right">kanan</p>'
+                '<font face="Times New Roman" size="5" color="#d63939">merah</font>')
+    cleaned_html = sanitize_rich_text(raw_html)
+    for part in ["<h1>Judul</h1>", "<blockquote>kutipan</blockquote>", "<hr>", "<strike>coret</strike>",
+                 '<p style="text-align:center">tengah</p>', '<p align="right">kanan</p>',
+                 '<font face="Times New Roman" size="5" color="#d63939">merah</font>']:
+        assert part in cleaned_html
+
+def test_sanitize_rich_text_drops_value_outside_toolbar():
+    """Negative (security): font/warna/ukuran di luar pilihan toolbar & CSS selain rata/indent dibuang."""
+    cleaned_html = sanitize_rich_text('<font face="Comic Sans" size="9" color="red">x</font>'
+                                      '<p style="background:url(javascript:alert(1));text-align:left">y</p>')
+    assert cleaned_html == '<font>x</font><p style="text-align:left">y</p>'
+
 def test_sanitize_rich_text_link_rules():
     """Negative (security): link javascript: dibuang, link https tetep + dikasih rel aman."""
     bad_html = sanitize_rich_text('<a href="javascript:alert(1)">klik</a>')

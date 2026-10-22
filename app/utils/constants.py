@@ -230,7 +230,19 @@ MAX_RICH_TEXT_LENGTH = 20000
 ALLOWED_URL_SCHEME_SET = {"http", "https"}
 
 # tag HTML yg boleh dari editor teks, sisanya dibuang
-RICH_TEXT_ALLOWED_TAG_SET = {"p", "div", "br", "b", "strong", "i", "em", "u", "ul", "ol", "li", "code", "pre", "a"}
+RICH_TEXT_ALLOWED_TAG_SET = {
+    "p", "div", "br", "b", "strong", "i", "em", "u", "s", "strike", "ul", "ol", "li", "code", "pre", "a",
+    "h1", "h2", "h3", "blockquote", "hr", "font",
+}
+# pilihan toolbar editor ala Word. Dipake toolbar (template) & sanitizer (nilai di luar daftar dibuang)
+RICH_TEXT_BLOCK_LIST = [("p", "Normal"), ("h1", "Heading 1"), ("h2", "Heading 2"), ("h3", "Heading 3"),
+                        ("blockquote", "Quote"), ("pre", "Code Block")]
+RICH_TEXT_FONT_LIST = ["Calibri", "Arial", "Times New Roman", "Georgia", "Consolas"]
+# (nilai fontSize browser 1-7, label pt ala Word)
+RICH_TEXT_SIZE_LIST = [("1", "8"), ("2", "10"), ("3", "12"), ("4", "14"), ("5", "18"), ("6", "24"), ("7", "36")]
+# warna yg tetep kebaca di tema terang & gelap
+RICH_TEXT_COLOR_LIST = [("#d63939", "Red"), ("#f76707", "Orange"), ("#f59f00", "Yellow"), ("#2fb344", "Green"),
+                        ("#206bc4", "Blue"), ("#ae3ec9", "Purple"), ("#667382", "Gray")]
 
 ATTACHMENT_MAX_COUNT = 5
 ATTACHMENT_MAX_SIZE_BYTES = 10 * 1024 * 1024
