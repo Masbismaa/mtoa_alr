@@ -3,15 +3,13 @@ Semua angka ngikut hak akses user (data Private orang lain ga ikut kehitung / ga
 from collections import namedtuple
 from datetime import timedelta
 
-from flask import url_for
-
 from app.extensions import db
-from app.models import AccessEntry, AuditLog, Category, User, UserFavorite
+from app.models import AccessEntry, AuditLog, User, UserFavorite
 from app.security.access_policy import build_visible_entry_filter, is_admin, is_private_audit_data
 from app.services.access_entry_service import count_visible_entry_summary
 from app.services.category_service import build_forum_row_list
 from app.services.link_monitor_service import build_monitor_summary, get_monitor_run
-from app.services.user_service import build_status_condition, build_user_summary, get_permission_key_list
+from app.services.user_service import build_status_condition, build_user_summary
 from app.services.group_service import (
     count_active_member,
     count_pending_invitation,
@@ -31,16 +29,13 @@ from app.utils.constants import (
     DASHBOARD_ATTENTION_LIMIT,
     DASHBOARD_RECENT_ACTIVITY_LIMIT,
     DASHBOARD_TEAM_ACTIVITY_LIMIT,
-    PERMISSION_EDIT_PUBLIC_ENTRIES,
-    PERMISSION_MANAGE_CATEGORIES,
-    PERMISSION_VIEW_AUDIT_LOGS,
     USER_STATUS_LOCKED,
     LINK_STATUS_DOWN,
     LINK_STATUS_UNKNOWN,
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
 )
-from app.utils.datetime_helper import build_utc_range_from_local_date, to_local_time, utc_now
+from app.utils.datetime_helper import to_local_time, utc_now
 
 # AKTIVITAS TIM
 # Kalimat per jenis aktivitas: (satu kali, beberapa kali). Yg ga ada di sini ga pernah tampil di dashboard
@@ -236,8 +231,8 @@ def list_recent_own_activity(user):
 
 
 # TAMPILAN PER PERAN
-# admin: ringkasan sistem & tugas admin. User with access: panel kerja per akses yg dikasih admin.
-# User Entry: data sendiri aja (+ panduan mulai kalau belum punya link).
+# admin: ringkasan sistem & tugas admin.
+# User Entry (termasuk yg dikasih akses tambahan): data sendiri aja (+ panduan mulai kalau belum punya link).
 
 def build_admin_panel():
     """Ringkasan sistem buat admin: akun, hasil cek link, antrean monitoring, akun yg lagi kekunci."""
@@ -253,35 +248,6 @@ def build_admin_panel():
     }
 
 
-def build_access_panel_list(permission_key_list):
-    """Satu panel kerja per akses tambahan yg dikasih admin (urutan sama kayak PERMISSION_LIST)."""
-    panel_list = []
-    if PERMISSION_MANAGE_CATEGORIES in permission_key_list:
-        category_count, inactive_count = db.session.execute(db.select(
-            db.func.count(Category.id), db.func.count(Category.id).filter(Category.is_active.is_(False)),
-        )).one()
-        panel_list.append({"key": PERMISSION_MANAGE_CATEGORIES, "icon": "category", "title": "Manage Categories",
-                           "fact_list": [(category_count, "categories"), (inactive_count, "inactive")],
-                           "url": url_for("categories.index"), "action": "Open Categories"})
-    if PERMISSION_VIEW_AUDIT_LOGS in permission_key_list:
-        today = to_local_time(utc_now()).date()
-        since, until = build_utc_range_from_local_date(today, today)
-        today_count, failed_count = db.session.execute(db.select(
-            db.func.count(AuditLog.id), db.func.count(AuditLog.id).filter(AuditLog.action == AUDIT_ACTION_LOGIN_FAILED),
-        ).where(AuditLog.created_at >= since, AuditLog.created_at < until)).one()
-        panel_list.append({"key": PERMISSION_VIEW_AUDIT_LOGS, "icon": "audit", "title": "Audit Logs",
-                           "fact_list": [(today_count, "records today"), (failed_count, "failed logins today")],
-                           "url": url_for("audit.index"), "action": "Open Audit Logs"})
-    if PERMISSION_EDIT_PUBLIC_ENTRIES in permission_key_list:
-        public_count, public_down_count = db.session.execute(db.select(
-            db.func.count(AccessEntry.id), db.func.count(AccessEntry.id).filter(AccessEntry.status == LINK_STATUS_DOWN),
-        ).where(AccessEntry.visibility == VISIBILITY_PUBLIC)).one()
-        panel_list.append({"key": PERMISSION_EDIT_PUBLIC_ENTRIES, "icon": "edit", "title": "Edit Public Links",
-                           "fact_list": [(public_count, "public links"), (public_down_count, "down")],
-                           "url": url_for("entries.index", run=1, visibility="public"), "action": "Open Public Links"})
-    return panel_list
-
-
 def build_dashboard_dict(user):
     """Semua data yg dibutuhin halaman dashboard dalam satu dict."""
     local_hour = to_local_time(utc_now()).hour
@@ -289,12 +255,10 @@ def build_dashboard_dict(user):
     status_count_dict = count_visible_entry_by_status(user)
     group_list = list_user_group(user)
     is_viewer_admin = is_admin(user)
-    permission_key_list = [] if is_viewer_admin else get_permission_key_list(user)
     return {
         "greeting": greeting,
-        "access_kind": "admin" if is_viewer_admin else "granted" if permission_key_list else "standard",
+        "access_kind": "admin" if is_viewer_admin else "standard",
         "admin_panel": build_admin_panel() if is_viewer_admin else None,
-        "access_panel_list": build_access_panel_list(permission_key_list),
         "summary": count_visible_entry_summary(user),
         "own_count": count_own_entry(user),
         "favorite_count": count_visible_favorite(user),

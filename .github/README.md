@@ -86,20 +86,13 @@ Select a group to expand it. Images adapt to the active GitHub theme.
     </td>
     <td width="50%" valign="top">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="assets/dashboard-access-dark.png">
-        <img src="assets/dashboard-access-light.png" alt="User with Access: Personal metrics and one panel for each granted permission" width="100%">
-      </picture>
-      <p align="center"><b>User with Access</b><br><sub>Personal metrics and one panel for each granted permission</sub></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/dashboard-entry-dark.png">
         <img src="assets/dashboard-entry-light.png" alt="User Entry: Personal metrics and an onboarding guide" width="100%">
       </picture>
       <p align="center"><b>User Entry</b><br><sub>Personal metrics and an onboarding guide</sub></p>
     </td>
+  </tr>
+  <tr>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/login-dark.png">
@@ -274,7 +267,6 @@ Expand a module to view its capabilities.
 | Role | Dashboard Content |
 |---|---|
 | Administrator | User totals, locked and inactive accounts, link availability, last check time, and an administrative task list |
-| User with Access | Personal metrics and a dedicated panel for each delegated permission |
 | User Entry | Personal metrics, items requiring attention, and an onboarding guide |
 
 Every role includes a **team activity feed**. Repeated actions are consolidated into a single entry per person per day to keep the feed concise. Regular users see public activity only; account and security events are restricted to administrators.
@@ -318,23 +310,23 @@ Every role includes a **team activity feed**. Repeated actions are consolidated 
 
 ## Access Control
 
-The system defines two roles. Administrators may delegate selected permissions to regular users, resulting in the *User with Access* profile.
+The system defines two roles. Administrators may delegate selected permissions to regular users.
 
 <div align="center">
 
-| Action | User Entry | User with Access | Administrator |
-|---|:---:|:---:|:---:|
-| Create, edit, and delete own links | ✓ | ✓ | ✓ |
-| View and copy public links | ✓ | ✓ | ✓ |
-| View other users' private links | – | – | – |
-| Create groups and share links | ✓ | ✓ | ✓ |
-| Import and export Excel files | ✓ | ✓ | ✓ |
-| Manage categories | – | if granted | ✓ |
-| Edit or delete other users' public links | – | if granted | ✓ |
-| View audit logs | – | if granted | ✓ |
-| Manage users and delegate permissions | – | – | ✓ |
-| Run link monitoring | – | – | ✓ |
-| Delete links in bulk | – | – | ✓ |
+| Action | User Entry | Administrator |
+|---|:---:|:---:|
+| Create, edit, and delete own links | ✓ | ✓ |
+| View and copy public links | ✓ | ✓ |
+| View other users' private links | – | – |
+| Create groups and share links | ✓ | ✓ |
+| Import and export Excel files | ✓ | ✓ |
+| Manage categories | if granted | ✓ |
+| Edit or delete other users' public links | if granted | ✓ |
+| View audit logs | if granted | ✓ |
+| Manage users and delegate permissions | – | ✓ |
+| Run link monitoring | – | ✓ |
+| Delete links in bulk | – | ✓ |
 
 </div>
 

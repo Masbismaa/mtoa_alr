@@ -28,7 +28,6 @@
         <h2 class="mb-1" id="dashboard-welcome-title">{{ dashboard_dict.greeting }}, {{ current_user.full_name }}!</h2>
         <p class="text-secondary mb-0">
           {% if account_access.kind == "admin" %}Manage accounts, access, and link monitoring.
-          {% elif account_access.kind == "granted" %}Your account has additional access granted by an admin.
           {% else %}Your links, favorites, and groups in one place.{% endif %}
         </p>
       </div>
@@ -97,32 +96,7 @@
       {% endfor %}
     </div>
 
-    {% if dashboard_dict.access_kind == "granted" %}
-      {# USER WITH ACCESS: satu panel kerja per akses yg dikasih admin #}
-      <div class="card mb-3 dashboard-access">
-        <div class="card-header">
-          <h3 class="card-title">{{ icon("lock") }} Your Access</h3>
-          <div class="card-actions small text-secondary">Granted by an admin</div>
-        </div>
-        <div class="card-body">
-          <div class="row g-3">
-            {% for panel in dashboard_dict.access_panel_list %}
-              <div class="col-md-4">
-                <div class="border rounded p-3 h-100 d-flex flex-column">
-                  <div class="fw-bold mb-2">{{ icon(panel.icon) }} {{ panel.title }}</div>
-                  <div class="d-flex gap-4 mb-3">
-                    {% for fact_count, fact_label in panel.fact_list %}
-                      <div><div class="h2 mb-0">{{ fact_count }}</div><div class="small text-secondary">{{ fact_label }}</div></div>
-                    {% endfor %}
-                  </div>
-                  <a href="{{ panel.url }}" class="btn btn-sm mt-auto">{{ panel.action }}</a>
-                </div>
-              </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    {% elif dashboard_dict.own_count == 0 %}
+    {% if dashboard_dict.own_count == 0 %}
       {# USER ENTRY yg belum punya link: panduan mulai #}
       <div class="card mb-3 dashboard-start">
         <div class="card-body">

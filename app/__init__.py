@@ -273,11 +273,11 @@ def register_template_helpers(app):
         preference = get_or_create_preference(user)
         sidebar_sections = build_sidebar_section_list(user, request.endpoint)
         permission_keys = get_permission_key_list(user) if not is_admin(user) else []
-        access_kind = "admin" if is_admin(user) else "granted" if permission_keys else "standard"
+        access_kind = "admin" if is_admin(user) else "standard"
         account_access = {
             "kind": access_kind,
-            "label": {"admin": "Admin", "granted": "User with access", "standard": "User Entry"}[access_kind],
-            "color_class": {"admin": "bg-blue-lt", "granted": "bg-teal-lt", "standard": "bg-secondary-lt"}[access_kind],
+            "label": {"admin": "Admin", "standard": "User Entry"}[access_kind],
+            "color_class": {"admin": "bg-blue-lt", "standard": "bg-secondary-lt"}[access_kind],
             "permission_list": [PERMISSION_INFO_DICT[key] for key in permission_keys],
             "can_edit_public": PERMISSION_EDIT_PUBLIC_ENTRIES in permission_keys,
             "management_link_list": [
