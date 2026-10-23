@@ -1,5 +1,6 @@
 """Test pencarian & filter data link di service."""
 from app.services.access_entry_service import create_access_entry, search_visible_entries
+from tests.conftest import create_entry_as_is
 from app.utils.constants import VISIBILITY_PRIVATE, VISIBILITY_PUBLIC
 
 def build_entry_dict(category, title, url, **override_dict):
@@ -50,7 +51,7 @@ def test_filter_by_visibility(app, registered_user, category_dict):
     """Positive: filter visibilitas."""
     web = category_dict["Web"]
     create_access_entry(registered_user, build_entry_dict(web, "Private Saya", "https://a.spindo.com"))
-    create_access_entry(registered_user, build_entry_dict(web, "Public Saya", "https://b.spindo.com", visibility=VISIBILITY_PUBLIC))
+    create_entry_as_is(registered_user, build_entry_dict(web, "Public Saya", "https://b.spindo.com", visibility=VISIBILITY_PUBLIC))
     assert get_title_list(search_visible_entries(registered_user, visibility=VISIBILITY_PUBLIC)) == ["Public Saya"]
 
 def test_search_never_returns_private_of_other_user(app, registered_user, other_user, category_dict):

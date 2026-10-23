@@ -2,6 +2,7 @@
 from app.extensions import db
 from app.models import AccessEntry, AuditLog
 from app.services.access_entry_service import create_access_entry
+from tests.conftest import create_entry_as_is
 from app.services.attachment_service import get_stored_file_path
 from app.utils.constants import AUDIT_ACTION_DELETE, BULK_DELETE_MAX_COUNT, VISIBILITY_PUBLIC
 from tests.test_entry_routes import build_service_dict
@@ -10,7 +11,7 @@ API_URL = "/entries/bulk-delete"
 
 
 def make_entry(user, category, title, **override_dict):
-    return create_access_entry(user, build_service_dict(
+    return create_entry_as_is(user, build_service_dict(
         category, title=title, url=f"https://{title.lower().replace(' ', '-')}.spindo.com", **override_dict,
     ))
 

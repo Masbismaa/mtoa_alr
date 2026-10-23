@@ -1,6 +1,6 @@
 """Test Select Screen: wildcard *ad / ad*, Multi Selection (sertakan/kecualikan), pilihan multi, rentang tanggal, menu terkunci."""
 from werkzeug.datastructures import MultiDict
-from app.services.access_entry_service import create_access_entry
+from tests.conftest import create_entry_as_is
 from app.services.audit_service import log_audit
 from app.services.group_service import create_group
 from app.utils.constants import AUDIT_ACTION_LOGIN_FAILED, SELECTION_MAX_VALUE_COUNT, VISIBILITY_PRIVATE, VISIBILITY_PUBLIC
@@ -9,7 +9,7 @@ from app.utils.selection import describe_selection, read_text_selection, text_fi
 
 def create_entry(user, category, title, url="", address="", visibility=VISIBILITY_PRIVATE):
     """Helper: bikin link contoh."""
-    return create_access_entry(user, {
+    return create_entry_as_is(user, {
         "category_id": category.id, "title": title, "url": url,
         "address": address, "port": "22" if address else "", "username": "", "access_note": "", "description": "",
         "visibility": visibility,

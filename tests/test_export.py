@@ -4,6 +4,7 @@ from openpyxl import load_workbook
 from app.extensions import db
 from app.models import AuditLog
 from app.services.access_entry_service import create_access_entry, list_visible_entries_for_export
+from tests.conftest import create_entry_as_is
 from app.utils.constants import AUDIT_ACTION_EXPORT, VISIBILITY_PRIVATE, VISIBILITY_PUBLIC, XLSX_MIMETYPE
 
 def build_entry_dict(category, title, url, **override_dict):
@@ -67,7 +68,7 @@ def test_export_only_visible_entries(logged_in_client, registered_user, other_us
     web = category_dict["Web"]
     create_access_entry(registered_user, build_entry_dict(web, "Private Saya", "https://saya.spindo.com"))
     create_access_entry(other_user, build_entry_dict(web, "Private Orang", "https://orang.spindo.com"))
-    create_access_entry(other_user, build_entry_dict(
+    create_entry_as_is(other_user, build_entry_dict(
         web, "Public Orang", "https://public.spindo.com", visibility=VISIBILITY_PUBLIC,
     ))
     title_list = read_title_list(logged_in_client.get("/export"))
@@ -113,7 +114,7 @@ def test_export_summary_counts(logged_in_client, registered_user, other_user, ca
     """Positive: angka di Ringkasan sesuai data yg boleh diliat (private orang lain ga kehitung)."""
     web = category_dict["Web"]
     create_access_entry(registered_user, build_entry_dict(web, "Portal HR", "https://hr.spindo.com"))
-    create_access_entry(registered_user, build_entry_dict(
+    create_entry_as_is(registered_user, build_entry_dict(
         category_dict["Network"], "Switch Core", "", address="10.0.0.2", port="22", visibility=VISIBILITY_PUBLIC,
     ))
     create_access_entry(other_user, build_entry_dict(web, "Private Orang", "https://orang.spindo.com"))

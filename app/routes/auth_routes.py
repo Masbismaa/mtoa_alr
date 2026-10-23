@@ -34,11 +34,15 @@ from app.utils.text_helper import mask_email
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 def get_pending_user():
-    """Ambil user yg udah lolos password tapi belum isi OTP."""
-    pending_user_id = session.get(SESSION_PENDING_USER_KEY)
-    if not pending_user_id:
+    """Ambil user yg udah lolos password tapi belum isi OTP. Password diganti setelah langkah 1 (session_version
+    naik) -> login yg lagi nunggu ini batal, harus mulai dari password baru."""
+    pending = session.get(SESSION_PENDING_USER_KEY)
+    if not isinstance(pending, dict):
         return None
-    return db.session.get(User, pending_user_id)
+    user = db.session.get(User, pending.get("id"))
+    if user is None or user.session_version != pending.get("version"):
+        return None
+    return user
 
 def end_pending_login(message):
     session.pop(SESSION_PENDING_USER_KEY, None)
@@ -153,7 +157,7 @@ def login():
         else:
             # session dibersihin dulu, terus simpen user yg lagi nunggu OTP
             session.clear()
-            session[SESSION_PENDING_USER_KEY] = user.id
+            session[SESSION_PENDING_USER_KEY] = {"id": user.id, "version": user.session_version}
             return redirect(url_for("auth.verify_otp"))
 
     return render_template("pages/auth/login.html", form=form)

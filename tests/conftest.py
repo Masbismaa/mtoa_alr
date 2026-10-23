@@ -112,6 +112,16 @@ def admin_user(app):
         role=ROLE_ADMIN,
     )
 
+def create_entry_as_is(user, data_dict, *arg_list, **kwarg_dict):
+    """Bikin link lewat service, terus visibilitasnya dipasang persis sesuai data_dict. Buat test yg butuh link Public
+    punya user biasa = data lama sebelum aturan "Public cuma admin" (service sekarang otomatis bikin Private)."""
+    from app.services.access_entry_service import create_access_entry
+
+    entry = create_access_entry(user, data_dict, *arg_list, **kwarg_dict)
+    entry.visibility = data_dict["visibility"]
+    db.session.commit()
+    return entry
+
 def build_office_zip_bytes(folder_name, has_macro=False):
     """Bikin file xlsx/docx palsu tapi strukturnya bener (zip)."""
     buffer = io.BytesIO()

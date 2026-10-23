@@ -73,26 +73,19 @@ def test_sidebar_renders_inline_folders_and_opens_active_branch(logged_in_client
     assert 'data-locked-message="You are not authorized' in html_text
 
 
-def test_granted_dashboard_shows_one_panel_per_granted_access(logged_in_client, registered_user, admin_user):
-    """Positive: User with access -> panel "Your Access" cuma buat akses yg dikasih; tanpa panel admin.
-    Akses dicabut -> balik jadi dashboard User Entry."""
+def test_user_with_extra_access_stays_user_entry(logged_in_client, registered_user, admin_user):
+    """Positive: role "User with access" udah dihapus -> user yg dikasih akses tambahan tetep User Entry
+    (dashboard biasa, tanpa panel "Your Access"), tapi aksesnya tetep jalan."""
     from app.services.user_service import set_user_permissions
-    from app.utils.constants import PERMISSION_MANAGE_CATEGORIES, PERMISSION_EDIT_PUBLIC_ENTRIES
+    from app.utils.constants import PERMISSION_MANAGE_CATEGORIES
 
-    set_user_permissions(admin_user, registered_user, [PERMISSION_MANAGE_CATEGORIES, PERMISSION_EDIT_PUBLIC_ENTRIES])
+    set_user_permissions(admin_user, registered_user, [PERMISSION_MANAGE_CATEGORIES])
     html_text = logged_in_client.get("/").get_data(as_text=True)
-    assert 'data-access-level="granted"' in html_text and "User with access" in html_text
-    assert 'class="card mb-3 dashboard-access"' in html_text
-    assert "Manage Categories" in html_text and 'href="/categories/"' in html_text
-    assert "Edit Public Links" in html_text
-    assert "Open Audit Logs" not in html_text
+    assert 'data-access-level="standard"' in html_text and "User Entry" in html_text
+    assert "User with access" not in html_text and "Your Access" not in html_text
     assert "System Overview" not in html_text and "Admin To-Do" not in html_text
+    assert logged_in_client.get("/categories/").status_code == 200
     assert logged_in_client.get("/users/").status_code == 403
-
-    set_user_permissions(admin_user, registered_user, [])
-    html_text = logged_in_client.get("/").get_data(as_text=True)
-    assert 'data-access-level="standard"' in html_text
-    assert "Your Access" not in html_text
 
 
 def test_admin_dashboard_shows_system_overview_and_admin_todo(client, admin_user, user_password, fixed_otp_code):

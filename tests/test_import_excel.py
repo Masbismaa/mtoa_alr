@@ -60,7 +60,8 @@ def test_template_download_has_columns_and_categories(logged_in_client, category
 
 
 def test_filled_official_template_imports(logged_in_client, registered_user, category_dict):
-    """Positive: template resmi (header di bawah kop) diisi pake nilai dropdown -> ke-import."""
+    """Positive: template resmi (header di bawah kop) diisi pake nilai dropdown -> ke-import.
+    Visibility Public dari user biasa disimpen Private (Public cuma admin)."""
     sap = Category(parent_id=category_dict["Web"].id, name="SAP", is_active=True)
     db.session.add(sap)
     db.session.commit()
@@ -73,7 +74,7 @@ def test_filled_official_template_imports(logged_in_client, registered_user, cat
     response = post_import(logged_in_client, buffer.getvalue(), "ALR_import_template.xlsx")
     assert response.status_code == 302, response.get_data(as_text=True)[:2000]
     entry = db.session.execute(db.select(AccessEntry)).scalar_one()
-    assert (entry.title, entry.category_id, entry.visibility, entry.user_id) == ("SAP Prod", sap.id, "public", registered_user.id)
+    assert (entry.title, entry.category_id, entry.visibility, entry.user_id) == ("SAP Prod", sap.id, "private", registered_user.id)
 
 
 def test_empty_official_template_has_nothing_to_import(logged_in_client, category_dict):
@@ -99,7 +100,8 @@ def test_import_creates_all_rows_with_encrypted_note(logged_in_client, registere
     assert [(entry.title, entry.user_id) for entry in entry_list] == [
         ("Portal HR", registered_user.id), ("SAP Prod", registered_user.id), ("Switch Core", registered_user.id),
     ]
-    assert entry_list[0].visibility == "public" and entry_list[2].visibility == "private"
+    # baris Public dari user biasa ikut Private (Public cuma admin)
+    assert entry_list[0].visibility == "private" and entry_list[2].visibility == "private"
     assert entry_list[1].category_id == sap.id and entry_list[2].port == 22
     assert entry_list[0].encrypted_access_note != "Rahasia123"
     assert decrypt_credential(entry_list[0].encrypted_access_note) == "Rahasia123"
@@ -189,3 +191,37 @@ def test_filled_column_not_used_by_category_is_rejected(logged_in_client, catego
     assert "Row 2: Access Note is not used by category General" in html_text
     assert "Row 3: URL is not used by category Network" in html_text
     assert count_entry() == 0
+
+
+def test_import_query_count_does_not_grow_per_row(app, registered_user, category_dict):
+    """Positive (efisiensi, temuan audit): cek duplikat & simpan dikerjain sekaligus, bukan beberapa query per baris."""
+    from sqlalchemy import event
+    from werkzeug.datastructures import FileStorage
+
+    def count_statement(row_count):
+        content = build_xlsx([web_row(f"Link {row_count}-{index}", f"https://q{row_count}-{index}.spindo.com")
+                              for index in range(row_count)])
+        counter = [0]
+        def on_execute(_conn, _cursor, statement, *_):
+            # cuma SELECT yg dihitung: INSERT digabung atau nggak tergantung database (PostgreSQL digabung, SQLite nggak)
+            counter[0] += statement.lstrip().upper().startswith("SELECT")
+        event.listen(db.engine, "before_cursor_execute", on_execute)
+        try:
+            import_service.import_entries(registered_user, FileStorage(stream=io.BytesIO(content), filename="x.xlsx"))
+        finally:
+            event.remove(db.engine, "before_cursor_execute", on_execute)
+        return counter[0]
+
+    with app.test_request_context("/"):
+        # pemanasan: import pertama ngisi cache kategori, abis commit data user dibaca ulang sekali
+        count_statement(1)
+        small, large = count_statement(10), count_statement(60)
+    # 50 baris tambahan ga boleh nambah query baca sama sekali
+    assert large == small, (small, large)
+
+
+def test_admin_import_keeps_public(admin_client, admin_user, category_dict):
+    """Positive: admin boleh import link Public."""
+    response = post_import(admin_client, build_xlsx([web_row("Portal Umum", "https://umum.spindo.com", Visibility="Public")]))
+    assert response.status_code == 302
+    assert db.session.execute(db.select(AccessEntry.visibility)).scalar_one() == "public"

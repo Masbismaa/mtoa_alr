@@ -4,6 +4,7 @@ from app.extensions import db
 from app.models import AuditLog, GroupEntry, GroupEntryViewer
 from app.services import auth_service
 from app.services.access_entry_service import create_access_entry, get_visible_entry
+from tests.conftest import create_entry_as_is
 from app.services.group_service import (
     accept_invitation,
     add_group_entry,
@@ -28,7 +29,7 @@ def third_user(app):
 
 def create_entry(user, category, title, visibility=VISIBILITY_PRIVATE):
     """Helper: bikin link (default private)."""
-    return create_access_entry(user, {
+    return create_entry_as_is(user, {
         "category_id": category.id, "title": title, "url": f"https://{title.lower().replace(' ', '-')}.spindo.com",
         "address": "", "port": "", "username": "", "access_note": "", "description": "",
         "visibility": visibility,
@@ -199,6 +200,8 @@ def test_owner_saves_viewers_via_route(logged_in_client, registered_user, other_
     assert response.status_code == 302
     assert group_entry.is_restricted is True
     assert [viewer.user_id for viewer in group_entry.viewer_list] == [other_user.id]
+    # dropdown nampilin nama member yg kepilih
+    assert f'data-selection-summary data-empty-text="Choose members…">{other_user.full_name}<' in logged_in_client.get(url).get_data(as_text=True)
 
 def test_unknown_group_entry_viewer_page_404(logged_in_client, registered_user):
     """Negative: id link ngasal -> 404."""

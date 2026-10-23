@@ -4,7 +4,7 @@ from sqlalchemy.orm import joinedload, selectinload, undefer
 
 from app.extensions import db
 from app.models import AccessEntry, AccessEntryField, Category, User, UserFavorite
-from app.security.access_policy import build_visible_entry_filter, can_edit_entry, is_entry_owner
+from app.security.access_policy import build_visible_entry_filter, can_edit_entry, is_admin, is_entry_owner
 from app.security.encryption_service import decrypt_credential, encrypt_credential
 from app.services.attachment_service import (
     pick_entry_attachment_list,
@@ -214,10 +214,38 @@ def find_duplicate_entry(user, clean_dict, exclude_entry_id=None):
 
     return None, None
 
+def find_duplicate_entry_dict(user, clean_dict_list):
+    """Versi sekaligus find_duplicate_entry (buat import): 1 query buat semua baris, aturannya sama
+    (URL sama, atau Address + Port sama, di data sendiri + Public). Return {index baris: pesan galat}."""
+    url_set = {clean_dict["url"] for clean_dict in clean_dict_list if clean_dict.get("url")}
+    address_set = {clean_dict["address"] for clean_dict in clean_dict_list if clean_dict.get("address")}
+    if not url_set and not address_set:
+        return {}
+    match_condition = db.or_(AccessEntry.url.in_(url_set), AccessEntry.address.in_(address_set))
+    title_by_url, title_by_address = {}, {}
+    for title, url, address, port in db.session.execute(
+        db.select(AccessEntry.title, AccessEntry.url, AccessEntry.address, AccessEntry.port)
+        .where(build_visible_entry_filter(user), match_condition).order_by(AccessEntry.id)
+    ):
+        title_by_url.setdefault(url, title)
+        title_by_address.setdefault((address, port), title)
+    error_dict = {}
+    for index, clean_dict in enumerate(clean_dict_list):
+        title = title_by_url.get(clean_dict.get("url")) if clean_dict.get("url") else None
+        if title is None and clean_dict.get("address"):
+            title = title_by_address.get((clean_dict["address"], clean_dict.get("port")))
+        if title is not None:
+            error_dict[index] = f'Already registered in link "{title}"'
+    return error_dict
+
 def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list=None,
-                       existing_attachment_count=0, exclude_entry_id=None, current_category_id=None):
-    """Semua validasi jadi satu (create & update). Return (clean_dict, custom_list, upload_list)."""
+                       existing_attachment_count=0, exclude_entry_id=None, current_category_id=None, check_duplicate=True):
+    """Semua validasi jadi satu (create & update). Return (clean_dict, custom_list, upload_list).
+    check_duplicate=False cuma buat import: duplikat ke database dicek sekaligus semua baris (find_duplicate_entry_dict)."""
     clean_dict, category, error_list = validate_entry_data(data_dict, current_category_id)
+    # link Public cuma admin yg boleh bikin; punya user biasa (form, import, request ngakal) otomatis Private
+    if clean_dict.get("visibility") == VISIBILITY_PUBLIC and not is_admin(user):
+        clean_dict["visibility"] = VISIBILITY_PRIVATE
 
     clean_custom_field_list = []
     if category is not None:
@@ -229,7 +257,7 @@ def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list
     error_list.extend(upload_error_list)
 
     # cek duplikat kalau yg lain udah beres aja (hemat query)
-    if not error_list:
+    if check_duplicate and not error_list:
         duplicate_field, duplicate_entry = find_duplicate_entry(user, clean_dict, exclude_entry_id)
         if duplicate_entry is not None:
             error_list.append(build_error(duplicate_field, f'Already registered in link "{duplicate_entry.title}"'))
@@ -312,8 +340,9 @@ def update_access_entry(user, entry, data_dict, custom_field_pair_list=None,
     )
     # dicek ulang setelah link dikunci (upload barengan ke link yg sama ga boleh lewat batas)
     enforce_entry_attachment_limit(entry, prepared_upload_list, [attachment.id for attachment in delete_attachment_list])
-    # visibilitas cuma boleh diganti pemiliknya
-    if not is_entry_owner(user, entry):
+    # visibilitas cuma boleh diganti pemiliknya. Link Public lama punya user biasa tetep Public selama ga
+    # dipindah ke Private (pindah ke Public ditolak di prepare_entry_data)
+    if not is_entry_owner(user, entry) or data_dict.get("visibility") == entry.visibility:
         clean_dict["visibility"] = entry.visibility
 
     old_data_dict = build_entry_audit_dict(entry)

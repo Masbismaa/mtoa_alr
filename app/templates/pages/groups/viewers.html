@@ -44,26 +44,34 @@
                 <div class="me-3"><span class="form-selectgroup-check"></span></div>
                 <div class="text-start">
                   <div class="fw-medium">Selected members</div>
-                  <div class="small text-secondary">Only the members checked below. You, whoever added the link, and the link owner can always see it.</div>
+                  <div class="small text-secondary">Only the members picked below. You, whoever added the link, and the link owner can always see it.</div>
                 </div>
               </div>
             </label>
           </div>
 
           {% if candidate_member_list %}
-            <div class="list-group list-group-flush border rounded">
-              {% for member in candidate_member_list %}
-                <label class="list-group-item d-flex align-items-center gap-3">
-                  <input type="checkbox" class="form-check-input m-0" name="viewer_user_id" value="{{ member.user_id }}"{% if member.user_id in viewer_user_id_set %} checked{% endif %}>
-                  <span class="avatar avatar-sm bg-primary-lt">{{ member.user.full_name | initials }}</span>
-                  <span class="text-truncate">
-                    <span class="d-block">{{ member.user.full_name }}</span>
-                    <span class="d-block small text-secondary">{{ member.user.job_title }} · {{ member.user.department }}</span>
-                  </span>
-                </label>
-              {% endfor %}
+            {% set picked_name_list = candidate_member_list | selectattr("user_id", "in", viewer_user_id_set) | map(attribute="user.full_name") | list %}
+            <span class="form-label" id="viewer_label">Members</span>
+            {# dropdown centang yg sama dgn panel kriteria; ringkasannya diupdate selection_panel.js #}
+            <div class="dropdown" data-selection-choice>
+              <button type="button" class="form-select text-start text-truncate" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-labelledby="viewer_label viewer_summary">
+                <span id="viewer_summary" data-selection-summary data-empty-text="Choose members…">{{ picked_name_list | join(", ") if picked_name_list else "Choose members…" }}</span>
+              </button>
+              <div class="dropdown-menu selection-choice-menu">
+                {% for member in candidate_member_list %}
+                  <label class="dropdown-item gap-3">
+                    <input type="checkbox" class="form-check-input m-0" name="viewer_user_id" value="{{ member.user_id }}" data-label="{{ member.user.full_name }}"{% if member.user_id in viewer_user_id_set %} checked{% endif %}>
+                    <span class="avatar avatar-sm bg-primary-lt">{{ member.user.full_name | initials }}</span>
+                    <span class="text-truncate">
+                      <span class="d-block">{{ member.user.full_name }}</span>
+                      <span class="d-block small text-secondary">{{ member.user.job_title }} · {{ member.user.department }}</span>
+                    </span>
+                  </label>
+                {% endfor %}
+              </div>
             </div>
-            <div class="form-hint mt-2">The checkboxes are only used when "Selected members" is chosen.</div>
+            <div class="form-hint mt-2">The member list is only used when "Selected members" is chosen.</div>
           {% else %}
             <div class="text-secondary small">There are no other active members in this group yet.</div>
           {% endif %}
@@ -72,4 +80,8 @@
       </form>
     </div>
   </div>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', filename='js/components/selection_panel.js') }}" defer></script>
 {% endblock %}

@@ -24,6 +24,7 @@ from app.utils.constants import (
     REGISTER_CODE_WINDOW_MINUTES,
     REGISTER_NOTICE_COOLDOWN_MINUTES,
     RESET_ATTEMPT_MAX_COUNT,
+    RESET_CODE_DAILY_MAX_COUNT,
 )
 
 EXTENSION_KEY = "auth_throttle"
@@ -34,6 +35,8 @@ LOGIN_FAILURE_NAMESPACE = "login_failure"
 REGISTER_NOTICE_NAMESPACE = "register_notice"
 REGISTER_CODE_NAMESPACE = "register_code"
 RESET_CODE_NAMESPACE = "reset_code"
+RESET_CODE_DAILY_LIMIT = parse(f"{RESET_CODE_DAILY_MAX_COUNT} per 1 day")
+RESET_CODE_DAILY_NAMESPACE = "reset_code_daily"
 RESET_ATTEMPT_LIMIT = parse(f"{RESET_ATTEMPT_MAX_COUNT} per 1 day")
 RESET_ATTEMPT_NAMESPACE = "reset_attempt"
 
@@ -79,11 +82,13 @@ def allow_register_code(email):
     return get_limiter().hit(REGISTER_CODE_LIMIT, REGISTER_CODE_NAMESPACE, email)
 
 def allow_reset_code(email):
-    """True kalau kode lupa password boleh dikirim ke alamat ini sekarang. Batasnya sama kayak kode daftar (per email),
-    biar orang ga bisa ngebanjirin kotak masuk orang lain lewat halaman lupa password."""
-    return get_limiter().hit(REGISTER_CODE_LIMIT, RESET_CODE_NAMESPACE, email)
+    """True kalau kode lupa password boleh dikirim ke alamat ini sekarang. Batasnya per email: sama kayak kode daftar
+    (anti banjir kotak masuk) + batas harian. Batas harian ini yg ngebatesin total tebakan kode lintas IP
+    (tiap kode cuma bisa dicoba OTP_MAX_ATTEMPT_COUNT kali)."""
+    return (get_limiter().hit(REGISTER_CODE_LIMIT, RESET_CODE_NAMESPACE, email)
+            and get_limiter().hit(RESET_CODE_DAILY_LIMIT, RESET_CODE_DAILY_NAMESPACE, email))
 
-def allow_reset_attempt(email):
-    """True kalau email ini masih boleh nyoba kode lupa password hari ini. Batasnya per email lintas kode baru
-    (kode baru bisa diminta tiap menit, jadi batas per kode doang ga cukup buat nahan tebakan 6 digit)."""
-    return get_limiter().hit(RESET_ATTEMPT_LIMIT, RESET_ATTEMPT_NAMESPACE, email)
+def allow_reset_attempt(email, ip_address):
+    """True kalau email ini masih boleh nyoba kode lupa password hari ini dari IP ini. Per email + IP, biar orang lain
+    yg sengaja salah-salahin kode ga bikin pemiliknya ga bisa reset (total tebakan udah kebatas di allow_reset_code)."""
+    return get_limiter().hit(RESET_ATTEMPT_LIMIT, RESET_ATTEMPT_NAMESPACE, email, ip_address)

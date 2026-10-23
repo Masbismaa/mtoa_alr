@@ -20,6 +20,7 @@ from app.utils.constants import (
     VISIBILITY_PUBLIC,
 )
 from app.utils.exceptions import PermissionDeniedError, ValidationError
+from tests.conftest import create_entry_as_is
 
 
 def build_entry_dict(category, **override_dict):
@@ -112,7 +113,7 @@ def test_duplicate_url_of_own_entry_rejected(app, registered_user, category_dict
 
 def test_duplicate_of_public_entry_from_other_user_rejected(app, registered_user, other_user, category_dict):
     """Negative: URL yg udah ada di data public orang lain juga duplikat."""
-    create_access_entry(other_user, build_entry_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
+    create_entry_as_is(other_user, build_entry_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
     with pytest.raises(ValidationError):
         create_access_entry(registered_user, build_entry_dict(category_dict["Web"]))
 
@@ -179,14 +180,14 @@ def test_update_by_owner_success(app, registered_user, category_dict):
 
 def test_update_by_other_user_denied(app, registered_user, other_user, category_dict):
     """Negative (security): data public orang lain ga bisa diubah user biasa."""
-    entry = create_access_entry(other_user, build_entry_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
+    entry = create_entry_as_is(other_user, build_entry_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
     with pytest.raises(PermissionDeniedError):
         update_access_entry(registered_user, entry, build_entry_dict(category_dict["Web"], title="Diubah"))
 
 
 def test_admin_update_public_cannot_change_visibility(app, admin_user, other_user, category_dict):
     """Positive & negative: admin bisa edit data public, tapi ga bisa jadiin private."""
-    entry = create_access_entry(other_user, build_entry_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
+    entry = create_entry_as_is(other_user, build_entry_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
     update_access_entry(admin_user, entry, build_entry_dict(
         category_dict["Web"], title="Diubah Admin", visibility=VISIBILITY_PRIVATE,
     ))
@@ -210,7 +211,7 @@ def test_delete_by_owner_removes_entry_and_fields(app, registered_user, category
 def test_get_visible_entry_hides_private_of_other_user(app, registered_user, other_user, category_dict):
     """Negative (security): private orang lain ga bisa diambil lewat id."""
     private_entry = create_access_entry(other_user, build_entry_dict(category_dict["Web"], url="https://a.spindo.com"))
-    public_entry = create_access_entry(other_user, build_entry_dict(
+    public_entry = create_entry_as_is(other_user, build_entry_dict(
         category_dict["Web"], url="https://b.spindo.com", visibility=VISIBILITY_PUBLIC,
     ))
     assert get_visible_entry(registered_user, private_entry.id) is None
@@ -221,8 +222,38 @@ def test_count_visible_entry_summary(app, registered_user, other_user, category_
     """Positive: ringkasan cuma ngitung data yg boleh dilihat."""
     web = category_dict["Web"]
     create_access_entry(registered_user, build_entry_dict(web, url="https://1.spindo.com"))
-    create_access_entry(registered_user, build_entry_dict(web, url="https://2.spindo.com", visibility=VISIBILITY_PUBLIC))
-    create_access_entry(other_user, build_entry_dict(web, url="https://3.spindo.com", visibility=VISIBILITY_PUBLIC))
+    create_entry_as_is(registered_user, build_entry_dict(web, url="https://2.spindo.com", visibility=VISIBILITY_PUBLIC))
+    create_entry_as_is(other_user, build_entry_dict(web, url="https://3.spindo.com", visibility=VISIBILITY_PUBLIC))
     create_access_entry(other_user, build_entry_dict(web, url="https://4.spindo.com"))
     summary_dict = count_visible_entry_summary(registered_user)
     assert summary_dict == {"total": 3, "public": 2, "private": 1}
+
+
+# Public cuma admin
+
+def test_user_create_public_becomes_private(app, registered_user, category_dict):
+    """Negative: user biasa minta Public (form diakalin / request langsung) -> kesimpen Private."""
+    entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
+    assert entry.visibility == VISIBILITY_PRIVATE
+
+
+def test_admin_create_public_stays_public(app, admin_user, category_dict):
+    """Positive: admin boleh bikin link Public."""
+    entry = create_access_entry(admin_user, build_entry_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
+    assert entry.visibility == VISIBILITY_PUBLIC
+
+
+def test_user_cannot_change_own_private_to_public(app, registered_user, category_dict):
+    """Negative: edit link Private sendiri jadi Public ditolak diem-diem (tetep Private)."""
+    entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"]))
+    update_access_entry(registered_user, entry, build_entry_dict(category_dict["Web"], title="Diubah", visibility=VISIBILITY_PUBLIC))
+    assert entry.title == "Diubah" and entry.visibility == VISIBILITY_PRIVATE
+
+
+def test_user_old_public_link_kept_or_made_private(app, registered_user, category_dict):
+    """Positive: link Public lama punya user biasa tetep Public pas diedit, dan pemiliknya boleh jadiin Private."""
+    entry = create_entry_as_is(registered_user, build_entry_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
+    update_access_entry(registered_user, entry, build_entry_dict(category_dict["Web"], title="Tetap", visibility=VISIBILITY_PUBLIC))
+    assert entry.visibility == VISIBILITY_PUBLIC
+    update_access_entry(registered_user, entry, build_entry_dict(category_dict["Web"], title="Tetap", visibility=VISIBILITY_PRIVATE))
+    assert entry.visibility == VISIBILITY_PRIVATE

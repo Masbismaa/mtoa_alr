@@ -7,6 +7,7 @@ from app.extensions import db
 from app.models import AccessEntry, Attachment
 from app.services import attachment_service
 from app.services.access_entry_service import create_access_entry, delete_access_entry, update_access_entry
+from tests.conftest import create_entry_as_is
 from app.services.attachment_service import get_stored_file_path, get_upload_folder, get_visible_attachment
 from app.utils.constants import VISIBILITY_PRIVATE, VISIBILITY_PUBLIC
 from app.utils.exceptions import ValidationError
@@ -129,7 +130,7 @@ def test_get_visible_attachment_hides_private_of_other_user(app, registered_user
         other_user, build_entry_dict(category_dict["Web"], url="https://a.spindo.com"),
         upload_file_list=[make_file_storage(sample_file_dict["png"], "a.png")],
     )
-    public_entry = create_access_entry(
+    public_entry = create_entry_as_is(
         other_user, build_entry_dict(category_dict["Web"], url="https://b.spindo.com", visibility=VISIBILITY_PUBLIC),
         upload_file_list=[make_file_storage(sample_file_dict["png"], "b.png")],
     )

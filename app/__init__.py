@@ -230,6 +230,10 @@ def register_template_helpers(app):
     app.add_template_filter(build_category_label, "category_label")
     app.add_template_filter(format_time_ago, "time_ago")
     app.add_template_filter(get_user_status_label, "user_status_label")
+    # pilihan toolbar editor teks (components/rich_text_editor.html)
+    from app.utils.constants import RICH_TEXT_BLOCK_LIST, RICH_TEXT_COLOR_LIST, RICH_TEXT_FONT_LIST, RICH_TEXT_SIZE_LIST
+    app.add_template_global({"block_list": RICH_TEXT_BLOCK_LIST, "font_list": RICH_TEXT_FONT_LIST,
+                             "size_list": RICH_TEXT_SIZE_LIST, "color_list": RICH_TEXT_COLOR_LIST}, "rich_text_option")
 
     from app.security.access_policy import has_permission, is_admin
     from app.services.preference_service import list_selection_variant
@@ -273,11 +277,11 @@ def register_template_helpers(app):
         preference = get_or_create_preference(user)
         sidebar_sections = build_sidebar_section_list(user, request.endpoint)
         permission_keys = get_permission_key_list(user) if not is_admin(user) else []
-        access_kind = "admin" if is_admin(user) else "granted" if permission_keys else "standard"
+        access_kind = "admin" if is_admin(user) else "standard"
         account_access = {
             "kind": access_kind,
-            "label": {"admin": "Admin", "granted": "User with access", "standard": "User Entry"}[access_kind],
-            "color_class": {"admin": "bg-blue-lt", "granted": "bg-teal-lt", "standard": "bg-secondary-lt"}[access_kind],
+            "label": {"admin": "Admin", "standard": "User Entry"}[access_kind],
+            "color_class": {"admin": "bg-blue-lt", "standard": "bg-secondary-lt"}[access_kind],
             "permission_list": [PERMISSION_INFO_DICT[key] for key in permission_keys],
             "can_edit_public": PERMISSION_EDIT_PUBLIC_ENTRIES in permission_keys,
             "management_link_list": [

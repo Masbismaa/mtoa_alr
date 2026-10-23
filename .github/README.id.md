@@ -86,20 +86,13 @@ Pilih salah satu kelompok untuk membukanya. Gambar menyesuaikan tema GitHub yang
     </td>
     <td width="50%" valign="top">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="assets/dashboard-access-dark.png">
-        <img src="assets/dashboard-access-light.png" alt="Pengguna dengan Akses: Metrik pribadi dan satu panel untuk setiap izin yang diberikan" width="100%">
-      </picture>
-      <p align="center"><b>Pengguna dengan Akses</b><br><sub>Metrik pribadi dan satu panel untuk setiap izin yang diberikan</sub></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/dashboard-entry-dark.png">
         <img src="assets/dashboard-entry-light.png" alt="User Entry: Metrik pribadi dan panduan memulai" width="100%">
       </picture>
       <p align="center"><b>User Entry</b><br><sub>Metrik pribadi dan panduan memulai</sub></p>
     </td>
+  </tr>
+  <tr>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/login-dark.png">
@@ -274,7 +267,6 @@ Buka setiap modul untuk melihat kemampuannya.
 | Peran | Isi Dasbor |
 |---|---|
 | Administrator | Jumlah pengguna, akun terkunci dan nonaktif, ketersediaan tautan, waktu pemeriksaan terakhir, serta daftar tugas administrasi |
-| Pengguna dengan Akses | Metrik pribadi dan panel khusus untuk setiap izin yang didelegasikan |
 | User Entry | Metrik pribadi, data yang memerlukan perhatian, dan panduan memulai |
 
 Setiap peran dilengkapi **umpan aktivitas tim**. Tindakan yang berulang digabungkan menjadi satu entri per orang per hari agar umpan tetap ringkas. Pengguna biasa hanya melihat aktivitas publik; peristiwa akun dan keamanan hanya dapat dilihat administrator.
@@ -318,23 +310,23 @@ Setiap peran dilengkapi **umpan aktivitas tim**. Tindakan yang berulang digabung
 
 ## Kontrol Akses
 
-Sistem ini memiliki dua peran. Administrator dapat mendelegasikan izin tertentu kepada pengguna biasa, yang menghasilkan profil *Pengguna dengan Akses*.
+Sistem ini memiliki dua peran. Administrator dapat mendelegasikan izin tertentu kepada pengguna biasa.
 
 <div align="center">
 
-| Tindakan | User Entry | Pengguna dengan Akses | Administrator |
-|---|:---:|:---:|:---:|
-| Membuat, mengubah, dan menghapus tautan milik sendiri | ✓ | ✓ | ✓ |
-| Melihat dan menyalin tautan publik | ✓ | ✓ | ✓ |
-| Melihat tautan privat milik pengguna lain | – | – | – |
-| Membuat grup dan membagikan tautan | ✓ | ✓ | ✓ |
-| Mengimpor dan mengekspor berkas Excel | ✓ | ✓ | ✓ |
-| Mengelola kategori | – | jika diberikan | ✓ |
-| Mengubah atau menghapus tautan publik milik pengguna lain | – | jika diberikan | ✓ |
-| Melihat log audit | – | jika diberikan | ✓ |
-| Mengelola pengguna dan mendelegasikan izin | – | – | ✓ |
-| Menjalankan pemantauan tautan | – | – | ✓ |
-| Menghapus tautan secara massal | – | – | ✓ |
+| Tindakan | User Entry | Administrator |
+|---|:---:|:---:|
+| Membuat, mengubah, dan menghapus tautan milik sendiri | ✓ | ✓ |
+| Melihat dan menyalin tautan publik | ✓ | ✓ |
+| Melihat tautan privat milik pengguna lain | – | – |
+| Membuat grup dan membagikan tautan | ✓ | ✓ |
+| Mengimpor dan mengekspor berkas Excel | ✓ | ✓ |
+| Mengelola kategori | jika diberikan | ✓ |
+| Mengubah atau menghapus tautan publik milik pengguna lain | jika diberikan | ✓ |
+| Melihat log audit | jika diberikan | ✓ |
+| Mengelola pengguna dan mendelegasikan izin | – | ✓ |
+| Menjalankan pemantauan tautan | – | ✓ |
+| Menghapus tautan secara massal | – | ✓ |
 
 </div>
 

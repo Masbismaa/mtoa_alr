@@ -76,8 +76,8 @@
 
             <div data-credential-field{% if not is_credential_field_shown %} hidden{% endif %}>
               {{ render_field(form.username, placeholder="Login username (optional)", autocomplete="off") }}
-              {{ render_field(form.access_note, placeholder="Password / access hint (optional)", autocomplete="off", rows=3) }}
-              <div class="form-text mt-n2 mb-3">{{ icon("lock") }} The access note is stored encrypted in the database.</div>
+              {{ render_field(form.access_note, placeholder="Access hint, e.g. login via SSO (optional)", autocomplete="off", rows=3) }}
+              <div class="form-text text-warning mt-n2 mb-3">{{ icon("alert_triangle") }} Do not enter passwords here.</div>
             </div>
 
             {{ render_field(form.description, placeholder="Short description (optional)", rows=3) }}
@@ -92,7 +92,7 @@
             </div>
           </div>
           <div class="card-body">
-            <p class="text-secondary">Add your own info, one field at a time. Additional fields are <strong>not encrypted</strong>, so don't store passwords here. Links that need a password belong in the Web, Application, or Network category.</p>
+            <p class="text-secondary">Add your own info, one field at a time. Additional fields are <strong>not encrypted</strong>, so don't store passwords here.</p>
             <div class="custom-field-list" data-custom-field-list>
               {% for custom_field in custom_field_list %}
                 {{ custom_field_row(custom_field.field_label, custom_field.field_content) }}
@@ -106,6 +106,11 @@
       </div>
 
       <div class="col-lg-4">
+        {# Public cuma admin yg boleh masang -> user biasa ga dikasih pilihan. Nilainya tetep dikirim biar
+           link Public lama punya user ga keganti diem-diem (link baru pasti Private) #}
+        {% if not is_admin(current_user) %}
+          <input type="hidden" name="visibility" value="{{ form.visibility.data or 'private' }}">
+        {% else %}
         <div class="card mb-3">
           <div class="card-header">
             <h3 class="card-title">{{ icon("eye") }} Visibility</h3>
@@ -134,6 +139,7 @@
             {% endfor %}
           </div>
         </div>
+        {% endif %}
 
         <div class="card mb-3 attachment-section">
           <div class="card-header">

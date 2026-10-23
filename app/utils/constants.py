@@ -84,8 +84,10 @@ REGISTER_NOTICE_COOLDOWN_MINUTES = 10
 # kode verifikasi daftar ke satu email maksimal sekian kali per sekian menit (anti spam kotak masuk orang)
 REGISTER_CODE_MAX_COUNT = 5
 REGISTER_CODE_WINDOW_MINUTES = 15
-# lupa password: total percobaan masukin kode per email per hari (lintas kode baru), biar 6 digit ga bisa ditebak pelan-pelan
+# lupa password: percobaan masukin kode per email + IP per hari. Per IP biar tebakan orang lain ga ngabisin jatah pemiliknya
 RESET_ATTEMPT_MAX_COUNT = 10
+# lupa password: kode reset per email per hari. Tiap kode cuma 5x coba, jadi total tebakan lintas IP maks. 10 x 5 sehari
+RESET_CODE_DAILY_MAX_COUNT = 10
 # percobaan daftar yg ga diverifikasi dibuang setelah sekian jam
 PENDING_REGISTRATION_EXPIRE_HOURS = 24
 
@@ -228,7 +230,19 @@ MAX_RICH_TEXT_LENGTH = 20000
 ALLOWED_URL_SCHEME_SET = {"http", "https"}
 
 # tag HTML yg boleh dari editor teks, sisanya dibuang
-RICH_TEXT_ALLOWED_TAG_SET = {"p", "div", "br", "b", "strong", "i", "em", "u", "ul", "ol", "li", "code", "pre", "a"}
+RICH_TEXT_ALLOWED_TAG_SET = {
+    "p", "div", "br", "b", "strong", "i", "em", "u", "s", "strike", "ul", "ol", "li", "code", "pre", "a",
+    "h1", "h2", "h3", "blockquote", "hr", "font",
+}
+# pilihan toolbar editor ala Word. Dipake toolbar (template) & sanitizer (nilai di luar daftar dibuang)
+RICH_TEXT_BLOCK_LIST = [("p", "Normal"), ("h1", "Heading 1"), ("h2", "Heading 2"), ("h3", "Heading 3"),
+                        ("blockquote", "Quote"), ("pre", "Code Block")]
+RICH_TEXT_FONT_LIST = ["Calibri", "Arial", "Times New Roman", "Georgia", "Consolas"]
+# (nilai fontSize browser 1-7, label pt ala Word)
+RICH_TEXT_SIZE_LIST = [("1", "8"), ("2", "10"), ("3", "12"), ("4", "14"), ("5", "18"), ("6", "24"), ("7", "36")]
+# warna yg tetep kebaca di tema terang & gelap
+RICH_TEXT_COLOR_LIST = [("#d63939", "Red"), ("#f76707", "Orange"), ("#f59f00", "Yellow"), ("#2fb344", "Green"),
+                        ("#206bc4", "Blue"), ("#ae3ec9", "Purple"), ("#667382", "Gray")]
 
 ATTACHMENT_MAX_COUNT = 5
 ATTACHMENT_MAX_SIZE_BYTES = 10 * 1024 * 1024
