@@ -37,19 +37,19 @@
 
 ## Overview
 
-Access Link Register (ALR) is the single source of truth for the access information an ICT team relies on daily: application URLs, server and network device addresses, and the credentials or instructions required to reach them.
+Access Link Register (ALR) is the single source of truth for the access information an ICT team relies on daily: application URLs, server and network device addresses, and the access hints or instructions required to reach them.
 
 The application is designed around three principles:
 
 | Principle | Implementation |
 |---|---|
-| **Confidentiality** | Credentials are encrypted at rest, never embedded in page markup, and revealed only on explicit request |
+| **Confidentiality** | Access notes are encrypted at rest, never embedded in page markup, and revealed only on explicit request |
 | **Accountability** | Every change, sign-in, and export is recorded in an append-only audit log |
 | **Efficiency** | SAP GUI conventions (function keys, selection screens, variants, ALV tables) for users who work in ERP systems every day |
 
 <div align="center">
 
-| 16 | 67 | 18 | 25 | 770+ |
+| 16 | 68 | 18 | 26 | 780+ |
 |:---:|:---:|:---:|:---:|:---:|
 | screens | HTTP endpoints | database tables | schema migrations | automated tests |
 
@@ -233,12 +233,13 @@ Expand a module to view its capabilities.
 
 | Capability | Description |
 |---|---|
-| Record types | URL, host or IP address with port, or a structured guide with up to ten custom fields |
+| Record types | URL, host or IP address with port, or a structured guide with up to ten custom fields written in a Word-style rich text editor (sanitized and not encrypted, so never meant for passwords) |
 | Categorization | Hierarchical categories up to four levels deep (for example, Web › ERP), selected through cascading inputs |
 | Visibility | Private (owner only) or Public (all users, read-only); only administrators can create Public links, so links from other users, including imported ones, are saved as Private |
-| Access note | Encrypted in the database and masked until a user explicitly reveals it |
+| Access note | A short access hint (for example, sign in via SSO), not a password; encrypted in the database and masked until a user explicitly reveals it |
 | Attachments | Up to five files per record: images, PDF, Excel, Word, and plain text |
 | Favorites | Bookmark records and filter the list to favorites only |
+| Archive | Move unused links to the archive; archived links stay visible with an Archived badge, are always listed below active links, and can be restored |
 | History | Chronological record of creation and modification per link |
 | Import | Excel template with validated dropdowns; rows are processed in a single all-or-nothing transaction |
 | Export | Excel workbook of the current search result, including a summary sheet |
@@ -444,6 +445,7 @@ erDiagram
         text encrypted_access_note
         string visibility
         string status
+        bool is_archived
     }
     CATEGORY {
         int id
@@ -489,7 +491,7 @@ sequenceDiagram
     participant A as ALR
     participant E as Email
     U->>A: Email and password
-    A->>A: Verify Argon2id hash<br/>throttle by email and IP
+    A->>A: Verify Argon2id hash<br/>lock account after 3 failures
     A->>E: One-time code
     A-->>U: Code entry (identical response for unknown emails)
     U->>A: Six-digit code
@@ -573,10 +575,10 @@ flowchart LR
 |---|---|
 | Database disclosure | Access notes encrypted with Fernet (AES); passwords hashed with Argon2id; one-time codes stored as hashes |
 | Account enumeration | Sign-in, registration, and password recovery return identical responses for known and unknown emails |
-| Credential brute force | Rate limiting per IP and per email, temporary account lockout, and attempt limits per code |
+| Credential brute force | Rate limiting per IP and per email; three failed password or code attempts lock the account for 15 minutes, and an administrator can unlock it earlier |
 | Session hijacking | Versioned sessions; a password change or reset revokes all other sessions |
 | Unauthorized data access | One shared visibility predicate for all queries; inaccessible data returns 404 |
-| Untracked credential access | Access notes are excluded from page markup; each reveal is a separate authorized request |
+| Access note exposure | Access notes are excluded from page markup; each reveal is a separate authorized request |
 | Cross-site scripting | Input sanitization and a Content Security Policy restricted to first-party scripts |
 | Cross-site request forgery | Tokens on every form submission and JSON request |
 | Malicious uploads | File signature verification, macro and zip bomb detection, and XXE-safe Excel parsing |
@@ -623,10 +625,10 @@ Checking hundreds of targets can take several minutes. Executing that work insid
 </details>
 
 <details>
-<summary><b>On-demand credential retrieval</b></summary>
+<summary><b>On-demand access note retrieval</b></summary>
 <br>
 
-Embedding a credential in page markup exposes it to anyone who opens the page and leaves no record of access. Retrieving it only when a user selects Show or Copy keeps it out of the markup.
+Embedding an access note in page markup exposes it to anyone who can read the page source, including browser caches and extensions. Retrieving it only when a user selects Show or Copy keeps it out of the markup.
 
 </details>
 
@@ -638,10 +640,10 @@ Embedding a credential in page markup exposes it to anyone who opens the page an
 
 | Suite | Tooling | Count | Scope |
 |---|---|:---:|---|
-| Backend | pytest | 718 | Services, routes, authorization, and security scenarios |
+| Backend | pytest | 735 | Services, routes, authorization, and security scenarios |
 | Database concurrency | pytest on PostgreSQL | 6 | Concurrent requests, row locks, and unique constraints |
 | Frontend | Vitest, Testing Library | 46 | Link table, columns, selection, and keyboard behavior |
-| End-to-end | Headless Chrome | 8 scenarios | Authentication, tables, accounts, categories, groups, monitoring, and function keys |
+| End-to-end | Headless Chrome | 9 scenarios | Authentication, tables, accounts, categories, groups, monitoring, rich text editor, and function keys |
 
 </div>
 

@@ -37,19 +37,19 @@
 
 ## Ikhtisar
 
-Access Link Register (ALR) merupakan sumber data tunggal untuk informasi akses yang digunakan tim ICT setiap hari: URL aplikasi, alamat server dan perangkat jaringan, serta kredensial atau petunjuk yang diperlukan untuk mengaksesnya.
+Access Link Register (ALR) merupakan sumber data tunggal untuk informasi akses yang digunakan tim ICT setiap hari: URL aplikasi, alamat server dan perangkat jaringan, serta petunjuk akses yang diperlukan untuk mengaksesnya.
 
 Aplikasi ini dirancang berdasarkan tiga prinsip:
 
 | Prinsip | Penerapan |
 |---|---|
-| **Kerahasiaan** | Kredensial dienkripsi saat disimpan, tidak pernah disertakan dalam markup halaman, dan hanya ditampilkan atas permintaan eksplisit |
+| **Kerahasiaan** | Catatan akses dienkripsi saat disimpan, tidak pernah disertakan dalam markup halaman, dan hanya ditampilkan atas permintaan eksplisit |
 | **Akuntabilitas** | Setiap perubahan, aktivitas masuk, dan ekspor dicatat dalam log audit yang tidak dapat diubah |
 | **Efisiensi** | Konvensi SAP GUI (tombol fungsi, layar seleksi, varian, tabel ALV) bagi pengguna yang bekerja dengan sistem ERP setiap hari |
 
 <div align="center">
 
-| 16 | 67 | 18 | 25 | 770+ |
+| 16 | 68 | 18 | 26 | 780+ |
 |:---:|:---:|:---:|:---:|:---:|
 | layar | endpoint HTTP | tabel basis data | migrasi skema | pengujian otomatis |
 
@@ -233,12 +233,13 @@ Buka setiap modul untuk melihat kemampuannya.
 
 | Kemampuan | Keterangan |
 |---|---|
-| Jenis data | URL, host atau alamat IP beserta port, atau panduan terstruktur dengan hingga sepuluh kolom tambahan |
+| Jenis data | URL, host atau alamat IP beserta port, atau panduan terstruktur dengan hingga sepuluh kolom tambahan yang ditulis lewat editor teks ala Word (disanitasi dan tidak dienkripsi, jadi bukan untuk kata sandi) |
 | Kategorisasi | Kategori bertingkat hingga empat level (misalnya Web › ERP), dipilih melalui isian berjenjang |
 | Visibilitas | Private (hanya pemilik) atau Public (seluruh pengguna, hanya baca); tautan Public hanya dapat dibuat administrator, sehingga tautan dari pengguna lain, termasuk hasil impor, disimpan sebagai Private |
-| Catatan akses | Dienkripsi di basis data dan disamarkan hingga pengguna secara eksplisit membukanya |
+| Catatan akses | Petunjuk akses singkat (misalnya masuk via SSO), bukan kata sandi; dienkripsi di basis data dan disamarkan hingga pengguna secara eksplisit membukanya |
 | Lampiran | Hingga lima berkas per data: gambar, PDF, Excel, Word, dan teks |
 | Favorit | Menandai data dan menyaring daftar khusus favorit |
+| Arsip | Memindahkan tautan yang tidak dipakai ke arsip; tautan yang diarsipkan tetap terlihat dengan label Archived, selalu ditampilkan di bawah tautan aktif, dan dapat dikembalikan |
 | Riwayat | Catatan kronologis pembuatan dan perubahan untuk setiap tautan |
 | Impor | Templat Excel dengan pilihan tervalidasi; seluruh baris diproses dalam satu transaksi utuh |
 | Ekspor | Berkas Excel dari hasil pencarian aktif, dilengkapi lembar ringkasan |
@@ -444,6 +445,7 @@ erDiagram
         text encrypted_access_note
         string visibility
         string status
+        bool is_archived
     }
     CATEGORY {
         int id
@@ -489,7 +491,7 @@ sequenceDiagram
     participant A as ALR
     participant E as Email
     U->>A: Email dan kata sandi
-    A->>A: Verifikasi hash Argon2id<br/>pembatasan per email dan IP
+    A->>A: Verifikasi hash Argon2id<br/>kunci akun setelah 3 kali gagal
     A->>E: Kode sekali pakai
     A-->>U: Isian kode (respons identik untuk email tidak terdaftar)
     U->>A: Kode enam digit
@@ -573,10 +575,10 @@ flowchart LR
 |---|---|
 | Kebocoran basis data | Catatan akses dienkripsi dengan Fernet (AES); kata sandi di-hash dengan Argon2id; kode sekali pakai disimpan sebagai hash |
 | Enumerasi akun | Proses masuk, pendaftaran, dan pemulihan kata sandi memberikan respons identik untuk email terdaftar maupun tidak |
-| Serangan brute force | Pembatasan laju per IP dan per email, penguncian akun sementara, serta batas percobaan per kode |
+| Serangan brute force | Pembatasan laju per IP dan per email; tiga kali salah kata sandi atau kode mengunci akun selama 15 menit, dan administrator dapat membukanya lebih awal |
 | Pembajakan sesi | Sesi berversi; penggantian atau pemulihan kata sandi mencabut seluruh sesi lain |
 | Akses data tanpa izin | Satu predikat visibilitas untuk seluruh kueri; data yang tidak dapat diakses menghasilkan 404 |
-| Akses kredensial tanpa jejak | Catatan akses tidak disertakan dalam markup halaman; setiap pembukaan merupakan permintaan terpisah yang diotorisasi |
+| Kebocoran catatan akses | Catatan akses tidak disertakan dalam markup halaman; setiap pembukaan merupakan permintaan terpisah yang diotorisasi |
 | Cross-site scripting | Sanitasi input dan Content Security Policy yang hanya mengizinkan skrip milik aplikasi |
 | Cross-site request forgery | Token pada setiap pengiriman formulir dan permintaan JSON |
 | Unggahan berbahaya | Verifikasi tanda tangan berkas, deteksi makro dan zip bomb, serta parsing Excel yang aman dari XXE |
@@ -623,10 +625,10 @@ Pemeriksaan ratusan target dapat memakan waktu beberapa menit. Menjalankannya di
 </details>
 
 <details>
-<summary><b>Pengambilan kredensial sesuai permintaan</b></summary>
+<summary><b>Pengambilan catatan akses sesuai permintaan</b></summary>
 <br>
 
-Menyertakan kredensial dalam markup halaman membuatnya terlihat oleh siapa pun yang membuka halaman tanpa meninggalkan jejak akses. Mengambilnya hanya ketika pengguna memilih Show atau Copy menjaga kredensial tetap di luar markup.
+Menyertakan catatan akses dalam markup halaman membuatnya terlihat oleh siapa pun yang dapat membaca sumber halaman, termasuk cache browser dan ekstensi. Mengambilnya hanya ketika pengguna memilih Show atau Copy menjaga catatan akses tetap di luar markup.
 
 </details>
 
@@ -638,10 +640,10 @@ Menyertakan kredensial dalam markup halaman membuatnya terlihat oleh siapa pun y
 
 | Rangkaian | Perangkat | Jumlah | Cakupan |
 |---|---|:---:|---|
-| Backend | pytest | 718 | Service, route, otorisasi, dan skenario keamanan |
+| Backend | pytest | 735 | Service, route, otorisasi, dan skenario keamanan |
 | Konkurensi basis data | pytest di PostgreSQL | 6 | Permintaan bersamaan, penguncian baris, dan batasan unik |
 | Frontend | Vitest, Testing Library | 46 | Tabel tautan, kolom, pemilihan, dan perilaku keyboard |
-| End-to-end | Chrome headless | 8 skenario | Autentikasi, tabel, akun, kategori, grup, pemantauan, dan tombol fungsi |
+| End-to-end | Chrome headless | 9 skenario | Autentikasi, tabel, akun, kategori, grup, pemantauan, editor teks, dan tombol fungsi |
 
 </div>
 
