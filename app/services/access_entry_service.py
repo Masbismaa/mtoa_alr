@@ -520,18 +520,23 @@ def list_visible_entries_for_export(user, keyword=None, category_id=None, visibi
     return entry_list[:max_count], len(entry_list) > max_count
 
 def count_visible_entry_summary(user):
-    """Jumlah data per visibilitas dalam 1 query."""
+    """Jumlah data yg boleh dilihat per visibilitas, per status cek, & punya sendiri, dalam 1 query."""
     row_list = db.session.execute(
-        db.select(AccessEntry.visibility, db.func.count(AccessEntry.id))
+        db.select(
+            AccessEntry.visibility, AccessEntry.status, db.func.count(AccessEntry.id),
+            db.func.sum(db.case((AccessEntry.user_id == user.id, 1), else_=0)),
+        )
         .where(build_visible_entry_filter(user))
-        .group_by(AccessEntry.visibility)
+        .group_by(AccessEntry.visibility, AccessEntry.status)
     ).all()
-    count_by_visibility_dict = {visibility: count for visibility, count in row_list}
-    return {
-        "total": sum(count_by_visibility_dict.values()),
-        "public": count_by_visibility_dict.get(VISIBILITY_PUBLIC, 0),
-        "private": count_by_visibility_dict.get(VISIBILITY_PRIVATE, 0),
-    }
+    summary_dict = {"total": 0, "public": 0, "private": 0, "own": 0, "status": {}}
+    for visibility, status, count, own_count in row_list:
+        summary_dict["total"] += count
+        summary_dict["own"] += own_count or 0
+        if visibility in (VISIBILITY_PUBLIC, VISIBILITY_PRIVATE):
+            summary_dict[visibility] += count
+        summary_dict["status"][status] = summary_dict["status"].get(status, 0) + count
+    return summary_dict
 
 def read_access_note(entry):
     """Buka access note. Return (isi, is_error)."""
