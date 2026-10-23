@@ -27,6 +27,8 @@ from app.utils.constants import (
     AUDIT_ACTION_CREATE,
     AUDIT_ACTION_IMPORT,
     CATEGORY_PATH_SEPARATOR,
+    CATEGORY_SPECIFIC_FIELD_LIST,
+    CREDENTIAL_FIELD_LIST,
     IMPORT_MAX_ROW_COUNT,
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
@@ -149,11 +151,11 @@ def find_unused_column_error_list(row_dict, category):
     """Kolom keisi tapi ga dipake kategori ini (misal Access Note di General). Aturan link bakal ngebuang isinya
     diem-diem, jadi di import ditolak biar password/URL yg diisi user ga ilang tanpa ketauan."""
     rule = get_category_rule(category)
-    used_key_set = set(rule["field_list"]) | ({"username", "access_note"} if rule["has_credential_field"] else set())
+    used_key_set = set(rule["field_list"]) | (set(CREDENTIAL_FIELD_LIST) if rule["has_credential_field"] else set())
     return [
         f"{column.header} is not used by category {build_category_label(category)}"
         for column in IMPORT_COLUMN_LIST
-        if column.key in ("url", "address", "port", "username", "access_note")
+        if column.key in CATEGORY_SPECIFIC_FIELD_LIST + CREDENTIAL_FIELD_LIST
         and column.key not in used_key_set and row_dict.get(column.key)
     ]
 

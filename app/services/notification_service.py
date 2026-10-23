@@ -6,7 +6,8 @@ from email.message import EmailMessage
 from flask import current_app
 
 from app.utils.constants import (
-    OTP_DELIVERY_CONSOLE, OTP_EXPIRE_MINUTES, OTP_PURPOSE_LOGIN, OTP_PURPOSE_REGISTER, OTP_PURPOSE_RESET,
+    OTP_DELIVERY_CONSOLE, OTP_DELIVERY_SMTP, OTP_EXPIRE_MINUTES,
+    OTP_PURPOSE_LOGIN, OTP_PURPOSE_REGISTER, OTP_PURPOSE_RESET,
 )
 
 # judul email per tujuan OTP (kodenya sama-sama dari tabel otp_codes)
@@ -29,7 +30,7 @@ def send_email(to_address, subject, body):
         print(f"\n===== [DEV] Email ke {to_address}: {subject} =====\n{body}\n=====\n", flush=True)
         return
 
-    if delivery_mode != "smtp":
+    if delivery_mode != OTP_DELIVERY_SMTP:
         raise RuntimeError("Mode pengiriman OTP tidak dikenal")
     config = current_app.config
     if not config["SMTP_HOST"] or not config["SMTP_FROM"]:

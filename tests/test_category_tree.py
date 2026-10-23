@@ -1,12 +1,13 @@
 """Test kategori bertingkat: sub-kategori, batas tingkat, aturan field, filter, tampilan forum."""
 import pytest
-from app.services.access_entry_service import create_access_entry, get_active_category_list, search_visible_entries
+from app.services.access_entry_service import create_access_entry, search_visible_entries
 from app.services.category_service import (
     build_category_label,
     build_forum_row_list,
     create_sub_category,
     delete_category,
     is_default_category,
+    list_usable_category,
     toggle_category_active,
     update_category,
 )
@@ -31,7 +32,7 @@ def test_user_can_create_sub_category(app, registered_user, category_dict):
     assert sap.parent_id == category_dict["Web"].id
     assert sap.user_id == registered_user.id
     assert build_category_label(sap) == "Web › SAP"
-    assert sap in get_active_category_list()
+    assert sap in list_usable_category()
 
 def test_same_name_allowed_under_different_parent(app, registered_user, category_dict):
     """Positive: Web › SAP & Application › SAP boleh barengan."""
@@ -58,7 +59,7 @@ def test_sub_under_inactive_parent_rejected(app, admin_user, registered_user, ca
     sap = build_sub(registered_user, category_dict["Web"], "SAP")
     modul = build_sub(registered_user, sap, "Modul FI")
     toggle_category_active(admin_user, sap)
-    assert modul not in get_active_category_list()
+    assert modul not in list_usable_category()
     with pytest.raises(ValidationError):
         build_sub(registered_user, sap, "Modul MM")
 
@@ -116,7 +117,7 @@ def test_creator_can_delete_empty_sub(app, registered_user, category_dict):
     """Positive: pembuat sub boleh hapus sub-nya yg masih kosong."""
     sap = build_sub(registered_user, category_dict["Web"], "SAP")
     delete_category(registered_user, sap)
-    assert sap not in get_active_category_list()
+    assert sap not in list_usable_category()
 
 def test_sub_named_like_default_is_not_locked(app, registered_user, category_dict):
     """Positive: sub bernama 'Web' di Network bukan kategori bawaan, & seed ga ketipu."""

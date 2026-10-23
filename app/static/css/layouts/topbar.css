@@ -93,14 +93,3 @@
   letter-spacing: 0;
   text-transform: none;
 }
-
-/* HP: tombol tema di title bar cukup ikon aja biar judul ga kepotong */
-@media (max-width: 575.98px) {
-  .app-topbar .theme-option {
-    display: none !important;
-  }
-
-  .app-topbar .theme-toggle-sky {
-    margin-right: 0;
-  }
-}

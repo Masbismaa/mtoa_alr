@@ -171,8 +171,6 @@ MONITOR_STALL_WARNING_SECONDS = 120
 LINK_CHECK_USER_AGENT = "ALR-LinkCheck/1.0"
 LINK_STATUS_NOTE_MAX_LENGTH = 255
 
-# Link Monitoring: dicek otomatis lewat command check-links (Task Scheduler/cron) + tombol admin
-
 # nama kategori default (harus sama dengan DEFAULT_CATEGORY_LIST)
 CATEGORY_NAME_WEB = "Web"
 CATEGORY_NAME_APPLICATION = "Application"

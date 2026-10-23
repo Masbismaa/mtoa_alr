@@ -230,7 +230,7 @@ def list_recent_own_activity(user):
 
 # TAMPILAN PER PERAN
 # admin: ringkasan sistem & tugas admin.
-# User Entry (termasuk yg dikasih akses tambahan): data sendiri aja (+ panduan mulai kalau belum punya link).
+# User Entry: data sendiri aja (+ panduan mulai kalau belum punya link).
 
 def build_admin_panel():
     """Ringkasan sistem buat admin: akun, hasil cek link, antrean monitoring, akun yg lagi kekunci."""

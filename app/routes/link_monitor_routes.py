@@ -31,11 +31,6 @@ def status():
         return error_response("This page is for admins only", 403)
     return success_response(data=build_monitor_status())
 
-def status():
-    if not is_admin(current_user):
-        return error_response("This page is for admins only", 403)
-    return success_response(data=build_monitor_status())
-
 @link_monitor_bp.post("/run")
 @login_required
 @admin_required

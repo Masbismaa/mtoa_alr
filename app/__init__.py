@@ -6,7 +6,7 @@ from flask_login import current_user
 
 from app.config import CONFIG_BY_NAME_DICT
 from app.extensions import csrf, db, limiter, login_manager, migrate
-from app.utils.constants import OTP_DELIVERY_CONSOLE
+from app.utils.constants import OTP_DELIVERY_CONSOLE, OTP_DELIVERY_SMTP
 
 # config yg wajib diisi, kalau kosong app langsung nolak jalan
 REQUIRED_CONFIG_KEY_LIST = ["SECRET_KEY", "SQLALCHEMY_DATABASE_URI", "ENCRYPTION_KEY"]
@@ -80,7 +80,7 @@ def warn_untrusted_proxy_header(app):
             is_warned.append(True)
             app.logger.warning(
                 "Request membawa X-Forwarded-For tapi TRUSTED_PROXY_COUNT=0: semua user terlihat dari IP proxy. "
-                "Isi TRUSTED_PROXY_COUNT sesuai jumlah reverse proxy (lihat docs/deploy.md)."
+                "Isi TRUSTED_PROXY_COUNT sesuai jumlah reverse proxy (lihat docs/perbaikan-keamanan-dan-query.md)."
             )
 
 def validate_required_config(app):
@@ -97,7 +97,7 @@ def validate_required_config(app):
         raise RuntimeError("OTP_DELIVERY_MODE=console dilarang di production, pakai smtp")
     if app.config["TRUSTED_PROXY_COUNT"] < 0 or app.config["UPLOAD_USER_QUOTA_BYTES"] <= 0:
         raise RuntimeError("Jumlah proxy dan kuota upload tidak valid")
-    if app.config["OTP_DELIVERY_MODE"] == "smtp":
+    if app.config["OTP_DELIVERY_MODE"] == OTP_DELIVERY_SMTP:
         if not app.config["SMTP_HOST"] or not app.config["SMTP_FROM"]:
             raise RuntimeError("SMTP_HOST dan SMTP_FROM wajib diisi untuk pengiriman OTP")
         if app.config["SMTP_SECURITY"] not in ("ssl", "starttls"):

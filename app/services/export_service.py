@@ -1,6 +1,5 @@
 from collections import Counter
 from io import BytesIO
-from functools import lru_cache
 from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image
@@ -74,8 +73,6 @@ DATETIME_FORMAT = "[$-409]dd mmm yyyy hh:mm"
 PERCENT_FORMAT = '0"%"'
 DETAIL_CENTER_ALIGNMENT = Alignment(horizontal="center", vertical="top", wrap_text=False, indent=0)
 DETAIL_TEXT_ALIGNMENT = Alignment(horizontal="left", vertical="top", wrap_text=True, indent=1)
-
-@lru_cache(maxsize=64)
 
 def calculate_percent(part, total):
     """Persentase bulat, aman kalau total 0."""
