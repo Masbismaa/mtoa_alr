@@ -12,22 +12,9 @@
     if (window.AlrStatusBar) window.AlrStatusBar.show(text, type, false);
   }
 
-  // salin ke clipboard, browser lama / tanpa izin pake cara textarea
+  // salin ke clipboard (cara salinnya dari copy_button.js), hasilnya dikabarin di status bar
   function copyText(text) {
-    function fallback() {
-      const textareaEl = document.createElement("textarea");
-      textareaEl.value = text;
-      textareaEl.setAttribute("readonly", "");
-      textareaEl.style.position = "fixed";
-      textareaEl.style.opacity = "0";
-      document.body.append(textareaEl);
-      textareaEl.select();
-      const isCopied = document.execCommand("copy");
-      textareaEl.remove();
-      return isCopied ? Promise.resolve() : Promise.reject(new Error("copy gagal"));
-    }
-    const copyPromise = navigator.clipboard && window.isSecureContext ? navigator.clipboard.writeText(text).catch(fallback) : fallback();
-    return copyPromise.then(
+    return window.AlrCopy.copyText(text).then(
       function () { notify("Copied: " + (text.length > 60 ? text.slice(0, 60) + "…" : text), "success"); },
       function () { notify("Copy failed; the browser did not allow it", "danger"); }
     );

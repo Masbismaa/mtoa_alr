@@ -1,4 +1,5 @@
-// tombol copy: sekali klik langsung kesalin, ga perlu blok teks manual
+// tombol copy: sekali klik langsung kesalin, ga perlu blok teks manual.
+// copyText dipake juga table_row.js (window.AlrCopy)
 (function () {
   "use strict";
 
@@ -19,11 +20,17 @@
 
   async function copyText(text) {
     if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      return;
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch (error) {
+        // izin clipboard ditolak browser -> coba cara lama
+      }
     }
     copyWithFallback(text);
   }
+
+  window.AlrCopy = { copyText: copyText };
 
   // ambil teks yg mau dicopy dari tombol (langsung / dari elemen target). Target rahasia (access note) diambil
   // dulu dari server lewat secret_toggle.js
