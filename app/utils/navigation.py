@@ -27,6 +27,7 @@ SIDEBAR_SECTION_LIST = [
     {"title": "Manage", "item_list": [
         {"label": "Users", "endpoint": "users.index", "icon": "user", "is_admin_only": True, "tcode": "US"},
         {"label": "Link Monitoring", "endpoint": "link_monitor.index", "icon": "refresh", "is_admin_only": True, "tcode": "LM"},
+        {"label": "Backup & Restore", "endpoint": "backup.index", "icon": "download", "is_admin_only": True, "tcode": "BK"},
         {"label": "Categories", "endpoint": "categories.index", "icon": "category", "is_admin_only": True, "tcode": "CA"},
         {"label": "Audit Logs", "endpoint": "audit.index", "icon": "audit", "is_admin_only": True, "tcode": "AL"},
     ]},

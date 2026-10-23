@@ -130,11 +130,11 @@ def test_command_field_lists_only_allowed_transactions(logged_in_client):
     """Positive + security: user biasa dapet kode menu biasa, kode menu khusus admin ga ikut."""
     code_list = get_transaction_code_list(get_html(logged_in_client, "/"))
     assert {"DB", "LL", "LA", "GR", "ST"} <= set(code_list)
-    assert not {"US", "LM", "CA", "AL"} & set(code_list)
+    assert not {"US", "LM", "BK", "CA", "AL"} & set(code_list)
 
 def test_command_field_admin_gets_admin_transactions(admin_client):
     """Positive: admin dapet kode menu kelola juga."""
-    assert {"US", "LM", "CA", "AL"} <= set(get_transaction_code_list(get_html(admin_client, "/")))
+    assert {"US", "LM", "BK", "CA", "AL"} <= set(get_transaction_code_list(get_html(admin_client, "/")))
 
 def test_menu_bar_and_system_toolbar_on_every_screen(logged_in_client):
     """Positive: menu bar (huruf bergaris bawah) + toolbar sistem ada, tombol standarnya bawa shortcut yg sama."""
