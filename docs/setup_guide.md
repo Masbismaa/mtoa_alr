@@ -32,6 +32,9 @@ Isian lain boleh dibiarkan sesuai `.env.example` untuk development (OTP dicetak 
 **Backup & Restore** (menu admin, atau `flask --app run backup` / `flask --app run restore FILE`) butuh `pg_dump` dan `pg_restore`
 dengan versi minimal sama dengan server PostgreSQL. Kalau belum masuk PATH, isi `PG_BIN_DIR` (misal `C:\Program Files\PostgreSQL\17\bin`).
 File backup disimpan di `BACKUP_FOLDER` (default `backups/`). Isinya database + lampiran, tapi **tanpa** `ENCRYPTION_KEY`, jadi simpan kunci itu terpisah.
+Restore ikut ngembaliin Audit Logs ke isi backup. Catatan sesudah backup dibuat tetap ada di backup pengaman yang otomatis dibikin sebelum restore.
+Database besar sebaiknya di-restore lewat `flask --app run restore FILE`: lewat menu web, reverse proxy bisa timeout duluan
+(restore-nya tetap jalan sampai selesai dalam satu transaksi, tapi halamannya error, jadi jangan diklik ulang).
 
 ## 3. Database (PostgreSQL)
 
