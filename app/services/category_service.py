@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import AccessEntry, Category
-from app.security.access_policy import build_visible_entry_filter, has_permission
+from app.security.access_policy import build_visible_entry_filter, is_admin
 from app.services.audit_service import log_audit
 from app.utils.constants import (
     AUDIT_ACTION_CREATE,
@@ -18,7 +18,6 @@ from app.utils.constants import (
     MAX_CATEGORY_DESCRIPTION_LENGTH,
     MAX_CATEGORY_NAME_LENGTH,
     MIN_CATEGORY_NAME_LENGTH,
-    PERMISSION_MANAGE_CATEGORIES,
 )
 from app.utils.exceptions import PermissionDeniedError, ValidationError, build_error
 from app.utils.sanitizer import sanitize_text
@@ -122,8 +121,8 @@ def is_default_category(category):
     return category.parent_id is None and category.name in DEFAULT_CATEGORY_NAME_SET
 
 def can_manage_category_master(user):
-    """Boleh kelola semua kategori: admin, atau user yg dikasih akses kelola kategori."""
-    return has_permission(user, PERMISSION_MANAGE_CATEGORIES)
+    """Boleh kelola semua kategori: admin aja."""
+    return is_admin(user)
 
 def can_manage_category(user, category):
     """Pengelola kategori boleh semua. User lain cuma sub-kategori bikinannya sendiri."""

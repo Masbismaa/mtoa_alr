@@ -30,7 +30,7 @@ ENTRY_COLUMN_LIST = [
 USER_COLUMN_LIST = [
     TableColumn("name", "User", 210, is_hideable=False, filter_key="name"),
     TableColumn("department", "Department", 140, filter_key="department"),
-    TableColumn("role", "Role & Access", 180, filter_key="role"),
+    TableColumn("role", "Role", 180, filter_key="role"),
     TableColumn("status", "Status", 100, is_sortable=False, filter_key="status"),
     TableColumn("last_login", "Last Login", 120),
     TableColumn("created", "Registered", 110),

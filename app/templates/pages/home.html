@@ -27,7 +27,7 @@
         <span class="badge {{ account_access.color_class }} mb-2">{{ account_access.label }}</span>
         <h2 class="mb-1" id="dashboard-welcome-title">{{ dashboard_dict.greeting }}, {{ current_user.full_name }}!</h2>
         <p class="text-secondary mb-0">
-          {% if account_access.kind == "admin" %}Manage accounts, access, and link monitoring.
+          {% if account_access.kind == "admin" %}Manage accounts, categories, and link monitoring.
           {% else %}Your links, favorites, and groups in one place.{% endif %}
         </p>
       </div>
@@ -185,7 +185,7 @@
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">{{ icon("activity") }} Team Activity</h3>
-          {% if has_permission(current_user, PERMISSION_VIEW_AUDIT_LOGS) %}
+          {% if is_admin(current_user) %}
             <div class="card-actions"><a href="{{ url_for('audit.index') }}" class="btn btn-sm">{{ icon("audit") }} Audit Logs</a></div>
           {% endif %}
         </div>
@@ -224,7 +224,7 @@
   <div class="card mb-3" id="kategori">
     <div class="card-header">
       <h3 class="card-title">{{ icon("category") }} Categories</h3>
-      {% if has_permission(current_user, PERMISSION_MANAGE_CATEGORIES) %}
+      {% if is_admin(current_user) %}
         <div class="card-actions">
           <a href="{{ url_for('categories.index') }}" class="btn btn-sm">{{ icon("settings") }} Manage</a>
         </div>

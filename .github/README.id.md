@@ -49,7 +49,7 @@ Aplikasi ini dirancang berdasarkan tiga prinsip:
 
 <div align="center">
 
-| 16 | 68 | 18 | 26 | 780+ |
+| 16 | 67 | 17 | 27 | 780+ |
 |:---:|:---:|:---:|:---:|:---:|
 | layar | endpoint HTTP | tabel basis data | migrasi skema | pengujian otomatis |
 
@@ -144,7 +144,7 @@ Pilih salah satu kelompok untuk membukanya. Gambar menyesuaikan tema GitHub yang
 </details>
 
 <details>
-<summary><b>Administrasi</b> &nbsp;·&nbsp; Layar untuk administrator dan pengguna yang diberi wewenang.</summary>
+<summary><b>Administrasi</b> &nbsp;·&nbsp; Layar untuk administrator.</summary>
 <br>
 <table>
   <tr>
@@ -157,20 +157,13 @@ Pilih salah satu kelompok untuk membukanya. Gambar menyesuaikan tema GitHub yang
     </td>
     <td width="50%" valign="top">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="assets/user-access-dark.png">
-        <img src="assets/user-access-light.png" alt="Pemberian Akses: Memberikan atau mencabut izin tambahan" width="100%">
-      </picture>
-      <p align="center"><b>Pemberian Akses</b><br><sub>Memberikan atau mencabut izin tambahan</sub></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/categories-dark.png">
         <img src="assets/categories-light.png" alt="Manajemen Kategori: Hingga empat tingkat dengan kategori bawaan dan kustom" width="100%">
       </picture>
       <p align="center"><b>Manajemen Kategori</b><br><sub>Hingga empat tingkat dengan kategori bawaan dan kustom</sub></p>
     </td>
+  </tr>
+  <tr>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/monitoring-dark.png">
@@ -302,7 +295,7 @@ Setiap peran dilengkapi **umpan aktivitas tim**. Tindakan yang berulang digabung
 - Pendaftaran mandiri yang dibatasi pada domain email perusahaan, dikonfirmasi dengan kode verifikasi
 - Masuk dua langkah: kata sandi, kemudian kode sekali pakai yang dikirim melalui email
 - Pemulihan kata sandi, penggantian kata sandi, dan pemeliharaan profil
-- Notifikasi dalam aplikasi untuk perubahan izin, upaya masuk yang diblokir, dan penggantian kata sandi
+- Notifikasi dalam aplikasi untuk undangan dan perubahan keanggotaan grup, upaya masuk yang diblokir, dan penggantian kata sandi
 - Tema terang dan gelap, warna aksen, pilihan huruf, dan tata letak ringkas
 
 </details>
@@ -311,7 +304,7 @@ Setiap peran dilengkapi **umpan aktivitas tim**. Tindakan yang berulang digabung
 
 ## Kontrol Akses
 
-Sistem ini memiliki dua peran. Administrator dapat mendelegasikan izin tertentu kepada pengguna biasa.
+Sistem ini memiliki dua peran: User Entry dan Administrator. Tidak ada pemberian izin per pengguna; seluruh layar pengelolaan khusus administrator.
 
 <div align="center">
 
@@ -323,10 +316,10 @@ Sistem ini memiliki dua peran. Administrator dapat mendelegasikan izin tertentu 
 | Melihat tautan privat milik pengguna lain | – | – |
 | Membuat grup dan membagikan tautan | ✓ | ✓ |
 | Mengimpor dan mengekspor berkas Excel | ✓ | ✓ |
-| Mengelola kategori | jika diberikan | ✓ |
-| Mengubah atau menghapus tautan publik milik pengguna lain | jika diberikan | ✓ |
-| Melihat log audit | jika diberikan | ✓ |
-| Mengelola pengguna dan mendelegasikan izin | – | ✓ |
+| Mengelola kategori | – | ✓ |
+| Mengubah atau menghapus tautan publik milik pengguna lain | – | ✓ |
+| Melihat log audit | – | ✓ |
+| Mengelola pengguna | – | ✓ |
 | Menjalankan pemantauan tautan | – | ✓ |
 | Menghapus tautan secara massal | – | ✓ |
 
@@ -418,7 +411,6 @@ flowchart TB
 ```mermaid
 erDiagram
     USER ||--o{ ACCESS_ENTRY : memiliki
-    USER ||--o{ USER_PERMISSION : "diberi izin"
     USER ||--o| USER_PREFERENCE : memiliki
     USER ||--o{ USER_FAVORITE : menandai
     USER ||--o{ SELECTION_VARIANT : menyimpan
@@ -640,7 +632,7 @@ Menyertakan catatan akses dalam markup halaman membuatnya terlihat oleh siapa pu
 
 | Rangkaian | Perangkat | Jumlah | Cakupan |
 |---|---|:---:|---|
-| Backend | pytest | 735 | Service, route, otorisasi, dan skenario keamanan |
+| Backend | pytest | 731 | Service, route, otorisasi, dan skenario keamanan |
 | Konkurensi basis data | pytest di PostgreSQL | 6 | Permintaan bersamaan, penguncian baris, dan batasan unik |
 | Frontend | Vitest, Testing Library | 46 | Tabel tautan, kolom, pemilihan, dan perilaku keyboard |
 | End-to-end | Chrome headless | 9 skenario | Autentikasi, tabel, akun, kategori, grup, pemantauan, editor teks, dan tombol fungsi |
@@ -660,7 +652,7 @@ Setiap fitur diuji untuk alur normal maupun penyalahgunaan: peran yang tidak ses
 ```text
 .
 ├── app/
-│   ├── models/         Entitas SQLAlchemy (18 tabel)
+│   ├── models/         Entitas SQLAlchemy (17 tabel)
 │   ├── routes/         Blueprint: auth, entries, categories, groups, users, audit, monitoring, settings
 │   ├── schemas/        Definisi formulir dan layar seleksi
 │   ├── security/       Kebijakan akses, pembatasan, validasi berkas dan URL, enkripsi

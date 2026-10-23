@@ -201,7 +201,6 @@ def register_template_helpers(app):
     """Filter & data global buat semua template."""
     from app.services.preference_service import build_ui_preference_dict, get_or_create_preference
     from app.services.user_notification_service import count_unread_notification, list_recent_notification
-    from app.services.user_service import get_permission_key_list
     from app.utils.constants import ACCENT_COLOR_OPTION_LIST, FONT_FAMILY_OPTION_LIST
     from app.services.category_service import build_category_label
     from app.utils.datetime_helper import format_local_datetime, format_time_ago
@@ -235,7 +234,7 @@ def register_template_helpers(app):
     app.add_template_global({"block_list": RICH_TEXT_BLOCK_LIST, "font_list": RICH_TEXT_FONT_LIST,
                              "size_list": RICH_TEXT_SIZE_LIST, "color_list": RICH_TEXT_COLOR_LIST}, "rich_text_option")
 
-    from app.security.access_policy import has_permission, is_admin
+    from app.security.access_policy import is_admin
     from app.services.preference_service import list_selection_variant
 
     def list_screen_variant():
@@ -245,19 +244,15 @@ def register_template_helpers(app):
 
     from app.utils.request_helper import get_current_user
     from app.utils.constants import (
-        DASHBOARD_ACTIVITY_DAY_COUNT, PERMISSION_MANAGE_CATEGORIES, PERMISSION_VIEW_AUDIT_LOGS, ROLE_ADMIN,
-        PERMISSION_INFO_DICT, PERMISSION_EDIT_PUBLIC_ENTRIES,
+        DASHBOARD_ACTIVITY_DAY_COUNT, ROLE_ADMIN,
     )
     from app.utils.vite_manifest import vite_tags
     # dipake template buat nampilin/nyembunyiin tombol sesuai akses
     app.jinja_env.globals.update(
-        has_permission=has_permission,
         is_admin=is_admin,
         list_screen_variant=list_screen_variant,
         # tag script komponen React hasil build (frontend/), misal {{ vite_tags("entry_table") }}
         vite_tags=vite_tags,
-        PERMISSION_MANAGE_CATEGORIES=PERMISSION_MANAGE_CATEGORIES,
-        PERMISSION_VIEW_AUDIT_LOGS=PERMISSION_VIEW_AUDIT_LOGS,
         DASHBOARD_ACTIVITY_DAY_COUNT=DASHBOARD_ACTIVITY_DAY_COUNT,
         ROLE_ADMIN=ROLE_ADMIN,
     )
@@ -276,19 +271,11 @@ def register_template_helpers(app):
         user = get_current_user()
         preference = get_or_create_preference(user)
         sidebar_sections = build_sidebar_section_list(user, request.endpoint)
-        permission_keys = get_permission_key_list(user) if not is_admin(user) else []
         access_kind = "admin" if is_admin(user) else "standard"
         account_access = {
             "kind": access_kind,
             "label": {"admin": "Admin", "standard": "User Entry"}[access_kind],
             "color_class": {"admin": "bg-blue-lt", "standard": "bg-secondary-lt"}[access_kind],
-            "permission_list": [PERMISSION_INFO_DICT[key] for key in permission_keys],
-            "can_edit_public": PERMISSION_EDIT_PUBLIC_ENTRIES in permission_keys,
-            "management_link_list": [
-                item for section in sidebar_sections for item in section["item_list"]
-                if (item.get("permission") or item.get("is_admin_only"))
-                and not item.get("is_locked") and item.get("is_available")
-            ],
         }
         return {
             "account_access": account_access,

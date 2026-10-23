@@ -5,8 +5,6 @@ from app.extensions import db
 from app.models import AccessEntry, Group, GroupEntry, GroupEntryViewer, GroupMember
 from app.utils.constants import (
     GROUP_MEMBER_STATUS_ACTIVE,
-    PERMISSION_EDIT_PUBLIC_ENTRIES,
-    PERMISSION_VIEW_AUDIT_LOGS,
     ROLE_ADMIN,
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
@@ -58,10 +56,10 @@ def can_view_entry(user, entry):
     return is_entry_shared_with_user(user, entry)
 
 def can_edit_entry(user, entry):
-    """Boleh ubah/hapus: punya sendiri, atau yg punya akses edit link Public. Anggota group cuma bisa liat."""
+    """Boleh ubah/hapus: punya sendiri, atau admin buat link Public. Anggota group cuma bisa liat."""
     if is_entry_owner(user, entry):
         return True
-    return entry.visibility == VISIBILITY_PUBLIC and has_permission(user, PERMISSION_EDIT_PUBLIC_ENTRIES)
+    return entry.visibility == VISIBILITY_PUBLIC and is_admin(user)
 
 def build_visible_entry_filter(user):
     """Filter query: data yg boleh dilihat user (sama kayak can_view_entry)."""
@@ -94,12 +92,6 @@ def is_admin(user):
     """True kalau user ber-role admin."""
     return user.role == ROLE_ADMIN
 
-def has_permission(user, permission_key):
-    """Admin otomatis punya semua akses, user biasa cuma yg di-grant admin."""
-    if is_admin(user):
-        return True
-    return any(permission.permission_key == permission_key for permission in user.permission_list)
-
 def is_private_audit_data(audit_log):
     """True kalau isi audit log ini data Private (sebelum atau sesudah berubah)."""
     return any(
@@ -108,7 +100,7 @@ def is_private_audit_data(audit_log):
     )
 
 def can_view_audit_data(user, audit_log):
-    """Yg punya akses audit log boleh liat isi perubahan, kecuali data Private punya orang lain."""
-    if not has_permission(user, PERMISSION_VIEW_AUDIT_LOGS):
+    """Admin boleh liat isi perubahan, kecuali data Private punya orang lain."""
+    if not is_admin(user):
         return False
     return audit_log.user_id == user.id or not is_private_audit_data(audit_log)

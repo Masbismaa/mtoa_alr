@@ -1,4 +1,4 @@
-"""Test hapus akun: data Private ilang, Public tetep, group pindah/dihapus, akses dicabut, email bisa dipake lagi."""
+"""Test hapus akun: data Private ilang, Public tetep, group pindah/dihapus, email bisa dipake lagi."""
 import pytest
 from app import create_app
 from app.config import TestingConfig
@@ -8,13 +8,12 @@ from app.services import auth_service
 from tests.conftest import create_entry_as_is
 from app.services.attachment_service import get_stored_file_path
 from app.services.group_service import accept_invitation, add_group_entry, create_group, invite_member, set_member_can_add_entry
-from app.services.user_service import build_delete_preview, build_user_summary, delete_user_account, search_users, set_user_permissions
+from app.services.user_service import build_delete_preview, build_user_summary, delete_user_account, search_users
 from app.utils.constants import (
     AUDIT_ACTION_DELETE,
     DELETED_USER_NAME,
     GROUP_ROLE_MEMBER,
     GROUP_ROLE_OWNER,
-    PERMISSION_VIEW_AUDIT_LOGS,
     ROLE_ADMIN,
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
@@ -127,18 +126,15 @@ def test_removed_from_other_group(app, admin_user, registered_user, other_user, 
     assert db.session.execute(db.select(GroupEntry).where(GroupEntry.group_id == group.id)).scalars().all() == []
     assert db.session.get(AccessEntry, public_entry.id) is not None
 
-def test_permission_revoked_and_audited(app, admin_user, registered_user):
-    """Positive: akses tambahan dicabut + penghapusan kecatat di audit log (email asli ikut kecatat)."""
-    set_user_permissions(admin_user, registered_user, [PERMISSION_VIEW_AUDIT_LOGS])
+def test_delete_is_audited(app, admin_user, registered_user):
+    """Positive: penghapusan kecatat di audit log (email asli ikut kecatat)."""
     delete_user_account(admin_user, registered_user, "user.login@spindo.com")
 
-    assert registered_user.permission_list == []
     audit_log = db.session.execute(
         db.select(AuditLog).where(AuditLog.entity_type == "users", AuditLog.action == AUDIT_ACTION_DELETE)
     ).scalar_one()
     assert audit_log.user_id == admin_user.id
     assert audit_log.old_data["email"] == "user.login@spindo.com"
-    assert audit_log.old_data["permission_list"] == [PERMISSION_VIEW_AUDIT_LOGS]
 
 def test_deleted_user_hidden_from_list(app, admin_user, registered_user):
     """Positive: akun yg dihapus ga muncul di tabel & ga dihitung di ringkasan."""
