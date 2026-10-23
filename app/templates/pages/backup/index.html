@@ -40,7 +40,7 @@
                 <td>
                   <div class="d-flex gap-2">
                     <a href="{{ url_for('backup.download', name=backup_path.name) }}" class="btn btn-sm">{{ icon("download") }} Download</a>
-                    <form method="post" action="{{ url_for('backup.restore', name=backup_path.name) }}" data-confirm-title="Restore {{ backup_path.name }}?" data-confirm-message="All current data will be replaced with the data in this backup. A backup of the current data is created first." data-confirm-ok="Yes, restore">
+                    <form method="post" action="{{ url_for('backup.restore', name=backup_path.name) }}" data-confirm-title="Restore {{ backup_path.name }}?" data-confirm-message="All current data, including Audit Logs, will be replaced with the data in this backup. A backup of the current data is created first." data-confirm-ok="Yes, restore">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                       <button type="submit" class="btn btn-sm btn-outline-danger">{{ icon("history") }} Restore</button>
                     </form>

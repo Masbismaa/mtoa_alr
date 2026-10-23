@@ -48,13 +48,15 @@ def test_create_backup_contains_db_and_uploads(app, fake_pg):
 
 def test_restore_puts_back_missing_upload_and_keeps_safety_backup(app, fake_pg):
     """Positive: restore jalanin pg_restore, balikin lampiran yg hilang, dan backup keadaan sebelumnya dulu."""
-    write_backup(app, "alr-backup-20260101-000000.zip", {"db_revision": "rev1"},
+    write_backup(app, "alr-backup-20260101-000000.zip", {"db_revision": "rev1", "created_at": "2026-01-01T00:00:00"},
                  {"database.dump": "DUMP", "uploads/a.png": "PNG"})
     safety_path = backup_service.restore_backup("alr-backup-20260101-000000.zip", "admin@spindo.com")
     assert fake_pg == ["pg_dump", "pg_restore"]
     assert (backup_service.get_upload_folder() / "a.png").read_bytes() == b"PNG"
     assert safety_path.is_file()
-    assert AuditLog.query.filter_by(entity_type="backups", action="import").one().actor_email == "admin@spindo.com"
+    restore_log = AuditLog.query.filter_by(entity_type="backups", action="import").one()
+    assert restore_log.actor_email == "admin@spindo.com"
+    assert restore_log.new_data == {"safety_backup": safety_path.name, "backup_created_at": "2026-01-01T00:00:00"}
 
 
 @pytest.mark.parametrize("manifest_dict, entry_dict", [
