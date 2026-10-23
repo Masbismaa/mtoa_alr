@@ -80,8 +80,8 @@
         {% endfor %}
       </ul>
 
-      {# bawah sidebar: tombol Customize #}
-      <div class="sidebar-footer">
+      {# bawah sidebar: tombol Customize, cuma di HP (layar besar udah ada di toolbar sistem & menu Extras) #}
+      <div class="sidebar-footer d-lg-none">
         <div class="d-flex align-items-center">
           <button type="button" class="nav-link sidebar-customize flex-fill" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer">
             <span class="nav-link-icon">{{ icon("palette") }}</span>

@@ -1,10 +1,43 @@
 {# panel Kriteria Pencarian ala Select Screen SAP. field_list dari app/schemas/selection_schema.py.
    isian teks: bisa wildcard * + Multi Selection (Sertakan / Kecualikan), pilihan: centang lebih dari satu,
-   tanggal: dari - sampai. nilai yg tampil diambil dari URL #}
+   tanggal: dari - sampai. nilai yg tampil diambil dari URL.
+   tombol Execute / Get Variant / Reset ada di toolbar aplikasi (macro selection_toolbar, dipanggil di block page_actions) #}
+
+{# toolbar aplikasi selection screen ala SAP: Execute (F8), Variant (ambil / simpan), Reset.
+   tombolnya nempel ke form kriteria lewat atribut form, soalnya toolbar ada di luar form #}
+{% macro selection_toolbar(action_url) %}
+  {% from "components/icon.html" import icon %}
+  <button type="submit" form="selection_form" class="btn btn-primary" data-fkey="F8" aria-keyshortcuts="F8" title="Execute (F8)">{{ icon("check") }} Execute</button>
+  {# Variant ala SAP: simpen isian kriteria pake nama (Save as Variant), panggil lagi (Get Variant) #}
+  {% set variant_list = list_screen_variant() %}
+  <div class="dropdown">
+    <button type="button" class="btn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Get / save variants">{{ icon("list") }} Variant{% if variant_list %} ({{ variant_list | length }}){% endif %}</button>
+    <div class="dropdown-menu selection-variant-menu">
+      <span class="dropdown-header">Get Variant</span>
+      {% for variant in variant_list %}
+        <div class="selection-variant-item">
+          <a class="dropdown-item text-truncate" href="{{ request.path }}{% if variant.query_text %}?{{ variant.query_text }}{% endif %}" title="Apply variant {{ variant.name }}">{{ variant.name }}</a>
+          <button type="submit" form="variant_delete_form" formaction="{{ url_for('settings.delete_variant', variant_id=variant.id) }}" class="btn btn-sm btn-icon btn-ghost-danger" aria-label="Delete variant {{ variant.name }}" title="Delete variant">{{ icon("trash") }}</button>
+        </div>
+      {% else %}
+        <span class="dropdown-item-text small text-secondary">No saved variants yet.</span>
+      {% endfor %}
+      <div class="dropdown-divider"></div>
+      <span class="dropdown-header">Save as Variant</span>
+      <div class="px-3 pb-2 d-flex gap-2">
+        <input type="text" name="name" form="variant_save_form" class="form-control form-control-sm" maxlength="50" placeholder="Variant name" aria-label="Variant name" required autocomplete="off">
+        <button type="submit" form="variant_save_form" class="btn btn-sm btn-primary">Save</button>
+      </div>
+      <div class="px-3 pb-1 small text-secondary">Saves the criteria currently filled in. Same name = replaced.</div>
+    </div>
+  </div>
+  <a href="{{ action_url }}" class="btn" title="Clear all criteria">{{ icon("refresh") }} Reset</a>
+{% endmacro %}
+
 {% macro selection_panel(field_list, action_url, quick_placeholder, is_open=true, is_run_marked=false) %}
   {% from "components/icon.html" import icon %}
   {% set args = request.args %}
-  <form method="get" action="{{ action_url }}" class="card selection-panel mb-3" role="search" data-selection-form>
+  <form method="get" action="{{ action_url }}" class="card selection-panel mb-3" id="selection_form" role="search" data-selection-form>
     {# is_run_marked: halaman yg tabelnya baru muncul abis Jalankan (Daftar Link) dikasih penanda, biar kriteria kosong tetep nampilin semua #}
     {% if is_run_marked %}<input type="hidden" name="run" value="1">{% endif %}
     {# urutan tabel yg lagi kepake ikut kebawa pas Jalankan #}
@@ -12,30 +45,6 @@
     <div class="card-header">
       <h3 class="card-title">{{ icon("search") }} Selection Criteria</h3>
       <div class="card-actions btn-list">
-        {# Variant ala SAP: simpen isian kriteria pake nama (Save as Variant), panggil lagi (Get Variant).
-           input & tombolnya nempel ke form di bawah (atribut form), soalnya form ga boleh di dalem form #}
-        {% set variant_list = list_screen_variant() %}
-        <div class="dropdown">
-          <button type="button" class="btn btn-sm" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Get / save variants">{{ icon("list") }} Variant{% if variant_list %} ({{ variant_list | length }}){% endif %}</button>
-          <div class="dropdown-menu dropdown-menu-end selection-variant-menu">
-            <span class="dropdown-header">Get Variant</span>
-            {% for variant in variant_list %}
-              <div class="selection-variant-item">
-                <a class="dropdown-item text-truncate" href="{{ request.path }}{% if variant.query_text %}?{{ variant.query_text }}{% endif %}" title="Apply variant {{ variant.name }}">{{ variant.name }}</a>
-                <button type="submit" form="variant_delete_form" formaction="{{ url_for('settings.delete_variant', variant_id=variant.id) }}" class="btn btn-sm btn-icon btn-ghost-danger" aria-label="Delete variant {{ variant.name }}" title="Delete variant">{{ icon("trash") }}</button>
-              </div>
-            {% else %}
-              <span class="dropdown-item-text small text-secondary">No saved variants yet.</span>
-            {% endfor %}
-            <div class="dropdown-divider"></div>
-            <span class="dropdown-header">Save as Variant</span>
-            <div class="px-3 pb-2 d-flex gap-2">
-              <input type="text" name="name" form="variant_save_form" class="form-control form-control-sm" maxlength="50" placeholder="Variant name" aria-label="Variant name" required autocomplete="off">
-              <button type="submit" form="variant_save_form" class="btn btn-sm btn-primary">Save</button>
-            </div>
-            <div class="px-3 pb-1 small text-secondary">Saves the criteria currently filled in. Same name = replaced.</div>
-          </div>
-        </div>
         <button type="button" class="btn btn-sm btn-icon" data-bs-toggle="collapse" data-bs-target="#selection_body" aria-expanded="{{ 'true' if is_open else 'false' }}" aria-controls="selection_body" aria-label="Show or hide criteria" title="Show / hide">{{ icon("chevron_down") }}</button>
       </div>
     </div>
@@ -62,7 +71,7 @@
                 {% for value in exclude_list %}<input type="hidden" name="{{ field.key }}__not" value="{{ value }}" data-selection-extra>{% endfor %}
               </div>
               <div class="selection-tool">
-                <button type="button" class="btn btn-icon" data-selection-multi="{{ field.key }}" data-selection-label="{{ field.label }}" aria-label="Multi Selection {{ field.label }}" title="Multi Selection: multiple values, include / exclude">{{ icon("list") }}</button>
+                <button type="button" class="btn btn-icon selection-multi-btn{% if extra_count > 0 %} has-values{% endif %}" data-selection-multi="{{ field.key }}" data-selection-label="{{ field.label }}" aria-label="Multi Selection {{ field.label }}" title="Multiple selection: more values, include / exclude">{{ icon("arrow_right") }}</button>
                 <span class="badge bg-primary-lt" data-selection-count{% if extra_count <= 0 %} hidden{% endif %}>+{{ extra_count }}</span>
               </div>
             {% elif field.kind == "choice" %}
@@ -93,11 +102,7 @@
           </div>
         {% endfor %}
       </div>
-      <div class="card-footer d-flex flex-wrap align-items-center gap-2">
-        <button type="submit" class="btn btn-primary" data-fkey="F8" aria-keyshortcuts="F8" title="Execute (F8)">{{ icon("check") }} Execute</button>
-        <a href="{{ action_url }}" class="btn">Reset</a>
-        <span class="small text-secondary ms-md-2">Tips: <code>ad*</code> = starts with "ad", <code>*ad</code> = ends with "ad", <code>*ad*</code> = contains "ad".</span>
-      </div>
+      <div class="selection-tips">Tips: <code>ad*</code> = starts with "ad", <code>*ad</code> = ends with "ad", <code>*ad*</code> = contains "ad". Then Execute (F8) in the toolbar.</div>
     </div>
   </form>
   <form method="post" action="{{ url_for('settings.save_variant') }}" id="variant_save_form" data-variant-save-form hidden>

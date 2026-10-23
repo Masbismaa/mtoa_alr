@@ -1,6 +1,6 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
-{% from "components/selection_panel.html" import selection_panel %}
+{% from "components/selection_panel.html" import selection_panel, selection_toolbar %}
 
 {% block title %}Groups{% endblock %}
 
@@ -10,6 +10,7 @@
 {% block page_pretitle %}Workspace{% endblock %}
 
 {% block page_actions %}
+  {{ selection_toolbar(url_for("groups.index")) }}
   <a href="{{ url_for('groups.create') }}" class="btn btn-primary">{{ icon("plus") }} Create Group</a>
 {% endblock %}
 

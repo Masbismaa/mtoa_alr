@@ -33,7 +33,7 @@ await runScenario("monitor", async () => {
   // 3. Variant: isi kriteria -> Save as Variant -> kriterianya kesimpen & bisa dipanggil lagi
   await navigate(BASE + "/entries/");
   await evaluate(`document.getElementById("sel_title").value = "portal 1*"; true`);
-  await clickSelector(`.selection-panel .card-actions [data-bs-toggle="dropdown"]`);
+  await clickSelector(`.app-toolbar-actions [title="Get / save variants"]`);
   await clickSelector(`input[name="name"][form="variant_save_form"]`);
   await typeText("Portal satu");
   await waitLoad(() => evaluate(`document.querySelector('button[form="variant_save_form"]').click()`));

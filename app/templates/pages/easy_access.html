@@ -1,0 +1,97 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+
+{# layar awal ala SAP Easy Access: pohon menu di kiri (Favorites + ALR Menu, isinya ngikut hak akses user dari
+   sidebar_section_list), gambar di kanan, garis pemisah bisa digeser (js/components/easy_access.js) #}
+
+{% macro transaction_leaf(item) %}
+  <li role="none">
+    <a role="treeitem" class="ea-leaf" href="{{ item.url }}">
+      {{ icon("transaction", "ea-icon ea-icon-transaction") }}
+      <span class="ea-code">{{ item.tcode }}</span>
+      <span>{{ item.label }}</span>
+    </a>
+  </li>
+{% endmacro %}
+
+{% block title %}ALR Easy Access{% endblock %}
+{% block screen_title %}ALR Easy Access{% endblock %}
+
+{% block page_help %}
+  <p>The start screen. Open a folder in the tree and click a transaction, or type its code (e.g. <kbd>LL</kbd>) in the command field at the top.</p>
+  <p>Favorites lists your starred links. Star a link with <strong>Add to Favorites</strong> on its detail screen.</p>
+{% endblock %}
+
+{% block content %}
+  <div class="easy-access" data-easy-access>
+    <nav class="ea-tree-panel" aria-label="ALR menu tree">
+      <ul class="ea-tree" role="tree" aria-label="ALR menu">
+        <li role="none">
+          <details class="ea-folder" open>
+            <summary role="treeitem" aria-expanded="true">
+              {{ icon("chevron_right", "ea-chevron") }}{{ icon("folder", "ea-icon ea-icon-folder") }}{{ icon("folder_open", "ea-icon ea-icon-folder-open") }}
+              <span>Favorites</span>
+            </summary>
+            <ul role="group">
+              {% for entry in favorite_entry_list %}
+                <li role="none">
+                  <a role="treeitem" class="ea-leaf" href="{{ url_for('entries.detail', entry_id=entry.id) }}">
+                    {{ icon("star", "ea-icon ea-icon-star") }}<span>{{ entry.title }}</span>
+                  </a>
+                </li>
+              {% else %}
+                <li role="none" class="ea-empty">No favorites yet. Open a link and click Add to Favorites.</li>
+              {% endfor %}
+            </ul>
+          </details>
+        </li>
+        <li role="none">
+          <details class="ea-folder" open>
+            <summary role="treeitem" aria-expanded="true">
+              {{ icon("chevron_right", "ea-chevron") }}{{ icon("folder", "ea-icon ea-icon-folder") }}{{ icon("folder_open", "ea-icon ea-icon-folder-open") }}
+              <span>ALR Menu</span>
+            </summary>
+            <ul role="group">
+              {% for section in sidebar_section_list %}
+                <li role="none">
+                  <details class="ea-folder">
+                    <summary role="treeitem" aria-expanded="false">
+                      {{ icon("chevron_right", "ea-chevron") }}{{ icon("folder", "ea-icon ea-icon-folder") }}{{ icon("folder_open", "ea-icon ea-icon-folder-open") }}
+                      <span>{{ section.title }}</span>
+                    </summary>
+                    <ul role="group">
+                      {% for nav_item in section.item_list if not nav_item.is_locked %}
+                        {% if nav_item.child_list %}
+                          <li role="none">
+                            <details class="ea-folder">
+                              <summary role="treeitem" aria-expanded="false">
+                                {{ icon("chevron_right", "ea-chevron") }}{{ icon("folder", "ea-icon ea-icon-folder") }}{{ icon("folder_open", "ea-icon ea-icon-folder-open") }}
+                                <span>{{ nav_item.label }}</span>
+                              </summary>
+                              <ul role="group">
+                                {% for child_item in nav_item.child_list if child_item.is_available %}{{ transaction_leaf(child_item) }}{% endfor %}
+                              </ul>
+                            </details>
+                          </li>
+                        {% elif nav_item.is_available %}
+                          {{ transaction_leaf(nav_item) }}
+                        {% endif %}
+                      {% endfor %}
+                    </ul>
+                  </details>
+                </li>
+              {% endfor %}
+            </ul>
+          </details>
+        </li>
+      </ul>
+    </nav>
+    <div class="ea-splitter" role="separator" aria-orientation="vertical" aria-label="Resize menu tree" tabindex="0" data-easy-access-splitter></div>
+    {# foto kanan: timpa app/static/images/easy_access.jpg (nama sama), versinya otomatis ganti #}
+    <img class="ea-image" src="{{ image_url }}" alt="">
+  </div>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', filename='js/components/easy_access.js') }}" defer></script>
+{% endblock %}

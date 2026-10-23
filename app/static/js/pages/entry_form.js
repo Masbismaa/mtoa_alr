@@ -39,8 +39,6 @@
         inputEl.disabled = !isVisible;
         inputEl.setAttribute("aria-required", String(isVisible && isRequired));
       }
-      const markEl = groupEl.querySelector("[data-required-mark]");
-      if (markEl) markEl.hidden = !isRequired;
     });
 
     // username & access note disembunyiin + ga ikut dikirim buat kategori tanpa kredensial (General)

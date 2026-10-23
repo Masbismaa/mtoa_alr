@@ -1,4 +1,4 @@
-// tombol "Kolom" di kepala kartu: centang kolom yg mau tampil + balikin layout awal.
+// tombol Layout (kolom) di toolbar ALV: centang kolom yg mau tampil + balikin layout awal.
 // dropdown-nya dipegang React sendiri (bukan data-bs-toggle Bootstrap), soalnya Bootstrap ngubah class elemen
 // yg dirender React -> menu bisa ketutup sendiri tiap tabel dirender ulang.
 // Esc (di mana aja selama menu kebuka) & klik di luar -> tutup.
@@ -33,13 +33,14 @@ export default function ColumnMenu({ tableKey, columns, isHidden, onToggle, onRe
     <div className="dropdown" data-table-menu={tableKey} ref={wrapperRef}>
       <button
         type="button"
-        className="btn btn-sm"
+        className="btn btn-icon alv-tool"
         aria-expanded={isOpen}
-        title="Configure table columns"
+        aria-label="Columns"
+        title="Layout: choose the columns to show"
         ref={buttonRef}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <Icon name="columns" /> Columns
+        <Icon name="columns" />
       </button>
       {isOpen && (
         // class app-menu, BUKAN dropdown-menu: lihat komentar .app-menu di static/css/components/table.css

@@ -43,7 +43,7 @@ def test_toolbar_shortcut_marks(logged_in_client, registered_user, category_dict
     entry = create_entry(registered_user, category_dict["Web"], "Portal HR")
     html_text = get_html(logged_in_client, f"/entries/{entry.id}/edit")
     assert 'title="Back to the previous screen (F3)" data-fkey="F3"' in html_text
-    assert 'title="Exit this screen to the Dashboard (Shift+F3)" data-fkey="Shift+F3"' in html_text
+    assert 'title="Exit this screen to Easy Access (Shift+F3)" data-fkey="Shift+F3"' in html_text
     assert 'data-fkey="F12" aria-keyshortcuts="F12"' in html_text
     assert 'title="Save changes (Ctrl+S)" data-fkey="Ctrl+S"' in html_text
     assert 'data-fkey="F1" aria-keyshortcuts="F1"' in html_text

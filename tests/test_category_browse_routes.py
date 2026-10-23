@@ -10,7 +10,7 @@ def get_category_by_name(name):
 def test_home_shows_category_forum(logged_in_client, registered_user, category_dict):
     """Positive: Home (ringkasan) nampilin daftar kategori + sub-nya. Tabel link udah pindah ke Daftar Link."""
     create_sub_category(registered_user, category_dict["Web"], {"name": "SAP", "description": ""})
-    html_text = logged_in_client.get("/").get_data(as_text=True)
+    html_text = logged_in_client.get("/dashboard/").get_data(as_text=True)
     assert 'id="kategori"' in html_text
     assert 'id="daftar_link"' not in html_text
     assert "SAP" in html_text

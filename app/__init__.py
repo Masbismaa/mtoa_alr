@@ -204,7 +204,7 @@ def register_template_helpers(app):
     from app.utils.constants import ACCENT_COLOR_OPTION_LIST, FONT_FAMILY_OPTION_LIST
     from app.services.category_service import build_category_label
     from app.utils.datetime_helper import format_local_datetime, format_time_ago
-    from app.utils.navigation import build_sidebar_section_list
+    from app.utils.navigation import build_sidebar_section_list, build_transaction_list
     from app.utils.sanitizer import render_rich_text
     from app.utils.text_helper import (
         format_file_size,
@@ -281,6 +281,7 @@ def register_template_helpers(app):
             "account_access": account_access,
             "ui_preference_dict": build_ui_preference_dict(preference),
             "sidebar_section_list": sidebar_sections,
+            "transaction_list": build_transaction_list(sidebar_sections),
             "accent_color_option_list": ACCENT_COLOR_OPTION_LIST,
             "font_family_option_list": FONT_FAMILY_OPTION_LIST,
             "unread_notification_count": count_unread_notification(user),

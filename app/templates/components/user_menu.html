@@ -1,32 +1,32 @@
-{# menu profil di kanan atas. is_compact = cuma avatar (layar HP), selain itu avatar + nama + jabatan #}
+{# menu profil di kanan atas. is_compact = cuma avatar (layar HP), selain itu avatar + nama satu baris.
+   jabatan, departemen, email, & role tampil rapi di kepala dropdown #}
 {% macro user_menu(is_compact=false) %}
   {% from "components/icon.html" import icon %}
   <div class="nav-item dropdown user-menu">
-    <a href="#" class="nav-link d-flex align-items-center lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open profile menu" aria-expanded="false">
-      <span class="avatar avatar-sm bg-primary-lt">{{ current_user.full_name | initials }}</span>
+    <a href="#" class="nav-link user-menu-toggle" data-bs-toggle="dropdown" aria-label="Open profile menu" aria-expanded="false">
+      <span class="avatar avatar-sm">{{ current_user.full_name | initials }}</span>
       {% if not is_compact %}
-        <span class="d-none d-xl-block ps-2 text-start">
-          <span class="d-flex align-items-center gap-2">
-            <span class="user-menu-name">{{ current_user.full_name }}</span>
-            <span class="badge {{ account_access.color_class }}">{{ account_access.label }}</span>
-          </span>
-          <span class="d-block mt-1 small text-secondary">{{ current_user.job_title }}</span>
-        </span>
-        {{ icon("chevron_down", "ms-2 text-secondary") }}
+        <span class="user-menu-name d-none d-xl-inline">{{ current_user.full_name }}</span>
+        {{ icon("chevron_down", "user-menu-chevron") }}
       {% endif %}
     </a>
-    <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-      <div class="dropdown-header">
-        <div class="fw-bold text-body">{{ current_user.full_name }}</div>
-        <div>{{ current_user.job_title }} · {{ current_user.department }}</div>
-        <span class="badge {{ account_access.color_class }} mt-2">{{ account_access.label }}</span>
+    <div class="dropdown-menu dropdown-menu-end user-menu-panel">
+      <div class="user-menu-card">
+        <span class="avatar">{{ current_user.full_name | initials }}</span>
+        <div class="user-menu-info">
+          <div class="user-menu-fullname">{{ current_user.full_name }}</div>
+          <div class="user-menu-meta">{{ current_user.job_title }} · {{ current_user.department }}</div>
+          <div class="user-menu-meta">{{ current_user.email }}</div>
+          <span class="badge {{ account_access.color_class }}">{{ account_access.label }}</span>
+        </div>
       </div>
-      <a href="{{ url_for('settings.index') }}" class="dropdown-item">{{ icon("settings", "dropdown-item-icon") }} Settings</a>
-      <button type="button" class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer">{{ icon("palette", "dropdown-item-icon") }} Appearance</button>
+      <div class="dropdown-divider"></div>
+      <a href="{{ url_for('settings.index') }}" class="dropdown-item">{{ icon("settings", "dropdown-item-icon") }}Settings</a>
+      <button type="button" class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer">{{ icon("palette", "dropdown-item-icon") }}Appearance</button>
       <div class="dropdown-divider"></div>
       <form method="post" action="{{ url_for('auth.logout') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="dropdown-item text-danger">{{ icon("logout", "dropdown-item-icon") }} Logout</button>
+        <button type="submit" class="dropdown-item text-danger">{{ icon("logout", "dropdown-item-icon") }}Logout</button>
       </form>
     </div>
   </div>

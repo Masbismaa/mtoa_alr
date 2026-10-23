@@ -2,7 +2,7 @@
 {% from "components/icon.html" import icon %}
 {% from "components/category_forum.html" import category_forum %}
 {% from "components/entry_table.html" import entry_table %}
-{% from "components/selection_panel.html" import selection_panel %}
+{% from "components/selection_panel.html" import selection_panel, selection_toolbar %}
 
 {% block title %}{{ path_list | map(attribute="name") | join(" › ") }}{% endblock %}
 
@@ -12,7 +12,7 @@
 {% block page_pretitle %}Categories{% endblock %}
 
 {# Kembali: ke kategori induk, kalau udah paling atas ke daftar kategori di Dashboard #}
-{% block toolbar_back %}{% if path_list | length > 1 %}{{ url_for('categories.browse', category_id=path_list[-2].id) }}{% else %}{{ url_for('main.home', _anchor='kategori') }}{% endif %}{% endblock %}
+{% block toolbar_back %}{% if path_list | length > 1 %}{{ url_for('categories.browse', category_id=path_list[-2].id) }}{% else %}{{ url_for('main.dashboard', _anchor='kategori') }}{% endif %}{% endblock %}
 
 {% block page_heading %}
   {{ category.name }}
@@ -23,7 +23,7 @@
 {# jalur kategori + status + deskripsi, tampil di atas konten #}
 {% block page_subtitle %}
   <ol class="breadcrumb breadcrumb-arrows category-breadcrumb" aria-label="Category path">
-    <li class="breadcrumb-item"><a href="{{ url_for('main.home') }}#kategori">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}#kategori">Dashboard</a></li>
     {% for path_category in path_list[:-1] %}
       <li class="breadcrumb-item"><a href="{{ url_for('categories.browse', category_id=path_category.id) }}">{{ path_category.name }}</a></li>
     {% endfor %}
@@ -34,6 +34,7 @@
 {% endblock %}
 
 {% block page_actions %}
+  {{ selection_toolbar(url_for("categories.browse", category_id=category.id, _anchor="daftar_link")) }}
   {% if can_manage %}
     <a href="{{ url_for('categories.edit', category_id=category.id) }}" class="btn">{{ icon("edit") }} Edit</a>
     {% if not is_default %}

@@ -6,7 +6,6 @@ import { isPlainClick } from "../shared/events.js";
 import { clampWidth } from "./useColumnLayout.js";
 
 const KEYBOARD_STEP = 16;
-const ACTION_COLUMN_WIDTH = 80;
 const LOCKED_FILTER_TITLE = "More than one value, change it via Selection Criteria";
 
 // garis geser lebar kolom: mouse/jari ditarik, atau fokus + panah kiri/kanan
@@ -134,7 +133,10 @@ function SelectAllCell({ selection }) {
   );
 }
 
-export default function TableHead({ columns, getWidth, onResize, onResizeStateChange, buildSortHref, onSort, onFilterApply, selection = null }) {
+export default function TableHead({
+  columns, getWidth, onResize, onResizeStateChange, buildSortHref, onSort, onFilterApply, selection = null,
+  isFilterShown = true, applyFiltersRef = null,
+}) {
   // isian filter yg lagi diketik (belum diterapin). TableHead di-render ulang dgn key baru tiap data ganti,
   // jadi isiannya selalu mulai dari nilai yg dipake server
   const [filterValueDict, setFilterValueDict] = useState(() => readFilterValueDict(columns));
@@ -144,7 +146,7 @@ export default function TableHead({ columns, getWidth, onResize, onResizeStateCh
     setFilterValueDict((current) => ({ ...current, [key]: value }));
   }
 
-  // tombol cari di ujung baris filter: terapin semua isian teks yg ga dikunci sekaligus
+  // tombol "Apply column filters" di toolbar ALV: terapin semua isian teks yg ga dikunci sekaligus
   function applyAllFilters() {
     const changeDict = {};
     columns.forEach((column) => {
@@ -152,6 +154,7 @@ export default function TableHead({ columns, getWidth, onResize, onResizeStateCh
     });
     onFilterApply(changeDict);
   }
+  if (applyFiltersRef) applyFiltersRef.current = applyAllFilters;
 
   return (
     <thead>
@@ -187,11 +190,8 @@ export default function TableHead({ columns, getWidth, onResize, onResizeStateCh
             />
           </th>
         ))}
-        <th className="cell-action-head" style={{ width: ACTION_COLUMN_WIDTH + "px" }}>
-          <span className="visually-hidden">Actions</span>
-        </th>
       </tr>
-      {hasFilter && (
+      {hasFilter && isFilterShown && (
         <tr className="table-filter-row">
           {selection && <th className="cell-select" />}
           {columns.map((column) => (
@@ -206,11 +206,6 @@ export default function TableHead({ columns, getWidth, onResize, onResizeStateCh
               )}
             </th>
           ))}
-          <th className="cell-action-head">
-            <button type="button" className="btn btn-sm btn-icon" title="Apply column filters" aria-label="Apply column filters" onClick={applyAllFilters}>
-              <Icon name="search" />
-            </button>
-          </th>
         </tr>
       )}
     </thead>

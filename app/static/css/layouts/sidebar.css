@@ -166,6 +166,25 @@ details[open] > summary > .sidebar-chevron {
   white-space: normal;
 }
 
+/* menu profil di navbar HP: nempel kanan layar (avatarnya di tengah, kalau ikut avatar kepotong di kiri) */
+.app-sidebar .navbar-nav.flex-row .dropdown-menu.user-menu-panel {
+  position: fixed !important;
+  inset: 4.5rem 1rem auto auto !important;
+  min-width: 16rem;
+  padding: 0 0 0.25rem !important;
+}
+
+/* item menu profil: gaya dropdown biasa, bukan link sidebar (biru bergaris) */
+.app-sidebar .user-menu-panel .dropdown-item {
+  min-height: 0;
+  color: var(--tblr-body-color);
+  border-bottom: 0;
+}
+
+.app-sidebar .user-menu-panel .dropdown-item.text-danger {
+  color: var(--tblr-danger) !important;
+}
+
 .app-sidebar .navbar-nav.flex-row .dropdown-item {
   display: flex;
   align-items: center;
@@ -175,20 +194,14 @@ details[open] > summary > .sidebar-chevron {
   padding: 0.5rem 0.75rem !important;
 }
 
+/* layar besar: sidebar ga dipake, navigasinya lewat pohon Easy Access (layar awal), menu bar, & command field.
+   sidebar cuma jadi menu hamburger di HP */
 @media (min-width: 992px) {
-  /* sidebar mulai di bawah shell bar */
   .app-sidebar.navbar-vertical {
-    top: var(--app-shell-height);
-    border-right: 1px solid var(--tblr-border-color);
+    display: none;
   }
 
-  /* tombol Customize nempel di bawah sidebar */
-  .app-sidebar.navbar-expand-lg .navbar-collapse {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .app-sidebar .sidebar-footer {
-    margin-top: auto;
+  .app-sidebar.navbar-vertical ~ .page-wrapper {
+    margin-left: 0;
   }
 }

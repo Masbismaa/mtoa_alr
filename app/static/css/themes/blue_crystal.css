@@ -1,0 +1,270 @@
+/* tema SAP GUI Blue Crystal (7.40/7.50): latar biru muda bergradasi, judul layar miring tebal biru tua,
+   semuanya rapat, field & tombol kecil, kartu jadi group box bingkai biru.
+   dimuat setelah semua CSS lain (sebelum animasi), jadi cukup nimpa yg beda dari tampilan dasar */
+
+/* biru Blue Crystal. hex di DB tetep #0a6ed1 (key "blue"), yg diganti cuma warnanya di layar */
+:root[data-accent="blue"] { --app-accent: #2b6cb0; --app-accent-rgb: 43, 108, 176; --app-accent-fg: #ffffff; }
+
+html:root {
+  --app-shell-height: 4.25rem;
+  --app-shell-bg: light-dark(#e3edf7, #1c2228);
+  /* gradasi khas Blue Crystal: atas lebih terang, bawah biru muda (light-dark() ga bisa buat gradasi) */
+  --app-shell-image: linear-gradient(#f7fafd, #d2e2f2);
+  --app-page-image: linear-gradient(#dbe6f2, #c3d6ea);
+  --app-header-image: linear-gradient(#f6f9fc, #e4edf6);
+  --app-shell-color: light-dark(#1f3f63, #ffffff);
+  --app-shell-hover-bg: light-dark(#c9ddf1, rgba(255, 255, 255, 0.12));
+  --app-strip-bg: light-dark(#eaf1f8, #232a31);
+  --app-title-color: light-dark(#1f3f63, #fafafa);
+  --app-label-color: light-dark(#2f4a66, #a9b4be);
+  --app-hover-bg: light-dark(#e3eef9, #323b45);
+  --app-selected-bg: light-dark(#cde2f7, #1e3a55);
+  --app-field-border: light-dark(#9fb4ca, #6a7480);
+  --app-frame-border: light-dark(#a9c0d8, #3d4652);
+  --app-field-height: 1.75rem;
+  --tblr-body-bg: light-dark(#cfdeee, #1c2228);
+  --tblr-bg-surface: light-dark(#ffffff, #29313a);
+  --tblr-body-font-size: 0.8125rem;
+  --tblr-body-color: light-dark(#1d2d3e, #fafafa);
+  --tblr-border-color: light-dark(#c5d5e6, #3d4652);
+  --tblr-border-radius: 0.125rem;
+  --tblr-border-radius-lg: 0.25rem;
+}
+
+html:root[data-bs-theme="dark"] {
+  --app-shell-image: none;
+  --app-page-image: none;
+  --app-header-image: none;
+}
+
+/* latar halaman ikut gradasi biru muda, kayak jendela SAP GUI */
+body {
+  background: var(--app-page-image) fixed, var(--tblr-body-bg);
+}
+
+body {
+  font-size: var(--tblr-body-font-size);
+}
+
+/* TITLE BAR: gradasi biru muda, logo versi biasa (bukan putih) */
+.app-topbar {
+  background: var(--app-shell-image), var(--app-shell-bg);
+  border-bottom: 1px solid var(--app-frame-border);
+}
+
+/* judul layar: miring tebal biru tua, persis "SAP Easy Access" */
+.app-topbar-title {
+  font-size: 1.125rem;
+  font-style: italic;
+  font-weight: 700;
+}
+
+.app-topbar .app-brand-logo {
+  height: 1.75rem;
+}
+
+:root:not([data-bs-theme="dark"]) .app-topbar .app-brand-logo-light {
+  display: inline-block;
+}
+
+:root:not([data-bs-theme="dark"]) .app-topbar .app-brand-logo-dark {
+  display: none;
+}
+
+/* KONTEN: jarak dirapatin */
+.page-body {
+  margin-top: 0.5rem;
+}
+
+.page-info {
+  margin-bottom: 0.5rem;
+}
+
+/* GROUP BOX: bingkai biru tipis, judul di strip gradasi, isi rapat */
+.card {
+  margin-bottom: 0;
+}
+
+.card {
+  --tblr-card-border-color: var(--app-frame-border);
+}
+
+.card-header {
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--app-header-image), var(--tblr-bg-surface);
+  border-bottom-color: var(--app-frame-border);
+}
+
+.card-title {
+  font-size: 0.8125rem;
+  color: var(--app-title-color);
+}
+
+.card-body {
+  padding: 0.75rem;
+}
+
+.card-footer {
+  padding: 0.5rem 0.75rem;
+  background: var(--tblr-bg-surface);
+}
+
+.row-cards,
+.row.g-3,
+.row.g-4 {
+  --tblr-gutter-x: 0.75rem;
+  --tblr-gutter-y: 0.75rem;
+}
+
+/* FIELD: tinggi 28px, sudut hampir kotak, garis biru abu */
+.form-control,
+.form-select {
+  min-height: var(--app-field-height);
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  border-color: var(--app-field-border);
+  border-radius: var(--tblr-border-radius);
+}
+
+.form-select {
+  padding-right: 1.75rem;
+  background-position: right 0.4rem center;
+}
+
+textarea.form-control {
+  min-height: calc(var(--app-field-height) * 2);
+}
+
+.form-control:hover:not(:disabled):not([readonly]),
+.form-select:hover:not(:disabled) {
+  border-color: var(--app-accent);
+}
+
+.form-control[readonly],
+.form-control:disabled,
+.form-select:disabled {
+  background: light-dark(#f2f2f2, #232a31);
+}
+
+.form-label {
+  margin-bottom: 0.2rem;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--app-label-color);
+}
+
+.mb-3 {
+  margin-bottom: 0.625rem !important;
+}
+
+.form-hint,
+.form-text {
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+}
+
+.input-group-text {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
+/* TOMBOL: kecil, gradasi putih-biru muda + teks biru tua; tombol utama biru penuh */
+.btn {
+  --tblr-btn-padding-y: 0.2rem;
+  --tblr-btn-padding-x: 0.625rem;
+  --tblr-btn-font-size: 0.8125rem;
+  --tblr-btn-line-height: 1.4;
+  min-height: var(--app-field-height);
+  border-radius: var(--tblr-border-radius);
+  box-shadow: none;
+}
+
+.btn-sm {
+  --tblr-btn-padding-y: 0.1rem;
+  --tblr-btn-padding-x: 0.5rem;
+  min-height: 1.5rem;
+}
+
+.btn-icon {
+  min-width: var(--app-field-height);
+}
+
+.btn:not([class*="btn-"]),
+.btn-outline-primary,
+.btn-outline-secondary {
+  --tblr-btn-color: light-dark(#1f3f63, var(--app-text-accent));
+  --tblr-btn-bg: light-dark(#f4f8fc, #29313a);
+  --tblr-btn-border-color: light-dark(#9fb4ca, #5a6672);
+  --tblr-btn-hover-color: light-dark(#1f3f63, var(--app-text-accent));
+  --tblr-btn-hover-bg: light-dark(#dcebf9, #323b45);
+  --tblr-btn-hover-border-color: var(--app-accent);
+  --tblr-btn-active-color: #ffffff;
+  --tblr-btn-active-bg: var(--app-accent);
+  --tblr-btn-active-border-color: var(--app-accent);
+}
+
+/* BADGE: kotak kecil, bukan pil */
+.badge {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.6875rem;
+  border-radius: var(--tblr-border-radius);
+}
+
+/* TABEL: baris rapat, kepala abu */
+.table {
+  --tblr-table-font-size: 0.8125rem;
+  font-size: 0.8125rem;
+}
+
+.table > :not(caption) > * > * {
+  padding: 0.3rem 0.5rem;
+}
+
+.table thead th {
+  font-size: 0.75rem;
+  background: var(--app-strip-bg);
+}
+
+.list-group-item {
+  padding: 0.45rem 0.75rem;
+}
+
+/* TAB: garis bawah biru di tab aktif */
+.nav-tabs .nav-link {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--app-text-accent);
+  border-bottom: 2px solid var(--app-accent);
+}
+
+/* DROPDOWN & MODAL: rapat juga */
+.dropdown-item {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.modal-header,
+.modal-footer {
+  padding: 0.5rem 0.75rem;
+}
+
+.modal-body {
+  padding: 0.75rem;
+}
+
+/* TOOLBAR & STATUS BAR: strip gradasi biru muda */
+.app-toolbar,
+.app-statusbar {
+  background: var(--app-header-image), var(--app-strip-bg);
+  border-color: var(--app-frame-border);
+}
+
+/* SIDEBAR: putih di atas latar biru, garis biru */
+.app-sidebar {
+  border-right: 1px solid var(--app-frame-border);
+}
