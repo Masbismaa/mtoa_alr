@@ -44,7 +44,7 @@ Aplikasi ini dirancang berdasarkan tiga prinsip:
 | Prinsip | Penerapan |
 |---|---|
 | **Kerahasiaan** | Kredensial dienkripsi saat disimpan, tidak pernah disertakan dalam markup halaman, dan hanya ditampilkan atas permintaan eksplisit |
-| **Akuntabilitas** | Setiap perubahan, aktivitas masuk, ekspor, dan pembukaan kredensial dicatat dalam log audit yang tidak dapat diubah |
+| **Akuntabilitas** | Setiap perubahan, aktivitas masuk, dan ekspor dicatat dalam log audit yang tidak dapat diubah |
 | **Efisiensi** | Konvensi SAP GUI (tombol fungsi, layar seleksi, varian, tabel ALV) bagi pengguna yang bekerja dengan sistem ERP setiap hari |
 
 <div align="center">
@@ -190,9 +190,9 @@ Pilih salah satu kelompok untuk membukanya. Gambar menyesuaikan tema GitHub yang
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/audit-dark.png">
-        <img src="assets/audit-light.png" alt="Log Audit: Catatan permanen atas perubahan, aktivitas masuk, dan pembukaan kredensial" width="100%">
+        <img src="assets/audit-light.png" alt="Log Audit: Catatan permanen atas perubahan, aktivitas masuk, dan ekspor" width="100%">
       </picture>
-      <p align="center"><b>Log Audit</b><br><sub>Catatan permanen atas perubahan, aktivitas masuk, dan pembukaan kredensial</sub></p>
+      <p align="center"><b>Log Audit</b><br><sub>Catatan permanen atas perubahan, aktivitas masuk, dan ekspor</sub></p>
     </td>
     <td width="50%" valign="top">
       <picture>
@@ -235,11 +235,11 @@ Buka setiap modul untuk melihat kemampuannya.
 |---|---|
 | Jenis data | URL, host atau alamat IP beserta port, atau panduan terstruktur dengan hingga sepuluh kolom tambahan |
 | Kategorisasi | Kategori bertingkat hingga empat level (misalnya Web › ERP), dipilih melalui isian berjenjang |
-| Visibilitas | Private (hanya pemilik) atau Public (seluruh pengguna, hanya baca) |
+| Visibilitas | Private (hanya pemilik) atau Public (seluruh pengguna, hanya baca); tautan Public hanya dapat dibuat administrator, sehingga tautan dari pengguna lain, termasuk hasil impor, disimpan sebagai Private |
 | Catatan akses | Dienkripsi di basis data dan disamarkan hingga pengguna secara eksplisit membukanya |
 | Lampiran | Hingga lima berkas per data: gambar, PDF, Excel, Word, dan teks |
 | Favorit | Menandai data dan menyaring daftar khusus favorit |
-| Riwayat | Catatan kronologis pembuatan, perubahan, dan pembukaan kredensial untuk setiap tautan |
+| Riwayat | Catatan kronologis pembuatan dan perubahan untuk setiap tautan |
 | Impor | Templat Excel dengan pilihan tervalidasi; seluruh baris diproses dalam satu transaksi utuh |
 | Ekspor | Berkas Excel dari hasil pencarian aktif, dilengkapi lembar ringkasan |
 
@@ -317,6 +317,7 @@ Sistem ini memiliki dua peran. Administrator dapat mendelegasikan izin tertentu 
 | Tindakan | User Entry | Administrator |
 |---|:---:|:---:|
 | Membuat, mengubah, dan menghapus tautan milik sendiri | ✓ | ✓ |
+| Membuat tautan publik | – | ✓ |
 | Melihat dan menyalin tautan publik | ✓ | ✓ |
 | Melihat tautan privat milik pengguna lain | – | – |
 | Membuat grup dan membagikan tautan | ✓ | ✓ |
@@ -575,7 +576,7 @@ flowchart LR
 | Serangan brute force | Pembatasan laju per IP dan per email, penguncian akun sementara, serta batas percobaan per kode |
 | Pembajakan sesi | Sesi berversi; penggantian atau pemulihan kata sandi mencabut seluruh sesi lain |
 | Akses data tanpa izin | Satu predikat visibilitas untuk seluruh kueri; data yang tidak dapat diakses menghasilkan 404 |
-| Akses kredensial tanpa jejak | Catatan akses tidak disertakan dalam markup halaman; setiap pembukaan merupakan permintaan terpisah yang diaudit |
+| Akses kredensial tanpa jejak | Catatan akses tidak disertakan dalam markup halaman; setiap pembukaan merupakan permintaan terpisah yang diotorisasi |
 | Cross-site scripting | Sanitasi input dan Content Security Policy yang hanya mengizinkan skrip milik aplikasi |
 | Cross-site request forgery | Token pada setiap pengiriman formulir dan permintaan JSON |
 | Unggahan berbahaya | Verifikasi tanda tangan berkas, deteksi makro dan zip bomb, serta parsing Excel yang aman dari XXE |
@@ -625,7 +626,7 @@ Pemeriksaan ratusan target dapat memakan waktu beberapa menit. Menjalankannya di
 <summary><b>Pengambilan kredensial sesuai permintaan</b></summary>
 <br>
 
-Menyertakan kredensial dalam markup halaman membuatnya terlihat oleh siapa pun yang membuka halaman tanpa meninggalkan jejak akses. Mengambilnya hanya ketika pengguna memilih Show atau Copy menjaga kredensial tetap di luar markup dan mencatat setiap pembukaan di log audit serta riwayat tautan.
+Menyertakan kredensial dalam markup halaman membuatnya terlihat oleh siapa pun yang membuka halaman tanpa meninggalkan jejak akses. Mengambilnya hanya ketika pengguna memilih Show atau Copy menjaga kredensial tetap di luar markup.
 
 </details>
 

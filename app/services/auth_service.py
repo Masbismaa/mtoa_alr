@@ -1,9 +1,9 @@
 """Logika register (dgn verifikasi email), login (password), dan OTP. Route tinggal manggil fungsi di sini.
 
-Dua aturan anti bocor yg dipegang di file ini:
+Aturan yg dipegang di file ini:
 - layar ga pernah ngasih tau email mana yg udah terdaftar (login: pesan sama; daftar: alur & tampilan sama persis)
-- orang lain ga bisa ngunci akun kita: salah password diblokir per email+IP (security/auth_throttle.py),
-  akunnya sendiri cuma dikunci kalau salah OTP (yg bisa sampe OTP pasti udah tau password)
+- salah password / OTP (digabung) LOGIN_MAX_FAILED_COUNT kali -> akun dikunci 15 menit (status Locked, bisa di-unlock
+  admin) + email-nya diblokir di security/auth_throttle.py biar email ga terdaftar dapet pesan yg sama
 """
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
@@ -56,7 +56,7 @@ OTP_COOLDOWN_ERROR = "Wait a moment before requesting a new OTP"
 REGISTRATION_FINISHED_ERROR = "Registration for this email is already complete. Please log in."
 
 def build_login_blocked_error(minute_count):
-    return f"Too many login attempts from this device. Try again in {minute_count} minutes."
+    return f"Too many login attempts. Try again in {minute_count} minutes or contact the ICT admin."
 
 
 # REGISTER
@@ -322,13 +322,12 @@ def get_dummy_password_hash():
 
 
 def is_account_locked(user):
-    """True kalau akun lagi dikunci (gara-gara kebanyakan salah OTP)."""
+    """True kalau akun lagi dikunci (gara-gara kebanyakan salah password/OTP)."""
     return user.locked_until is not None and to_utc_aware(user.locked_until) > utc_now()
 
 
-def register_failed_otp(user):
-    """Tambah hitungan salah OTP. Kalau nyampe batas, kunci akunnya.
-    Salah password ga lewat sini (diblokir per email+IP di auth_throttle), biar orang lain ga bisa ngunci akun kita."""
+def register_failed_attempt(user):
+    """Tambah hitungan salah password/OTP (digabung). Kalau nyampe batas, kunci akunnya (status Locked)."""
     user.failed_login_count += 1
     if user.failed_login_count >= LOGIN_MAX_FAILED_COUNT:
         user.locked_until = utc_now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
@@ -349,13 +348,13 @@ def authenticate_user(email, password):
     """Cek email + password. Return User kalau bener, lempar AuthError kalau salah.
 
     Urutannya penting biar ga bocor:
-    1. email+IP lagi diblokir -> tolak (pesannya sama buat email terdaftar maupun ngga)
-    2. email ga ada / nonaktif / password salah -> pesan generik + catat gagal per email+IP
-    3. akun dikunci gara-gara salah OTP -> pesan "dikunci" cuma keluar kalau password-nya bener
+    1. email lagi diblokir -> tolak (pesannya sama buat email terdaftar maupun ngga)
+    2. email ga ada / nonaktif / password salah -> pesan generik + catat gagal per email (+ hitungan kunci akun)
+    3. akun lagi dikunci -> pesan "dikunci" cuma keluar kalau password-nya bener
     """
     clean_email = normalize_email(email)
     ip_address = auth_throttle.get_client_ip()
-    blocked_minute_count = auth_throttle.get_login_block_minutes(clean_email, ip_address)
+    blocked_minute_count = auth_throttle.get_login_block_minutes(clean_email)
     if blocked_minute_count:
         log_audit(AUDIT_ACTION_LOGIN_FAILED, "users", actor_email=clean_email[:255],
                   new_data_dict={"reason": "too_many_attempts"}, is_commit=True)
@@ -369,13 +368,15 @@ def authenticate_user(email, password):
     # email ga terdaftar: tetep jalanin verifikasi palsu biar waktunya sama
     if user is None:
         verify_password(get_dummy_password_hash(), password or "")
-        auth_throttle.record_login_failure(clean_email, ip_address)
+        auth_throttle.record_login_failure(clean_email)
         log_audit(AUDIT_ACTION_LOGIN_FAILED, "users", actor_email=clean_email[:255], is_commit=True)
         raise AuthError(GENERIC_LOGIN_ERROR)
 
     # akun nonaktif atau password salah -> pesannya tetep sama
     if not user.is_active or not verify_password(user.password_hash, password):
-        is_newly_blocked = auth_throttle.record_login_failure(clean_email, ip_address)
+        is_newly_blocked = auth_throttle.record_login_failure(clean_email)
+        if user.is_active:
+            register_failed_attempt(user)
         if is_newly_blocked and user.is_active:
             notify_login_blocked(user, ip_address)
         failed_reason = "inactive" if not user.is_active else "wrong_password"
@@ -391,7 +392,7 @@ def authenticate_user(email, password):
         )
         raise AuthError(ACCOUNT_LOCKED_ERROR)
 
-    auth_throttle.clear_login_failure(clean_email, ip_address)
+    auth_throttle.clear_login_failure(clean_email)
     # hash lama (parameter argon2 udah dinaikin) langsung diganti hash baru, kesimpen pas OTP dibikin
     if is_rehash_needed(user.password_hash):
         user.password_hash = hash_password(password)
@@ -487,7 +488,7 @@ def verify_otp_code(user, otp_code):
     # biar ga bisa nebak OTP terus-terusan cuma modal minta OTP baru
     if not is_otp_code_match(otp_code, active_otp.code_hash):
         active_otp.attempt_count += 1
-        register_failed_otp(user)
+        register_failed_attempt(user)
         is_locked = is_account_locked(user)
         is_attempt_exhausted = active_otp.attempt_count >= OTP_MAX_ATTEMPT_COUNT
         if is_attempt_exhausted or is_locked:
@@ -637,20 +638,21 @@ def reset_password(state, code, new_password):
     user.locked_until = None
     apply_new_password(user, password_hash, "reset")
     db.session.commit()
+    auth_throttle.clear_login_failure(user.email)
     notify_password_changed(user)
     return user
 
 
 def change_password(user, current_password, new_password):
-    """Ganti password dari Settings. Password lama salah ikut hitungan blokir login (email+IP), biar sesi yg kebajak
+    """Ganti password dari Settings. Password lama salah ikut hitungan blokir login & kunci akun, biar sesi yg kebajak
     ga bisa dipake nebak password. Return User (session_version-nya udah naik, route login-in ulang sesi ini)."""
-    ip_address = auth_throttle.get_client_ip()
-    blocked_minute_count = auth_throttle.get_login_block_minutes(user.email, ip_address)
+    blocked_minute_count = auth_throttle.get_login_block_minutes(user.email)
     if blocked_minute_count:
         raise AuthError(build_login_blocked_error(blocked_minute_count))
     user = lock_auth_user(user)
     if not verify_password(user.password_hash, current_password or ""):
-        auth_throttle.record_login_failure(user.email, ip_address)
+        auth_throttle.record_login_failure(user.email)
+        register_failed_attempt(user)
         db.session.commit()
         raise AuthError("Current password is incorrect")
     if verify_password(user.password_hash, new_password or ""):

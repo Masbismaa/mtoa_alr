@@ -23,7 +23,6 @@ from app.utils.constants import (
     AUDIT_ACTION_IMPORT,
     AUDIT_ACTION_LOGIN_FAILED,
     AUDIT_ACTION_PASSWORD_CHANGE,
-    AUDIT_ACTION_REVEAL,
     AUDIT_ACTION_UPDATE,
     DASHBOARD_ACTIVITY_DAY_COUNT,
     DASHBOARD_ATTENTION_LIMIT,
@@ -57,7 +56,6 @@ ACTIVITY_TEXT_DICT = {
     (AUDIT_ACTION_LOGIN_FAILED, "users"): ActivityText("failed to log in", "failed to log in {count} times", True),
     (AUDIT_ACTION_EXPORT, "access_entries"): ActivityText("exported links to Excel", "exported links to Excel {count} times", True),
     (AUDIT_ACTION_IMPORT, "access_entries"): ActivityText("imported links from Excel", "imported links from Excel {count} times", True),
-    (AUDIT_ACTION_REVEAL, "access_entries"): ActivityText("viewed a password", "viewed passwords {count} times", True),
 }
 # audit log yg dibaca buat feed dibatesin (feed cuma nampilin beberapa baris hasil gabungan)
 ACTIVITY_SCAN_LIMIT = 300

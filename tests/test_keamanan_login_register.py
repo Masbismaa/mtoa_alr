@@ -1,5 +1,5 @@
 """Test celah login & daftar:
-- salah password diblokir per email+IP (orang lain ga bisa ngunci akun kita)
+- salah password LOGIN_MAX_FAILED_COUNT kali -> akun dikunci (status Locked) & bisa dibuka admin
 - daftar wajib verifikasi email (akun baru dibikin setelah kode bener, per percobaan daftar),
   dan layar ga ngebocorin email mana yg udah terdaftar
 """
@@ -45,26 +45,35 @@ def normalize_page(response):
 def find_user(email):
     return db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
 
-# LOCKOUT PER EMAIL + IP
+# LOCKOUT AKUN
 
-def test_attacker_ip_blocked_but_owner_can_still_login(client, registered_user, user_password, fixed_otp_code):
-    """Positive & negative (security): 5x salah dari IP penyerang -> IP itu diblokir, pemilik dari IP lain tetep masuk."""
+def test_wrong_password_locks_account_until_admin_unlock(client, registered_user, admin_user, user_password):
+    """Positive & negative (security): 3x salah password -> akun Locked (dari IP mana pun ditolak), admin unlock -> bisa login."""
+    from app.services.user_service import get_user_status, unlock_user
+    from app.utils.constants import USER_STATUS_LOCKED
+
+    assert LOGIN_MAX_FAILED_COUNT == 3
     for _ in range(LOGIN_MAX_FAILED_COUNT):
         assert "Incorrect email or password" in post_login(client, registered_user.email, WRONG_PASSWORD, ATTACKER_IP).get_data(as_text=True)
-    blocked_response = post_login(client, registered_user.email, user_password, ATTACKER_IP)
-    assert "Too many login attempts from this device" in blocked_response.get_data(as_text=True)
+    assert get_user_status(find_user(registered_user.email)) == USER_STATUS_LOCKED
+    for ip_address in (ATTACKER_IP, OWNER_IP):
+        blocked_response = post_login(client, registered_user.email, user_password, ip_address)
+        assert "Too many login attempts" in blocked_response.get_data(as_text=True)
 
+    unlock_user(admin_user, find_user(registered_user.email))
     owner_response = post_login(client, registered_user.email, user_password, OWNER_IP)
     assert owner_response.status_code == 302
     assert "/auth/otp" in owner_response.location
-    assert find_user(registered_user.email).locked_until is None
 
-def test_unknown_email_blocked_with_same_message(client):
-    """Negative (security): email ga terdaftar juga diblokir dgn pesan yg sama, jadi blokir ga ngebocorin email terdaftar."""
-    for _ in range(LOGIN_MAX_FAILED_COUNT):
-        post_login(client, "ga.ada@spindo.com", WRONG_PASSWORD, ATTACKER_IP)
-    response = post_login(client, "ga.ada@spindo.com", WRONG_PASSWORD, ATTACKER_IP)
-    assert "Too many login attempts from this device" in response.get_data(as_text=True)
+def test_unknown_email_blocked_with_same_message(client, registered_user):
+    """Negative (security): email ga terdaftar diblokir dgn pesan yg sama persis kayak akun yg kekunci (ga ngebocorin email terdaftar)."""
+    def blocked_text(email):
+        for _ in range(LOGIN_MAX_FAILED_COUNT):
+            post_login(client, email, WRONG_PASSWORD, ATTACKER_IP)
+        return post_login(client, email, WRONG_PASSWORD, ATTACKER_IP).get_data(as_text=True)
+    unknown_text = blocked_text("ga.ada@spindo.com")
+    assert "Too many login attempts" in unknown_text
+    assert "Too many login attempts" in blocked_text(registered_user.email)
 
 def test_owner_notified_once_with_attacker_ip(client, registered_user):
     """Positive: pemilik akun dapet 1 notifikasi lonceng berisi IP penyerang, ga dobel walau diserang terus."""
@@ -76,14 +85,14 @@ def test_owner_notified_once_with_attacker_ip(client, registered_user):
     assert len(message_list) == 1
     assert ATTACKER_IP in message_list[0]
 
-def test_success_clears_failure_count(client, registered_user, user_password):
-    """Positive: login bener ngereset hitungan, jadi salah ketik sesekali ga numpuk sampe keblokir."""
+def test_success_clears_failure_count(client, registered_user, user_password, fixed_otp_code):
+    """Positive: login sampe OTP bener ngereset hitungan, jadi salah ketik sesekali ga numpuk sampe kekunci."""
     for _ in range(LOGIN_MAX_FAILED_COUNT - 1):
         post_login(client, registered_user.email, WRONG_PASSWORD, OWNER_IP)
     assert post_login(client, registered_user.email, user_password, OWNER_IP).status_code == 302
-    for _ in range(LOGIN_MAX_FAILED_COUNT - 1):
-        post_login(client, registered_user.email, WRONG_PASSWORD, OWNER_IP)
-    assert post_login(client, registered_user.email, user_password, OWNER_IP).status_code == 302
+    client.post("/auth/otp", data={"otp_code": fixed_otp_code})
+    user = find_user(registered_user.email)
+    assert user.failed_login_count == 0 and user.locked_until is None
 
 def test_otp_lock_message_needs_correct_password(client, registered_user, user_password):
     """Negative (security): akun kekunci (salah OTP) cuma ketauan sama yg tau password-nya."""

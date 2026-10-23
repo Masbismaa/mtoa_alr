@@ -15,7 +15,8 @@ from app.services.access_entry_service import (
     get_form_category_list,
     get_visible_entry,
     is_favorite_entry,
-    reveal_access_note,
+    read_access_note,
+    toggle_archive,
     toggle_favorite,
     update_access_entry,
 )
@@ -240,12 +241,12 @@ def detail(entry_id):
 @api_login_required
 @limiter.limit("30 per minute")
 def reveal_access_note_api(entry_id):
-    """Isi access note buat tombol Show/Copy di detail. Tiap diambil dicatat di audit (aksi Reveal Password)."""
+    """Isi access note buat tombol Show/Copy di detail."""
     user = get_current_user()
     entry = get_visible_entry(user, entry_id)
     if entry is None:
         return error_response("Link not found", 404)
-    access_note, is_note_error = reveal_access_note(user, entry)
+    access_note, is_note_error = read_access_note(entry)
     if is_note_error:
         return error_response("The access note can't be opened (different encryption key or corrupted data)", 500)
     if not access_note:
@@ -262,6 +263,18 @@ def favorite(entry_id):
     flash("Added to Favorites" if is_now_favorite else "Removed from Favorites", "success")
     return redirect(url_for("entries.detail", entry_id=entry.id, back=read_back_url()))
 
+@entries_bp.post("/<int:entry_id>/archive")
+@login_required
+def archive(entry_id):
+    """Pindahin ke arsip / balikin (yg boleh edit). Balik ke detail, konteks tabel asalnya tetep kebawa."""
+    user = get_current_user()
+    entry = get_entry_or_404(user, entry_id)
+    if not can_edit_entry(user, entry):
+        abort(403)
+    is_now_archived = toggle_archive(user, entry)
+    flash("Moved to Archive" if is_now_archived else "Restored from Archive", "success")
+    return redirect(url_for("entries.detail", entry_id=entry.id, back=read_back_url()))
+
 @entries_bp.route("/<int:entry_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit(entry_id):
@@ -276,8 +289,7 @@ def edit(entry_id):
     back_url = read_back_url()
     if request.method == "GET":
         form = AccessEntryForm(obj=entry)
-        # form edit nampilin password-nya -> ikut dicatat sebagai buka password
-        access_note, is_note_error = reveal_access_note(user, entry)
+        access_note, is_note_error = read_access_note(entry)
         form.access_note.data = access_note
         if is_note_error:
             flash("The old access note can't be opened; fill it in again if needed", "warning")

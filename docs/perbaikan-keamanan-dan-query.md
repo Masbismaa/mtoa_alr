@@ -20,12 +20,14 @@ Jangan membuat migrasi duplikat untuk kolom atau tabel ini.
   mengaktifkan akun juga mengganti versi agar sesi lama tidak hidup kembali.
 - Password dan OTP mengunci baris akun selama transaksi di PostgreSQL agar hitungan
   gagal dan pemakaian OTP tidak berlomba. SQLite tidak membuktikan perilaku konkurensi ini.
-- Salah password diblokir per **email + IP** (5 kali / 15 menit, `app/security/auth_throttle.py`), bukan per
-  akun, supaya orang lain tidak bisa sengaja mengunci akun orang. Email yang tidak terdaftar diblokir dengan
-  pesan yang sama. Saat sebuah IP terblokir, pemilik akun mendapat notifikasi lonceng berisi IP tersebut.
-  Akun baru dikunci (`users.locked_until`, bisa dibuka admin) hanya jika salah OTP 5 kali, dan pesan
-  "Akun dikunci" hanya muncul kalau password-nya benar. Hitungan blokir disimpan di `RATELIMIT_STORAGE_URI`
-  (Redis di production) dan tetap berjalan walau `RATELIMIT_ENABLED=False`.
+- Salah password dan salah OTP dihitung bersama. Setelah **3 kali** salah, akun dikunci selama 15 menit
+  (`users.locked_until`, status **Locked**) dan email tersebut diblokir di `app/security/auth_throttle.py`.
+  Admin dapat membuka kunci dari menu Users; tombol Unlock juga menghapus blokir email tersebut. Email yang
+  tidak terdaftar diblokir dengan pesan yang sama, sehingga blokir tidak membocorkan email mana yang
+  terdaftar. Saat blokir terjadi, pemilik akun mendapat notifikasi lonceng berisi IP percobaan. Pesan
+  "Akun dikunci" hanya muncul kalau password-nya benar. Konsekuensinya, orang yang mengetahui email
+  seseorang dapat sengaja mengunci akun tersebut selama 15 menit. Hitungan blokir disimpan di
+  `RATELIMIT_STORAGE_URI` (Redis di production) dan tetap berjalan walau `RATELIMIT_ENABLED=False`.
 - Pendaftaran wajib verifikasi email. Akun di `users` baru dibuat setelah kode yang dikirim ke email itu
   dimasukkan. Sebelum itu, setiap percobaan daftar disimpan sendiri-sendiri di `pending_registrations`
   (migrasi `b4d9e2a7c1f3`) dengan token yang hanya ada di session pendaftarnya. Akibatnya, kode hanya berlaku

@@ -33,6 +33,8 @@ class AccessEntry(TimestampMixin, db.Model):
     # kapan terakhir dicek + alasannya (misal "HTTP 200", "Timeout")
     status_checked_at = db.Column(db.DateTime(timezone=True), nullable=True)
     status_note = db.Column(db.String(255), nullable=True)
+    # diarsip manual sama yg boleh edit: link udah ga dipake tapi ga mau dihapus, tampil paling bawah
+    is_archived = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text("false"))
 
     # relasi
     owner = db.relationship("User")

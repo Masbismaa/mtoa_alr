@@ -18,7 +18,7 @@ PAYLOAD_KEY_SET = {
 }
 ROW_KEY_SET = {
     "id", "can_delete", "title", "detail_url", "category_label", "category_url", "access_text", "description", "visibility",
-    "visibility_label", "status", "status_label", "status_title", "attachment_count", "owner_name", "created_text",
+    "visibility_label", "status", "status_label", "status_title", "is_archived", "attachment_count", "owner_name", "created_text",
 }
 COLUMN_KEY_SET = {"key", "label", "width", "is_hidden", "is_sortable", "is_hideable", "sort_state", "next_sort", "filter"}
 

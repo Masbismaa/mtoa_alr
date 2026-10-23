@@ -30,7 +30,6 @@ from app.services.category_service import (
 from app.utils.constants import (
     AUDIT_ACTION_CREATE,
     AUDIT_ACTION_DELETE,
-    AUDIT_ACTION_REVEAL,
     AUDIT_ACTION_UPDATE,
     CATEGORY_FIELD_RULE_DICT,
     CATEGORY_SPECIFIC_FIELD_LIST,
@@ -290,6 +289,7 @@ def build_entry_audit_dict(entry):
         "has_access_note": entry.encrypted_access_note is not None,
         "description": entry.description,
         "visibility": entry.visibility,
+        "is_archived": entry.is_archived,
         "custom_field_label_list": [field.field_label for field in entry.custom_field_list],
         "attachment_name_list": [attachment.original_filename for attachment in entry.attachment_list],
     }
@@ -500,7 +500,11 @@ def build_visible_entry_query(user, keyword=None, category_id=None, visibility=N
                 db.select(UserFavorite.access_entry_id).where(UserFavorite.user_id == user.id)
             ))
     default_order_list = [AccessEntry.updated_at.desc(), AccessEntry.id.desc()]
-    return query.order_by(*build_order_list(sort, ENTRY_SORT_COLUMN_DICT, default_order_list, AccessEntry.id))
+    # link yg diarsip selalu di bawah, urutan pilihan user berlaku di masing-masing bagian
+    return query.order_by(
+        AccessEntry.is_archived.asc(),
+        *build_order_list(sort, ENTRY_SORT_COLUMN_DICT, default_order_list, AccessEntry.id),
+    )
 
 def search_visible_entries(user, keyword=None, category_id=None, visibility=None, page=1, per_page=PER_PAGE,
                            is_include_sub=True, selection=None, sort=None):
@@ -560,10 +564,16 @@ def toggle_favorite(user, entry):
         db.session.rollback()
     return True
 
-def reveal_access_note(user, entry):
-    """Buka access note buat ditunjukin ke user (Show/Copy di detail, form edit) + catat di audit siapa buka
-    password link apa. Isi password-nya ga ikut dicatat. Return (isi, is_error); kosong -> ga dicatat."""
-    access_note, is_error = read_access_note(entry)
-    if access_note:
-        log_audit(AUDIT_ACTION_REVEAL, "access_entries", entity_id=entry.id, user=user, is_commit=True)
-    return access_note, is_error
+def toggle_archive(user, entry):
+    """Pindahin link ke arsip / balikin lagi (yg boleh edit aja). Return True kalau sekarang diarsip."""
+    if not can_edit_entry(user, entry):
+        raise PermissionDeniedError("You don't have access to change this link")
+    old_data_dict = build_entry_audit_dict(entry)
+    entry.is_archived = not entry.is_archived
+    log_audit(
+        AUDIT_ACTION_UPDATE, AUDIT_ENTITY_TYPE, entity_id=entry.id,
+        old_data_dict=old_data_dict, new_data_dict=build_entry_audit_dict(entry), user=user,
+    )
+    db.session.commit()
+    return entry.is_archived
+

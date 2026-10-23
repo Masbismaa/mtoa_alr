@@ -80,15 +80,15 @@ def test_favorite_requires_login(client, registered_user, category_dict):
 
 # RIWAYAT PER LINK
 
-def test_owner_sees_history_with_changes_and_password_reveals(logged_in_client, registered_user, category_dict):
-    """Positive: pemilik liat riwayat link: dibuat, diubah (field apa), & siapa buka password. Isi password ga ikut."""
+def test_owner_sees_history_with_changes(logged_in_client, registered_user, category_dict):
+    """Positive: pemilik liat riwayat link: dibuat & diubah (field apa). Buka password ga masuk riwayat, isinya ga ikut."""
     entry = make_entry(registered_user, category_dict["Web"], access_note="SandiRahasia123")
     update_access_entry(registered_user, entry, build_service_dict(category_dict["Web"], title="Portal HR Baru",
                                                                    url="https://portalhr.spindo.com", access_note="SandiRahasia123"))
     logged_in_client.post(f"/entries/{entry.id}/access-note")
     html_text = logged_in_client.get(f"/entries/{entry.id}").get_data(as_text=True)
     history_html = html_text.split("entry-history", 1)[1]
-    assert "Reveal Password" in history_html and "Create" in history_html and "Change" in history_html
+    assert "Create" in history_html and "Change" in history_html and "reveal" not in history_html.lower()
     assert "Changed: title" in history_html
     assert registered_user.email in history_html
     assert "SandiRahasia123" not in html_text

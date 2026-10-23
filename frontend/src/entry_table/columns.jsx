@@ -23,7 +23,10 @@ export const COLUMN_RENDERER_DICT = {
   title: {
     className: "cell-title",
     render: (row) => (
-      <a href={row.detail_url} className="text-reset fw-bold" title={row.title}>{truncateText(row.title, 50)}</a>
+      <>
+        <a href={row.detail_url} className="text-reset fw-bold" title={row.title}>{truncateText(row.title, 50)}</a>
+        {row.is_archived && <span className="badge bg-secondary-lt ms-2">Archived</span>}
+      </>
     ),
     copyValue: (row) => row.title,
   },

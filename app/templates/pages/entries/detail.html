@@ -20,6 +20,7 @@
   <div class="d-flex flex-wrap gap-2 mt-2">
     <span class="badge bg-secondary-lt">{{ entry.category | category_label }}</span>
     {{ visibility_badge(entry.visibility) }}
+    {% if entry.is_archived %}<span class="badge bg-secondary-lt">{{ icon("archive") }} Archived</span>{% endif %}
   </div>
 {% endblock %}
 
@@ -31,6 +32,10 @@
   {% if can_edit %}
     {# alamat tabel asal ikut ke Edit & Hapus, biar abis itu balik ke tabel yg sama #}
     <a href="{{ url_for('entries.edit', entry_id=entry.id, back=back_url) }}" class="btn">{{ icon("edit") }} Edit</a>
+    <form method="post" action="{{ url_for('entries.archive', entry_id=entry.id, back=back_url) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn" aria-pressed="{{ 'true' if entry.is_archived else 'false' }}">{{ icon("archive") }} {{ "Unarchive" if entry.is_archived else "Archive" }}</button>
+    </form>
     <form method="post" action="{{ url_for('entries.delete', entry_id=entry.id, back=back_url) }}" data-confirm-title="Delete this link?" data-confirm-message="The link &quot;{{ entry.title }}&quot; and its additional fields will be permanently deleted." data-confirm-ok="Yes, delete">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-danger" data-fkey="Shift+F2" title="Delete (Shift+F2)">{{ icon("trash") }} Delete</button>

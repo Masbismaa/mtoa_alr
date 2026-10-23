@@ -179,8 +179,8 @@ def test_change_password_wrong_current_counts_toward_block(app, logged_in_client
     assert "Current password is incorrect" in response.get_data(as_text=True)
     blocked = change_password_request(logged_in_client, current=USER_PASSWORD)
     assert "Too many login attempts" in blocked.get_data(as_text=True)
-    # akun sendiri ga kekunci (yg ditahan cuma kombinasi email+IP ini)
-    assert db.session.get(User, registered_user.id).locked_until is None
+    # akunnya ikut kekunci (status Locked), sama kayak salah password pas login
+    assert db.session.get(User, registered_user.id).locked_until is not None
 
 
 def test_change_password_same_as_current_rejected(logged_in_client):

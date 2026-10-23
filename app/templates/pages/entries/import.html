@@ -38,7 +38,7 @@
               <div class="mt-2"><a href="{{ url_for('entries.import_template') }}" class="btn btn-sm">{{ icon("download") }} Download template</a></div>
             </li>
             <li class="mb-2">Write the <b>Category</b> as its full path, e.g. <code>Web &gt; SAP</code> for SAP under Web. The template's <b>Categories</b> sheet lists every path you can use.</li>
-            <li><b>Visibility</b> is <code>Private</code> or <code>Public</code> (empty = Private). You become the owner of every imported link.</li>
+            <li><b>Visibility</b> is <code>Private</code> or <code>Public</code> (empty = Private). Only admins can import Public links; for other users every link is saved as Private. You become the owner of every imported link.</li>
           </ol>
 
           <div class="alert alert-warning">{{ icon("lock") }} Access notes are stored encrypted after import, but the Excel file itself is not. Delete the file once the import is done.</div>
