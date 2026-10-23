@@ -129,6 +129,33 @@ def register_cli_commands(app):
                         raise click.ClickException("Lampiran belum dapat dihapus; periksa izin folder") from None
         click.echo(f"{count} file yatim {'dihapus' if delete else 'ditemukan (belum dihapus)'}.")
 
+    @app.cli.command("backup")
+    def backup_command():
+        """Bikin backup (database + lampiran) di BACKUP_FOLDER."""
+        from app.services.backup_service import create_backup
+        try:
+            backup_path = create_backup()
+        except ValidationError as error:
+            raise click.ClickException(error.error_list[0]["message"]) from error
+        click.echo(f"Backup dibuat: {backup_path}")
+
+    @app.cli.command("restore")
+    @click.argument("backup_file", type=click.Path(exists=True, dir_okay=False))
+    @click.confirmation_option(prompt="Semua data sekarang bakal ditimpa isi backup. Lanjut?")
+    def restore_command(backup_file):
+        """Restore dari file backup. File di luar BACKUP_FOLDER disalin ke sana dulu."""
+        import shutil
+        from pathlib import Path
+        from app.services.backup_service import get_backup_folder, restore_backup
+        source_path = Path(backup_file).resolve()
+        if source_path.parent != get_backup_folder():
+            shutil.copy2(source_path, get_backup_folder() / source_path.name)
+        try:
+            safety_backup_path = restore_backup(source_path.name)
+        except ValidationError as error:
+            raise click.ClickException(error.error_list[0]["message"]) from error
+        click.echo(f"Restore selesai. Data sebelum restore disimpan di {safety_backup_path}")
+
     @app.cli.command("cleanup-old-data")
     @click.option("--delete", is_flag=True, help="Hapus beneran (default cuma ngitung).")
     def cleanup_old_data_command(delete):

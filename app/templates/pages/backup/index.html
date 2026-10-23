@@ -1,0 +1,58 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+
+{% block title %}Backup & Restore{% endblock %}
+
+{# judul layar di title bar atas ala SAP #}
+{% block screen_title %}Display Backup & Restore{% endblock %}
+{% block page_pretitle %}Admin{% endblock %}
+{% block page_subtitle %}<div class="text-secondary mt-1">One backup file contains the whole database and every attachment.</div>{% endblock %}
+
+{% block page_actions %}
+  <form method="post" action="{{ url_for('backup.create') }}" data-confirm-title="Create a backup now?" data-confirm-message="The server will copy the database and every attachment. This can take a while for large data." data-confirm-ok="Yes, create backup">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-primary">{{ icon("download") }} Create Backup Now</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+  <div class="alert alert-warning" role="alert">
+    <div class="fw-bold">{{ icon("alert_triangle") }} Keep the ENCRYPTION_KEY separately</div>
+    <div class="mt-1">Backup files do not contain the encryption key. Without the same key, the saved passwords inside a backup cannot be read after a restore.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h3 class="card-title">{{ icon("archive") }} Backup Files</h3>
+        <div class="small text-secondary">Stored on the server in <code>{{ backup_folder }}</code>. To restore a file from elsewhere, copy it into this folder first.</div>
+      </div>
+    </div>
+    {% if backup_list %}
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+          <thead><tr><th>File</th><th>Size</th><th class="w-1"></th></tr></thead>
+          <tbody>
+            {% for backup_path in backup_list %}
+              <tr>
+                <td>{{ backup_path.name }}</td>
+                <td class="text-secondary">{{ backup_path.stat().st_size | filesizeformat }}</td>
+                <td>
+                  <div class="d-flex gap-2">
+                    <a href="{{ url_for('backup.download', name=backup_path.name) }}" class="btn btn-sm">{{ icon("download") }} Download</a>
+                    <form method="post" action="{{ url_for('backup.restore', name=backup_path.name) }}" data-confirm-title="Restore {{ backup_path.name }}?" data-confirm-message="All current data will be replaced with the data in this backup. A backup of the current data is created first." data-confirm-ok="Yes, restore">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-sm btn-outline-danger">{{ icon("history") }} Restore</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="card-body text-secondary">No backups yet.</div>
+    {% endif %}
+  </div>
+{% endblock %}

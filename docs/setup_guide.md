@@ -29,6 +29,10 @@ Isi **tiga** nilai wajib berikut. Aplikasi menolak jalan kalau salah satunya kos
 `ENCRYPTION_KEY` dipakai untuk mengenkripsi access note. **Jangan diganti** setelah ada data: access note lama tidak akan bisa dibuka lagi.
 Isian lain boleh dibiarkan sesuai `.env.example` untuk development (OTP dicetak ke terminal, rate limit di memori).
 
+**Backup & Restore** (menu admin, atau `flask --app run backup` / `flask --app run restore FILE`) butuh `pg_dump` dan `pg_restore`
+dengan versi minimal sama dengan server PostgreSQL. Kalau belum masuk PATH, isi `PG_BIN_DIR` (misal `C:\Program Files\PostgreSQL\17\bin`).
+File backup disimpan di `BACKUP_FOLDER` (default `backups/`). Isinya database + lampiran, tapi **tanpa** `ENCRYPTION_KEY`, jadi simpan kunci itu terpisah.
+
 ## 3. Database (PostgreSQL)
 
 ```powershell

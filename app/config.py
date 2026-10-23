@@ -31,6 +31,10 @@ class BaseConfig:
 
     # Lampiran berada di luar static agar tidak dapat diakses langsung.
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER") or str(BASE_DIR / "uploads")
+    # File backup (dump database + lampiran). Isinya data sensitif: jangan taruh di folder yg bisa diakses web.
+    BACKUP_FOLDER = os.environ.get("BACKUP_FOLDER") or str(BASE_DIR / "backups")
+    # Folder pg_dump / pg_restore kalau belum masuk PATH (misal C:\Program Files\PostgreSQL\17\bin)
+    PG_BIN_DIR = os.environ.get("PG_BIN_DIR", "")
 
     # Keamanan cookie session: tidak bisa dibaca JavaScript (anti XSS pencurian session)
     SESSION_COOKIE_HTTPONLY = True

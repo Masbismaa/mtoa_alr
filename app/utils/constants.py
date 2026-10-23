@@ -292,6 +292,7 @@ AUDIT_ENTITY_LABEL_DICT = {
     "group_entries": "Group Link",
     "categories": "Category",
     "link_monitor_settings": "Link Monitoring",
+    "backups": "Backup",
 }
 
 # dashboard (grafik & aktivitas)
