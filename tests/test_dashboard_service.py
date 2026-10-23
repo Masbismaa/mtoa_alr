@@ -1,5 +1,5 @@
 """Test angka dashboard: ngikut hak akses user."""
-from app.services.access_entry_service import create_access_entry
+from tests.conftest import create_entry_as_is
 from app.services.dashboard_service import build_dashboard_dict
 from app.services.group_service import create_group, invite_member
 from app.utils.constants import VISIBILITY_PRIVATE, VISIBILITY_PUBLIC
@@ -7,7 +7,7 @@ from app.utils.constants import VISIBILITY_PRIVATE, VISIBILITY_PUBLIC
 
 def create_entry(user, category, title, visibility):
     """Helper: bikin data link."""
-    return create_access_entry(user, {
+    return create_entry_as_is(user, {
         "category_id": category.id, "title": title, "url": f"https://{title.lower().replace(' ', '-')}.spindo.com",
         "address": "", "port": "", "username": "", "access_note": "", "description": "",
         "visibility": visibility,

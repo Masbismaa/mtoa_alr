@@ -1,7 +1,9 @@
 """Test halaman data link: tambah, detail, edit, hapus, dashboard."""
+import re
 from app.extensions import db
 from app.models import AccessEntry, AccessEntryField
 from app.services.access_entry_service import create_access_entry
+from tests.conftest import create_entry_as_is
 from app.utils.constants import VISIBILITY_PRIVATE, VISIBILITY_PUBLIC
 
 def build_form_dict(category, **override_dict):
@@ -95,7 +97,7 @@ def test_private_entry_of_other_user_returns_404(logged_in_client, other_user, c
 
 def test_edit_public_entry_of_other_user_returns_403(logged_in_client, other_user, category_dict):
     """Negative (security): public orang lain cuma read-only."""
-    entry = create_access_entry(other_user, build_service_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
+    entry = create_entry_as_is(other_user, build_service_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
     assert logged_in_client.get(f"/entries/{entry.id}/edit").status_code == 403
     assert logged_in_client.post(f"/entries/{entry.id}/delete").status_code == 403
 
@@ -161,3 +163,22 @@ def test_create_entry_into_group_failure_keeps_back_url(logged_in_client, regist
     )
     assert response.status_code == 302
     assert "back=/entries/?title%3Dportal*" in response.location
+
+def test_form_hides_visibility_for_non_admin(logged_in_client):
+    """Positive: form Add Link user biasa -> kartu Visibility ga ada, yg dikirim Private."""
+    html_text = logged_in_client.get("/entries/new").get_data(as_text=True)
+    assert 'value="public"' not in html_text
+    assert '<input type="hidden" name="visibility" value="private">' in html_text
+
+
+def test_form_keeps_old_public_value_for_non_admin(logged_in_client, registered_user, category_dict):
+    """Positive: edit link Public lama punya user -> nilai Public tetep dikirim (ga keganti diem-diem)."""
+    entry = create_entry_as_is(registered_user, build_service_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
+    html_text = logged_in_client.get(f"/entries/{entry.id}/edit").get_data(as_text=True)
+    assert '<input type="hidden" name="visibility" value="public">' in html_text
+
+
+def test_form_shows_visibility_for_admin(admin_client):
+    """Positive: admin -> pilihan Private & Public ada."""
+    html_text = admin_client.get("/entries/new").get_data(as_text=True)
+    assert re.search(r'<input[^>]*value="public"', html_text) and "All users can view" in html_text

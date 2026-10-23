@@ -2,14 +2,14 @@
 Daftar Link baru nampilin tabel abis Jalankan, filter per kolom di tabel."""
 import re
 import pytest
-from app.services.access_entry_service import create_access_entry
+from tests.conftest import create_entry_as_is
 from app.services.audit_service import log_audit
 from app.services.group_service import create_group
 from app.utils.constants import AUDIT_ACTION_LOGIN_FAILED, VISIBILITY_PRIVATE, VISIBILITY_PUBLIC
 
 def create_entry(user, category, title, visibility=VISIBILITY_PRIVATE):
     """Helper: bikin link contoh, URL-nya beda tiap judul (URL dobel ditolak)."""
-    return create_access_entry(user, {
+    return create_entry_as_is(user, {
         "category_id": category.id, "title": title, "url": f"https://{title.lower().replace(' ', '-')}.spindo.com",
         "address": "", "port": "", "username": "", "access_note": "", "description": "", "visibility": visibility,
     })

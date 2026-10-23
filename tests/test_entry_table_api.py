@@ -3,6 +3,7 @@ kontrak bentuk data (harus sama kayak frontend/src/test/makePayload.js), keamana
 import pytest
 from app.models import Category
 from app.services.access_entry_service import create_access_entry
+from tests.conftest import create_entry_as_is
 from app.services.category_service import toggle_category_active
 from app.utils import vite_manifest
 from app.utils.constants import PER_PAGE, VISIBILITY_PRIVATE, VISIBILITY_PUBLIC
@@ -28,7 +29,7 @@ def create_entry(user, category, title, visibility=VISIBILITY_PRIVATE, **overrid
         "address": "", "port": "", "username": "", "access_note": "", "description": "", "visibility": visibility,
     }
     entry_dict.update(override_dict)
-    return create_access_entry(user, entry_dict)
+    return create_entry_as_is(user, entry_dict)
 
 def get_api_data(client, url):
     """Helper: panggil API, pastiin sukses, balikin isi data-nya."""

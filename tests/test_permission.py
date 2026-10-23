@@ -4,6 +4,7 @@ from app.extensions import db
 from app.models import AuditLog
 from app.security.access_policy import has_permission
 from app.services.access_entry_service import create_access_entry
+from tests.conftest import create_entry_as_is
 from app.services.user_service import set_user_permissions, toggle_user_active, unlock_user
 from app.utils.constants import (
     PERMISSION_EDIT_PUBLIC_ENTRIES,
@@ -88,7 +89,7 @@ def test_granted_user_can_open_categories_and_audit(logged_in_client, admin_user
 
 def test_edit_public_entry_needs_permission(logged_in_client, admin_user, registered_user, other_user, category_dict):
     """Positive & negative: edit link Public orang lain cuma kalau punya aksesnya."""
-    entry = create_access_entry(other_user, {
+    entry = create_entry_as_is(other_user, {
         "category_id": category_dict["Web"].id, "title": "Portal Orang", "url": "https://orang.spindo.com",
         "address": "", "port": "", "username": "", "access_note": "", "description": "", "visibility": VISIBILITY_PUBLIC,
     })

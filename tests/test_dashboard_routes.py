@@ -91,16 +91,16 @@ def test_entry_list_heading_shows_scope(logged_in_client, registered_user, categ
     assert "Search results: 0" in logged_in_client.get("/entries/?q=zzzz").get_data(as_text=True)
 
 
-def test_team_activity_groups_public_links(app, registered_user, other_user, category_dict):
+def test_team_activity_groups_public_links(app, registered_user, admin_user, category_dict):
     for number in range(3):
-        create_access_entry(other_user, build_entry_dict(
+        create_access_entry(admin_user, build_entry_dict(
             category_dict["Web"], f"Shared portal {number}", f"https://shared-{number}.example",
             visibility="public",
         ))
     activity = list_team_activity(registered_user)
     assert len(activity) == 1
     assert activity[0]["text"] == "added 3 public links"
-    assert activity[0]["actor_name"] == other_user.full_name
+    assert activity[0]["actor_name"] == admin_user.full_name
     assert activity[0]["entry_id"] is None
     assert activity[0]["is_admin_only"] is False
 
@@ -115,11 +115,11 @@ def test_team_activity_does_not_publish_private_history(app, registered_user, ot
     assert list_team_activity(registered_user) == []
 
 
-def test_team_activity_hides_links_made_private(app, registered_user, other_user, category_dict):
-    entry = create_access_entry(other_user, build_entry_dict(
+def test_team_activity_hides_links_made_private(app, registered_user, admin_user, category_dict):
+    entry = create_access_entry(admin_user, build_entry_dict(
         category_dict["Web"], "Former public portal", "https://formerly-public.example", visibility="public",
     ))
-    update_access_entry(other_user, entry, build_entry_dict(category_dict["Web"], entry.title, entry.url))
+    update_access_entry(admin_user, entry, build_entry_dict(category_dict["Web"], entry.title, entry.url))
     assert list_team_activity(registered_user) == []
 
 
@@ -135,13 +135,13 @@ def test_admin_activity_only_summarizes_private_links(app, admin_user, other_use
     assert activity[0]["entry_id"] is None
 
 
-def test_login_noise_cannot_displace_public_activity(app, registered_user, other_user, category_dict, monkeypatch):
+def test_login_noise_cannot_displace_public_activity(app, registered_user, other_user, admin_user, category_dict, monkeypatch):
     from app.services import dashboard_service
     from app.services.audit_service import log_audit
     from app.utils.constants import AUDIT_ACTION_LOGIN_FAILED
 
     monkeypatch.setattr(dashboard_service, "ACTIVITY_SCAN_LIMIT", 3)
-    create_access_entry(other_user, build_entry_dict(
+    create_access_entry(admin_user, build_entry_dict(
         category_dict["Web"], "Shared update", "https://noise-test.example", visibility="public",
     ))
     for _ in range(6):

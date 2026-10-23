@@ -5,7 +5,7 @@ from app.config import TestingConfig
 from app.extensions import db
 from app.models import AccessEntry, Attachment, AuditLog, Group, GroupEntry, GroupMember, OtpCode, User
 from app.services import auth_service
-from app.services.access_entry_service import create_access_entry
+from tests.conftest import create_entry_as_is
 from app.services.attachment_service import get_stored_file_path
 from app.services.group_service import accept_invitation, add_group_entry, create_group, invite_member, set_member_can_add_entry
 from app.services.user_service import build_delete_preview, build_user_summary, delete_user_account, search_users, set_user_permissions
@@ -25,7 +25,7 @@ PASSWORD = "PasswordKuat123"
 
 def create_entry(user, category, title, visibility, upload_file_list=None):
     """Helper: bikin link contoh."""
-    return create_access_entry(user, {
+    return create_entry_as_is(user, {
         "category_id": category.id, "title": title, "url": f"https://{title.lower().replace(' ', '-')}.spindo.com",
         "address": "", "port": "", "username": "", "access_note": "", "description": "",
         "visibility": visibility,

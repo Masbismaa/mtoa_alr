@@ -45,7 +45,7 @@ IMPORT_COLUMN_LIST = [
     ImportColumn("Username", "username", False, 20, "Login username (not used by General).", "hr.admin"),
     ImportColumn("Access Note", "access_note", False, 26, "Access hint, not a password (not used by General).", "Login via SSO"),
     ImportColumn("Description", "description", False, 40, "Short note about the link.", "Payroll & leave portal"),
-    ImportColumn("Visibility", "visibility", False, 12, "Private (only you) or Public (all users, read-only). Empty = Private.", "Private"),
+    ImportColumn("Visibility", "visibility", False, 12, "Private (only you) or Public (all users, read-only). Empty = Private. Only admins can import Public links; others are saved as Private.", "Private"),
 ]
 REQUIRED_HEADER_LIST = [column.key for column in IMPORT_COLUMN_LIST if column.is_required]
 # kop template makan beberapa baris di atas header, jadi header dicari di sekian baris pertama

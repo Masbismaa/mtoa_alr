@@ -4,7 +4,7 @@ from sqlalchemy.orm import joinedload, selectinload, undefer
 
 from app.extensions import db
 from app.models import AccessEntry, AccessEntryField, Category, User, UserFavorite
-from app.security.access_policy import build_visible_entry_filter, can_edit_entry, is_entry_owner
+from app.security.access_policy import build_visible_entry_filter, can_edit_entry, is_admin, is_entry_owner
 from app.security.encryption_service import decrypt_credential, encrypt_credential
 from app.services.attachment_service import (
     pick_entry_attachment_list,
@@ -243,6 +243,9 @@ def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list
     """Semua validasi jadi satu (create & update). Return (clean_dict, custom_list, upload_list).
     check_duplicate=False cuma buat import: duplikat ke database dicek sekaligus semua baris (find_duplicate_entry_dict)."""
     clean_dict, category, error_list = validate_entry_data(data_dict, current_category_id)
+    # link Public cuma admin yg boleh bikin; punya user biasa (form, import, request ngakal) otomatis Private
+    if clean_dict.get("visibility") == VISIBILITY_PUBLIC and not is_admin(user):
+        clean_dict["visibility"] = VISIBILITY_PRIVATE
 
     clean_custom_field_list = []
     if category is not None:
@@ -337,8 +340,9 @@ def update_access_entry(user, entry, data_dict, custom_field_pair_list=None,
     )
     # dicek ulang setelah link dikunci (upload barengan ke link yg sama ga boleh lewat batas)
     enforce_entry_attachment_limit(entry, prepared_upload_list, [attachment.id for attachment in delete_attachment_list])
-    # visibilitas cuma boleh diganti pemiliknya
-    if not is_entry_owner(user, entry):
+    # visibilitas cuma boleh diganti pemiliknya. Link Public lama punya user biasa tetep Public selama ga
+    # dipindah ke Private (pindah ke Public ditolak di prepare_entry_data)
+    if not is_entry_owner(user, entry) or data_dict.get("visibility") == entry.visibility:
         clean_dict["visibility"] = entry.visibility
 
     old_data_dict = build_entry_audit_dict(entry)

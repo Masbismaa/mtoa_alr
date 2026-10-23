@@ -4,6 +4,7 @@ from app.extensions import db
 from app.models import AuditLog, GroupEntry, GroupEntryViewer
 from app.services import auth_service
 from app.services.access_entry_service import create_access_entry, get_visible_entry
+from tests.conftest import create_entry_as_is
 from app.services.group_service import (
     accept_invitation,
     add_group_entry,
@@ -28,7 +29,7 @@ def third_user(app):
 
 def create_entry(user, category, title, visibility=VISIBILITY_PRIVATE):
     """Helper: bikin link (default private)."""
-    return create_access_entry(user, {
+    return create_entry_as_is(user, {
         "category_id": category.id, "title": title, "url": f"https://{title.lower().replace(' ', '-')}.spindo.com",
         "address": "", "port": "", "username": "", "access_note": "", "description": "",
         "visibility": visibility,
