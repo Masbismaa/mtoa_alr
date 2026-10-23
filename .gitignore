@@ -13,3 +13,4 @@ frontend/node_modules/
 
 # screenshot uji E2E (scripts/e2e)
 scripts/e2e/shots/
+backups/

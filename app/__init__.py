@@ -141,9 +141,11 @@ def register_blueprints(app):
     from app.routes.category_routes import categories_bp
     from app.routes.user_routes import users_bp
     from app.routes.notification_routes import notifications_bp
+    from app.routes.backup_routes import backup_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(link_monitor_bp)
+    app.register_blueprint(backup_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(settings_bp)
