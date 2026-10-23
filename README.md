@@ -44,7 +44,7 @@ The application is designed around three principles:
 | Principle | Implementation |
 |---|---|
 | **Confidentiality** | Credentials are encrypted at rest, never embedded in page markup, and revealed only on explicit request |
-| **Accountability** | Every change, sign-in, export, and credential reveal is recorded in an append-only audit log |
+| **Accountability** | Every change, sign-in, and export is recorded in an append-only audit log |
 | **Efficiency** | SAP GUI conventions (function keys, selection screens, variants, ALV tables) for users who work in ERP systems every day |
 
 <div align="center">
@@ -190,9 +190,9 @@ Select a group to expand it. Images adapt to the active GitHub theme.
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset=".github/assets/audit-dark.png">
-        <img src=".github/assets/audit-light.png" alt="Audit Logs: Immutable record of changes, sign-ins, and credential reveals" width="100%">
+        <img src=".github/assets/audit-light.png" alt="Audit Logs: Immutable record of changes, sign-ins, and exports" width="100%">
       </picture>
-      <p align="center"><b>Audit Logs</b><br><sub>Immutable record of changes, sign-ins, and credential reveals</sub></p>
+      <p align="center"><b>Audit Logs</b><br><sub>Immutable record of changes, sign-ins, and exports</sub></p>
     </td>
     <td width="50%" valign="top">
       <picture>
@@ -235,11 +235,11 @@ Expand a module to view its capabilities.
 |---|---|
 | Record types | URL, host or IP address with port, or a structured guide with up to ten custom fields |
 | Categorization | Hierarchical categories up to four levels deep (for example, Web › ERP), selected through cascading inputs |
-| Visibility | Private (owner only) or Public (all users, read-only) |
+| Visibility | Private (owner only) or Public (all users, read-only); only administrators can create Public links, so links from other users, including imported ones, are saved as Private |
 | Access note | Encrypted in the database and masked until a user explicitly reveals it |
 | Attachments | Up to five files per record: images, PDF, Excel, Word, and plain text |
 | Favorites | Bookmark records and filter the list to favorites only |
-| History | Chronological record of creation, modification, and credential reveals per link |
+| History | Chronological record of creation and modification per link |
 | Import | Excel template with validated dropdowns; rows are processed in a single all-or-nothing transaction |
 | Export | Excel workbook of the current search result, including a summary sheet |
 
@@ -317,6 +317,7 @@ The system defines two roles. Administrators may delegate selected permissions t
 | Action | User Entry | Administrator |
 |---|:---:|:---:|
 | Create, edit, and delete own links | ✓ | ✓ |
+| Create public links | – | ✓ |
 | View and copy public links | ✓ | ✓ |
 | View other users' private links | – | – |
 | Create groups and share links | ✓ | ✓ |
@@ -575,7 +576,7 @@ flowchart LR
 | Credential brute force | Rate limiting per IP and per email, temporary account lockout, and attempt limits per code |
 | Session hijacking | Versioned sessions; a password change or reset revokes all other sessions |
 | Unauthorized data access | One shared visibility predicate for all queries; inaccessible data returns 404 |
-| Untracked credential access | Access notes are excluded from page markup; each reveal is a separate audited request |
+| Untracked credential access | Access notes are excluded from page markup; each reveal is a separate authorized request |
 | Cross-site scripting | Input sanitization and a Content Security Policy restricted to first-party scripts |
 | Cross-site request forgery | Tokens on every form submission and JSON request |
 | Malicious uploads | File signature verification, macro and zip bomb detection, and XXE-safe Excel parsing |
@@ -625,7 +626,7 @@ Checking hundreds of targets can take several minutes. Executing that work insid
 <summary><b>On-demand credential retrieval</b></summary>
 <br>
 
-Embedding a credential in page markup exposes it to anyone who opens the page and leaves no record of access. Retrieving it only when a user selects Show or Copy keeps it out of the markup and records every reveal in both the audit log and the link history.
+Embedding a credential in page markup exposes it to anyone who opens the page and leaves no record of access. Retrieving it only when a user selects Show or Copy keeps it out of the markup.
 
 </details>
 

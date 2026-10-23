@@ -102,6 +102,7 @@ def build_entry_row(entry, back_url, can_delete=False):
         "status": entry.status,
         "status_label": get_link_status_label(entry.status),
         "status_title": build_status_title(entry),
+        "is_archived": entry.is_archived,
         "attachment_count": entry.attachment_count,
         "owner_name": entry.owner.full_name,
         "created_text": format_local_datetime(entry.created_at),

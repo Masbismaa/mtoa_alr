@@ -40,7 +40,7 @@ await runScenario("table", async () => {
   await clickSelector("[data-secret-toggle]");
   check("klik Show -> password tampil", await waitFor(`document.getElementById("access_note_value").textContent === ${JSON.stringify(SECRET)}`));
   await navigate(BASE + detailPath);
-  check("History nyatet Reveal Password", (await evaluate(`document.querySelector(".entry-history")?.textContent || ""`)).includes("Reveal Password"));
+  check("History ga nyatet buka password", !(await evaluate(`document.querySelector(".entry-history")?.textContent || ""`)).toLowerCase().includes("reveal"));
 
   // 4. favorit
   await waitLoad(() => evaluate(`Array.from(document.querySelectorAll(".app-toolbar button")).find((el) => el.textContent.includes("Add to Favorites")).click()`));

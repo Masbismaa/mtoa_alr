@@ -50,7 +50,7 @@ def create_app(config_name=None):
     limiter.init_app(app)
     from app.security.auth_throttle import init_auth_throttle
 
-    # pembatas salah password per email+IP: tetep jalan walau rate limit dimatiin (lihat auth_throttle.py)
+    # pembatas salah password per email: tetep jalan walau rate limit dimatiin (lihat auth_throttle.py)
     init_auth_throttle(app)
 
     # 4. Muat model + daftarin cara Flask-Login ngambil user dari session

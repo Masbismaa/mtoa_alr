@@ -46,9 +46,8 @@ AUDIT_ACTION_LOGIN = "login"
 AUDIT_ACTION_LOGIN_FAILED = "login_failed"
 AUDIT_ACTION_LOGOUT = "logout"
 AUDIT_ACTION_EXPORT = "export"
-# ganti password (lewat Settings / lupa password), buka-salin access note, import Excel
+# ganti password (lewat Settings / lupa password), import Excel
 AUDIT_ACTION_PASSWORD_CHANGE = "password_change"
-AUDIT_ACTION_REVEAL = "reveal"
 AUDIT_ACTION_IMPORT = "import"
 AUDIT_ACTION_LIST = [
     AUDIT_ACTION_CREATE,
@@ -59,7 +58,6 @@ AUDIT_ACTION_LIST = [
     AUDIT_ACTION_LOGOUT,
     AUDIT_ACTION_EXPORT,
     AUDIT_ACTION_PASSWORD_CHANGE,
-    AUDIT_ACTION_REVEAL,
     AUDIT_ACTION_IMPORT,
 ]
 
@@ -75,9 +73,9 @@ MAX_TEXT_LENGTH = 1000
 MIN_PASSWORD_LENGTH = 8
 
 # Login & OTP
-# salah password 5 kali dari satu IP -> kombinasi email+IP itu diblokir sementara (app/security/auth_throttle.py).
-# salah OTP 5 kali -> akunnya yg dikunci (users.locked_until), karena yg nyampe OTP pasti udah tau password
-LOGIN_MAX_FAILED_COUNT = 5
+# salah password / OTP (digabung) 3 kali -> akunnya dikunci (users.locked_until, status Locked, bisa di-unlock admin)
+# + email itu diblokir di auth_throttle biar email ga terdaftar dapet pesan yg sama
+LOGIN_MAX_FAILED_COUNT = 3
 LOGIN_LOCK_MINUTES = 15
 # email "kamu sudah punya akun" (ada yg daftar pakai email terdaftar) maksimal sekali per sekian menit per email
 REGISTER_NOTICE_COOLDOWN_MINUTES = 10
@@ -302,7 +300,6 @@ AUDIT_ACTION_LABEL_DICT = {
     AUDIT_ACTION_LOGOUT: "Logout",
     AUDIT_ACTION_EXPORT: "Export",
     AUDIT_ACTION_PASSWORD_CHANGE: "Password Change",
-    AUDIT_ACTION_REVEAL: "Reveal Password",
     AUDIT_ACTION_IMPORT: "Import",
 }
 # nama tabel yg dicatat di audit log -> label di UI

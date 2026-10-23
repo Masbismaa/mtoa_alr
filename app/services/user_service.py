@@ -2,6 +2,7 @@
 from sqlalchemy.orm import selectinload
 from app.extensions import db
 from app.models import OtpCode, User, UserPermission
+from app.security import auth_throttle
 from app.services.access_entry_service import count_owned_entry, delete_private_entry_list
 from app.services.attachment_service import remove_stored_file_list
 from app.services.audit_service import log_audit
@@ -177,7 +178,10 @@ def unlock_user(actor, target):
     old_data_dict = build_user_admin_audit_dict(target)
     target.locked_until = None
     target.failed_login_count = 0
-    return save_user_change(actor, target, old_data_dict)
+    result = save_user_change(actor, target, old_data_dict)
+    # blokir percobaan login per email ikut dibuka, kalau ngga user tetep ketahan sampe 15 menit
+    auth_throttle.clear_login_failure(target.email)
+    return result
 
 # HAK AKSES (GRANT)
 def get_permission_key_list(user):

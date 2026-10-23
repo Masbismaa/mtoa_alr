@@ -1,8 +1,9 @@
-"""Pembatas percobaan login (per email + IP) dan jeda email pemberitahuan register.
+"""Pembatas percobaan login (per email) dan jeda email pemberitahuan register.
 
-Kenapa per email + IP, bukan per akun: kalau per akun, siapa pun yg tau email orang bisa sengaja salah password
-5x dan ngunci akun itu terus-terusan. Dengan email + IP, yg keblokir cuma IP si penyerang buat email itu;
-pemilik akun dari PC-nya sendiri tetep bisa login.
+Salah password juga ngunci akunnya (users.locked_until, lihat auth_service). Pembatas per email ini tetep ada
+biar email ga terdaftar keblokir dgn pesan yg sama persis (ga ngebocorin email mana yg terdaftar), dan
+sengaja ga pakai IP supaya admin bisa ngebuka blokirnya bareng kunci akun (clear_login_failure).
+Konsekuensinya: orang yg tau email kita bisa ngunci akun kita 15 menit dgn sengaja salah password.
 
 Sengaja pakai library `limits` langsung (bukan dekorator Flask-Limiter): Flask-Limiter mati total kalau
 RATELIMIT_ENABLED=False (misal di test), padahal pembatas ini bagian dari aturan keamanan login, bukan sekadar anti spam.
@@ -54,23 +55,23 @@ def get_client_ip():
         return request.remote_addr or "-"
     return "-"
 
-def get_login_block_minutes(email, ip_address):
-    """0 kalau email+IP ini boleh nyoba login; kalau keblokir = sisa menit sampai boleh nyoba lagi."""
+def get_login_block_minutes(email):
+    """0 kalau email ini boleh nyoba login; kalau keblokir = sisa menit sampai boleh nyoba lagi."""
     limiter = get_limiter()
-    if limiter.test(LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_NAMESPACE, email, ip_address):
+    if limiter.test(LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_NAMESPACE, email):
         return 0
-    reset_time = limiter.get_window_stats(LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_NAMESPACE, email, ip_address).reset_time
+    reset_time = limiter.get_window_stats(LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_NAMESPACE, email).reset_time
     return max(1, math.ceil((reset_time - time.time()) / 60))
 
-def record_login_failure(email, ip_address):
-    """Catat 1 kali gagal. Return True kalau gagal yg ini bikin email+IP itu BARU AJA keblokir (buat notifikasi sekali)."""
+def record_login_failure(email):
+    """Catat 1 kali gagal. Return True kalau gagal yg ini bikin email itu BARU AJA keblokir (buat notifikasi sekali)."""
     limiter = get_limiter()
-    limiter.hit(LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_NAMESPACE, email, ip_address)
-    return not limiter.test(LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_NAMESPACE, email, ip_address)
+    limiter.hit(LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_NAMESPACE, email)
+    return not limiter.test(LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_NAMESPACE, email)
 
-def clear_login_failure(email, ip_address):
-    """Login berhasil: hitungan gagal email+IP ini dinolin lagi."""
-    get_limiter().clear(LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_NAMESPACE, email, ip_address)
+def clear_login_failure(email):
+    """Login berhasil / akun di-unlock admin / reset password: hitungan gagal email ini dinolin lagi."""
+    get_limiter().clear(LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_NAMESPACE, email)
 
 def allow_register_notice(email):
     """True kalau email pemberitahuan register boleh dikirim ke alamat ini sekarang (anti spam ke pemilik email)."""
