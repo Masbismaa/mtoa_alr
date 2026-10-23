@@ -14,7 +14,7 @@
 {% block page_pretitle %}Admin{% endblock %}
 
 {% block page_subtitle %}
-  <div class="text-secondary mt-1">Admins can only be created via the command line. Regular users can be granted extra access from the Actions menu. All changes are recorded in Audit Logs.</div>
+  <div class="text-secondary mt-1">Admins can only be created via the command line. All changes are recorded in Audit Logs.</div>
 {% endblock %}
 
 {% block content %}
@@ -64,9 +64,7 @@
           <tbody>
             {% for row in user_row_list %}
               {% set user = row.user %}
-              {# baris user biasa (bukan akunmu / admin) Enter-nya buka Atur Akses #}
-              {% set is_row_editable = user.id != current_user.id and not is_admin(user) %}
-              <tr{% if is_row_editable %} data-row-url="{{ url_for('users.access', user_id=user.id, **back_param_dict) }}"{% endif %}>
+              <tr>
                 <td class="cell-title" {{ cell_attr(table_view, "name") }}>
                   <div class="d-flex align-items-center gap-2">
                     <span class="avatar avatar-sm bg-primary-lt">{{ user.full_name | initials }}</span>
@@ -85,17 +83,8 @@
                     <div class="small text-secondary">{{ user.job_title }}</div>
                   </div>
                 </td>
-                <td data-label="Role & Access" {{ cell_attr(table_view, "role") }}>
-                  <div class="d-flex flex-wrap gap-1">
-                    {{ role_badge(user.role) }}
-                    {% if is_admin(user) %}
-                      <span class="badge bg-azure-lt">All access</span>
-                    {% else %}
-                      {% for permission_key in row.permission_key_list %}
-                        <span class="badge bg-green-lt" title="{{ permission_info_dict[permission_key].description }}">{{ permission_info_dict[permission_key].short_label }}</span>
-                      {% endfor %}
-                    {% endif %}
-                  </div>
+                <td data-label="Role" {{ cell_attr(table_view, "role") }}>
+                  {{ role_badge(user.role) }}
                 </td>
                 <td data-label="Status" {{ cell_attr(table_view, "status") }}>{{ user_status_badge(row.status) }}</td>
                 <td class="text-nowrap text-secondary" data-label="Last Login" {{ cell_attr(table_view, "last_login") }}>{{ user.last_login_at | time_ago if user.last_login_at else "Never" }}</td>
@@ -110,8 +99,6 @@
                     <div class="dropdown">
                       <button type="button" class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">Actions</button>
                       <div class="dropdown-menu dropdown-menu-end">
-                        <a href="{{ url_for('users.access', user_id=user.id, **back_param_dict) }}" class="dropdown-item">{{ icon("settings", "dropdown-item-icon") }} Manage Access</a>
-                        <div class="dropdown-divider"></div>
                         {% if row.status == "locked" %}
                           <form method="post" action="{{ url_for('users.unlock', user_id=user.id) }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

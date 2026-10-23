@@ -26,11 +26,11 @@ def test_audit_row_opens_detail(admin_client):
     audit_log = log_audit(AUDIT_ACTION_LOGIN_FAILED, "users", actor_email="penyusup@luar.com", is_commit=True)
     assert f'<tr data-row-url="/audit-logs/{audit_log.id}">' in get_html(admin_client, "/audit-logs/")
 
-def test_user_row_opens_access_only_for_editable_user(admin_client, admin_user, registered_user):
-    """Positive & negative: baris user biasa kebuka ke Atur Akses, baris akun sendiri (admin) ga bisa dibuka."""
+def test_user_row_has_no_access_link(admin_client, registered_user):
+    """Negative: halaman Atur Akses udah dihapus -> baris tabel user ga ngarah ke sana lagi."""
     html_text = get_html(admin_client, "/users/")
-    assert f'data-row-url="/users/{registered_user.id}/access"' in html_text
-    assert f'data-row-url="/users/{admin_user.id}/access"' not in html_text
+    assert registered_user.email in html_text
+    assert "/access" not in html_text
 
 def test_row_script_loaded(logged_in_client):
     """Positive: script baris aktif & shortcut kepasang di layar aplikasi (shortcut F-key dijalanin app_shell.js)."""

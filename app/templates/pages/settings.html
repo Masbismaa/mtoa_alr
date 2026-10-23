@@ -23,13 +23,6 @@
             <div>
               <div class="text-secondary">{{ current_user.email }}</div>
               <span class="badge {{ account_access.color_class }} mt-1">{{ account_access.label }}</span>
-              {% if account_access.permission_list %}
-                <div class="d-flex flex-wrap gap-1 mt-2">
-                  {% for permission in account_access.permission_list %}
-                    <span class="badge bg-secondary-lt" title="{{ permission.description }}">{{ permission.label }}</span>
-                  {% endfor %}
-                </div>
-              {% endif %}
             </div>
           </div>
           {{ render_field(profile_form.full_name, autocomplete="name") }}

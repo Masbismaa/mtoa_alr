@@ -73,18 +73,14 @@ def test_sidebar_renders_inline_folders_and_opens_active_branch(logged_in_client
     assert 'data-locked-message="You are not authorized' in html_text
 
 
-def test_user_with_extra_access_stays_user_entry(logged_in_client, registered_user, admin_user):
-    """Positive: role "User with access" udah dihapus -> user yg dikasih akses tambahan tetep User Entry
-    (dashboard biasa, tanpa panel "Your Access"), tapi aksesnya tetep jalan."""
-    from app.services.user_service import set_user_permissions
-    from app.utils.constants import PERMISSION_MANAGE_CATEGORIES
-
-    set_user_permissions(admin_user, registered_user, [PERMISSION_MANAGE_CATEGORIES])
+def test_user_entry_dashboard_has_no_extra_access(logged_in_client):
+    """Positive: role "User with access" & akses tambahan udah dihapus -> user biasa dapet dashboard User Entry,
+    tanpa panel "Your Access", dan menu admin ga kebuka."""
     html_text = logged_in_client.get("/").get_data(as_text=True)
     assert 'data-access-level="standard"' in html_text and "User Entry" in html_text
     assert "User with access" not in html_text and "Your Access" not in html_text
     assert "System Overview" not in html_text and "Admin To-Do" not in html_text
-    assert logged_in_client.get("/categories/").status_code == 200
+    assert logged_in_client.get("/categories/").status_code == 403
     assert logged_in_client.get("/users/").status_code == 403
 
 

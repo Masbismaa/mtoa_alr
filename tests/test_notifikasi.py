@@ -1,10 +1,8 @@
-"""Test notifikasi lonceng: undangan, dikeluarin, keluar group, izin tambah link, akses dari admin."""
+"""Test notifikasi lonceng: undangan, dikeluarin, keluar group, izin tambah link."""
 from app.extensions import db
 from app.models import UserNotification
 from app.services.group_service import accept_invitation, create_group, invite_member, leave_group, remove_member, set_member_can_add_entry
 from app.services.user_notification_service import add_notification, count_unread_notification
-from app.services.user_service import set_user_permissions
-from app.utils.constants import PERMISSION_MANAGE_CATEGORIES
 
 def get_message_list(user):
     """Helper: isi notifikasi user, urut dari yg lama."""
@@ -55,12 +53,6 @@ def test_add_entry_permission_notifies_member(registered_user, other_user):
         "You can now add links to the group Tim Network",
         "Your permission to add links to the group Tim Network was revoked",
     ]
-
-def test_permission_grant_notifies_user(admin_user, registered_user):
-    """Positive: admin ngasih & nyabut akses -> user dikabarin nama aksesnya."""
-    set_user_permissions(admin_user, registered_user, [PERMISSION_MANAGE_CATEGORIES])
-    set_user_permissions(admin_user, registered_user, [])
-    assert get_message_list(registered_user) == ["You were granted access: Manage categories", "Access revoked: Manage categories"]
 
 # LONCENG DI LAYAR
 def test_bell_shows_unread_count(logged_in_client, registered_user):

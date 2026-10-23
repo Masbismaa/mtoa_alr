@@ -49,7 +49,7 @@ The application is designed around three principles:
 
 <div align="center">
 
-| 16 | 68 | 18 | 26 | 780+ |
+| 16 | 67 | 17 | 27 | 780+ |
 |:---:|:---:|:---:|:---:|:---:|
 | screens | HTTP endpoints | database tables | schema migrations | automated tests |
 
@@ -144,7 +144,7 @@ Select a group to expand it. Images adapt to the active GitHub theme.
 </details>
 
 <details>
-<summary><b>Administration</b> &nbsp;·&nbsp; Screens for administrators and delegated users.</summary>
+<summary><b>Administration</b> &nbsp;·&nbsp; Screens for administrators.</summary>
 <br>
 <table>
   <tr>
@@ -157,20 +157,13 @@ Select a group to expand it. Images adapt to the active GitHub theme.
     </td>
     <td width="50%" valign="top">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="assets/user-access-dark.png">
-        <img src="assets/user-access-light.png" alt="Access Assignment: Grant or revoke delegated permissions" width="100%">
-      </picture>
-      <p align="center"><b>Access Assignment</b><br><sub>Grant or revoke delegated permissions</sub></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/categories-dark.png">
         <img src="assets/categories-light.png" alt="Category Management: Up to four levels with built-in and custom categories" width="100%">
       </picture>
       <p align="center"><b>Category Management</b><br><sub>Up to four levels with built-in and custom categories</sub></p>
     </td>
+  </tr>
+  <tr>
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/monitoring-dark.png">
@@ -302,7 +295,7 @@ Every role includes a **team activity feed**. Repeated actions are consolidated 
 - Self-registration restricted to the corporate email domain, confirmed by a verification code
 - Two-step sign-in: password followed by a one-time code delivered by email
 - Password recovery, password change, and profile maintenance
-- In-app notifications for permission changes, blocked sign-in attempts, and password changes
+- In-app notifications for group invitations and membership changes, blocked sign-in attempts, and password changes
 - Light and dark themes, accent colors, font selection, and a compact layout
 
 </details>
@@ -311,7 +304,7 @@ Every role includes a **team activity feed**. Repeated actions are consolidated 
 
 ## Access Control
 
-The system defines two roles. Administrators may delegate selected permissions to regular users.
+The system defines two roles: User Entry and Administrator. Permissions are not granted per user; every management screen is restricted to administrators.
 
 <div align="center">
 
@@ -323,10 +316,10 @@ The system defines two roles. Administrators may delegate selected permissions t
 | View other users' private links | – | – |
 | Create groups and share links | ✓ | ✓ |
 | Import and export Excel files | ✓ | ✓ |
-| Manage categories | if granted | ✓ |
-| Edit or delete other users' public links | if granted | ✓ |
-| View audit logs | if granted | ✓ |
-| Manage users and delegate permissions | – | ✓ |
+| Manage categories | – | ✓ |
+| Edit or delete other users' public links | – | ✓ |
+| View audit logs | – | ✓ |
+| Manage users | – | ✓ |
 | Run link monitoring | – | ✓ |
 | Delete links in bulk | – | ✓ |
 
@@ -418,7 +411,6 @@ flowchart TB
 ```mermaid
 erDiagram
     USER ||--o{ ACCESS_ENTRY : owns
-    USER ||--o{ USER_PERMISSION : "is granted"
     USER ||--o| USER_PREFERENCE : has
     USER ||--o{ USER_FAVORITE : bookmarks
     USER ||--o{ SELECTION_VARIANT : saves
@@ -640,7 +632,7 @@ Embedding an access note in page markup exposes it to anyone who can read the pa
 
 | Suite | Tooling | Count | Scope |
 |---|---|:---:|---|
-| Backend | pytest | 735 | Services, routes, authorization, and security scenarios |
+| Backend | pytest | 731 | Services, routes, authorization, and security scenarios |
 | Database concurrency | pytest on PostgreSQL | 6 | Concurrent requests, row locks, and unique constraints |
 | Frontend | Vitest, Testing Library | 46 | Link table, columns, selection, and keyboard behavior |
 | End-to-end | Headless Chrome | 9 scenarios | Authentication, tables, accounts, categories, groups, monitoring, rich text editor, and function keys |
@@ -660,7 +652,7 @@ Each feature is tested for the expected flow and for misuse: incorrect roles, ac
 ```text
 .
 ├── app/
-│   ├── models/         SQLAlchemy entities (18 tables)
+│   ├── models/         SQLAlchemy entities (17 tables)
 │   ├── routes/         Blueprints: auth, entries, categories, groups, users, audit, monitoring, settings
 │   ├── schemas/        Form and selection screen definitions
 │   ├── security/       Access policy, throttling, file and URL validation, encryption

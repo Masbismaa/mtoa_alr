@@ -49,31 +49,11 @@ def test_unknown_user_action_returns_404(admin_client):
     """Negative: id ngasal -> 404."""
     assert admin_client.post("/users/999/toggle-active").status_code == 404
 
-def test_user_entry_cannot_open_access_page(logged_in_client, registered_user, other_user):
-    """Negative (RBAC): user biasa ga bisa buka/kirim halaman atur akses."""
-    assert logged_in_client.get(f"/users/{other_user.id}/access").status_code == 403
-    response = logged_in_client.post(f"/users/{registered_user.id}/access", data={"permission": ["manage_categories"]})
-    assert response.status_code == 403
-    assert registered_user.permission_list == []
-
-def test_admin_grant_access_keeps_filter(admin_client, registered_user):
-    """Positive: admin centang akses, balik ke tabel dgn filter yg sama."""
-    page = admin_client.get(f"/users/{registered_user.id}/access?back_q=user")
-    assert page.status_code == 200
-    assert "Manage categories" in page.get_data(as_text=True)
-    response = admin_client.post(
-        f"/users/{registered_user.id}/access",
-        data={"permission": ["manage_categories", "view_audit_logs"], "back_q": "user"},
-    )
-    assert response.status_code == 302
-    assert response.location.endswith("/users/?q=user")
-    assert sorted(permission.permission_key for permission in registered_user.permission_list) == ["manage_categories", "view_audit_logs"]
-
-def test_access_page_for_admin_redirects(admin_client, admin_user):
-    """Negative: akun admin ga punya halaman atur akses (otomatis semua akses)."""
-    response = admin_client.get(f"/users/{admin_user.id}/access")
-    assert response.status_code == 302
-    assert response.location.endswith("/users/")
+def test_access_page_removed(admin_client, registered_user):
+    """Negative: halaman atur akses user udah dihapus (semua menu kelola khusus admin)."""
+    assert admin_client.get(f"/users/{registered_user.id}/access").status_code == 404
+    assert admin_client.post(f"/users/{registered_user.id}/access", data={"permission": ["manage_categories"]}).status_code == 404
+    assert "Manage Access" not in admin_client.get("/users/").get_data(as_text=True)
 
 def test_role_change_route_removed(admin_client, registered_user):
     """Negative: ganti role lewat panel udah ga ada (cuma lewat command)."""

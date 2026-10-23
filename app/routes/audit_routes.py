@@ -4,10 +4,10 @@ from flask_login import login_required
 from app.schemas.selection_schema import AUDIT_FIELD_LIST, read_audit_selection
 from app.schemas.table_schema import TABLE_AUDIT
 from app.security.access_policy import can_view_audit_data
-from app.security.role_guard import permission_required
+from app.security.role_guard import admin_required
 from app.services.audit_service import build_audit_change_list, get_audit_log, search_audit_logs
 from app.services.preference_service import get_table_layout
-from app.utils.constants import PER_PAGE, PERMISSION_VIEW_AUDIT_LOGS
+from app.utils.constants import PER_PAGE
 from app.utils.data_table import build_table_view
 from app.utils.query_helper import parse_positive_int
 from app.utils.request_helper import get_current_user
@@ -17,7 +17,7 @@ audit_bp = Blueprint("audit", __name__, url_prefix="/audit-logs")
 
 @audit_bp.get("/")
 @login_required
-@permission_required(PERMISSION_VIEW_AUDIT_LOGS)
+@admin_required
 def index():
     """Tabel audit log + Kriteria Pencarian (Select Screen) + pagination."""
     selection = read_audit_selection(request.args)
@@ -41,7 +41,7 @@ def index():
 
 @audit_bp.get("/<int:log_id>")
 @login_required
-@permission_required(PERMISSION_VIEW_AUDIT_LOGS)
+@admin_required
 def detail(log_id):
     """Detail satu audit log: info pelaku + data lama vs baru."""
     audit_log = get_audit_log(log_id)

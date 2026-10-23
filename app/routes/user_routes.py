@@ -11,15 +11,13 @@ from app.services.user_service import (
     build_delete_preview,
     build_user_summary,
     delete_user_account,
-    get_permission_key_list,
     get_user,
     get_user_status,
     search_users,
-    set_user_permissions,
     toggle_user_active,
     unlock_user,
 )
-from app.utils.constants import PERMISSION_INFO_DICT, ROLE_ADMIN, PER_PAGE
+from app.utils.constants import ROLE_ADMIN, PER_PAGE
 from app.utils.data_table import build_table_view
 from app.utils.exceptions import ValidationError
 from app.utils.query_helper import parse_positive_int
@@ -52,14 +50,13 @@ def index():
         page_title="Users",
         pagination=pagination,
         user_row_list=[
-            {"user": user, "status": get_user_status(user), "permission_key_list": get_permission_key_list(user)}
+            {"user": user, "status": get_user_status(user)}
             for user in pagination.items
         ],
         pagination_query_dict=build_selection_query_dict(request.args, USER_FIELD_LIST),
         selection_field_list=USER_FIELD_LIST,
         keyword=selection["keyword"],
         summary_dict=build_user_summary(),
-        permission_info_dict=PERMISSION_INFO_DICT,
         back_param_dict=build_back_param_dict(),
         table_view=table_view,
     )
@@ -93,34 +90,6 @@ def run_user_action(action_function, success_message, *arg_list):
     else:
         flash(success_message, "success")
     return redirect(build_back_url())
-
-@users_bp.route("/<int:user_id>/access", methods=["GET", "POST"])
-@login_required
-@admin_required
-def access(user_id):
-    """Atur akses user: centang akses yg dikasih, hapus centang buat nyabut."""
-    target = get_target_user_or_404(user_id)
-    admin_redirect = redirect_if_admin(target, "Admins automatically have all access; admin changes are done via the command line")
-    if admin_redirect:
-        return admin_redirect
-
-    if request.method == "POST":
-        try:
-            set_user_permissions(get_current_user(), target, request.form.getlist("permission"))
-        except ValidationError as error:
-            flash_error_list(error.error_list)
-        else:
-            flash(f"Access for {target.full_name} saved", "success")
-            return redirect(build_back_url())
-
-    return render_template(
-        "pages/users/access.html",
-        page_title="Manage Access",
-        target=target,
-        owned_key_list=get_permission_key_list(target),
-        permission_info_dict=PERMISSION_INFO_DICT,
-        back_url=build_back_url(),
-    )
 
 @users_bp.post("/<int:user_id>/toggle-active")
 @login_required

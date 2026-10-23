@@ -151,11 +151,9 @@ def test_login_noise_cannot_displace_public_activity(app, registered_user, other
     assert activity[0]["title_text"] == "Shared update"
 
 
-def test_audit_permission_does_not_expose_admin_activity(app, registered_user, admin_user, other_user):
+def test_user_entry_does_not_see_admin_activity(app, registered_user, other_user):
     from app.services.audit_service import log_audit
-    from app.services.user_service import set_user_permissions
-    from app.utils.constants import AUDIT_ACTION_PASSWORD_CHANGE, PERMISSION_VIEW_AUDIT_LOGS
+    from app.utils.constants import AUDIT_ACTION_PASSWORD_CHANGE
 
-    set_user_permissions(admin_user, registered_user, [PERMISSION_VIEW_AUDIT_LOGS])
     log_audit(AUDIT_ACTION_PASSWORD_CHANGE, "users", user=other_user, is_commit=True)
     assert list_team_activity(registered_user) == []

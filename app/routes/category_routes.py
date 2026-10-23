@@ -3,7 +3,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import login_required
 from app.extensions import limiter
 from app.schemas.category_schema import CategoryForm
-from app.security.role_guard import api_login_required, permission_required
+from app.security.role_guard import admin_required, api_login_required
 from app.services.category_service import (
     build_category_label,
     build_forum_row_list,
@@ -23,7 +23,7 @@ from app.services.category_service import (
     can_manage_category_master,
 )
 from app.services.entry_table_service import build_category_scope, build_entry_table_payload, build_scope_field_list
-from app.utils.constants import MAX_CATEGORY_DEPTH, PERMISSION_MANAGE_CATEGORIES
+from app.utils.constants import MAX_CATEGORY_DEPTH
 from app.utils.exceptions import ValidationError
 from app.utils.form_helper import attach_form_error_list, flash_error_list, read_form_data
 from app.utils.request_helper import get_current_user
@@ -67,7 +67,7 @@ def render_category_form(form, page_title, form_action, cancel_url, parent=None,
 
 @categories_bp.get("/")
 @login_required
-@permission_required(PERMISSION_MANAGE_CATEGORIES)
+@admin_required
 def index():
     """Tabel semua kategori (bentuk pohon) + jumlah link-nya."""
     return render_template(
@@ -79,7 +79,7 @@ def index():
 
 @categories_bp.route("/new", methods=["GET", "POST"])
 @login_required
-@permission_required(PERMISSION_MANAGE_CATEGORIES)
+@admin_required
 def create():
     """Tambah kategori utama, khusus admin."""
     form = CategoryForm()
@@ -177,7 +177,7 @@ def edit(category_id):
 
 @categories_bp.post("/<int:category_id>/toggle")
 @login_required
-@permission_required(PERMISSION_MANAGE_CATEGORIES)
+@admin_required
 def toggle(category_id):
     """Aktifin / nonaktifin kategori, khusus admin."""
     category = get_category_or_404(category_id)

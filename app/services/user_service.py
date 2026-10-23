@@ -1,13 +1,11 @@
 """Logika kelola user (khusus admin): daftar, cari, filter, ganti role, aktif/nonaktif, buka kunci, hapus akun."""
-from sqlalchemy.orm import selectinload
 from app.extensions import db
-from app.models import OtpCode, User, UserPermission
+from app.models import OtpCode, User
 from app.security import auth_throttle
 from app.services.access_entry_service import count_owned_entry, delete_private_entry_list
 from app.services.attachment_service import remove_stored_file_list
 from app.services.audit_service import log_audit
 from app.services.group_service import find_group_successor, list_owned_group, release_user_group_list
-from app.services.user_notification_service import add_notification
 from app.utils.constants import (
     AUDIT_ACTION_DELETE,
     AUDIT_ACTION_UPDATE,
@@ -21,8 +19,6 @@ from app.utils.constants import (
     USER_STATUS_ACTIVE,
     USER_STATUS_INACTIVE,
     USER_STATUS_LOCKED,
-    PERMISSION_INFO_DICT,
-    PERMISSION_LIST,
     PER_PAGE,
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
@@ -79,7 +75,7 @@ USER_SORT_COLUMN_DICT = {
 
 def search_users(keyword=None, role=None, status=None, page=1, per_page=PER_PAGE, selection=None, sort=None):
     """Cari user buat tabel admin, defaultnya urut nama. Akun yg udah dihapus ga ikut."""
-    query = db.select(User).options(selectinload(User.permission_list)).where(User.deleted_at.is_(None))
+    query = db.select(User).where(User.deleted_at.is_(None))
     clean_keyword = sanitize_text(keyword, max_length=MAX_SEARCH_KEYWORD_LENGTH)
     if clean_keyword:
         search_column_list = [User.email, User.full_name, User.department, User.job_title]
@@ -183,46 +179,6 @@ def unlock_user(actor, target):
     auth_throttle.clear_login_failure(target.email)
     return result
 
-# HAK AKSES (GRANT)
-def get_permission_key_list(user):
-    """Akses yg dipunya user, urut sesuai PERMISSION_LIST."""
-    owned_key_set = {permission.permission_key for permission in user.permission_list}
-    return [permission_key for permission_key in PERMISSION_LIST if permission_key in owned_key_set]
-
-def set_user_permissions(actor, target, permission_key_list):
-    """Simpan akses user persis sesuai yg dicentang: yg baru ditambah, yg dicabut dihapus."""
-    ensure_not_admin(target)
-    new_key_set = set(permission_key_list or [])
-    if not new_key_set.issubset(PERMISSION_LIST):
-        raise ValidationError([build_error("permission", "Some access types are unknown")])
-    old_key_list = get_permission_key_list(target)
-    if new_key_set == set(old_key_list):
-        return target
-    target.permission_list = [
-        permission for permission in target.permission_list if permission.permission_key in new_key_set
-    ] + [
-        UserPermission(permission_key=permission_key, granted_by_user_id=actor.id)
-        for permission_key in PERMISSION_LIST
-        if permission_key in new_key_set and permission_key not in old_key_list
-    ]
-    log_audit(
-        AUDIT_ACTION_UPDATE, AUDIT_USER, entity_id=target.id,
-        old_data_dict={"permission_list": old_key_list},
-        new_data_dict={"permission_list": get_permission_key_list(target)}, user=actor,
-    )
-    notify_permission_change(target, old_key_list, new_key_set)
-    db.session.commit()
-    return target
-
-def notify_permission_change(target, old_key_list, new_key_set):
-    """Kabarin user akses apa aja yg baru dikasih / dicabut admin."""
-    added_label_list = [PERMISSION_INFO_DICT[key]["label"] for key in PERMISSION_LIST if key in new_key_set and key not in old_key_list]
-    removed_label_list = [PERMISSION_INFO_DICT[key]["label"] for key in old_key_list if key not in new_key_set]
-    if added_label_list:
-        add_notification(target.id, "You were granted access: " + ", ".join(added_label_list))
-    if removed_label_list:
-        add_notification(target.id, "Access revoked: " + ", ".join(removed_label_list))
-
 # HAPUS AKUN
 def ensure_delete_confirmed(target, confirm_email):
     """Admin wajib ngetik ulang email target biar ga salah hapus."""
@@ -255,7 +211,7 @@ def anonymize_user(target):
     target.preference = None
 
 def delete_user_account(actor, target, confirm_email):
-    """Hapus akun: link Private + lampirannya dihapus, link Public tetep ada, group dilepas, akses dicabut, data diri dianonimkan."""
+    """Hapus akun: link Private + lampirannya dihapus, link Public tetep ada, group dilepas, data diri dianonimkan."""
     ensure_not_self(actor, target, "You can't delete your own account")
     ensure_not_admin(target)
     if target.deleted_at is not None:
@@ -264,11 +220,9 @@ def delete_user_account(actor, target, confirm_email):
     old_data_dict = {
         "email": target.email, "full_name": target.full_name, "department": target.department,
         "job_title": target.job_title, "role": target.role, "is_active": target.is_active,
-        "permission_list": get_permission_key_list(target),
     }
     group_summary_dict = release_user_group_list(actor, target)
     private_entry_count, stored_filename_list = delete_private_entry_list(actor, target)
-    target.permission_list = []
     db.session.execute(db.delete(OtpCode).where(OtpCode.user_id == target.id))
     anonymize_user(target)
     log_audit(

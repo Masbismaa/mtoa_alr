@@ -1,18 +1,10 @@
-"""Test grant akses per user: kelola kategori, lihat audit log, edit link Public orang lain."""
+"""Test menu & halaman khusus admin: kelola kategori, lihat audit log, edit link Public orang lain, panel user."""
 import pytest
 from app.extensions import db
 from app.models import AuditLog
-from app.security.access_policy import has_permission
-from app.services.access_entry_service import create_access_entry
 from tests.conftest import create_entry_as_is
-from app.services.user_service import set_user_permissions, toggle_user_active, unlock_user
-from app.utils.constants import (
-    PERMISSION_EDIT_PUBLIC_ENTRIES,
-    PERMISSION_MANAGE_CATEGORIES,
-    PERMISSION_VIEW_AUDIT_LOGS,
-    ROLE_ADMIN,
-    VISIBILITY_PUBLIC,
-)
+from app.services.user_service import toggle_user_active, unlock_user
+from app.utils.constants import ROLE_ADMIN, VISIBILITY_PUBLIC
 from app.utils.exceptions import ValidationError
 from app.utils.navigation import build_sidebar_section_list
 
@@ -25,41 +17,12 @@ def get_nav_label_list(user):
         if not item.get("is_locked")
     ]
 
-def test_admin_has_all_permission(app, admin_user):
-    """Positive: admin otomatis punya semua akses tanpa di-grant."""
-    assert has_permission(admin_user, PERMISSION_MANAGE_CATEGORIES)
-    assert has_permission(admin_user, PERMISSION_VIEW_AUDIT_LOGS)
-    assert has_permission(admin_user, PERMISSION_EDIT_PUBLIC_ENTRIES)
-
-def test_grant_and_revoke_permission(app, admin_user, registered_user):
-    """Positive: centang = dikasih, hapus centang = dicabut, kecatat di audit log."""
-    assert not has_permission(registered_user, PERMISSION_MANAGE_CATEGORIES)
-    set_user_permissions(admin_user, registered_user, [PERMISSION_MANAGE_CATEGORIES, PERMISSION_VIEW_AUDIT_LOGS])
-    assert has_permission(registered_user, PERMISSION_MANAGE_CATEGORIES)
-    assert registered_user.permission_list[0].granted_by_user_id == admin_user.id
-    set_user_permissions(admin_user, registered_user, [PERMISSION_VIEW_AUDIT_LOGS])
-    assert not has_permission(registered_user, PERMISSION_MANAGE_CATEGORIES)
-    assert has_permission(registered_user, PERMISSION_VIEW_AUDIT_LOGS)
-    audit_log = db.session.execute(
-        db.select(AuditLog).filter_by(entity_type="users", entity_id=str(registered_user.id), action="update")
-        .order_by(AuditLog.id.desc())
-    ).scalars().first()
-    assert audit_log.old_data["permission_list"] == [PERMISSION_MANAGE_CATEGORIES, PERMISSION_VIEW_AUDIT_LOGS]
-    assert audit_log.new_data["permission_list"] == [PERMISSION_VIEW_AUDIT_LOGS]
-
-def test_unknown_permission_rejected(app, admin_user, registered_user):
-    """Negative: akses ngasal (misal coba nyelipin 'admin') ditolak."""
-    with pytest.raises(ValidationError):
-        set_user_permissions(admin_user, registered_user, ["admin"])
-    assert registered_user.permission_list == []
-
 def test_panel_cannot_touch_admin_account(app, admin_user, registered_user):
-    """Negative: akun admin ga bisa diatur aksesnya, dinonaktifin, atau dibuka kuncinya dari panel."""
+    """Negative: akun admin ga bisa dinonaktifin atau dibuka kuncinya dari panel."""
     other_admin = registered_user
     other_admin.role = ROLE_ADMIN
     db.session.commit()
     for action_function, argument_list in [
-        (set_user_permissions, [[PERMISSION_VIEW_AUDIT_LOGS]]),
         (toggle_user_active, []),
         (unlock_user, []),
     ]:
@@ -68,34 +31,46 @@ def test_panel_cannot_touch_admin_account(app, admin_user, registered_user):
         assert error.value.error_list == [{"field": "user", "message": "Admin accounts can only be changed via the command line"}]
     assert other_admin.is_active is True
 
-def test_granted_user_sees_only_granted_menu(app, admin_user, registered_user):
-    """Positive & negative (RBAC): menu Kelola cuma nampilin menu yg aksesnya dikasih, Users tetap khusus admin."""
+def test_user_entry_sees_admin_menu_locked(app, admin_user, registered_user):
+    """Positive & negative (RBAC): Categories, Audit Logs, Users cuma kebuka buat admin; user biasa liat menunya dikunci."""
     with app.test_request_context("/"):
-        assert "Categories" not in get_nav_label_list(registered_user)
-        set_user_permissions(admin_user, registered_user, [PERMISSION_MANAGE_CATEGORIES])
-        label_list = get_nav_label_list(registered_user)
-    assert "Categories" in label_list
-    assert "Audit Logs" not in label_list
-    assert "Users" not in label_list
+        user_label_list = get_nav_label_list(registered_user)
+        admin_label_list = get_nav_label_list(admin_user)
+        locked_item_list = [
+            item for section in build_sidebar_section_list(registered_user, "main.home")
+            for item in section["item_list"] if item.get("is_locked")
+        ]
+    for label in ("Categories", "Audit Logs", "Users"):
+        assert label not in user_label_list
+        assert label in admin_label_list
+    assert {item["lock_reason"] for item in locked_item_list} == {"Admins only"}
 
-def test_granted_user_can_open_categories_and_audit(logged_in_client, admin_user, registered_user):
-    """Positive & negative: halaman kebuka sesuai akses yg dikasih."""
-    assert logged_in_client.get("/categories/").status_code == 403
-    assert logged_in_client.get("/audit-logs/").status_code == 403
-    set_user_permissions(admin_user, registered_user, [PERMISSION_MANAGE_CATEGORIES, PERMISSION_VIEW_AUDIT_LOGS])
-    assert logged_in_client.get("/categories/").status_code == 200
-    assert logged_in_client.get("/audit-logs/").status_code == 200
-    assert logged_in_client.get("/users/").status_code == 403
+def test_user_entry_cannot_open_admin_page(logged_in_client):
+    """Negative (RBAC): user biasa 403 di Categories, Audit Logs, Users."""
+    for url in ("/categories/", "/audit-logs/", "/users/"):
+        assert logged_in_client.get(url).status_code == 403
 
-def test_edit_public_entry_needs_permission(logged_in_client, admin_user, registered_user, other_user, category_dict):
-    """Positive & negative: edit link Public orang lain cuma kalau punya aksesnya."""
-    entry = create_entry_as_is(other_user, {
-        "category_id": category_dict["Web"].id, "title": "Portal Orang", "url": "https://orang.spindo.com",
+def test_admin_can_open_admin_page(admin_client):
+    """Positive: admin bisa buka Categories, Audit Logs, Users."""
+    for url in ("/categories/", "/audit-logs/", "/users/"):
+        assert admin_client.get(url).status_code == 200
+
+def create_public_entry_of(user, category):
+    """Helper: link Public punya user lain."""
+    return create_entry_as_is(user, {
+        "category_id": category.id, "title": "Portal Orang", "url": "https://orang.spindo.com",
         "address": "", "port": "", "username": "", "access_note": "", "description": "", "visibility": VISIBILITY_PUBLIC,
     })
+
+def test_user_entry_cannot_edit_public_entry_of_other_user(logged_in_client, other_user, category_dict):
+    """Negative: user biasa ga bisa edit link Public orang lain."""
+    entry = create_public_entry_of(other_user, category_dict["Web"])
     assert logged_in_client.get(f"/entries/{entry.id}/edit").status_code == 403
-    set_user_permissions(admin_user, registered_user, [PERMISSION_EDIT_PUBLIC_ENTRIES])
-    assert logged_in_client.get(f"/entries/{entry.id}/edit").status_code == 200
+
+def test_admin_can_edit_public_entry_of_other_user(admin_client, other_user, category_dict):
+    """Positive: admin bisa edit link Public orang lain."""
+    entry = create_public_entry_of(other_user, category_dict["Web"])
+    assert admin_client.get(f"/entries/{entry.id}/edit").status_code == 200
 
 def test_cli_set_and_unset_admin(app, admin_user, registered_user):
     """Positive & negative: naik/turun admin cuma lewat command, admin aktif terakhir ga bisa diturunin."""
