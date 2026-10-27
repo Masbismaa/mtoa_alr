@@ -122,7 +122,7 @@
         <div class="list-group list-group-flush">
           {% for locked_user in admin_panel.locked_user_list %}
             <a href="{{ url_for('users.index', status='locked') }}" class="list-group-item list-group-item-action">
-              {{ icon("lock", "text-yellow") }} <strong>{{ locked_user.full_name }}</strong> is locked out after too many wrong codes.
+              {{ icon("lock", "text-yellow") }} <strong>{{ locked_user.full_name }}</strong> is locked out after too many failed login attempts.
               <div class="small text-secondary">Unlock it from Users if it was really them.</div>
             </a>
           {% endfor %}

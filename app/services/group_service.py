@@ -16,7 +16,6 @@ from app.utils.constants import (
     AUDIT_ACTION_CREATE,
     AUDIT_ACTION_DELETE,
     AUDIT_ACTION_UPDATE,
-    GROUP_ENTRY_OPTION_LIMIT,
     GROUP_MEMBER_STATUS_ACTIVE,
     GROUP_MEMBER_STATUS_INVITED,
     GROUP_ROLE_MEMBER,
@@ -378,7 +377,8 @@ def list_addable_entry(user, group):
         .options(joinedload(AccessEntry.category))
         .where(build_shareable_entry_filter(user), ~already_in_group)
     )
-    return db.session.execute(query.order_by(AccessEntry.title).limit(GROUP_ENTRY_OPTION_LIMIT)).scalars().all()
+    # ponytail: semua link ditampilin tanpa batas; kalau udah ribuan, ganti dropdown jadi kolom cari
+    return db.session.execute(query.order_by(AccessEntry.title)).scalars().all()
 
 def add_group_entry(user, group, raw_entry_id):
     """Tambah link ke group (pemilik / anggota yg diizinin). Link hasil share group lain ga boleh di-share ulang."""

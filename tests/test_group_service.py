@@ -13,6 +13,7 @@ from app.services.group_service import (
     get_member_group,
     invite_member,
     leave_group,
+    list_addable_entry,
     remove_member,
     set_member_can_add_entry,
     update_group,
@@ -171,3 +172,10 @@ def test_delete_group_keeps_access_entries(app, registered_user, category_dict):
     delete_group(registered_user, group)
     assert db.session.execute(db.select(db.func.count(GroupEntry.id))).scalar() == 0
     assert db.session.execute(db.select(db.func.count(AccessEntry.id))).scalar() == 1
+
+def test_addable_entry_not_cut_at_200(app, registered_user, category_dict):
+    """Regression: dropdown "add link" dulu kepotong 200, link ke-201 ga bisa dipilih."""
+    group = create_group(registered_user, {"name": "Tim Banyak"})
+    for number in range(201):
+        create_entry(registered_user, category_dict["Web"], f"Link {number:03d}", f"https://link{number}.local")
+    assert len(list_addable_entry(registered_user, group)) == 201
