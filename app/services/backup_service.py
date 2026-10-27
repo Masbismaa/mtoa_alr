@@ -150,7 +150,10 @@ def restore_backup(name, actor_email=None):
                 with zip_file.open(entry) as source_file, open(target_path, "xb") as target_file:
                     shutil.copyfileobj(source_file, target_file)
 
-    # user_id sengaja kosong: akun yg nge-restore belum tentu ada di database hasil restore
-    log_audit(AUDIT_ACTION_IMPORT, BACKUP_ENTITY, name, new_data_dict={"safety_backup": safety_backup_path.name},
-              actor_email=actor_email, is_commit=True)
+    # user_id sengaja kosong: akun yg nge-restore belum tentu ada di database hasil restore.
+    # audit log ikut balik ke isi backup, jadi catatan sesudah backup_created_at (termasuk pembuatan backup ini &
+    # backup pengamannya) cuma ada di safety_backup
+    log_audit(AUDIT_ACTION_IMPORT, BACKUP_ENTITY, name, new_data_dict={
+        "safety_backup": safety_backup_path.name, "backup_created_at": manifest.get("created_at"),
+    }, actor_email=actor_email, is_commit=True)
     return safety_backup_path

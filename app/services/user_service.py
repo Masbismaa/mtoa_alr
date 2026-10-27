@@ -5,6 +5,7 @@ from app.security import auth_throttle
 from app.services.access_entry_service import count_owned_entry, delete_private_entry_list
 from app.services.attachment_service import remove_stored_file_list
 from app.services.audit_service import log_audit
+from app.services.auth_service import is_account_locked
 from app.services.group_service import find_group_successor, list_owned_group, release_user_group_list
 from app.utils.constants import (
     AUDIT_ACTION_DELETE,
@@ -24,7 +25,7 @@ from app.utils.constants import (
     VISIBILITY_PUBLIC,
 )
 from app.utils.data_table import build_order_list
-from app.utils.datetime_helper import to_utc_aware, utc_now
+from app.utils.datetime_helper import utc_now
 from app.utils.exceptions import ValidationError, build_error
 from app.utils.query_helper import build_keyword_filter
 from app.utils.selection import apply_condition_list, build_date_range_filter, build_text_selection_filter
@@ -37,7 +38,7 @@ def get_user_status(user):
     """Status akun buat ditampilin: nonaktif > terkunci > aktif."""
     if not user.is_active:
         return USER_STATUS_INACTIVE
-    if user.locked_until is not None and to_utc_aware(user.locked_until) > utc_now():
+    if is_account_locked(user):
         return USER_STATUS_LOCKED
     return USER_STATUS_ACTIVE
 

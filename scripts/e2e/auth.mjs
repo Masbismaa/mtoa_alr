@@ -76,11 +76,11 @@ await runScenario("auth", async (server) => {
   await submitForm({ otp_code: "123456" });
   check("email terdaftar: kode apa pun -> Incorrect OTP code", (await pageText()).includes("Incorrect OTP code"));
 
-  // 4. blokir salah password per email+IP
+  // 4. salah password 3x -> akun dikunci
   await navigate(BASE + "/auth/login");
-  for (let index = 0; index < 5; index++) await submitForm({ email: "e2e.user", password: "SalahTerus123" });
+  for (let index = 0; index < 3; index++) await submitForm({ email: "e2e.user", password: "SalahTerus123" });
   await submitForm({ email: "e2e.user", password: "PasswordKuat123" });
-  check("5x salah -> password bener pun diblokir dari perangkat ini", (await pageText()).includes("Too many login attempts from this device"));
+  check("3x salah -> password bener pun diblokir", (await pageText()).includes("Too many login attempts"));
   await screenshot("auth_blokir.png");
   await submitForm({ email: "budi.baru", password: "PasswordKuat123" });
   check("akun lain dari IP yg sama tetep bisa login", (await path()) === "/auth/otp", await path());

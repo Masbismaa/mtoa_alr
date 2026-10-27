@@ -187,18 +187,6 @@ def list_team_activity(viewer):
 
 # ANGKA RINGKAS & YG PERLU DICEK
 
-def count_own_entry(user):
-    return db.session.execute(db.select(db.func.count(AccessEntry.id)).where(AccessEntry.user_id == user.id)).scalar()
-
-
-def count_visible_entry_by_status(user):
-    """Jumlah link yg boleh diliat per status (up/down/unknown) dalam 1 query."""
-    return dict(db.session.execute(
-        db.select(AccessEntry.status, db.func.count(AccessEntry.id))
-        .where(build_visible_entry_filter(user)).group_by(AccessEntry.status)
-    ).all())
-
-
 def count_visible_favorite(user):
     """Favorit yg link-nya masih boleh diliat."""
     return db.session.execute(
@@ -250,18 +238,18 @@ def build_dashboard_dict(user):
     """Semua data yg dibutuhin halaman dashboard dalam satu dict."""
     local_hour = to_local_time(utc_now()).hour
     greeting = "Good morning" if 5 <= local_hour < 12 else "Good afternoon" if 12 <= local_hour < 17 else "Good evening"
-    status_count_dict = count_visible_entry_by_status(user)
+    summary_dict = count_visible_entry_summary(user)
     group_list = list_user_group(user)
     is_viewer_admin = is_admin(user)
     return {
         "greeting": greeting,
         "access_kind": "admin" if is_viewer_admin else "standard",
         "admin_panel": build_admin_panel() if is_viewer_admin else None,
-        "summary": count_visible_entry_summary(user),
-        "own_count": count_own_entry(user),
+        "summary": summary_dict,
+        "own_count": summary_dict["own"],
         "favorite_count": count_visible_favorite(user),
-        "down_count": status_count_dict.get(LINK_STATUS_DOWN, 0),
-        "unknown_count": status_count_dict.get(LINK_STATUS_UNKNOWN, 0),
+        "down_count": summary_dict["status"].get(LINK_STATUS_DOWN, 0),
+        "unknown_count": summary_dict["status"].get(LINK_STATUS_UNKNOWN, 0),
         "own_down_entry_list": list_own_down_entry(user),
         "team_activity_list": list_team_activity(user),
         "group_list": group_list,

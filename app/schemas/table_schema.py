@@ -24,7 +24,7 @@ ENTRY_COLUMN_LIST = [
     TableColumn("status", "Link Status", 110, filter_key="status"),
     TableColumn("attachment", "Attachments", 80, is_sortable=False, is_default_hidden=True),
     TableColumn("owner", "Created By", 110, filter_key="owner"),
-    TableColumn("created", "Created", 130),
+    TableColumn("created", "Created", 150),
 ]
 
 USER_COLUMN_LIST = [

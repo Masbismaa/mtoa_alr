@@ -41,6 +41,7 @@ from app.utils.constants import (
 )
 from app.utils.datetime_helper import to_utc_aware, utc_now
 from app.utils.exceptions import AuthError
+from app.utils.request_helper import get_client_ip
 from app.utils.sanitizer import sanitize_text
 from app.utils.text_helper import normalize_email
 
@@ -353,7 +354,7 @@ def authenticate_user(email, password):
     3. akun lagi dikunci -> pesan "dikunci" cuma keluar kalau password-nya bener
     """
     clean_email = normalize_email(email)
-    ip_address = auth_throttle.get_client_ip()
+    ip_address = get_client_ip() or "-"
     blocked_minute_count = auth_throttle.get_login_block_minutes(clean_email)
     if blocked_minute_count:
         log_audit(AUDIT_ACTION_LOGIN_FAILED, "users", actor_email=clean_email[:255],
@@ -616,7 +617,7 @@ def reset_password(state, code, new_password):
     """Cek kode reset; bener -> password diganti, semua sesi & OTP lama hangus, kunci akun dibuka. Return User."""
     password_hash = hash_new_password(new_password)
     # dihitung buat SEMUA email (terdaftar atau nggak), biar pesannya ga bocorin email mana yg terdaftar
-    if not auth_throttle.allow_reset_attempt(state["email"], auth_throttle.get_client_ip()):
+    if not auth_throttle.allow_reset_attempt(state["email"], get_client_ip() or "-"):
         raise AuthError(RESET_BLOCKED_ERROR)
     user = find_resettable_user(state["email"])
     if user is None:
