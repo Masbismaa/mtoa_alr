@@ -2,9 +2,9 @@
 {% from "components/notification_menu.html" import notification_menu with context %}
 {% from "components/user_menu.html" import user_menu with context %}
 {# bagian atas jendela ala SAP GUI (layar besar), 2 baris:
-   1. menu bar: Menu/Edit/Favorites/Extras/System/Help (huruf bergaris bawah = Alt+huruf), lonceng + profil di kanan.
-      tema ada di Extras > Appearance
-   2. toolbar sistem: Enter + command field (kode transaksi), Save/Back/Exit/Cancel, Print/Find, Help/Customize
+   1. menu bar: Menu/Edit/Favorites/Tools/Account/Help (huruf bergaris bawah = Alt+huruf), lonceng + profil di kanan.
+      tema ada di Tools > Appearance
+   2. toolbar sistem: Enter + command field (kode transaksi), Save/Back/Exit/Cancel, Find, Help/Customize
    tombol standar pake URL & shortcut yg sama kayak toolbar aplikasi (variabel dari layouts/app_base.html).
    sengaja ga pake class navbar-expand, biar Tabler ga nyembunyiin sidebar #}
 {% macro menu_title(label) %}<u>{{ label[0] }}</u>{{ label[1:] }}{% endmacro %}
@@ -39,7 +39,7 @@
         <div class="dropdown-divider"></div>
         <form method="post" action="{{ url_for('auth.logout') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="dropdown-item">{{ icon("logout", "dropdown-item-icon") }}Log off</button>
+          <button type="submit" class="dropdown-item">{{ icon("logout", "dropdown-item-icon") }}Log out</button>
         </form>
       </div>
     </div>
@@ -67,7 +67,7 @@
     </div>
 
     <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false" accesskey="x">E<u>x</u>tras</button>
+      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false" accesskey="t">{{ menu_title("Tools") }}</button>
       <div class="dropdown-menu">
         <button type="button" class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer">{{ icon("palette", "dropdown-item-icon") }}Appearance</button>
         {{ menu_link(url_for("settings.index"), "Settings", "ST", "settings") }}
@@ -75,14 +75,14 @@
     </div>
 
     <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false" accesskey="y">S<u>y</u>stem</button>
+      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false" accesskey="a">{{ menu_title("Account") }}</button>
       <div class="dropdown-menu">
         {{ menu_link(url_for("settings.index"), "User profile", "", "user") }}
         <button type="button" class="dropdown-item" data-status-open>{{ icon("history", "dropdown-item-icon") }}Message history</button>
         <div class="dropdown-divider"></div>
         <form method="post" action="{{ url_for('auth.logout') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="dropdown-item">{{ icon("logout", "dropdown-item-icon") }}Log off</button>
+          <button type="submit" class="dropdown-item">{{ icon("logout", "dropdown-item-icon") }}Log out</button>
         </form>
       </div>
     </div>
@@ -101,11 +101,11 @@
   </nav>
 
   <div class="app-systembar" role="toolbar" aria-label="System toolbar">
-    {# command field: ketik kode transaksi (LL, /nLL, /oLL = tab baru, /n = Home) terus Enter #}
+    {# command field: ketik kode menu (LL, /nLL, /oLL = tab baru, /n = Home) terus Enter #}
     <form class="app-command" data-command-form data-home-url="{{ url_for('main.home') }}" autocomplete="off" role="search" aria-label="Command field">
-      <button type="submit" class="btn btn-icon app-system-btn app-tone-green" title="Enter (go to the typed transaction)" aria-label="Enter">{{ icon("enter") }}</button>
+      <button type="submit" class="btn btn-icon app-system-btn app-tone-green" title="Enter (go to the typed menu code)" aria-label="Enter">{{ icon("enter") }}</button>
       <input type="text" class="form-control app-command-input" name="command" list="transaction_list" maxlength="20" spellcheck="false"
-             placeholder="Transaction code" aria-label="Transaction code" title="Type a transaction code, e.g. LL, then Enter (Ctrl+/)"
+             placeholder="Menu code" aria-label="Menu code" title="Type a menu code, e.g. LL, then Enter (Ctrl+/)"
              data-command-input>
       <datalist id="transaction_list">
         {% for transaction in transaction_list %}<option value="{{ transaction.code }}">{{ transaction.label }}</option>{% endfor %}
@@ -120,10 +120,9 @@
     {% endif %}
     <span class="app-systembar-divider" aria-hidden="true"></span>
     {{ system_link(toolbar_back_url, "back_circle", "Back", "Back to the previous screen", "F3", "green") }}
-    {{ system_link(toolbar_exit_url, "exit_circle", "Exit", "Exit this screen to Easy Access", "Shift+F3", "orange") }}
+    {{ system_link(toolbar_exit_url, "exit_circle", "Exit", "Exit this screen to Home", "Shift+F3", "orange") }}
     {{ system_link(toolbar_cancel_url, "cancel_circle", "Cancel", "Discard changes & close this screen", "F12", "red") }}
     <span class="app-systembar-divider" aria-hidden="true"></span>
-    <button type="button" class="btn btn-icon app-system-btn" data-system-print title="Print this screen" aria-label="Print">{{ icon("printer") }}</button>
     <button type="button" class="btn btn-icon app-system-btn" data-system-find title="Find (/)" aria-label="Find">{{ icon("find") }}</button>
     <span class="app-systembar-divider" aria-hidden="true"></span>
     <button type="button" class="btn btn-icon app-system-btn app-tone-blue" data-help-open aria-haspopup="dialog" title="Help for this screen (F1)" aria-label="Help">{{ icon("help") }}</button>

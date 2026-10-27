@@ -1,4 +1,4 @@
-"""Layar awal setelah login (ALR Easy Access), dashboard ringkasan, export Excel Daftar Link."""
+"""Layar awal setelah login (ALR Home), dashboard ringkasan, export Excel Daftar Link."""
 import os
 
 from flask import Blueprint, current_app, redirect, render_template, request, send_file, url_for
@@ -47,14 +47,14 @@ def build_export_filename(user):
 @main_bp.get("/")
 @login_required
 def home():
-    """Layar awal ala SAP Easy Access: pohon menu (Favorites + ALR Menu) di kiri, gambar di kanan."""
+    """Layar awal (Home): pohon menu (Favorites + ALR Menu) di kiri, gambar di kanan."""
     # link lama yg masih bawa kriteria (misal /?q=router) dilempar ke Daftar Link, langsung ke tabelnya.
     # query string-nya diterusin apa adanya (bukan lewat url_for, biar parameter kayak _anchor ga ikut kebaca)
     if request.query_string:
         return redirect(f"{url_for('entries.index')}?{request.query_string.decode('latin-1')}#daftar_link")
     return render_template(
         "pages/easy_access.html",
-        page_title="ALR Easy Access",
+        page_title="ALR Home",
         favorite_entry_list=list_visible_favorite_entry(get_current_user(), EASY_ACCESS_FAVORITE_LIMIT),
         image_url=url_for("static", filename=EASY_ACCESS_IMAGE, v=read_static_version(EASY_ACCESS_IMAGE)),
     )

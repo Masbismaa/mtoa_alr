@@ -1,8 +1,8 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
 
-{# layar awal ala SAP Easy Access: pohon menu di kiri (Favorites + ALR Menu, isinya ngikut hak akses user dari
-   sidebar_section_list), gambar di kanan, garis pemisah bisa digeser (js/components/easy_access.js) #}
+{# layar awal (Home): pohon menu di kiri (Favorites + ALR Menu, isinya ngikut hak akses user dari
+   sidebar_section_list), gambar di kanan. Lebar pohon paten, ga bisa digeser #}
 
 {% macro transaction_leaf(item) %}
   <li role="none">
@@ -14,11 +14,11 @@
   </li>
 {% endmacro %}
 
-{% block title %}ALR Easy Access{% endblock %}
-{% block screen_title %}ALR Easy Access{% endblock %}
+{% block title %}ALR Home{% endblock %}
+{% block screen_title %}Access Link Register{% endblock %}
 
 {% block page_help %}
-  <p>The start screen. Open a folder in the tree and click a transaction, or type its code (e.g. <kbd>LL</kbd>) in the command field at the top.</p>
+  <p>The start screen. Open a folder in the tree and click a menu, or type its code (e.g. <kbd>LL</kbd>) in the command field at the top.</p>
   <p>Favorites lists your starred links. Star a link with <strong>Add to Favorites</strong> on its detail screen.</p>
 {% endblock %}
 
@@ -86,7 +86,6 @@
         </li>
       </ul>
     </nav>
-    <div class="ea-splitter" role="separator" aria-orientation="vertical" aria-label="Resize menu tree" tabindex="0" data-easy-access-splitter></div>
     {# foto kanan: timpa app/static/images/easy_access.jpg (nama sama), versinya otomatis ganti #}
     <img class="ea-image" src="{{ image_url }}" alt="">
   </div>

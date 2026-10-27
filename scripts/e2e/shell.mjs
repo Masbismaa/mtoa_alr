@@ -23,7 +23,7 @@ await runScenario("group", async () => {
   await typeText("zz");
   await pressKey("Enter", "Enter", 13);
   await waitFor(`document.querySelector("[data-status-text]").textContent.includes("ZZ")`);
-  check("kode ga dikenal -> pesan di status bar, tetep di layar ini", (await statusText()) === "Transaction ZZ does not exist" && (await path()) === "/", await statusText());
+  check("kode ga dikenal -> pesan di status bar, tetep di layar ini", (await statusText()) === "Menu code ZZ not found" && (await path()) === "/", await statusText());
 
   await evaluate(`document.activeElement.blur()`);
   await pressKey("/", "Slash", 191, 2);
@@ -35,18 +35,14 @@ await runScenario("group", async () => {
   check("menu Menu isinya transaksi + kodenya", menuText.includes("Link List") && menuText.includes("LL") && !menuText.includes("Users"), menuText.replace(/\n/g, " | "));
   await screenshot("shell_menu.png");
 
-  // Easy Access: buka folder Data > Links, klik transaksi; garis pemisah digeser
+  // Easy Access: buka folder Data > Links, klik transaksi; lebar pohon paten (ga ada garis geser)
   await navigate(BASE + "/");
   await evaluate(`document.querySelector(".app-menubar .dropdown-menu.show")?.classList.remove("show")`);
   const folderSelector = (label) => `[...document.querySelectorAll(".ea-folder > summary")].find((el) => el.textContent.trim() === "${label}")`;
   await evaluate(`${folderSelector("Data")}.click()`);
   await evaluate(`${folderSelector("Links")}.click()`);
   check("buka folder -> aria-expanded ikut", await evaluate(`${folderSelector("Links")}.getAttribute("aria-expanded") === "true"`));
-  const treeWidth = () => evaluate(`Math.round(document.querySelector(".ea-tree-panel").getBoundingClientRect().width)`);
-  const beforeWidth = await treeWidth();
-  await evaluate(`document.querySelector("[data-easy-access-splitter]").focus()`);
-  await pressKey("ArrowRight", "ArrowRight", 39);
-  check("panah kanan di garis pemisah -> pohon melebar", (await treeWidth()) > beforeWidth, `${beforeWidth} -> ${await treeWidth()}`);
+  check("pohon menu ga bisa digeser", await evaluate(`!document.querySelector("[data-easy-access-splitter]")`));
   await screenshot("easy_access.png");
   await waitLoad(() => evaluate(`[...document.querySelectorAll(".ea-leaf")].find((el) => el.textContent.includes("Link List")).click()`));
   check("klik transaksi di pohon -> pindah layar", (await path()) === "/entries/", await path());

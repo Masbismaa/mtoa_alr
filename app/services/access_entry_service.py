@@ -547,7 +547,7 @@ def is_favorite_entry(user, entry):
     ).first() is not None
 
 def list_visible_favorite_entry(user, limit):
-    """Link favorit yg masih boleh diliat, urut judul (folder Favorites di Easy Access)."""
+    """Link favorit yg masih boleh diliat, urut judul (folder Favorites di Home)."""
     return db.session.execute(
         db.select(AccessEntry)
         .join(UserFavorite, UserFavorite.access_entry_id == AccessEntry.id)
