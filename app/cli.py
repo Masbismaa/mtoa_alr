@@ -130,31 +130,45 @@ def register_cli_commands(app):
         click.echo(f"{count} file yatim {'dihapus' if delete else 'ditemukan (belum dihapus)'}.")
 
     @app.cli.command("backup")
-    def backup_command():
-        """Bikin backup (database + lampiran) di BACKUP_FOLDER."""
-        from app.services.backup_service import create_backup
-        try:
-            backup_path = create_backup()
-        except ValidationError as error:
-            raise click.ClickException(error.error_list[0]["message"]) from error
-        click.echo(f"Backup dibuat: {backup_path}")
+    @click.option("--only", type=click.Choice(["database", "website"]), help="Cuma satu jenis (default dua-duanya).")
+    def backup_command(only):
+        """Bikin backup database (BACKUP_FOLDER/database) dan lampiran website (BACKUP_FOLDER/website)."""
+        from app.services.backup_service import BACKUP_KIND_DATABASE, BACKUP_KIND_WEBSITE, create_database_backup, create_website_backup
+        create_dict = {BACKUP_KIND_DATABASE: create_database_backup, BACKUP_KIND_WEBSITE: create_website_backup}
+        for kind, create_backup in create_dict.items():
+            if only and kind != only:
+                continue
+            try:
+                backup_path = create_backup()
+            except ValidationError as error:
+                raise click.ClickException(f"Backup {kind} gagal: {error.error_list[0]['message']}") from error
+            click.echo(f"Backup {kind} dibuat: {backup_path}")
 
     @app.cli.command("restore")
     @click.argument("backup_file", type=click.Path(exists=True, dir_okay=False))
-    @click.confirmation_option(prompt="Semua data sekarang bakal ditimpa isi backup. Lanjut?")
+    @click.confirmation_option(prompt="Data sekarang bakal ditimpa / ditambah isi backup. Lanjut?")
     def restore_command(backup_file):
-        """Restore dari file backup. File di luar BACKUP_FOLDER disalin ke sana dulu."""
+        """Restore dari file backup (alr-db-... = database, alr-web-... = lampiran). File di luar foldernya disalin ke sana dulu."""
         import shutil
         from pathlib import Path
-        from app.services.backup_service import get_backup_folder, restore_backup
+        from app.services.backup_service import (
+            BACKUP_KIND_DATABASE, get_backup_folder, read_backup_kind, restore_database_backup, restore_website_backup,
+        )
         source_path = Path(backup_file).resolve()
-        if source_path.parent != get_backup_folder():
-            shutil.copy2(source_path, get_backup_folder() / source_path.name)
+        kind = read_backup_kind(source_path.name)
+        if kind is None:
+            raise click.ClickException("Nama file bukan backup ALR (alr-db-....zip / alr-web-....zip)")
+        if source_path.parent != get_backup_folder(kind):
+            shutil.copy2(source_path, get_backup_folder(kind) / source_path.name)
         try:
-            safety_backup_path = restore_backup(source_path.name)
+            if kind == BACKUP_KIND_DATABASE:
+                safety_backup_path = restore_database_backup(source_path.name)
+                click.echo(f"Restore database selesai. Data sebelum restore disimpan di {safety_backup_path}")
+            else:
+                restored_count = restore_website_backup(source_path.name)
+                click.echo(f"Restore lampiran selesai: {restored_count} file dibalikin.")
         except ValidationError as error:
             raise click.ClickException(error.error_list[0]["message"]) from error
-        click.echo(f"Restore selesai. Data sebelum restore disimpan di {safety_backup_path}")
 
     @app.cli.command("cleanup-old-data")
     @click.option("--delete", is_flag=True, help="Hapus beneran (default cuma ngitung).")

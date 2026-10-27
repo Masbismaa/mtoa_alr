@@ -31,8 +31,16 @@ Isian lain boleh dibiarkan sesuai `.env.example` untuk development (OTP dicetak 
 
 **Backup & Restore** (menu admin, atau `flask --app run backup` / `flask --app run restore FILE`) butuh `pg_dump` dan `pg_restore`
 dengan versi minimal sama dengan server PostgreSQL. Kalau belum masuk PATH, isi `PG_BIN_DIR` (misal `C:\Program Files\PostgreSQL\17\bin`).
-File backup disimpan di `BACKUP_FOLDER` (default `backups/`). Isinya database + lampiran, tapi **tanpa** `ENCRYPTION_KEY`, jadi simpan kunci itu terpisah.
-Restore ikut ngembaliin Audit Logs ke isi backup. Catatan sesudah backup dibuat tetap ada di backup pengaman yang otomatis dibikin sebelum restore.
+Backup dipisah dua jenis, masing-masing punya folder sendiri di dalam `BACKUP_FOLDER` (default `backups/`):
+
+| Jenis | Folder | Isi | Restore |
+|---|---|---|---|
+| Database | `backups/database/alr-db-*.zip` | dump PostgreSQL | timpa seluruh database (backup database sekarang dibikin dulu otomatis) |
+| Website | `backups/website/alr-web-*.zip` | semua lampiran (`uploads/`) | cuma nambahin lampiran yang hilang, file yang ada ga diubah |
+
+`flask --app run backup` bikin dua-duanya (`--only database` / `--only website` buat salah satu).
+`flask --app run restore FILE` milih jenisnya dari nama file. Backup database **tanpa** `ENCRYPTION_KEY`, jadi simpan kunci itu terpisah.
+Restore database ikut ngembaliin Audit Logs ke isi backup. Catatan sesudah backup dibuat tetap ada di backup pengaman yang otomatis dibikin sebelum restore.
 Database besar sebaiknya di-restore lewat `flask --app run restore FILE`: lewat menu web, reverse proxy bisa timeout duluan
 (restore-nya tetap jalan sampai selesai dalam satu transaksi, tapi halamannya error, jadi jangan diklik ulang).
 
