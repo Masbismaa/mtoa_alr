@@ -1,5 +1,5 @@
 """Aturan hak akses data link & group. Satu tempat, dipake route, service, dan query."""
-from sqlalchemy import or_
+from sqlalchemy import or_, true
 from sqlalchemy.orm import aliased
 from app.extensions import db
 from app.models import AccessEntry, Group, GroupEntry, GroupEntryViewer, GroupMember
@@ -50,8 +50,9 @@ def is_entry_shared_with_user(user, entry):
     return db.session.execute(shared_query).first() is not None
 
 def can_view_entry(user, entry):
-    """Boleh liat: punya sendiri, Public, atau dibagiin lewat group."""
-    if is_entry_owner(user, entry) or entry.visibility == VISIBILITY_PUBLIC:
+    """Boleh liat: punya sendiri, Public, dibagiin lewat group, atau admin (semua link, Private orang lain
+    cuma read-only karena can_edit_entry tetep nolak)."""
+    if is_admin(user) or is_entry_owner(user, entry) or entry.visibility == VISIBILITY_PUBLIC:
         return True
     return is_entry_shared_with_user(user, entry)
 
@@ -62,7 +63,14 @@ def can_edit_entry(user, entry):
     return entry.visibility == VISIBILITY_PUBLIC and is_admin(user)
 
 def build_visible_entry_filter(user):
-    """Filter query: data yg boleh dilihat user (sama kayak can_view_entry)."""
+    """Filter query: data yg boleh dilihat user (sama kayak can_view_entry). Admin liat semua."""
+    if is_admin(user):
+        return true()
+    return build_own_visible_entry_filter(user)
+
+def build_own_visible_entry_filter(user):
+    """Data sendiri + Public + dibagiin lewat group, tanpa hak liat admin. Dipake cek link duplikat,
+    biar admin ga keblok gara-gara URL yg sama ada di link Private orang lain."""
     return or_(
         AccessEntry.user_id == user.id,
         AccessEntry.visibility == VISIBILITY_PUBLIC,
@@ -98,9 +106,3 @@ def is_private_audit_data(audit_log):
         (data_dict or {}).get("visibility") == VISIBILITY_PRIVATE
         for data_dict in (audit_log.old_data, audit_log.new_data)
     )
-
-def can_view_audit_data(user, audit_log):
-    """Admin boleh liat isi perubahan, kecuali data Private punya orang lain."""
-    if not is_admin(user):
-        return False
-    return audit_log.user_id == user.id or not is_private_audit_data(audit_log)

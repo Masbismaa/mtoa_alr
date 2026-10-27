@@ -3,7 +3,6 @@ from flask import Blueprint, abort, render_template, request
 from flask_login import login_required
 from app.schemas.selection_schema import AUDIT_FIELD_LIST, read_audit_selection
 from app.schemas.table_schema import TABLE_AUDIT
-from app.security.access_policy import can_view_audit_data
 from app.security.role_guard import admin_required
 from app.services.audit_service import build_audit_change_list, get_audit_log, search_audit_logs
 from app.services.preference_service import get_table_layout
@@ -47,12 +46,9 @@ def detail(log_id):
     audit_log = get_audit_log(log_id)
     if audit_log is None:
         abort(404)
-    # data Private punya orang lain tetep ga boleh keliatan, termasuk sama admin
-    is_data_visible = can_view_audit_data(get_current_user(), audit_log)
     return render_template(
         "pages/audit_logs/detail.html",
         page_title="Detail Audit Log",
         audit_log=audit_log,
-        is_data_visible=is_data_visible,
-        change_list=build_audit_change_list(audit_log) if is_data_visible else [],
+        change_list=build_audit_change_list(audit_log),
     )

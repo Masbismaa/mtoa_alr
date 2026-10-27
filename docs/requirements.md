@@ -53,7 +53,7 @@ sebelumnya tersebar. Link hanya disimpan sebagai teks (tidak dibuka otomatis).
 | Hapus | Semua data Public | Ya | Tidak |
 | Kelola Master Data | Ya | Tidak | Tidak |
 
-Data **Private** hanya dapat dilihat oleh pemiliknya (termasuk tidak terlihat oleh Admin).
+Data **Private** hanya dapat dilihat oleh pemiliknya dan Admin. Admin hanya bisa melihat (read-only), tidak bisa mengubah, mengarsipkan, menghapus, atau membagikannya.
 
 ## 6. Ringkasan Fitur Pendukung
 - **Dashboard**: kumpulan link, created by, tanggal & jam dibuat, tombol Copy dan View detail.

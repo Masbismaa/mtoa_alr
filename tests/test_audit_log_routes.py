@@ -82,14 +82,12 @@ def test_detail_masks_sensitive_value(admin_client):
     assert "RahasiaBanget123" not in html_text
     assert MASKED_VALUE in html_text
 
-def test_detail_hides_private_data_of_other_user(admin_client, registered_user, category_dict):
-    """Negative (security): isi data Private user lain ga keliatan, termasuk sama admin."""
+def test_detail_shows_private_data_of_other_user_to_admin(admin_client, registered_user, category_dict):
+    """Positive: admin bisa liat isi perubahan data Private user lain (sama kayak bisa liat link-nya)."""
     entry = create_entry(registered_user, category_dict["Web"], "VPN Rahasia", VISIBILITY_PRIVATE)
     response = admin_client.get(f"/audit-logs/{get_entry_audit_log(entry).id}")
-    html_text = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "VPN Rahasia" not in html_text
-    assert "data is hidden" in html_text
+    assert "VPN Rahasia" in response.get_data(as_text=True)
 
 def test_detail_not_found(admin_client):
     """Negative: id ga ada -> 404."""

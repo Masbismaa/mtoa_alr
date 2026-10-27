@@ -4,7 +4,13 @@ from sqlalchemy.orm import joinedload, selectinload, undefer
 
 from app.extensions import db
 from app.models import AccessEntry, AccessEntryField, Category, User, UserFavorite
-from app.security.access_policy import build_visible_entry_filter, can_edit_entry, is_admin, is_entry_owner
+from app.security.access_policy import (
+    build_own_visible_entry_filter,
+    build_visible_entry_filter,
+    can_edit_entry,
+    is_admin,
+    is_entry_owner,
+)
 from app.security.encryption_service import decrypt_credential, encrypt_credential
 from app.services.attachment_service import (
     pick_entry_attachment_list,
@@ -187,7 +193,7 @@ def validate_custom_field_list(category, custom_field_pair_list):
 
 def find_duplicate_entry(user, clean_dict, exclude_entry_id=None):
     """Cari data dgn URL / Address+Port sama, cuma di data sendiri + Public. Return (field, entry)."""
-    base_query = db.select(AccessEntry).where(build_visible_entry_filter(user))
+    base_query = db.select(AccessEntry).where(build_own_visible_entry_filter(user))
     if exclude_entry_id is not None:
         base_query = base_query.where(AccessEntry.id != exclude_entry_id)
 
@@ -220,7 +226,7 @@ def find_duplicate_entry_dict(user, clean_dict_list):
     title_by_url, title_by_address = {}, {}
     for title, url, address, port in db.session.execute(
         db.select(AccessEntry.title, AccessEntry.url, AccessEntry.address, AccessEntry.port)
-        .where(build_visible_entry_filter(user), match_condition).order_by(AccessEntry.id)
+        .where(build_own_visible_entry_filter(user), match_condition).order_by(AccessEntry.id)
     ):
         title_by_url.setdefault(url, title)
         title_by_address.setdefault((address, port), title)

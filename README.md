@@ -228,7 +228,7 @@ Expand a module to view its capabilities.
 |---|---|
 | Record types | URL, host or IP address with port, or a structured guide with up to ten custom fields written in a Word-style rich text editor (sanitized and not encrypted, so never meant for passwords) |
 | Categorization | Hierarchical categories up to four levels deep (for example, Web › ERP), selected through cascading inputs |
-| Visibility | Private (owner only) or Public (all users, read-only); only administrators can create Public links, so links from other users, including imported ones, are saved as Private |
+| Visibility | Private (owner, plus administrators read-only) or Public (all users, read-only); only administrators can create Public links, so links from other users, including imported ones, are saved as Private |
 | Access note | A short access hint (for example, sign in via SSO), not a password; encrypted in the database and masked until a user explicitly reveals it |
 | Attachments | Up to five files per record: images, PDF, Excel, Word, and plain text |
 | Favorites | Bookmark records and filter the list to favorites only |
@@ -325,7 +325,7 @@ The system defines two roles: User Entry and Administrator. Permissions are not 
 
 </div>
 
-Private links remain private to their owner, including from administrators. Administrator accounts can only be provisioned through the command line.
+Private links are hidden from other users; administrators can view them read-only but cannot edit, archive, delete, or share them. Administrator accounts can only be provisioned through the command line.
 
 <br>
 
