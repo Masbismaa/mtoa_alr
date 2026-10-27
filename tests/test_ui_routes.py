@@ -20,7 +20,7 @@ def test_dashboard_shows_topbar_profile(logged_in_client):
     assert 'data-pref-source="server"' in html_text
 
 def test_topbar_has_home_theme_toggle_and_user_menu(logged_in_client):
-    """Topbar menyediakan Home, tombol tema, dan menu pengguna."""
+    """Topbar ala SAP: link Home (logo), command field, menu profil di kanan atas. Tombol tema cuma di sidebar HP."""
     response = logged_in_client.get("/settings/")
     assert response.status_code == 200
     html_text = response.get_data(as_text=True)
@@ -32,9 +32,8 @@ def test_topbar_has_home_theme_toggle_and_user_menu(logged_in_client):
     assert topbar_match is not None, "Header dengan class app-topbar tidak ditemukan"
     topbar_html = topbar_match.group(1)
     assert 'href="/"' in topbar_html
-    assert "Home" in topbar_html
-    assert "user-menu" in topbar_html
-    assert "data-theme-toggle" in topbar_html
+    assert "data-command-form" in topbar_html and "Log off" in topbar_html
+    assert "user-menu" in topbar_html and "data-theme-toggle" not in topbar_html
 
 def test_user_entry_sees_locked_admin_menu(logged_in_client):
     """Negative (RBAC): user biasa liat menu Categories & Audit Logs dgn gembok, tapi ga ada link-nya."""
@@ -58,7 +57,7 @@ def test_admin_sees_admin_menu(client, user_password, fixed_otp_code):
 
 def test_standard_dashboard_shows_personal_view_only(logged_in_client):
     """Positive: User Entry -> dashboard pribadi (panduan mulai kalau belum punya link), tanpa panel admin / akses."""
-    html_text = logged_in_client.get("/").get_data(as_text=True)
+    html_text = logged_in_client.get("/dashboard/").get_data(as_text=True)
     assert 'data-access-level="standard"' in html_text and "User Entry" in html_text
     assert "Get started" in html_text and "Needs Your Attention" in html_text
     assert "System Overview" not in html_text and "Admin To-Do" not in html_text and "Your Access" not in html_text
@@ -76,7 +75,7 @@ def test_sidebar_renders_inline_folders_and_opens_active_branch(logged_in_client
 def test_user_entry_dashboard_has_no_extra_access(logged_in_client):
     """Positive: role "User with access" & akses tambahan udah dihapus -> user biasa dapet dashboard User Entry,
     tanpa panel "Your Access", dan menu admin ga kebuka."""
-    html_text = logged_in_client.get("/").get_data(as_text=True)
+    html_text = logged_in_client.get("/dashboard/").get_data(as_text=True)
     assert 'data-access-level="standard"' in html_text and "User Entry" in html_text
     assert "User with access" not in html_text and "Your Access" not in html_text
     assert "System Overview" not in html_text and "Admin To-Do" not in html_text
@@ -87,7 +86,7 @@ def test_user_entry_dashboard_has_no_extra_access(logged_in_client):
 def test_admin_dashboard_shows_system_overview_and_admin_todo(client, admin_user, user_password, fixed_otp_code):
     """Positive: admin -> ringkasan sistem (user, monitoring) & tugas admin, bukan angka pribadi / panel akses."""
     login_as(client, admin_user.email, user_password, fixed_otp_code)
-    html_text = client.get("/").get_data(as_text=True)
+    html_text = client.get("/dashboard/").get_data(as_text=True)
     assert 'data-access-level="admin"' in html_text
     assert "System Overview" in html_text and "Admin To-Do" in html_text
     assert 'href="/users/?status=locked"' in html_text and 'href="/link-monitoring/"' in html_text

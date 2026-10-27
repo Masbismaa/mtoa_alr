@@ -18,3 +18,10 @@
 .flash-text {
   overflow-wrap: anywhere;
 }
+
+/* kayak SAP: di layar aplikasi pesan sukses & info cukup di status bar bawah (app_shell.js), kotak di atas cuma
+   buat peringatan & error. Layar login/daftar ga punya status bar, jadi pesannya tetep tampil di sana */
+.page-body .flash-item.alert-success,
+.page-body .flash-item.alert-info {
+  display: none;
+}

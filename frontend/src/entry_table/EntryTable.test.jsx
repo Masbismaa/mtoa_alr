@@ -445,3 +445,45 @@ describe("hapus banyak (admin)", () => {
     delete window.AlrConfirm;
   });
 });
+
+describe("toolbar ALV", () => {
+  it("Sort mati sebelum kolom dipilih; klik sel kolom terus Sort descending -> urut turun kolom itu", async () => {
+    const { pendingList } = mockFetchSequence();
+    localStorage.removeItem("alr_alv_filter_shown");
+    render(<EntryTable initialPayload={makePayload()} />);
+    const sortDescButton = screen.getByRole("button", { name: "Sort descending" });
+    expect(sortDescButton).toBeDisabled();
+    await userEvent.click(within(getRowList()[0]).getAllByRole("cell").find((cellEl) => cellEl.dataset.column === "owner"));
+    expect(sortDescButton).toBeEnabled();
+    await userEvent.click(sortDescButton);
+    expect(pendingList[0].url).toBe("/entries/table-data?run=1&sort=-owner");
+  });
+
+  it("Details buka baris yg aktif, kolom View udah ga ada", async () => {
+    render(<EntryTable initialPayload={makePayload()} />);
+    expect(screen.getByRole("button", { name: "Details" })).toBeDisabled();
+    expect(screen.queryByRole("link", { name: /View/ })).toBeNull();
+    fireEvent.click(getRowList()[1]);
+    await userEvent.click(screen.getByRole("button", { name: "Details" }));
+    expect(navigateTo).toHaveBeenLastCalledWith(makePayload().rows[1].detail_url);
+  });
+
+  it("tombol Filter row nyembunyiin baris filter, pilihannya diinget", async () => {
+    localStorage.removeItem("alr_alv_filter_shown");
+    render(<EntryTable initialPayload={makePayload()} />);
+    expect(screen.getByRole("searchbox", { name: "Filter Title" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Filter row" }));
+    expect(screen.queryByRole("searchbox", { name: "Filter Title" })).toBeNull();
+    expect(localStorage.getItem("alr_alv_filter_shown")).toBe("0");
+    localStorage.removeItem("alr_alv_filter_shown");
+  });
+
+  it("filter yg lagi kepake bikin baris filter tetep tampil walau disembunyiin", () => {
+    localStorage.setItem("alr_alv_filter_shown", "0");
+    const payload = makePayload();
+    payload.columns[0].filter = { ...payload.columns[0].filter, value: "portal*" };
+    render(<EntryTable initialPayload={payload} />);
+    expect(screen.getByRole("searchbox", { name: "Filter Title" })).toHaveValue("portal*");
+    localStorage.removeItem("alr_alv_filter_shown");
+  });
+});

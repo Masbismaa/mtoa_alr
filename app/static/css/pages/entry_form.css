@@ -1,16 +1,5 @@
 /* halaman form link */
 
-/* form link: badge "Wajib" di pojok kanan label */
-.category-field {
-  position: relative;
-}
-
-.required-badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-}
-
 /* kategori bertingkat (entry_form.js): 1 dropdown + label per tingkat, sejajar kalau lebar cukup, numpuk di HP.
    :not([hidden]) biar atribut hidden tetep menang selama JS belum jalan */
 .category-cascade:not([hidden]) {

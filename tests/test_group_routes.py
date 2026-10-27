@@ -86,7 +86,7 @@ def test_dashboard_counts_group(logged_in_client, registered_user):
     import re
 
     group = create_group(registered_user, {"name": "Tim Network"})
-    response = logged_in_client.get("/")
+    response = logged_in_client.get("/dashboard/")
     assert response.status_code == 200
     group_card = re.search(
         rf'<a\b[^>]*href="/groups/{group.id}"[^>]*>(.*?)</a>', response.get_data(as_text=True), re.DOTALL,

@@ -6,7 +6,7 @@
      diisi lewat block screen_title tiap halaman, kalau kosong pake judul halaman biasa #}
   {% set shell_title = (self.screen_title() | striptags | trim) or (self.page_heading() | striptags | trim) %}
   {# toolbar aplikasi: tiap halaman boleh ngisi block toolbar_back / toolbar_cancel (URL) & toolbar_save (id form).
-     yg kosong tombolnya dinonaktifin. Kembali defaultnya ke tujuan Batal, kalau ga ada ke Dashboard #}
+     yg kosong tombolnya dinonaktifin. Kembali defaultnya ke tujuan Batal, kalau ga ada ke Easy Access #}
   {% set is_home = request.endpoint == "main.home" %}
   {% set toolbar_save_form = self.toolbar_save() | trim %}
   {% set toolbar_cancel_url = self.toolbar_cancel() | trim %}
@@ -28,6 +28,8 @@
     {% include "components/sidebar.html" %}
 
     <div class="page-wrapper">
+      {# judul layar ala "SAP Easy Access": panel miring tebal di atas toolbar aplikasi (HP: judulnya di toolbar) #}
+      <div class="app-titlebar d-none d-lg-block d-print-none"><h1 class="app-titlebar-text">{{ shell_title }}</h1></div>
       {% include "components/app_toolbar.html" %}
       {# kepala halaman (judul kecil + judul + keterangan) di-remark dulu, judul layar udah ada di title bar atas.
          buat nyalain lagi: buka komentar ini & pindahin block page_pretitle/page_heading/page_subtitle dari {% if false %} di atas ke sini.
@@ -63,6 +65,7 @@
   <script src="{{ url_for('static', filename='js/components/confirm_dialog.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/components/copy_button.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/components/app_shell.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/components/command_field.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/components/form_guard.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/components/data_table.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/components/table_row.js') }}" defer></script>

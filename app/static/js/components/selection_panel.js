@@ -79,6 +79,8 @@
     const extraCount = Math.max(includeList.length - 1, 0) + excludeList.length;
     countEl.textContent = "+" + extraCount;
     countEl.hidden = extraCount === 0;
+    // panah Multiple Selection jadi hijau kalau ada nilai tambahan, kayak di SAP
+    boxEl.parentElement.querySelector("[data-selection-multi]").classList.toggle("has-values", extraCount > 0);
   }
 
   function closeDialog() {

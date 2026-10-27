@@ -1,7 +1,7 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
 {% from "components/entry_table.html" import entry_table %}
-{% from "components/selection_panel.html" import selection_panel %}
+{% from "components/selection_panel.html" import selection_panel, selection_toolbar %}
 
 {% block title %}Link List{% endblock %}
 
@@ -10,13 +10,13 @@
 
 {% block page_pretitle %}Links{% endblock %}
 
-{% block page_actions %}
-  <a href="{{ url_for('entries.create', back=request.full_path.rstrip('?')) }}" class="btn btn-primary">{{ icon("plus") }} Add Link</a>
-{% endblock %}
-
 {% block page_help %}
   <p>Fill in the <b>Selection Criteria</b>, then click <b>Execute</b>. Use <code>*</code> as a wildcard: <code>portal*</code> starts with portal, <code>*hr</code> ends with hr.</p>
   <p>The list button next to a field opens <b>Multi Selection</b> (multiple values, include / exclude). Click a column header to sort, and the <b>Columns</b> button to choose columns.</p>
+{% endblock %}
+
+{% block page_actions %}
+  {{ selection_toolbar(url_for("entries.index", _anchor="daftar_link")) }}
 {% endblock %}
 
 {% block content %}

@@ -59,7 +59,7 @@ def test_theme_toggle_shows_day_night_switch(logged_in_client):
 
 def test_page_title_has_single_suffix(logged_in_client):
     """Positive: judul tab browser cuma sekali '- ALR', tanpa MTOA."""
-    html_text = logged_in_client.get("/").get_data(as_text=True)
+    html_text = logged_in_client.get("/dashboard/").get_data(as_text=True)
     assert "<title>Dashboard - ALR</title>" in html_text
     assert "MTOA" not in html_text
 

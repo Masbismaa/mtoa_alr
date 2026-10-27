@@ -1,4 +1,4 @@
-// tabel link ala ALV (Daftar Link & isi kategori). Isi kartu #daftar_link: judul, tombol Export/Kolom, tabel, navigasi halaman.
+// tabel link ala ALV (Daftar Link & isi kategori). Isi kartu #daftar_link: judul, toolbar ALV, tabel, navigasi halaman.
 //
 // Alur data:
 //   payload awal (ditempel server di data-entry-table) -> tampil
@@ -13,6 +13,7 @@ import { isInteractiveTarget } from "../shared/events.js";
 import { navigateTo, reloadPage } from "../shared/navigation.js";
 import { buildUrl, withQueryValue } from "../shared/queryString.js";
 import { showStatus } from "../shared/statusBar.js";
+import AlvToolbar from "./AlvToolbar.jsx";
 import ColumnMenu from "./ColumnMenu.jsx";
 import EmptyState from "./EmptyState.jsx";
 import Pagination from "./Pagination.jsx";
@@ -24,6 +25,16 @@ import useColumnLayout from "./useColumnLayout.js";
 import useTableData, { HISTORY_NONE } from "./useTableData.js";
 
 const COPY_PREVIEW_LENGTH = 60;
+const FILTER_SHOWN_KEY = "alr_alv_filter_shown";
+
+// baris filter ditampilin / disembunyiin lewat toolbar ALV, pilihannya diinget di browser ini
+function readFilterShown() {
+  try {
+    return localStorage.getItem(FILTER_SHOWN_KEY) !== "0";
+  } catch (error) {
+    return true;
+  }
+}
 
 async function copyWithStatus(text) {
   try {
@@ -60,13 +71,32 @@ export default function EntryTable({ initialPayload }) {
   const isBulkDelete = Boolean(payload.bulk_delete_url);
   const deletableIdList = payload.rows.filter((row) => row.can_delete).map((row) => row.id);
   useEffect(() => { setSelectedIdSet(new Set()); }, [payload.rows]);
+  // kolom yg lagi dipilih (klik sel / judul kolom) -> dipake tombol Sort di toolbar ALV
+  const [selectedColumnKey, setSelectedColumnKey] = useState(null);
+  const [isFilterShown, setIsFilterShown] = useState(readFilterShown);
+  const applyFiltersRef = useRef(null);
 
   const visibleColumns = payload.columns.filter((column) => !layout.isHidden(column));
   const buildPageHref = (query, page) => buildUrl(payload.page_url, query, page, payload.anchor);
 
   // AKSI YG NGAMBIL DATA BARU
   function handleSort(nextSort) {
+    setSelectedColumnKey(nextSort.replace(/^-/, ""));
     load({ ...payload.query, sort: [nextSort] }, 1);
+  }
+
+  function toggleFilterShown() {
+    setIsFilterShown((current) => {
+      try { localStorage.setItem(FILTER_SHOWN_KEY, current ? "0" : "1"); } catch (error) {}
+      return !current;
+    });
+  }
+
+  // klik baris: baris jadi aktif, kolom sel yg diklik jadi kolom pilihan
+  function handleRowClick(event, index) {
+    activate(index, !isInteractiveTarget(event.target), false);
+    const cellEl = event.target.closest("td[data-column]");
+    if (cellEl) setSelectedColumnKey(cellEl.dataset.column);
   }
 
   // changeDict = { key filter: nilai baru }, nilai kosong = filternya dihapus. Halaman balik ke 1
@@ -192,6 +222,10 @@ export default function EntryTable({ initialPayload }) {
   // ga ada data sama sekali -> cukup pesan kosong. Kosong gara-gara filter -> kepala tabel tetep ada biar filternya bisa dihapus
   const isTableShown = hasRows || payload.is_filtered;
   const heading = payload.heading;
+  // filter yg lagi kepake tetep keliatan walau barisnya disembunyiin, biar user tau kenapa datanya kesaring
+  const hasActiveColumnFilter = payload.columns.some((column) => column.filter && (column.filter.value || column.filter.is_locked));
+  const isFilterRowShown = isFilterShown || hasActiveColumnFilter;
+  const sortColumn = visibleColumns.find((column) => column.key === selectedColumnKey && column.is_sortable) || null;
 
   return (
     <>
@@ -199,23 +233,20 @@ export default function EntryTable({ initialPayload }) {
         <h3 className="card-title" ref={headingRef} tabIndex={-1} aria-live="polite">
           <Icon name={heading.icon} /> {heading.text}
         </h3>
-        <div className="card-actions">
-          {isBulkDelete && (
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost-danger"
-              disabled={selectedIdSet.size === 0}
-              data-fkey="Shift+F2"
-              title="Delete the selected links (Shift+F2)"
-              onClick={handleBulkDelete}
-            >
-              <Icon name="trash" /> Delete selected{selectedIdSet.size ? ` (${selectedIdSet.size})` : ""}
-            </button>
-          )}
-          {payload.export_url && (
-            <a href={payload.export_url} className="btn btn-sm"><Icon name="download" /> Export Excel</a>
-          )}
-          {isTableShown && (
+      </div>
+
+      {isTableShown && (
+        <AlvToolbar
+          activeRow={payload.rows[activeIndex] || null}
+          onOpenRow={openRow}
+          sortColumn={sortColumn}
+          onSort={handleSort}
+          isFilterShown={isFilterRowShown}
+          onToggleFilter={toggleFilterShown}
+          onApplyFilters={() => { if (applyFiltersRef.current) applyFiltersRef.current(); }}
+          hasFilter={visibleColumns.some((column) => column.filter)}
+          exportUrl={payload.export_url}
+          columnMenu={(
             <ColumnMenu
               tableKey={payload.table_key}
               columns={payload.columns}
@@ -225,9 +256,21 @@ export default function EntryTable({ initialPayload }) {
               saveStatus={layout.saveStatus}
             />
           )}
-          {heading.count_text && <span className="badge bg-secondary-lt">{heading.count_text}</span>}
-        </div>
-      </div>
+          bulkDelete={isBulkDelete && (
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost-danger alv-delete"
+              disabled={selectedIdSet.size === 0}
+              data-fkey="Shift+F2"
+              title="Delete the selected links (Shift+F2)"
+              onClick={handleBulkDelete}
+            >
+              <Icon name="trash" /> Delete selected{selectedIdSet.size ? ` (${selectedIdSet.size})` : ""}
+            </button>
+          )}
+          countText={heading.count_text}
+        />
+      )}
 
       {error && (
         <div className="alert alert-danger m-3" role="alert">
@@ -254,6 +297,8 @@ export default function EntryTable({ initialPayload }) {
               buildSortHref={(nextSort) => buildPageHref({ ...payload.query, sort: [nextSort] }, 1)}
               onSort={handleSort}
               onFilterApply={handleFilterApply}
+              isFilterShown={isFilterRowShown}
+              applyFiltersRef={applyFiltersRef}
               selection={isBulkDelete ? {
                 isAllChecked: deletableIdList.length > 0 && deletableIdList.every((rowId) => selectedIdSet.has(rowId)),
                 isSomeChecked: selectedIdSet.size > 0 && selectedIdSet.size < deletableIdList.length,
@@ -269,7 +314,7 @@ export default function EntryTable({ initialPayload }) {
                   data-row-url={row.detail_url}
                   className={index === activeIndex ? "is-active" : undefined}
                   tabIndex={getTabIndex(index)}
-                  onClick={(event) => activate(index, !isInteractiveTarget(event.target), false)}
+                  onClick={(event) => handleRowClick(event, index)}
                   onFocus={(event) => { if (event.target === event.currentTarget) activate(index, false); }}
                   onDoubleClick={(event) => { if (!isInteractiveTarget(event.target)) openRow(row); }}
                   onKeyDown={(event) => handleRowKeyDown(event, index)}
@@ -295,21 +340,18 @@ export default function EntryTable({ initialPayload }) {
                         key={column.key}
                         data-column={column.key}
                         data-label={column.label}
-                        className={renderer.className}
+                        className={[renderer.className, column.key === selectedColumnKey ? "is-column-selected" : ""].filter(Boolean).join(" ") || undefined}
                         title={renderer.title ? renderer.title(row) : undefined}
                       >
                         {renderer.render(row)}
                       </td>
                     );
                   })}
-                  <td className="cell-action">
-                    <a href={row.detail_url} className="btn btn-sm"><Icon name="eye" /> View</a>
-                  </td>
                 </tr>
               ))}
               {!hasRows && payload.empty && (
                 <tr>
-                  <td colSpan={visibleColumns.length + (isBulkDelete ? 2 : 1)}><EmptyState empty={payload.empty} /></td>
+                  <td colSpan={visibleColumns.length + (isBulkDelete ? 1 : 0)}><EmptyState empty={payload.empty} /></td>
                 </tr>
               )}
             </tbody>

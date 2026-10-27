@@ -50,3 +50,65 @@
 .page-link {
   border-radius: var(--tblr-border-radius) !important;
 }
+
+/* FIELD WAJIB ALA SAP (cuma layar aplikasi, layar login/daftar tetep pake bintang merah):
+   kotak centang kecil di dalam isian yg wajib & masih kosong, gantiin bintang merah di label.
+   wajib = atribut required (WTForms) / aria-required="true" (field yg wajibnya ngikut kategori, entry_form.js) */
+.page-body .form-label.required::after {
+  content: none;
+}
+
+.page-body .form-control:is([required], [aria-required="true"]):placeholder-shown,
+.page-body .form-control[required]:not([placeholder]):invalid {
+  padding-left: 1.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1.5' y='1.5' width='13' height='13' rx='1.5' fill='%23ffffff' stroke='%23537190'/%3E%3Cpath d='M4.6 8.3l2.2 2.2 4.6-5' fill='none' stroke='%232b6cb0' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 0.45rem center;
+  background-size: 0.875rem;
+}
+
+/* LABEL DI KIRI ALA SAP (layar lebar): label | isian, pesan error di bawah isian */
+@media (min-width: 768px) {
+  .page-body form .mb-3:has(> .form-label) {
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr);
+    column-gap: 0.75rem;
+    align-items: start;
+  }
+
+  .page-body form .mb-3:has(> .form-label) > .form-label {
+    grid-row: 1 / span 4;
+    margin: 0;
+    padding: 0.3rem 0 0.25rem;
+    border-bottom: 1px solid var(--app-field-border);
+  }
+
+  .page-body form .mb-3:has(> .form-label) > :not(.form-label) {
+    grid-column: 2;
+  }
+
+  /* catatan di bawah satu isian (misal peringatan password) ikut kolom isian */
+  .page-body form .mb-3:has(> .form-label) + .form-text {
+    margin-left: 11.75rem;
+  }
+
+  /* kategori bertingkat (entry_form.js): tiap tingkat jadi satu baris label | dropdown, kayak isian lain */
+  .page-body form .mb-3:has(> .form-label) > .category-cascade:not([hidden]) {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.625rem;
+  }
+
+  .page-body form .category-cascade [data-level-box] {
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr);
+    column-gap: 0.75rem;
+    align-items: start;
+  }
+
+  .page-body form .category-cascade .form-label {
+    margin: 0;
+    padding: 0.3rem 0 0.25rem;
+    border-bottom: 1px solid var(--app-field-border);
+  }
+}

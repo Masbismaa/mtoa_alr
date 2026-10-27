@@ -546,6 +546,16 @@ def is_favorite_entry(user, entry):
         db.select(UserFavorite.id).filter_by(user_id=user.id, access_entry_id=entry.id)
     ).first() is not None
 
+def list_visible_favorite_entry(user, limit):
+    """Link favorit yg masih boleh diliat, urut judul (folder Favorites di Easy Access)."""
+    return db.session.execute(
+        db.select(AccessEntry)
+        .join(UserFavorite, UserFavorite.access_entry_id == AccessEntry.id)
+        .where(UserFavorite.user_id == user.id, build_visible_entry_filter(user))
+        .order_by(AccessEntry.title, AccessEntry.id)
+        .limit(limit)
+    ).scalars().all()
+
 def toggle_favorite(user, entry):
     """Tandain / lepas bintang link ini. Return True kalau sekarang jadi favorit. Cuma buat link yg boleh diliat
     (dicek route); kalau nanti aksesnya ilang, favoritnya otomatis ga muncul karena filter favorit tetep lewat

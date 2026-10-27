@@ -148,7 +148,10 @@
     statusDialogEl.showModal();
   }
 
-  barEl.querySelector("[data-status-open]").addEventListener("click", openHistory);
+  // tombol di status bar + menu System > Message history
+  document.querySelectorAll("[data-status-open]").forEach(function (buttonEl) {
+    buttonEl.addEventListener("click", openHistory);
+  });
 
   // pesan flash dari server (yg sukses ilang sendiri 5 detik) tetep nempel di status bar.
   // ga ada pesan baru -> tampilin pesan terakhir dari riwayat

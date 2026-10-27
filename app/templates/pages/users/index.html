@@ -2,7 +2,7 @@
 {% from "components/icon.html" import icon %}
 {% from "components/pagination.html" import render_pagination %}
 {% from "components/badge.html" import role_badge, user_status_badge %}
-{% from "components/selection_panel.html" import selection_panel %}
+{% from "components/selection_panel.html" import selection_panel, selection_toolbar %}
 {% from "components/back_field.html" import back_field_list with context %}
 {% from "components/data_table.html" import table_attr, table_head, cell_attr, column_menu, column_filter_form %}
 
@@ -15,6 +15,10 @@
 
 {% block page_subtitle %}
   <div class="text-secondary mt-1">Admins can only be created via the command line. All changes are recorded in Audit Logs.</div>
+{% endblock %}
+
+{% block page_actions %}
+  {{ selection_toolbar(url_for("users.index", _anchor="daftar_user")) }}
 {% endblock %}
 
 {% block content %}

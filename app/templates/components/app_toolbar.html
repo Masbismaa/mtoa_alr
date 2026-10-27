@@ -1,6 +1,6 @@
 {% from "components/icon.html" import icon %}
 {# toolbar aplikasi ala SAP GUI, posisi tombolnya selalu sama di semua layar. Tombol yg ga kepake di layar ini dinonaktifin.
-   Kembali = ke layar sebelumnya, Keluar = tutup layar ke Dashboard, Batal = buang perubahan form, Simpan = simpan form.
+   Kembali = ke layar sebelumnya, Keluar = tutup layar ke Easy Access, Batal = buang perubahan form, Simpan = simpan form.
    tombol khusus halaman (block page_actions: Tambah, Edit, Hapus, ...) nyusul di kanan Simpan, gayanya disamain.
    variabel dari layouts/app_base.html: toolbar_back_url, toolbar_exit_url, toolbar_cancel_url, toolbar_save_form, page_action_html #}
 {# fkey = tombol keyboard ala SAP GUI (dijalanin js/components/app_shell.js), ikut ditulis di tooltip #}
@@ -16,8 +16,10 @@
   <div class="container-xl app-toolbar-inner">
     {# HP: title bar atas ga ada, jadi judul layar tampil di sini #}
     <div class="app-toolbar-title d-lg-none">{{ shell_title }}</div>
+    {# tombol standar: layar besar udah ada di toolbar sistem atas (topbar.html), jadi di sini cuma tampil di HP #}
+    <span class="app-toolbar-std">
     {{ toolbar_link(toolbar_back_url, "arrow_left", "Back", "Back to the previous screen", "F3") }}
-    {{ toolbar_link(toolbar_exit_url, "logout", "Exit", "Exit this screen to the Dashboard", "Shift+F3") }}
+    {{ toolbar_link(toolbar_exit_url, "logout", "Exit", "Exit this screen to Easy Access", "Shift+F3") }}
     {{ toolbar_link(toolbar_cancel_url, "close", "Cancel", "Discard changes & close this screen", "F12") }}
     <span class="app-toolbar-divider" aria-hidden="true"></span>
     {% if toolbar_save_form %}
@@ -27,8 +29,11 @@
     {% endif %}
     {% if page_action_html %}
       <span class="app-toolbar-divider" aria-hidden="true"></span>
+    {% endif %}
+    </span>
+    {% if page_action_html %}
       <div class="app-toolbar-actions">{{ page_action_html }}</div>
     {% endif %}
-    <button type="button" class="btn btn-sm app-toolbar-btn ms-auto" data-help-open data-fkey="F1" aria-keyshortcuts="F1" aria-haspopup="dialog" title="Help for this screen (F1)">{{ icon("info") }}<span>Help</span></button>
+    <button type="button" class="btn btn-sm app-toolbar-btn app-toolbar-std ms-auto" data-help-open data-fkey="F1" aria-keyshortcuts="F1" aria-haspopup="dialog" title="Help for this screen (F1)">{{ icon("info") }}<span>Help</span></button>
   </div>
 </div>

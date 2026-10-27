@@ -19,8 +19,8 @@ def get_html(client, url):
     return client.get(url).get_data(as_text=True)
 
 def get_screen_title(html_text):
-    """Helper: judul layar di tengah title bar atas."""
-    return re.search(r'<div class="app-topbar-title" title="([^"]*)">', html_text).group(1)
+    """Helper: judul layar di panel judul (miring tebal, ala "SAP Easy Access")."""
+    return re.search(r'<h1 class="app-titlebar-text">([^<]*)</h1>', html_text).group(1)
 
 # JUDUL LAYAR & KEPALA HALAMAN
 def test_access_link_screen_titles(logged_in_client, registered_user, category_dict):
@@ -38,7 +38,8 @@ def test_other_screen_titles(logged_in_client, registered_user):
     assert get_screen_title(get_html(logged_in_client, f"/groups/{group.id}")) == "Display Group: Tim Network"
     assert get_screen_title(get_html(logged_in_client, "/groups/new")) == "Create Group"
     assert get_screen_title(get_html(logged_in_client, f"/groups/{group.id}/edit")) == "Change Group: Tim Network"
-    assert get_screen_title(get_html(logged_in_client, "/")) == "Dashboard"
+    assert get_screen_title(get_html(logged_in_client, "/")) == "ALR Easy Access"
+    assert get_screen_title(get_html(logged_in_client, "/dashboard/")) == "Dashboard"
     assert get_screen_title(get_html(logged_in_client, "/settings/")) == "Settings"
 
 def test_page_header_remarked(logged_in_client):
@@ -117,3 +118,59 @@ def test_page_info_still_shown(logged_in_client, registered_user, category_dict)
     entry = create_entry(registered_user, category_dict["Web"], "Portal HR")
     page_info_html = get_html(logged_in_client, f"/entries/{entry.id}").split('class="page-info"')[1].split("data-flash-list")[0]
     assert "Web" in page_info_html and "Private" in page_info_html
+
+
+# MENU BAR & COMMAND FIELD
+def get_transaction_code_list(html_text):
+    """Helper: kode transaksi di pilihan command field."""
+    datalist_html = html_text.split('<datalist id="transaction_list">')[1].split("</datalist>")[0]
+    return re.findall(r'<option value="([A-Z]+)">', datalist_html)
+
+def test_command_field_lists_only_allowed_transactions(logged_in_client):
+    """Positive + security: user biasa dapet kode menu biasa, kode menu khusus admin ga ikut."""
+    code_list = get_transaction_code_list(get_html(logged_in_client, "/"))
+    assert {"DB", "LL", "LA", "GR", "ST"} <= set(code_list)
+    assert not {"US", "LM", "BK", "CA", "AL"} & set(code_list)
+
+def test_command_field_admin_gets_admin_transactions(admin_client):
+    """Positive: admin dapet kode menu kelola juga."""
+    assert {"US", "LM", "BK", "CA", "AL"} <= set(get_transaction_code_list(get_html(admin_client, "/")))
+
+def test_menu_bar_and_system_toolbar_on_every_screen(logged_in_client):
+    """Positive: menu bar (huruf bergaris bawah) + toolbar sistem ada, tombol standarnya bawa shortcut yg sama."""
+    html_text = get_html(logged_in_client, "/entries/new")
+    assert 'aria-label="Menu bar"' in html_text and 'accesskey="m"><u>M</u>enu</button>' in html_text
+    system_html = html_text.split('aria-label="System toolbar"')[1].split("</header>")[0]
+    assert 'data-fkey="F12"' in system_html and 'data-fkey="Ctrl+S"' in system_html
+
+# EASY ACCESS (layar awal)
+def test_easy_access_tree_shows_favorites_and_allowed_transactions(logged_in_client, registered_user, other_user, category_dict):
+    """Positive + security: Favorites isinya link favorit yg masih boleh diliat, pohon menu tanpa transaksi admin."""
+    from app.services.access_entry_service import toggle_favorite
+    own_entry = create_entry(registered_user, category_dict["Web"], "Portal Favorit")
+    other_entry = create_entry(other_user, category_dict["Web"], "Portal Orang", visibility=VISIBILITY_PUBLIC)
+    toggle_favorite(registered_user, own_entry)
+    toggle_favorite(registered_user, other_entry)
+    # link orang lain diganti Private: favoritnya ga boleh nongol lagi
+    other_entry.visibility = VISIBILITY_PRIVATE
+    from app.extensions import db
+    db.session.commit()
+    html_text = get_html(logged_in_client, "/")
+    tree_html = html_text.split('aria-label="ALR menu tree"')[1].split("</nav>")[0]
+    assert f'href="/entries/{own_entry.id}"' in tree_html and "Portal Favorit" in tree_html
+    assert "Portal Orang" not in tree_html
+    assert '<span class="ea-code">LL</span>' in tree_html and '<span class="ea-code">US</span>' not in tree_html
+
+def test_easy_access_admin_tree_has_admin_transactions(admin_client):
+    """Positive: admin dapet folder Manage lengkap di pohon."""
+    tree_html = get_html(admin_client, "/").split('aria-label="ALR menu tree"')[1].split("</nav>")[0]
+    assert '<span class="ea-code">US</span>' in tree_html and '<span class="ea-code">AL</span>' in tree_html
+
+def test_dashboard_is_transaction_db(logged_in_client):
+    """Positive: Dashboard pindah ke /dashboard (kode DB), layar awal jadi Easy Access."""
+    assert 'data-access-level="standard"' in get_html(logged_in_client, "/dashboard/")
+    # alamat tanpa garis miring (diketik manual) dibelokin ke /dashboard/, bukan 404
+    response = logged_in_client.get("/dashboard")
+    assert response.status_code == 308 and response.headers["Location"].endswith("/dashboard/")
+    code_list = get_transaction_code_list(get_html(logged_in_client, "/"))
+    assert "DB" in code_list

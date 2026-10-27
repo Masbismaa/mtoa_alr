@@ -6,32 +6,33 @@ from app.security.access_policy import is_admin
 # parameter URL yg ikut nentuin menu mana yg aktif (misal filter visibilitas di Daftar Link)
 NAV_MATCH_QUERY_KEY_LIST = ["visibility", "favorite"]
 
+# tcode = kode transaksi ala SAP, diketik di command field toolbar sistem (lihat build_transaction_list).
 # endpoint yg belum dibikin otomatis tampil "Segera" (ga bisa diklik).
 # menu yg user ga punya aksesnya tetep tampil tapi dikunci (ikon gembok), biar user tau menunya ada
 SIDEBAR_SECTION_LIST = [
     {"title": "Overview", "item_list": [
-        {"label": "Dashboard", "endpoint": "main.home", "icon": "dashboard"},
+        {"label": "Dashboard", "endpoint": "main.dashboard", "icon": "dashboard", "tcode": "DB"},
     ]},
     {"title": "Data", "item_list": [
         {"label": "Links", "icon": "link", "child_list": [
-            {"label": "Link List", "endpoint": "entries.index"},
-            {"label": "Add Link", "endpoint": "entries.create"},
-            {"label": "Import Links", "endpoint": "entries.import_page"},
-            {"label": "Public Links", "endpoint": "entries.index", "query_dict": {"visibility": "public"}},
-            {"label": "Private Links", "endpoint": "entries.index", "query_dict": {"visibility": "private"}},
-            {"label": "Favorites", "endpoint": "entries.index", "query_dict": {"favorite": "1"}},
+            {"label": "Link List", "endpoint": "entries.index", "tcode": "LL"},
+            {"label": "Add Link", "endpoint": "entries.create", "tcode": "LA"},
+            {"label": "Import Links", "endpoint": "entries.import_page", "tcode": "LI"},
+            {"label": "Public Links", "endpoint": "entries.index", "query_dict": {"visibility": "public"}, "tcode": "LP"},
+            {"label": "Private Links", "endpoint": "entries.index", "query_dict": {"visibility": "private"}, "tcode": "LR"},
+            {"label": "Favorites", "endpoint": "entries.index", "query_dict": {"favorite": "1"}, "tcode": "LF"},
         ]},
-        {"label": "Groups", "endpoint": "groups.index", "icon": "group"},
+        {"label": "Groups", "endpoint": "groups.index", "icon": "group", "tcode": "GR"},
     ]},
     {"title": "Manage", "item_list": [
-        {"label": "Users", "endpoint": "users.index", "icon": "user", "is_admin_only": True},
-        {"label": "Link Monitoring", "endpoint": "link_monitor.index", "icon": "refresh", "is_admin_only": True},
-        {"label": "Backup & Restore", "endpoint": "backup.index", "icon": "download", "is_admin_only": True},
-        {"label": "Categories", "endpoint": "categories.index", "icon": "category", "is_admin_only": True},
-        {"label": "Audit Logs", "endpoint": "audit.index", "icon": "audit", "is_admin_only": True},
+        {"label": "Users", "endpoint": "users.index", "icon": "user", "is_admin_only": True, "tcode": "US"},
+        {"label": "Link Monitoring", "endpoint": "link_monitor.index", "icon": "refresh", "is_admin_only": True, "tcode": "LM"},
+        {"label": "Backup & Restore", "endpoint": "backup.index", "icon": "download", "is_admin_only": True, "tcode": "BK"},
+        {"label": "Categories", "endpoint": "categories.index", "icon": "category", "is_admin_only": True, "tcode": "CA"},
+        {"label": "Audit Logs", "endpoint": "audit.index", "icon": "audit", "is_admin_only": True, "tcode": "AL"},
     ]},
     {"title": "Account", "item_list": [
-        {"label": "Settings", "endpoint": "settings.index", "icon": "settings"},
+        {"label": "Settings", "endpoint": "settings.index", "icon": "settings", "tcode": "ST"},
     ]},
 ]
 
@@ -73,3 +74,13 @@ def build_sidebar_section_list(user, active_endpoint):
             "is_open": any(item.get("is_active") or item.get("is_open") for item in item_list),
         })
     return section_list
+
+def build_transaction_list(section_list):
+    """Kode transaksi yg boleh dibuka user ini (dari hasil build_sidebar_section_list): [{code, label, url}]."""
+    transaction_list = []
+    for section in section_list:
+        for nav_item in section["item_list"]:
+            for item in nav_item.get("child_list", [nav_item]):
+                if item.get("tcode") and item.get("url") and not nav_item.get("is_locked"):
+                    transaction_list.append({"code": item["tcode"], "label": item["label"], "url": item["url"]})
+    return transaction_list
