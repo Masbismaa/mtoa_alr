@@ -4,7 +4,6 @@ from app.extensions import db
 from app.models import AuditLog, Category
 from app.services.access_entry_service import (
     create_access_entry,
-    get_active_category_list,
     get_form_category_list,
     update_access_entry,
 )
@@ -12,6 +11,7 @@ from app.services.category_service import (
     create_category,
     delete_category,
     list_category_summary,
+    list_usable_category,
     toggle_category_active,
     update_category,
 )
@@ -77,9 +77,9 @@ def test_inactive_category_hidden_from_form(app, admin_user, category_dict):
     category = create_category(admin_user, {"name": "Printer", "description": ""})
     toggle_category_active(admin_user, category)
     assert category.is_active is False
-    assert category not in get_active_category_list()
+    assert category not in list_usable_category()
     toggle_category_active(admin_user, category)
-    assert category in get_active_category_list()
+    assert category in list_usable_category()
 
 def test_create_entry_with_inactive_category_rejected(app, admin_user, registered_user, category_dict):
     """Negative: link baru ga boleh pake kategori nonaktif."""

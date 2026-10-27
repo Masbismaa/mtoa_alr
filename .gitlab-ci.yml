@@ -85,8 +85,7 @@ postgres_test:
     - python -m flask --app run db upgrade
     - python -m flask --app run db check
     # 2 migrasi terbaru harus bisa diturunin & dinaikin lagi
-    - python -m flask --app run db downgrade b4d9e2a7c1f3
-    - python -m flask --app run db downgrade f2b7c9d4e6a1
+    - python -m flask --app run db downgrade -- -2
     - python -m flask --app run db upgrade
     - python -m pytest -q tests/test_postgres_integrasi.py --junitxml=report-postgres.xml
   artifacts:

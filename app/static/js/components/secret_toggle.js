@@ -1,5 +1,5 @@
 // tombol Show/Hide buat nilai rahasia (access note). Isinya ga ditempel di HTML: diambil dari server (data-secret-url)
-// pas pertama kali di-Show / di-Copy, dan tiap ambil dicatat di audit. Abis keambil disimpen di halaman ini aja.
+// pas pertama kali di-Show / di-Copy. Abis keambil disimpen di halaman ini aja.
 (function () {
   "use strict";
 

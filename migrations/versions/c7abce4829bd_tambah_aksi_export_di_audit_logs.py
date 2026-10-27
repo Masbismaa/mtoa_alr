@@ -1,5 +1,7 @@
 """Tambah aksi export di audit_logs
 
+Catatan: nama file (c7abce4829bd) beda sama ID revisinya. Jangan diganti, database yg udah jalan nyimpen ID ini.
+
 Revision ID: c2e8f4a6b1d3
 Revises: b9d4e2f7a1c6
 Create Date: 2026-10-02 09:00:00.000000

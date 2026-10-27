@@ -11,7 +11,6 @@ from app.services.access_entry_service import (
     create_access_entry,
     delete_access_entry,
     delete_access_entry_list,
-    get_active_category_list,
     get_form_category_list,
     get_visible_entry,
     is_favorite_entry,
@@ -21,6 +20,7 @@ from app.services.access_entry_service import (
     update_access_entry,
 )
 from app.services.audit_service import list_entity_history
+from app.services.category_service import list_usable_category
 from app.services.import_service import import_entries
 from app.services.import_template_service import build_import_template
 from app.services.entry_table_service import build_entry_table_payload, build_index_scope, build_scope_field_list
@@ -139,7 +139,7 @@ def bulk_delete():
 def create():
     """Tambah data link, bisa langsung masuk ke group kalau dibuka dari halaman group."""
     user = get_current_user()
-    category_list = get_active_category_list()
+    category_list = list_usable_category()
     form = AccessEntryForm()
     form.category_id.choices = [(category.id, category.name) for category in category_list]
     custom_field_pair_list = read_custom_field_pair_list() if request.method == "POST" else []
@@ -231,7 +231,7 @@ def detail(entry_id):
         has_access_note=entry.encrypted_access_note is not None,
         can_edit=is_editable,
         is_favorite=is_favorite_entry(user, entry),
-        # riwayat link (termasuk siapa buka password-nya) cuma buat yg boleh ngubah link ini
+        # riwayat link cuma buat yg boleh ngubah link ini
         history_list=list_entity_history("access_entries", entry.id) if is_editable else [],
         # balik ke tabel asal (Daftar Link/kategori/group) lengkap sama filter & urutannya
         back_url=read_back_url(),

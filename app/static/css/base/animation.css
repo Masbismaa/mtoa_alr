@@ -12,14 +12,6 @@
   to { opacity: 1; scale: 1; }
 }
 
-/* grafik garis kebuka dari kiri ke kanan */
-@keyframes app-reveal {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
-}
-
-
-
 @keyframes app-fade-out {
   to { opacity: 0; transform: translateX(12px); }
 }

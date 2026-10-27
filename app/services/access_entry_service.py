@@ -68,17 +68,13 @@ def get_category_rule(category):
     """Aturan field ngikut kategori utamanya (Web › SAP tetep wajib URL kayak Web)."""
     return CATEGORY_FIELD_RULE_DICT.get(get_root_category(category).name, DEFAULT_CATEGORY_FIELD_RULE)
 
-def get_active_category_list():
-    """Kategori yg bisa dipilih (dia & induknya aktif), urut kayak pohon."""
-    return list_usable_category()
-
 def list_active_category_option():
     """Pilihan kategori aktif buat isian Kriteria Pencarian Daftar Link: [(id, label lengkap)]."""
-    return [(category.id, build_category_label(category)) for category in get_active_category_list()]
+    return [(category.id, build_category_label(category)) for category in list_usable_category()]
 
 def get_form_category_list(current_category=None):
     """Pilihan kategori di form. Pas edit, kategori lama tetep ikut walau udah dinonaktifin admin."""
-    category_list = list(get_active_category_list())
+    category_list = list(list_usable_category())
     if current_category is not None and not is_category_usable(current_category):
         category_list.append(current_category)
     return category_list

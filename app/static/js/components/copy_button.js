@@ -26,7 +26,7 @@
   }
 
   // ambil teks yg mau dicopy dari tombol (langsung / dari elemen target). Target rahasia (access note) diambil
-  // dulu dari server lewat secret_toggle.js, biar kecatat di audit kayak tombol Show
+  // dulu dari server lewat secret_toggle.js
   async function getCopyText(buttonEl) {
     if (buttonEl.dataset.copyTarget) {
       const targetEl = document.getElementById(buttonEl.dataset.copyTarget);

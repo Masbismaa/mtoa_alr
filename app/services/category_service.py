@@ -286,16 +286,6 @@ def count_entry_by_category(user=None, category_id_list=None):
         query = query.where(AccessEntry.category_id.in_(category_id_list))
     return dict(db.session.execute(query).all())
 
-def get_latest_visible_entry(user, category_id_list):
-    """Link terbaru yg boleh diliat user di kumpulan kategori ini."""
-    return db.session.execute(
-        db.select(AccessEntry)
-        .options(joinedload(AccessEntry.owner))
-        .where(build_visible_entry_filter(user), AccessEntry.category_id.in_(category_id_list))
-        .order_by(AccessEntry.created_at.desc(), AccessEntry.id.desc())
-        .limit(1)
-    ).scalar_one_or_none()
-
 def build_forum_row_list(user, parent=None):
     """Baris ala forum: kategori + sub-nya + jumlah link (termasuk turunannya) + link terbaru."""
     child_dict = build_child_dict(list_all_category())
