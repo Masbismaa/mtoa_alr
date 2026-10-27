@@ -226,7 +226,8 @@ def test_count_visible_entry_summary(app, registered_user, other_user, category_
     create_entry_as_is(other_user, build_entry_dict(web, url="https://3.spindo.com", visibility=VISIBILITY_PUBLIC))
     create_access_entry(other_user, build_entry_dict(web, url="https://4.spindo.com"))
     summary_dict = count_visible_entry_summary(registered_user)
-    assert summary_dict == {"total": 3, "public": 2, "private": 1}
+    assert (summary_dict["total"], summary_dict["public"], summary_dict["private"], summary_dict["own"]) == (3, 2, 1, 2)
+    assert sum(summary_dict["status"].values()) == 3
 
 
 # Public cuma admin

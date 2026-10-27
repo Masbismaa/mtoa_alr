@@ -21,7 +21,7 @@ def test_dashboard_counts_follow_access(app, registered_user, other_user, catego
     create_entry(other_user, category_dict["Web"], "Punya Orang Public", VISIBILITY_PUBLIC)
     create_entry(other_user, category_dict["Web"], "Punya Orang Private", VISIBILITY_PRIVATE)
     dashboard_dict = build_dashboard_dict(registered_user)
-    assert dashboard_dict["summary"] == {"total": 3, "public": 2, "private": 1}
+    assert dashboard_dict["summary"] | {"total": 3, "public": 2, "private": 1} == dashboard_dict["summary"]
     assert dashboard_dict["own_count"] == 2
     assert dashboard_dict["unknown_count"] == 3
     assert dashboard_dict["down_count"] == 0
@@ -55,7 +55,7 @@ def test_dashboard_group_and_invitation(app, registered_user, other_user):
 def test_dashboard_empty_data(app, registered_user):
     """Negative: belum ada data sama sekali ga bikin error."""
     dashboard_dict = build_dashboard_dict(registered_user)
-    assert dashboard_dict["summary"] == {"total": 0, "public": 0, "private": 0}
+    assert dashboard_dict["summary"] | {"total": 0, "public": 0, "private": 0} == dashboard_dict["summary"]
     assert dashboard_dict["own_count"] == 0
     assert dashboard_dict["favorite_count"] == 0
     assert dashboard_dict["down_count"] == 0
