@@ -13,7 +13,7 @@ Penyimpanannya sama dgn rate limit (RATELIMIT_STORAGE_URI): memory di laptop/tes
 import math
 import time
 
-from flask import current_app, has_request_context, request
+from flask import current_app
 from limits import parse
 from limits.storage import storage_from_string
 from limits.strategies import MovingWindowRateLimiter
@@ -48,12 +48,6 @@ def init_auth_throttle(app):
 
 def get_limiter():
     return current_app.extensions[EXTENSION_KEY]
-
-def get_client_ip():
-    """IP pengirim request (udah bener di balik reverse proxy lewat ProxyFix). Di luar request (CLI/test service) = '-'."""
-    if has_request_context():
-        return request.remote_addr or "-"
-    return "-"
 
 def get_login_block_minutes(email):
     """0 kalau email ini boleh nyoba login; kalau keblokir = sisa menit sampai boleh nyoba lagi."""
