@@ -32,7 +32,7 @@ def test_topbar_has_home_theme_toggle_and_user_menu(logged_in_client):
     assert topbar_match is not None, "Header dengan class app-topbar tidak ditemukan"
     topbar_html = topbar_match.group(1)
     assert 'href="/"' in topbar_html
-    assert "data-command-form" in topbar_html and "Log off" in topbar_html
+    assert "data-command-form" in topbar_html and "Log out" in topbar_html
     assert "user-menu" in topbar_html and "data-theme-toggle" not in topbar_html
 
 def test_user_entry_sees_locked_admin_menu(logged_in_client):

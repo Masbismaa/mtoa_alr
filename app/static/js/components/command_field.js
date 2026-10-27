@@ -1,4 +1,4 @@
-// toolbar sistem ala SAP GUI: command field (kode transaksi), Print, Find.
+// toolbar sistem: command field (kode menu), Find.
 // kode: "LL" / "/nLL" = buka di tab ini, "/oLL" = buka di tab baru, "/n" = Home. Ctrl+/ = fokus ke command field
 (function () {
   "use strict";
@@ -35,7 +35,7 @@
     if (!rawText.trim()) return;
     const target = resolveCommand(rawText);
     if (!target) {
-      notify("Transaction " + rawText.trim().toUpperCase() + " does not exist", "danger");
+      notify("Menu code " + rawText.trim().toUpperCase() + " not found", "danger");
       inputEl.select();
       return;
     }
@@ -61,10 +61,6 @@
       inputEl.focus();
       inputEl.select();
     }
-  });
-
-  document.querySelectorAll("[data-system-print]").forEach(function (buttonEl) {
-    buttonEl.addEventListener("click", function () { window.print(); });
   });
 
   // Find = sama kayak tekan "/" (fokus ke Cari cepat di Kriteria Pencarian, lihat selection_panel.js)

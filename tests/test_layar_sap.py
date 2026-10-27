@@ -19,7 +19,7 @@ def get_html(client, url):
     return client.get(url).get_data(as_text=True)
 
 def get_screen_title(html_text):
-    """Helper: judul layar di panel judul (miring tebal, ala "SAP Easy Access")."""
+    """Helper: judul layar di panel judul atas."""
     return re.search(r'<h1 class="app-titlebar-text">([^<]*)</h1>', html_text).group(1)
 
 # JUDUL LAYAR & KEPALA HALAMAN
@@ -38,7 +38,7 @@ def test_other_screen_titles(logged_in_client, registered_user):
     assert get_screen_title(get_html(logged_in_client, f"/groups/{group.id}")) == "Display Group: Tim Network"
     assert get_screen_title(get_html(logged_in_client, "/groups/new")) == "Create Group"
     assert get_screen_title(get_html(logged_in_client, f"/groups/{group.id}/edit")) == "Change Group: Tim Network"
-    assert get_screen_title(get_html(logged_in_client, "/")) == "ALR Easy Access"
+    assert get_screen_title(get_html(logged_in_client, "/")) == "Access Link Register"
     assert get_screen_title(get_html(logged_in_client, "/dashboard/")) == "Dashboard"
     assert get_screen_title(get_html(logged_in_client, "/settings/")) == "Settings"
 
@@ -159,6 +159,8 @@ def test_easy_access_tree_shows_favorites_and_allowed_transactions(logged_in_cli
     tree_html = html_text.split('aria-label="ALR menu tree"')[1].split("</nav>")[0]
     assert f'href="/entries/{own_entry.id}"' in tree_html and "Portal Favorit" in tree_html
     assert "Portal Orang" not in tree_html
+    # lebar pohon paten: ga ada garis geser
+    assert "data-easy-access-splitter" not in html_text
     assert '<span class="ea-code">LL</span>' in tree_html and '<span class="ea-code">US</span>' not in tree_html
 
 def test_easy_access_admin_tree_has_admin_transactions(admin_client):

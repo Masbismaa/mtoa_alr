@@ -1,4 +1,4 @@
-/* title bar atas ala SAP GUI. Layar login (auth_base.html): logo di kiri, judul di tengah, tombol tema di kanan */
+/* title bar atas. Layar login (auth_base.html): logo di kiri, judul di tengah, tombol tema di kanan */
 
 .app-topbar {
   position: sticky;
@@ -61,7 +61,7 @@
 }
 
 
-/* JENDELA ALA SAP GUI (layar besar): menu bar + toolbar sistem (topbar.html), panel judul layar (app_base.html) */
+/* JENDELA UTAMA (layar besar): menu bar + toolbar sistem (topbar.html), panel judul layar (app_base.html) */
 .app-topbar:has(.app-menubar) {
   height: var(--app-shell-height);
   padding: 0;
@@ -151,7 +151,7 @@
   text-transform: none;
 }
 
-/* tombol ikon toolbar sistem: datar, berwarna kayak ikon SAP (hijau = lanjut, oranye = keluar, merah = batal) */
+/* tombol ikon toolbar sistem: datar, berwarna (hijau = lanjut, oranye = keluar, merah = batal) */
 .app-topbar .app-system-btn {
   --tblr-btn-bg: transparent;
   --tblr-btn-border-color: transparent;
@@ -180,7 +180,7 @@
 .app-topbar .app-tone-red { --tblr-btn-color: #c92a2a; --tblr-btn-hover-color: #c92a2a; color: #c92a2a; }
 .app-topbar .app-tone-blue { --tblr-btn-color: var(--app-text-accent); --tblr-btn-hover-color: var(--app-text-accent); color: var(--app-text-accent); }
 
-/* panel judul layar: miring tebal biru tua di strip gradasi, persis "SAP Easy Access" */
+/* panel judul layar: tegak, ditandain garis merah Spindo di kiri */
 .app-titlebar {
   padding: 0.375rem 1rem;
   background: var(--app-header-image, none), var(--app-strip-bg);
@@ -190,12 +190,13 @@
 .app-titlebar-text {
   margin: 0;
   overflow: hidden;
+  padding-left: 0.625rem;
   font-size: 1.125rem;
-  font-style: italic;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--app-title-color);
+  border-left: 3px solid var(--app-brand-red, #c8102e);
 }
 
 /* layar besar: tombol standar di toolbar aplikasi udah pindah ke toolbar sistem */

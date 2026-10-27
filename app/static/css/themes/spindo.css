@@ -1,75 +1,76 @@
-/* tema SAP GUI Blue Crystal (7.40/7.50): latar biru muda bergradasi, judul layar miring tebal biru tua,
-   semuanya rapat, field & tombol kecil, kartu jadi group box bingkai biru.
+/* tema Spindo: title bar navy + garis merah logo Spindo, latar abu netral datar (tanpa gradasi),
+   judul layar tegak, semuanya rapat, field & tombol kecil, kartu jadi group box bingkai abu.
    dimuat setelah semua CSS lain (sebelum animasi), jadi cukup nimpa yg beda dari tampilan dasar */
 
-/* biru Blue Crystal. hex di DB tetep #0a6ed1 (key "blue"), yg diganti cuma warnanya di layar */
-:root[data-accent="blue"] { --app-accent: #2b6cb0; --app-accent-rgb: 43, 108, 176; --app-accent-fg: #ffffff; }
+/* biru navy Spindo. hex di DB tetep #0a6ed1 (key "blue"), yg diganti cuma warnanya di layar */
+:root[data-accent="blue"] { --app-accent: #1f4b8f; --app-accent-rgb: 31, 75, 143; --app-accent-fg: #ffffff; }
 
 html:root {
+  /* merah logo Spindo, sama kayak aksen di file export Excel (export_service.COLOR_RED) */
+  --app-brand-red: #c8102e;
   --app-shell-height: 4.25rem;
-  --app-shell-bg: light-dark(#e3edf7, #1c2228);
-  /* gradasi khas Blue Crystal: atas lebih terang, bawah biru muda (light-dark() ga bisa buat gradasi) */
-  --app-shell-image: linear-gradient(#f7fafd, #d2e2f2);
-  --app-page-image: linear-gradient(#dbe6f2, #c3d6ea);
-  --app-header-image: linear-gradient(#f6f9fc, #e4edf6);
-  --app-shell-color: light-dark(#1f3f63, #ffffff);
-  --app-shell-hover-bg: light-dark(#c9ddf1, rgba(255, 255, 255, 0.12));
-  --app-strip-bg: light-dark(#eaf1f8, #232a31);
-  --app-title-color: light-dark(#1f3f63, #fafafa);
-  --app-label-color: light-dark(#2f4a66, #a9b4be);
-  --app-hover-bg: light-dark(#e3eef9, #323b45);
-  --app-selected-bg: light-dark(#cde2f7, #1e3a55);
-  --app-field-border: light-dark(#9fb4ca, #6a7480);
-  --app-frame-border: light-dark(#a9c0d8, #3d4652);
+  --app-shell-bg: light-dark(#14284b, #151c26);
+  --app-header-image: none;
+  --app-shell-color: #ffffff;
+  --app-shell-hover-bg: rgba(255, 255, 255, 0.14);
+  --app-shell-line: rgba(255, 255, 255, 0.16);
+  --app-strip-bg: light-dark(#f1f3f6, #232a31);
+  --app-title-color: light-dark(#14284b, #fafafa);
+  --app-label-color: light-dark(#4a5568, #a9b4be);
+  --app-hover-bg: light-dark(#eef1f5, #323b45);
+  --app-selected-bg: light-dark(#e2e9f3, #1e3a55);
+  --app-field-border: light-dark(#a3acb9, #6a7480);
+  --app-frame-border: light-dark(#d3d8df, #3d4652);
   --app-field-height: 1.75rem;
-  --tblr-body-bg: light-dark(#cfdeee, #1c2228);
+  --tblr-body-bg: light-dark(#eceff3, #1c2228);
   --tblr-bg-surface: light-dark(#ffffff, #29313a);
   --tblr-body-font-size: 0.8125rem;
   --tblr-body-color: light-dark(#1d2d3e, #fafafa);
-  --tblr-border-color: light-dark(#c5d5e6, #3d4652);
+  --tblr-border-color: light-dark(#d3d8df, #3d4652);
   --tblr-border-radius: 0.125rem;
   --tblr-border-radius-lg: 0.25rem;
 }
 
-html:root[data-bs-theme="dark"] {
-  --app-shell-image: none;
-  --app-page-image: none;
-  --app-header-image: none;
-}
-
-/* latar halaman ikut gradasi biru muda, kayak jendela SAP GUI */
 body {
-  background: var(--app-page-image) fixed, var(--tblr-body-bg);
-}
-
-body {
+  background: var(--tblr-body-bg);
   font-size: var(--tblr-body-font-size);
 }
 
-/* TITLE BAR: gradasi biru muda, logo versi biasa (bukan putih) */
+/* TITLE BAR: navy, logo putih (bawaan topbar.css), garis merah Spindo di bawahnya */
 .app-topbar {
-  background: var(--app-shell-image), var(--app-shell-bg);
-  border-bottom: 1px solid var(--app-frame-border);
+  background: var(--app-shell-bg);
+  border-bottom: 3px solid var(--app-brand-red);
 }
 
-/* judul layar: miring tebal biru tua, persis "SAP Easy Access" */
 .app-topbar-title {
   font-size: 1.125rem;
-  font-style: italic;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .app-topbar .app-brand-logo {
   height: 1.75rem;
 }
 
-:root:not([data-bs-theme="dark"]) .app-topbar .app-brand-logo-light {
-  display: inline-block;
+/* garis & pemisah di dalam bar navy: putih transparan, bukan abu */
+.app-systembar {
+  border-top-color: var(--app-shell-line);
 }
 
-:root:not([data-bs-theme="dark"]) .app-topbar .app-brand-logo-dark {
-  display: none;
+.app-systembar-divider {
+  background: var(--app-shell-line);
 }
+
+.app-menubar-item:hover,
+.app-menubar-item[aria-expanded="true"],
+.app-topbar .app-system-btn:hover {
+  border-color: var(--app-shell-line);
+}
+
+/* ikon berwarna di bar navy dibikin lebih terang biar kebaca */
+.app-topbar .app-tone-green { --tblr-btn-color: #8ce99a; --tblr-btn-hover-color: #8ce99a; color: #8ce99a; }
+.app-topbar .app-tone-orange { --tblr-btn-color: #ffc078; --tblr-btn-hover-color: #ffc078; color: #ffc078; }
+.app-topbar .app-tone-red { --tblr-btn-color: #ffa8a8; --tblr-btn-hover-color: #ffa8a8; color: #ffa8a8; }
+.app-topbar .app-tone-blue { --tblr-btn-color: #a5d8ff; --tblr-btn-hover-color: #a5d8ff; color: #a5d8ff; }
 
 /* KONTEN: jarak dirapatin */
 .page-body {
@@ -80,7 +81,7 @@ body {
   margin-bottom: 0.5rem;
 }
 
-/* GROUP BOX: bingkai biru tipis, judul di strip gradasi, isi rapat */
+/* GROUP BOX: bingkai abu tipis, judul di strip, isi rapat */
 .card {
   margin-bottom: 0;
 }
@@ -117,7 +118,7 @@ body {
   --tblr-gutter-y: 0.75rem;
 }
 
-/* FIELD: tinggi 28px, sudut hampir kotak, garis biru abu */
+/* FIELD: tinggi 28px, sudut hampir kotak, garis abu */
 .form-control,
 .form-select {
   min-height: var(--app-field-height);
@@ -170,7 +171,7 @@ textarea.form-control {
   font-size: 0.8125rem;
 }
 
-/* TOMBOL: kecil, gradasi putih-biru muda + teks biru tua; tombol utama biru penuh */
+/* TOMBOL: kecil, putih + teks navy; tombol utama navy penuh */
 .btn {
   --tblr-btn-padding-y: 0.2rem;
   --tblr-btn-padding-x: 0.625rem;
@@ -194,11 +195,11 @@ textarea.form-control {
 .btn:not([class*="btn-"]),
 .btn-outline-primary,
 .btn-outline-secondary {
-  --tblr-btn-color: light-dark(#1f3f63, var(--app-text-accent));
-  --tblr-btn-bg: light-dark(#f4f8fc, #29313a);
-  --tblr-btn-border-color: light-dark(#9fb4ca, #5a6672);
-  --tblr-btn-hover-color: light-dark(#1f3f63, var(--app-text-accent));
-  --tblr-btn-hover-bg: light-dark(#dcebf9, #323b45);
+  --tblr-btn-color: light-dark(#14284b, var(--app-text-accent));
+  --tblr-btn-bg: light-dark(#ffffff, #29313a);
+  --tblr-btn-border-color: light-dark(#a3acb9, #5a6672);
+  --tblr-btn-hover-color: light-dark(#14284b, var(--app-text-accent));
+  --tblr-btn-hover-bg: light-dark(#eef1f5, #323b45);
   --tblr-btn-hover-border-color: var(--app-accent);
   --tblr-btn-active-color: #ffffff;
   --tblr-btn-active-bg: var(--app-accent);
@@ -257,14 +258,14 @@ textarea.form-control {
   padding: 0.75rem;
 }
 
-/* TOOLBAR & STATUS BAR: strip gradasi biru muda */
+/* TOOLBAR & STATUS BAR: strip abu muda */
 .app-toolbar,
 .app-statusbar {
   background: var(--app-header-image), var(--app-strip-bg);
   border-color: var(--app-frame-border);
 }
 
-/* SIDEBAR: putih di atas latar biru, garis biru */
+/* SIDEBAR: putih di atas latar abu, garis abu */
 .app-sidebar {
   border-right: 1px solid var(--app-frame-border);
 }
