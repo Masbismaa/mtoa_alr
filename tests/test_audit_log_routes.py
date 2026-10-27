@@ -1,9 +1,10 @@
 """Test halaman audit log (khusus admin, cuma bisa dibaca)."""
+import pytest
 from app.extensions import db
 from app.models import AuditLog
 from app.services.access_entry_service import create_access_entry
 from app.services.audit_service import log_audit
-from app.utils.constants import AUDIT_ACTION_LOGIN_FAILED, AUDIT_ACTION_UPDATE, MASKED_VALUE, VISIBILITY_PRIVATE, VISIBILITY_PUBLIC
+from app.utils.constants import AUDIT_ACTION_LOGIN_FAILED, AUDIT_ACTION_UPDATE, VISIBILITY_PRIVATE, VISIBILITY_PUBLIC
 
 def create_entry(user, category, title, visibility):
     """Helper: bikin data link."""
@@ -63,31 +64,24 @@ def test_invalid_filter_is_ignored(admin_client):
     assert response.status_code == 200
     assert "<script>" not in response.get_data(as_text=True)
 
-def test_detail_shows_changes(admin_client, admin_user, category_dict):
-    """Positive: detail nampilin field & isinya."""
-    entry = create_entry(admin_user, category_dict["Web"], "Portal HR", VISIBILITY_PUBLIC)
+@pytest.mark.parametrize("visibility", [VISIBILITY_PUBLIC, VISIBILITY_PRIVATE])
+def test_detail_shows_info_without_old_and_new_value(admin_client, registered_user, category_dict, visibility):
+    """Positive + negative: detail cuma nampilin info aktivitas, nilai lama vs baru ga ditampilin lagi."""
+    entry = create_entry(registered_user, category_dict["Web"], "Portal HR", visibility)
     response = admin_client.get(f"/audit-logs/{get_entry_audit_log(entry).id}")
     html_text = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "Portal HR" in html_text
-    assert "has_access_note" in html_text
+    assert registered_user.email in html_text
+    assert "Portal HR" not in html_text and "Data Changes" not in html_text
 
-def test_detail_masks_sensitive_value(admin_client):
-    """Negative (security): password ga pernah tampil apa adanya."""
+def test_detail_never_shows_sensitive_value(admin_client):
+    """Negative (security): password ga pernah tampil."""
     audit_log = log_audit(
         AUDIT_ACTION_UPDATE, "users", entity_id=1, actor_email="x@spindo.com",
         new_data_dict={"password": "RahasiaBanget123"}, is_commit=True,
     )
     html_text = admin_client.get(f"/audit-logs/{audit_log.id}").get_data(as_text=True)
     assert "RahasiaBanget123" not in html_text
-    assert MASKED_VALUE in html_text
-
-def test_detail_shows_private_data_of_other_user_to_admin(admin_client, registered_user, category_dict):
-    """Positive: admin bisa liat isi perubahan data Private user lain (sama kayak bisa liat link-nya)."""
-    entry = create_entry(registered_user, category_dict["Web"], "VPN Rahasia", VISIBILITY_PRIVATE)
-    response = admin_client.get(f"/audit-logs/{get_entry_audit_log(entry).id}")
-    assert response.status_code == 200
-    assert "VPN Rahasia" in response.get_data(as_text=True)
 
 def test_detail_not_found(admin_client):
     """Negative: id ga ada -> 404."""

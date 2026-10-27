@@ -1,7 +1,7 @@
 """Test cari audit log + susun data lama vs baru buat halaman detail."""
 from datetime import date
 from app.models import AuditLog
-from app.services.audit_service import build_audit_change_list, format_audit_value, log_audit, search_audit_logs
+from app.services.audit_service import list_changed_field, log_audit, search_audit_logs
 from app.utils.constants import AUDIT_ACTION_CREATE, AUDIT_ACTION_LOGIN_FAILED, AUDIT_ACTION_UPDATE, MASKED_VALUE
 
 def create_sample_logs():
@@ -34,26 +34,12 @@ def test_search_audit_logs_by_date(app):
     assert search_audit_logs(date_from=date(2000, 1, 1)).total == 2
     assert search_audit_logs(date_to=date(2000, 1, 1)).total == 0
 
-def test_build_audit_change_list_marks_changed_field(app):
-    """Positive: field yg beda ditandain, yg sama nggak."""
+def test_list_changed_field_only_returns_changed_name(app):
+    """Positive + negative: cuma nama field yg beda, yg sama ga ikut; aktivitas tanpa data lama -> kosong."""
     audit_log = AuditLog(
         action=AUDIT_ACTION_UPDATE, entity_type="groups",
         old_data={"name": "Tim Lama", "description": None},
         new_data={"name": "Tim Baru", "description": None, "password": MASKED_VALUE},
     )
-    change_list = build_audit_change_list(audit_log)
-    assert [change["field"] for change in change_list] == ["name", "description", "password"]
-    assert change_list[0]["is_changed"] is True
-    assert change_list[0]["old_value"] == "Tim Lama"
-    assert change_list[1]["is_changed"] is False
-    assert change_list[1]["new_value"] == "-"
-    assert change_list[2]["is_masked"] is True
-
-def test_format_audit_value():
-    """Positive: nilai kebaca manusiawi."""
-    assert format_audit_value(True) == "Yes"
-    assert format_audit_value(False) == "No"
-    assert format_audit_value(["a.pdf", "b.png"]) == "a.pdf, b.png"
-    assert format_audit_value([]) == "-"
-    assert format_audit_value(None) == "-"
-    assert format_audit_value(0) == "0"
+    assert list_changed_field(audit_log) == ["name", "password"]
+    assert list_changed_field(AuditLog(action=AUDIT_ACTION_UPDATE, entity_type="groups", new_data={"name": "x"})) == []

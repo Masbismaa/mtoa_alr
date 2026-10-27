@@ -4,7 +4,7 @@ from flask_login import login_required
 from app.schemas.selection_schema import AUDIT_FIELD_LIST, read_audit_selection
 from app.schemas.table_schema import TABLE_AUDIT
 from app.security.role_guard import admin_required
-from app.services.audit_service import build_audit_change_list, get_audit_log, search_audit_logs
+from app.services.audit_service import get_audit_log, search_audit_logs
 from app.services.preference_service import get_table_layout
 from app.utils.constants import PER_PAGE
 from app.utils.data_table import build_table_view
@@ -50,5 +50,4 @@ def detail(log_id):
         "pages/audit_logs/detail.html",
         page_title="Detail Audit Log",
         audit_log=audit_log,
-        change_list=build_audit_change_list(audit_log),
     )

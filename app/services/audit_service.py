@@ -1,6 +1,4 @@
 """Satu-satunya pintu buat nyatet audit log. Fitur lain tinggal panggil log_audit()."""
-import json
-
 from app.extensions import db
 from app.models import AuditLog
 from app.utils.constants import (
@@ -111,7 +109,7 @@ def list_entity_history(entity_type, entity_id, limit=ENTITY_HISTORY_LIMIT):
     return [
         {
             "audit_log": audit_log,
-            "changed_field_list": [change["field"] for change in build_audit_change_list(audit_log) if change["is_changed"]],
+            "changed_field_list": list_changed_field(audit_log),
         }
         for audit_log in audit_log_list
     ]
@@ -120,32 +118,12 @@ def get_audit_log(log_id):
     """Ambil satu audit log, None kalau ga ada."""
     return db.session.get(AuditLog, log_id)
 
-def format_audit_value(value):
-    """Ubah nilai di audit log jadi teks yg enak dibaca."""
-    if value is None or value == "" or value == []:
-        return "-"
-    if isinstance(value, bool):
-        return "Yes" if value else "No"
-    if isinstance(value, list):
-        return ", ".join(str(item) for item in value)
-    if isinstance(value, dict):
-        return json.dumps(value, ensure_ascii=False)
-    return str(value)
-
-def build_audit_change_list(audit_log):
-    """Susun perbandingan data lama vs baru per field buat halaman detail."""
+def list_changed_field(audit_log):
+    """Nama field yg berubah (cuma buat perubahan yg punya data lama & baru). Nilainya sengaja ga ditampilin."""
     old_data_dict = audit_log.old_data or {}
     new_data_dict = audit_log.new_data or {}
-    is_update = bool(old_data_dict) and bool(new_data_dict)
+    if not old_data_dict or not new_data_dict:
+        return []
     # urutan field ngikutin data lama, field yg cuma ada di data baru ditaruh belakang
     field_name_list = list(old_data_dict) + [key for key in new_data_dict if key not in old_data_dict]
-    return [
-        {
-            "field": field_name,
-            "old_value": format_audit_value(old_data_dict.get(field_name)),
-            "new_value": format_audit_value(new_data_dict.get(field_name)),
-            "is_changed": is_update and old_data_dict.get(field_name) != new_data_dict.get(field_name),
-            "is_masked": MASKED_VALUE in (old_data_dict.get(field_name), new_data_dict.get(field_name)),
-        }
-        for field_name in field_name_list
-    ]
+    return [field_name for field_name in field_name_list if old_data_dict.get(field_name) != new_data_dict.get(field_name)]

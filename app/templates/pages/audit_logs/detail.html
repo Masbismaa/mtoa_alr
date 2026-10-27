@@ -22,42 +22,7 @@
 
 {% block content %}
   <div class="row row-cards">
-    <div class="col-lg-8">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">{{ icon("edit") }} Data Changes</h3>
-        </div>
-        {% if change_list %}
-          <div class="table-responsive">
-            <table class="table table-vcenter card-table table-stack audit-change-table">
-              <thead>
-                <tr>
-                  <th>Field</th>
-                  {% if audit_log.old_data %}<th>Before</th>{% endif %}
-                  {% if audit_log.new_data %}<th>After</th>{% endif %}
-                </tr>
-              </thead>
-              <tbody>
-                {% for change in change_list %}
-                  <tr class="{% if change.is_changed %}is-changed{% endif %}{% if change.is_masked %} is-masked{% endif %}">
-                    <td class="cell-field" data-label="Field"><code>{{ change.field }}</code></td>
-                    {% if audit_log.old_data %}<td data-label="Before">{{ change.old_value }}</td>{% endif %}
-                    {% if audit_log.new_data %}<td data-label="After">{{ change.new_value }}</td>{% endif %}
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% if audit_log.old_data and audit_log.new_data %}
-            <div class="card-footer text-secondary small"><span class="audit-legend-swatch me-1" aria-hidden="true"></span> Highlighted rows = changed fields.</div>
-          {% endif %}
-        {% else %}
-          <div class="card-body text-secondary">No data was recorded for this activity.</div>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="col-lg-4">
+    <div class="col-lg-6">
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">{{ icon("info") }} Info</h3>
