@@ -1,9 +1,9 @@
-"""Halaman kategori: jelajah ala forum (semua user) + kelola kategori (admin)."""
+"""Halaman kategori: jelajah ala forum + kelola kategori, semua user (sub-kategori pribadi masing-masing)."""
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from app.extensions import limiter
 from app.schemas.category_schema import CategoryForm
-from app.security.role_guard import admin_required, api_login_required
+from app.security.role_guard import api_login_required
 from app.services.category_service import (
     build_category_label,
     build_forum_row_list,
@@ -16,6 +16,7 @@ from app.services.category_service import (
     get_category_path_list,
     has_active_child_category,
     is_category_usable,
+    is_category_visible,
     is_default_category,
     list_category_summary,
     toggle_category_active,
@@ -41,16 +42,17 @@ def get_category_or_404(category_id):
     return category
 
 def get_visible_category_or_404(user, category_id):
+    """Sub-kategori pribadi orang lain / kategori nonaktif (kecuali admin) -> 404."""
     category = get_category_or_404(category_id)
-    if not is_category_usable(category) and not can_manage_category_master(user):
+    if not is_category_visible(user, category) or (not is_category_usable(category) and not can_manage_category_master(user)):
         abort(404)
     return category
 
-def build_back_url(user, parent_id):
-    """Balik ke halaman induknya. Kategori utama balik ke tabel admin (atau Home buat user biasa)."""
+def build_back_url(parent_id):
+    """Balik ke halaman induknya. Kategori utama balik ke tabel kelola kategori."""
     if parent_id is not None:
         return url_for("categories.browse", category_id=parent_id)
-    return url_for("categories.index") if can_manage_category_master(user) else url_for("main.home")
+    return url_for("categories.index")
 
 def render_category_form(form, page_title, form_action, cancel_url, parent=None, is_name_locked=False, screen_title=None):
     """Render form tambah/edit kategori (utama maupun sub). screen_title = judul layar ala SAP (Create/Change)."""
@@ -67,21 +69,19 @@ def render_category_form(form, page_title, form_action, cancel_url, parent=None,
 
 @categories_bp.get("/")
 @login_required
-@admin_required
 def index():
-    """Tabel semua kategori (bentuk pohon) + jumlah link-nya."""
+    """Tabel kelola kategori (semua user): 4 kategori bawaan + kategori bikinan sendiri (bentuk pohon) + jumlah link-nya."""
     return render_template(
         "pages/categories/index.html",
         page_title="Categories",
-        category_summary_list=list_category_summary(),
+        category_summary_list=list_category_summary(get_current_user()),
         max_category_depth=MAX_CATEGORY_DEPTH,
     )
 
 @categories_bp.route("/new", methods=["GET", "POST"])
 @login_required
-@admin_required
 def create():
-    """Tambah kategori utama, khusus admin."""
+    """Tambah kategori utama pribadi, semua user boleh."""
     form = CategoryForm()
     if form.validate_on_submit():
         try:
@@ -108,7 +108,7 @@ def browse(category_id):
         category=category,
         path_list=get_category_path_list(category),
         forum_row_list=forum_row_list,
-        selection_field_list=build_scope_field_list(scope),
+        selection_field_list=build_scope_field_list(user, scope),
         entry_table_payload=build_entry_table_payload(user, request.args, scope),
         can_add_sub=can_add_sub_category(category),
         can_manage=can_manage_category(user, category),
@@ -122,15 +122,17 @@ def table_data(category_id):
     """API tabel link di kategori ini (dipanggil React pas urutan/filter/halaman berubah). Parameter sama kayak halamannya."""
     user = get_current_user()
     category = get_category(category_id)
-    if category is None or (not is_category_usable(category) and not can_manage_category_master(user)):
+    if category is None or not is_category_visible(user, category) or (
+        not is_category_usable(category) and not can_manage_category_master(user)
+    ):
         return error_response("Category not found", 404)
-    scope = build_category_scope(category, has_sub_category=has_active_child_category(category))
+    scope = build_category_scope(category, has_sub_category=has_active_child_category(user, category))
     return success_response(data=build_entry_table_payload(user, request.args, scope))
 
 @categories_bp.route("/<int:category_id>/sub/new", methods=["GET", "POST"])
 @login_required
 def create_sub(category_id):
-    """Tambah sub-kategori, semua user boleh (maksimal 4 tingkat)."""
+    """Tambah sub-kategori pribadi, semua user boleh di kategori bawaan / kategori bikinannya (maksimal 4 tingkat)."""
     user = get_current_user()
     parent = get_visible_category_or_404(user, category_id)
     if not can_add_sub_category(parent):
@@ -154,7 +156,7 @@ def create_sub(category_id):
 @categories_bp.route("/<int:category_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit(category_id):
-    """Edit kategori: admin semua, user biasa cuma sub bikinannya. Nama kategori bawaan dikunci."""
+    """Edit kategori: sub-kategori cuma pembuatnya, kategori utama admin. Nama kategori bawaan dikunci."""
     user = get_current_user()
     category = get_category_or_404(category_id)
     if not can_manage_category(user, category):
@@ -177,12 +179,14 @@ def edit(category_id):
 
 @categories_bp.post("/<int:category_id>/toggle")
 @login_required
-@admin_required
 def toggle(category_id):
-    """Aktifin / nonaktifin kategori, khusus admin."""
+    """Aktifin / nonaktifin sub-kategori, cuma pembuatnya."""
+    user = get_current_user()
     category = get_category_or_404(category_id)
+    if not can_manage_category(user, category):
+        abort(403)
     try:
-        toggle_category_active(get_current_user(), category)
+        toggle_category_active(user, category)
     except ValidationError as error:
         flash_error_list(error.error_list)
     else:
@@ -193,7 +197,7 @@ def toggle(category_id):
 @categories_bp.post("/<int:category_id>/delete")
 @login_required
 def delete(category_id):
-    """Hapus kategori kosong (konfirmasinya di browser). Admin, atau pembuat sub-kategori itu."""
+    """Hapus sub-kategori + sub di dalemnya (konfirmasinya di browser), cuma pembuatnya. Link-nya pindah ke induknya."""
     user = get_current_user()
     category = get_category_or_404(category_id)
     if not can_manage_category(user, category):
@@ -201,10 +205,12 @@ def delete(category_id):
 
     category_name = category.name
     parent_id = category.parent_id
+    parent_label = build_category_label(category.parent) if category.parent is not None else None
     try:
-        delete_category(user, category)
+        moved_count = delete_category(user, category)
     except ValidationError as error:
         flash_error_list(error.error_list)
         return redirect(url_for("categories.browse", category_id=category.id))
-    flash(f'Category "{category_name}" deleted', "success")
-    return redirect(build_back_url(user, parent_id))
+    moved_text = f". {moved_count} link(s) moved to {parent_label}" if moved_count else ""
+    flash(f'Category "{category_name}" deleted{moved_text}', "success")
+    return redirect(build_back_url(parent_id))

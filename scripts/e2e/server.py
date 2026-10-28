@@ -61,7 +61,7 @@ with app.app_context():
         add_entries(admin, 60, web)
     else:
         user = auth_service.register_user("e2e.user@spindo.com", PASSWORD, "User E2E", "ICT", "Staff")
-        sub_category = Category(parent_id=web.id, name="SAP", is_active=True)
+        sub_category = Category(parent_id=web.id, user_id=user.id, name="SAP", is_active=True)
         db.session.add(sub_category)
         db.session.flush()
         add_entries(user, 25, web, sub_category)

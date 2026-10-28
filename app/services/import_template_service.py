@@ -166,9 +166,9 @@ def build_category_sheet(sheet, category_list):
     setup_print(sheet, 3, FIRST_DATA_ROW + max(len(category_list), 1) - 1, "portrait", title_row=HEADER_ROW)
 
 
-def build_import_template():
+def build_import_template(user):
     """File template siap download. Return BytesIO."""
-    category_list = list_usable_category()
+    category_list = list_usable_category(user)
     workbook = Workbook()
     workbook.properties.title = "Access Link Import Template"
     build_link_sheet(workbook.active, len(category_list))

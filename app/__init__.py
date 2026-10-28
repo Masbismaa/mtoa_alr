@@ -228,7 +228,11 @@ def register_template_helpers(app):
     app.add_template_filter(format_file_size, "file_size")
     app.add_template_filter(get_audit_action_label, "audit_action_label")
     app.add_template_filter(get_audit_entity_label, "audit_entity_label")
-    app.add_template_filter(build_category_label, "category_label")
+    # label kategori ngikut yg lagi login: sub-kategori pribadi orang lain cuma tampil nama kategori utamanya
+    app.add_template_filter(
+        lambda category: build_category_label(category, current_user if current_user.is_authenticated else None),
+        "category_label",
+    )
     app.add_template_filter(format_time_ago, "time_ago")
     app.add_template_filter(get_user_status_label, "user_status_label")
     # pilihan toolbar editor teks (components/rich_text_editor.html)

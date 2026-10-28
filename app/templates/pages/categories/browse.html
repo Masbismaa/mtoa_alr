@@ -38,7 +38,7 @@
   {% if can_manage %}
     <a href="{{ url_for('categories.edit', category_id=category.id) }}" class="btn">{{ icon("edit") }} Edit</a>
     {% if not is_default %}
-      <form method="post" action="{{ url_for('categories.delete', category_id=category.id) }}" data-confirm-title="Delete category?" data-confirm-message="Category &quot;{{ category.name }}&quot; will be permanently deleted. Only possible when it is empty (no links & sub-categories)." data-confirm-ok="Yes, delete">
+      <form method="post" action="{{ url_for('categories.delete', category_id=category.id) }}" data-confirm-title="Delete category?" data-confirm-message="Category &quot;{{ category.name }}&quot; and its sub-categories will be permanently deleted. Links inside are moved to the parent category, nothing is lost." data-confirm-ok="Yes, delete">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-ghost-danger" data-fkey="Shift+F2" title="Delete (Shift+F2)">{{ icon("trash") }} Delete</button>
       </form>

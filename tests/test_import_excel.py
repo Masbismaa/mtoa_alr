@@ -42,9 +42,9 @@ def web_row(title, url, **override):
     return [row[header] for header in HEADER_LIST]
 
 
-def test_template_download_has_columns_and_categories(logged_in_client, category_dict):
+def test_template_download_has_columns_and_categories(logged_in_client, registered_user, category_dict):
     """Positive: template berisi judul kolom yg dipake import + daftar kategori aktif."""
-    sap = Category(parent_id=category_dict["Web"].id, name="SAP", is_active=True)
+    sap = Category(parent_id=category_dict["Web"].id, user_id=registered_user.id, name="SAP", is_active=True)
     db.session.add(sap)
     db.session.commit()
     response = logged_in_client.get("/entries/import/template")
@@ -62,7 +62,7 @@ def test_template_download_has_columns_and_categories(logged_in_client, category
 def test_filled_official_template_imports(logged_in_client, registered_user, category_dict):
     """Positive: template resmi (header di bawah kop) diisi pake nilai dropdown -> ke-import.
     Visibility Public dari user biasa disimpen Private (Public cuma admin)."""
-    sap = Category(parent_id=category_dict["Web"].id, name="SAP", is_active=True)
+    sap = Category(parent_id=category_dict["Web"].id, user_id=registered_user.id, name="SAP", is_active=True)
     db.session.add(sap)
     db.session.commit()
     workbook = load_workbook(io.BytesIO(logged_in_client.get("/entries/import/template").data))
@@ -86,7 +86,7 @@ def test_empty_official_template_has_nothing_to_import(logged_in_client, categor
 
 def test_import_creates_all_rows_with_encrypted_note(logged_in_client, registered_user, category_dict):
     """Positive: semua baris bener -> kesimpen semua (milik yg upload), password dienkripsi, kecatat audit."""
-    sap = Category(parent_id=category_dict["Web"].id, name="SAP", is_active=True)
+    sap = Category(parent_id=category_dict["Web"].id, user_id=registered_user.id, name="SAP", is_active=True)
     db.session.add(sap)
     db.session.commit()
     content = build_xlsx([

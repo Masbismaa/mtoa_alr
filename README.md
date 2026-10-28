@@ -588,7 +588,7 @@ flowchart LR
 <summary><b>Adjacency list for categories</b></summary>
 <br>
 
-Users create their own sub-categories, so the hierarchy depth is not fixed. A single self-referencing table supports any level with uniform queries. Depth is limited to four in the service layer, and the complete tree is small enough to load once per request and assemble in memory.
+Every account shares the four built-in main categories. Any other main category or sub-category is private to the user who created it; public links inside another user's sub-category appear under its built-in main category. The hierarchy depth is not fixed. A single self-referencing table supports any level with uniform queries. Depth is limited to four in the service layer, and the complete tree is small enough to load once per request and assemble in memory.
 
 </details>
 

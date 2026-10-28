@@ -25,7 +25,7 @@ sebelumnya tersebar. Link hanya disimpan sebagai teks (tidak dibuka otomatis).
 ## 4. Daftar Requirement (SR)
 | ID | Nama | Deskripsi |
 |---|---|---|
-| SR-01 | Master Category | Kategori: Web, Application, Network, General. Dikelola Admin. |
+| SR-01 | Master Category | 4 kategori utama bawaan: Web, Application, Network, General (sama untuk semua akun, terkunci, deskripsinya dikelola Admin). Kategori utama lain dan sub-kategori milik pribadi tiap akun: hanya terlihat, dipakai, dan bisa diubah oleh pembuatnya. |
 | SR-02 | Master User | Email, nama lengkap, departemen, jabatan, role, status aktif. |
 | SR-03 | Data Transaksi Access | Title, category, URL, address, port, username, access note/password (terenkripsi), description, attachment, created by, visibility (Public/Private), status, created at, last changed. |
 | SR-04 | RBAC Public/Private | Aturan hak akses sesuai bagian 5. |

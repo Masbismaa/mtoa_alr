@@ -39,12 +39,12 @@ def test_create_page_loads_with_categories(logged_in_client, category_dict):
     assert "General" in html_text
     assert "Add field" in html_text
 
-def test_create_page_has_category_tree_for_cascade(logged_in_client, category_dict):
+def test_create_page_has_category_tree_for_cascade(logged_in_client, registered_user, category_dict):
     """Positive: tiap pilihan kategori bawa induk + nama pendek, buat dropdown bertingkat (entry_form.js)."""
     from app.models import Category
 
     web = category_dict["Web"]
-    sap = Category(parent_id=web.id, name="SAP", is_active=True)
+    sap = Category(parent_id=web.id, user_id=registered_user.id, name="SAP", is_active=True)
     db.session.add(sap)
     db.session.commit()
     html_text = logged_in_client.get("/entries/new").get_data(as_text=True)

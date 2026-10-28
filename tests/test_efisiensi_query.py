@@ -4,8 +4,7 @@ from sqlalchemy import event
 
 from app.extensions import db
 from app.models import AccessEntry, Category, GroupEntry, GroupEntryViewer, GroupMember
-from app.services.access_entry_service import list_selected_category_id
-from app.services.category_service import build_forum_row_list
+from app.services.category_service import build_forum_row_list, list_scope_category_id
 from app.services.group_service import count_visible_group_entries, create_group
 from app.utils.constants import GROUP_MEMBER_STATUS_ACTIVE, GROUP_ROLE_MEMBER, VISIBILITY_PRIVATE
 
@@ -25,7 +24,7 @@ def count_queries(callback):
 
 def test_forum_query_count_does_not_grow_per_category(app, registered_user, other_user):
     for number in range(40):
-        category = Category(name=f"Category {number}")
+        category = Category(name=f"Category {number}", user_id=registered_user.id)
         db.session.add(category)
         db.session.flush()
         db.session.add_all([
@@ -39,13 +38,13 @@ def test_forum_query_count_does_not_grow_per_category(app, registered_user, othe
     assert all(row["entry_count"] == 1 and row["latest_entry"].title == "Visible" for row in rows)
 
 
-def test_category_selection_reads_tree_once(app, category_dict):
+def test_category_selection_reads_tree_once(app, registered_user, category_dict):
     parent = category_dict["Web"]
-    child = Category(parent_id=parent.id, name="Child")
+    child = Category(parent_id=parent.id, user_id=registered_user.id, name="Child")
     db.session.add(child)
     db.session.commit()
     parent_id, child_id = parent.id, child.id
-    ids, statements = count_queries(lambda: list_selected_category_id([parent_id, child_id, parent_id, 999999]))
+    ids, statements = count_queries(lambda: list_scope_category_id(registered_user, [parent_id, child_id, parent_id, 999999]))
     assert ids == [parent_id, child_id]
     assert len(statements) == 1
 

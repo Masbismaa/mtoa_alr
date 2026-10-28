@@ -99,7 +99,7 @@ def index():
     """Daftar Link ala Select Screen SAP: awalnya cuma Kriteria Pencarian, tabel (ALV, React) baru muncul abis Jalankan."""
     user = get_current_user()
     scope = build_index_scope()
-    field_list = build_scope_field_list(scope)
+    field_list = build_scope_field_list(user, scope)
     # belum Jalankan (ga ada kriteria sama sekali) -> tabel ga ditampilin, query-nya juga ga dijalanin
     is_run = bool(build_selection_query_dict(request.args, field_list))
     return render_template(
@@ -139,7 +139,7 @@ def bulk_delete():
 def create():
     """Tambah data link, bisa langsung masuk ke group kalau dibuka dari halaman group."""
     user = get_current_user()
-    category_list = list_usable_category()
+    category_list = list_usable_category(user)
     form = AccessEntryForm()
     form.category_id.choices = [(category.id, category.name) for category in category_list]
     custom_field_pair_list = read_custom_field_pair_list() if request.method == "POST" else []
@@ -213,7 +213,7 @@ def import_page():
 @login_required
 def import_template():
     """Download template Excel buat import (kolom + daftar kategori yg bisa dipake)."""
-    return send_file(build_import_template(), as_attachment=True, download_name="ALR_import_template.xlsx",
+    return send_file(build_import_template(get_current_user()), as_attachment=True, download_name="ALR_import_template.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", max_age=0)
 
 @entries_bp.get("/<int:entry_id>")
@@ -284,7 +284,7 @@ def edit(entry_id):
     if not can_edit_entry(user, entry):
         abort(403)
 
-    category_list = get_form_category_list(entry.category)
+    category_list = get_form_category_list(user, entry.category)
     attachment_error_list = []
     back_url = read_back_url()
     if request.method == "GET":

@@ -63,9 +63,9 @@ def normalize_category_path(text):
     return CATEGORY_PATH_SEPARATOR.join(part for part in part_list if part).lower()
 
 
-def build_category_dict():
-    """Jalur kategori aktif (huruf kecil) -> Category, misal 'web › sap' -> SAP."""
-    return {normalize_category_path(build_category_label(category)): category for category in list_usable_category()}
+def build_category_dict(user):
+    """Jalur kategori aktif milik user (huruf kecil) -> Category, misal 'web › sap' -> SAP."""
+    return {normalize_category_path(build_category_label(category)): category for category in list_usable_category(user)}
 
 
 def normalize_header(value):
@@ -179,7 +179,7 @@ def import_entries(user, file_storage):
     """Import semua baris. Ada 1 baris salah -> ga ada yg disimpen, ValidationError isinya error per baris.
     Semua bener -> disimpen dalam 1 transaksi + dicatat (per link & 1 catatan import). Return jumlah link."""
     row_list = read_import_row_list(file_storage)
-    category_dict = build_category_dict()
+    category_dict = build_category_dict(user)
     # (nomor baris, clean_dict, field tambahan) yg lolos validasi per baris
     prepared_list = []
     error_by_row_dict = {}

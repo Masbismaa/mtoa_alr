@@ -34,7 +34,7 @@
       <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false" accesskey="m">{{ menu_title("Menu") }}</button>
       <div class="dropdown-menu">
         {% for transaction in transaction_list %}
-          <a href="{{ transaction.url }}" class="dropdown-item">{{ transaction.label }}<kbd class="ms-auto">{{ transaction.code }}</kbd></a>
+          <a href="{{ transaction.url }}" class="dropdown-item">{{ transaction.label }}</a>
         {% endfor %}
         <div class="dropdown-divider"></div>
         <form method="post" action="{{ url_for('auth.logout') }}">
@@ -101,18 +101,6 @@
   </nav>
 
   <div class="app-systembar" role="toolbar" aria-label="System toolbar">
-    {# command field: ketik kode menu (LL, /nLL, /oLL = tab baru, /n = Home) terus Enter #}
-    <form class="app-command" data-command-form data-home-url="{{ url_for('main.home') }}" autocomplete="off" role="search" aria-label="Command field">
-      <button type="submit" class="btn btn-icon app-system-btn app-tone-green" title="Enter (go to the typed menu code)" aria-label="Enter">{{ icon("enter") }}</button>
-      <input type="text" class="form-control app-command-input" name="command" list="transaction_list" maxlength="20" spellcheck="false"
-             placeholder="Menu code" aria-label="Menu code" title="Type a menu code, e.g. LL, then Enter (Ctrl+/)"
-             data-command-input>
-      <datalist id="transaction_list">
-        {% for transaction in transaction_list %}<option value="{{ transaction.code }}">{{ transaction.label }}</option>{% endfor %}
-      </datalist>
-      <script type="application/json" data-transaction-map>{{ transaction_list | tojson }}</script>
-    </form>
-    <span class="app-systembar-divider" aria-hidden="true"></span>
     {% if toolbar_save_form %}
       <button type="submit" form="{{ toolbar_save_form }}" class="btn btn-icon app-system-btn app-tone-blue" title="Save changes (Ctrl+S)" aria-label="Save" data-fkey="Ctrl+S">{{ icon("save") }}</button>
     {% else %}

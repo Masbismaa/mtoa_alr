@@ -134,23 +134,6 @@
   background: var(--app-frame-border, var(--tblr-border-color));
 }
 
-.app-command {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.app-command-input {
-  width: 13rem;
-  font-family: var(--tblr-font-monospace);
-  text-transform: uppercase;
-}
-
-.app-command-input::placeholder {
-  font-family: var(--tblr-body-font-family);
-  text-transform: none;
-}
-
 /* tombol ikon toolbar sistem: datar, berwarna (hijau = lanjut, oranye = keluar, merah = batal) */
 .app-topbar .app-system-btn {
   --tblr-btn-bg: transparent;

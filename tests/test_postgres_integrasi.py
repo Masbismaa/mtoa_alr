@@ -126,7 +126,9 @@ def test_concurrent_category_names_differing_case(pg_app, monkeypatch):
     def create(category_name):
         from app.models import User
 
-        return lambda: category_service.create_category(db.session.get(User, admin_id), {"name": category_name, "description": ""}).id
+        return lambda: category_service.create_sub_category(
+            db.session.get(User, admin_id), get_web_category(), {"name": category_name, "description": ""},
+        ).id
 
     result_list = run_together(pg_app, [create(name), create(name.upper())])
     assert sorted(kind for kind, _ in result_list) == ["error", "ok"]
@@ -181,22 +183,29 @@ def test_concurrent_admin_demotion_keeps_one_admin(pg_app, monkeypatch):
         assert db.session.scalar(db.select(db.func.count(User.id)).where(User.role == "admin", User.is_active.is_(True))) == 1
 
 
+def get_web_category():
+    """Kategori utama Web (sub-kategori pribadi dibikin di bawahnya)."""
+    from app.models import Category
+
+    return db.session.execute(db.select(Category).filter_by(name="Web", parent_id=None)).scalar_one()
+
+
 def make_admin_and_category(pg_app):
     with pg_app.app_context():
         admin = register_user(f"pg.cat.{uuid.uuid4().hex[:8]}@spindo.com", "PasswordKuat123", "PG", "ICT", "Staff", role="admin")
-        category = category_service.create_category(admin, {"name": f"Hapus {uuid.uuid4().hex[:6]}", "description": ""})
+        category = category_service.create_sub_category(admin, get_web_category(), {"name": f"Hapus {uuid.uuid4().hex[:6]}", "description": ""})
         return admin.id, category.id
 
 
 def slow_child_count(monkeypatch):
-    original_count = category_service.count_child_category
+    original_list = category_service.list_subtree_category_id
 
-    def slow_count(category_id):
-        result = original_count(category_id)
-        time.sleep(0.5)  # nahan transaksi hapus di antara cek & hapus
+    def slow_list(category_id):
+        result = original_list(category_id)
+        time.sleep(0.5)  # nahan transaksi hapus di antara ambil turunan & hapus
         return result
 
-    monkeypatch.setattr(category_service, "count_child_category", slow_count)
+    monkeypatch.setattr(category_service, "list_subtree_category_id", slow_list)
 
 
 def test_concurrent_delete_same_category(pg_app, monkeypatch):
