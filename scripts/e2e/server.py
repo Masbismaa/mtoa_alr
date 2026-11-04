@@ -66,6 +66,8 @@ with app.app_context():
         db.session.flush()
         add_entries(user, 25, web, sub_category)
         info["sub_category_id"] = sub_category.id
+        if SCENARIO == "auth":
+            auth_service.register_user("e2e.admin@spindo.com", PASSWORD, "Admin E2E", "ICT", "Manager", role=ROLE_ADMIN)
         if SCENARIO == "group":
             group = create_group(user, {"name": "Tim Besar"})
             for entry_id in db.session.scalars(db.select(AccessEntry.id).order_by(AccessEntry.id).limit(12)):

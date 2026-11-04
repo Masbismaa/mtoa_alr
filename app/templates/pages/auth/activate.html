@@ -1,0 +1,23 @@
+{% extends "layouts/auth_base.html" %}
+{% from "components/form_field.html" import render_field %}
+
+{% block title %}Activate Account{% endblock %}
+
+{% block content %}
+  <div class="text-secondary small text-uppercase fw-bold mb-1">Account activation</div>
+  <h2 class="h2 mb-2">Set Your Password</h2>
+  <p class="text-secondary mb-4">Create a password for <strong>{{ email }}</strong>. After that, log in with this email and the new password.</p>
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.password, placeholder="Password", autocomplete="new-password") }}
+    {{ render_field(form.confirm_password, placeholder="Repeat password", autocomplete="new-password") }}
+    <div class="form-footer">
+      {{ form.submit(class_="btn btn-primary w-100") }}
+    </div>
+  </form>
+{% endblock %}
+
+{% block after_card %}
+  <div class="text-center text-secondary mt-3"><a href="{{ url_for('auth.login') }}">Go to login</a></div>
+{% endblock %}

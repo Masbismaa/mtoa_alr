@@ -1,0 +1,31 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/form_field.html" import render_field %}
+{% from "components/icon.html" import icon %}
+
+{% block title %}Create User{% endblock %}
+
+{% block screen_title %}Create User{% endblock %}
+
+{% block page_pretitle %}Admin{% endblock %}
+
+{% block toolbar_save %}user_form{% endblock %}
+{% block toolbar_cancel %}{{ back_url }}{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <form id="user_form" method="post" class="card" novalidate data-form-guard{% if request.method == "POST" %} data-form-guard-dirty{% endif %}>
+        {{ form.hidden_tag() }}
+        <div class="card-header">
+          <h3 class="card-title">{{ icon("user") }} Create User</h3>
+        </div>
+        <div class="card-body">
+          {{ render_field(form.email, suffix="@" ~ config.ALLOWED_EMAIL_DOMAIN, value=(form.email.data or "").split("@")[0], placeholder="name", autocomplete="off") }}
+          {{ render_field(form.full_name, placeholder="Example: Budi Santoso", autocomplete="off") }}
+          {{ render_field(form.role) }}
+          <p class="text-secondary mb-0">The account stays <b>Pending Activation</b> until its owner sets a password. After saving, use <b>Send Activation Link</b> in the user list to email them the link.</p>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

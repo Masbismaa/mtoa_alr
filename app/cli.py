@@ -31,7 +31,6 @@ def register_cli_commands(app):
     @click.password_option("--password", prompt="Password")
     def create_admin_command(email, full_name, department, job_title, password):
         """Bikin akun Admin (satu-satunya cara bikin admin)."""
-        # pake fungsi register yg sama, bedanya role-nya admin
         try:
             user = register_user(
                 email=email,
@@ -174,12 +173,12 @@ def register_cli_commands(app):
     @click.option("--delete", is_flag=True, help="Hapus beneran (default cuma ngitung).")
     def cleanup_old_data_command(delete):
         """Buang data sementara yg udah ga kepake biar tabel ga numpuk bertahun-tahun: OTP yg udah kedaluwarsa,
-        notifikasi yg udah dibaca & lebih tua dari 90 hari, dan percobaan daftar yg ga diverifikasi > 24 jam.
+        dan notifikasi yg udah dibaca & lebih tua dari 90 hari.
         Default cuma nampilin jumlahnya. Audit log sengaja ga disentuh (emang ga boleh dihapus)."""
         from datetime import timedelta
 
-        from app.models import OtpCode, PendingRegistration, UserNotification
-        from app.utils.constants import NOTIFICATION_RETENTION_DAYS, PENDING_REGISTRATION_EXPIRE_HOURS
+        from app.models import OtpCode, UserNotification
+        from app.utils.constants import NOTIFICATION_RETENTION_DAYS
         from app.utils.datetime_helper import utc_now
 
         now = utc_now()
@@ -189,8 +188,6 @@ def register_cli_commands(app):
                 UserNotification.is_read.is_(True),
                 UserNotification.created_at < now - timedelta(days=NOTIFICATION_RETENTION_DAYS),
             )),
-            ("pendaftaran tidak diverifikasi", PendingRegistration,
-             PendingRegistration.created_at < now - timedelta(hours=PENDING_REGISTRATION_EXPIRE_HOURS)),
         ]
         for label, model, condition in target_list:
             if delete:

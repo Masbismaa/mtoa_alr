@@ -1,10 +1,11 @@
-"""Form login, register, dan OTP. Validasi dasar di sini, aturan bisnis di auth_service."""
+"""Form login, OTP, aktivasi akun, lupa/ganti password, profil, dan bikin user (admin). Validasi dasar di sini,
+aturan bisnis di auth_service."""
 from flask import current_app
 from flask_wtf import FlaskForm
-from wtforms import EmailField, PasswordField, StringField, SubmitField
+from wtforms import EmailField, PasswordField, SelectField, StringField, SubmitField
 from wtforms.validators import DataRequired, EqualTo, Length, Regexp
 
-from app.utils.constants import MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, OTP_LENGTH
+from app.utils.constants import MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, OTP_LENGTH, ROLE_ADMIN, ROLE_LABEL_DICT, ROLE_USER_ENTRY
 from app.utils.text_helper import complete_email
 
 # pola email sederhana, cek domain-nya di service
@@ -17,14 +18,13 @@ def complete_corporate_email(value):
     """Filter form: user cukup isi nama depan email, domain kantor ditambahin otomatis sebelum divalidasi."""
     return complete_email(value, current_app.config["ALLOWED_EMAIL_DOMAIN"])
 
-# validator email dipake di 2 form, jadi dikumpulin sekali aja
 EMAIL_VALIDATOR_LIST = [
     DataRequired(message="Email is required"),
     Length(max=255, message="Email is too long"),
     Regexp(EMAIL_PATTERN, message="Invalid email format"),
 ]
 
-# aturan password baru dipake bareng: daftar, lupa password, ganti password
+# aturan password baru dipake bareng: aktivasi akun, lupa password, ganti password
 NEW_PASSWORD_VALIDATOR_LIST = [
     DataRequired(message="Password is required"),
     Length(min=MIN_PASSWORD_LENGTH, max=MAX_PASSWORD_LENGTH,
@@ -54,15 +54,19 @@ class LoginForm(FlaskForm):
     submit = SubmitField("Next")
 
 
-class RegisterForm(FlaskForm):
-    """Daftar akun baru (role otomatis User Entry)."""
+class CreateUserForm(FlaskForm):
+    """Admin bikin akun baru. Password dibikin sendiri sama pemiliknya lewat link aktivasi."""
     email = EmailField("Corporate Email", validators=EMAIL_VALIDATOR_LIST, filters=[complete_corporate_email])
     full_name = StringField("Full Name", validators=FULL_NAME_VALIDATOR_LIST)
-    department = StringField("Department", validators=DEPARTMENT_VALIDATOR_LIST)
-    job_title = StringField("Job Title", validators=JOB_TITLE_VALIDATOR_LIST)
+    role = SelectField("Role", choices=[(role, ROLE_LABEL_DICT[role]) for role in (ROLE_USER_ENTRY, ROLE_ADMIN)])
+    submit = SubmitField("Create User")
+
+
+class ActivateAccountForm(FlaskForm):
+    """Halaman dari link aktivasi: bikin password (diketik 2x)."""
     password = PasswordField("Password", validators=NEW_PASSWORD_VALIDATOR_LIST)
     confirm_password = PasswordField("Confirm Password", validators=CONFIRM_PASSWORD_VALIDATOR_LIST)
-    submit = SubmitField("Register")
+    submit = SubmitField("Activate Account")
 
 
 class OtpForm(FlaskForm):

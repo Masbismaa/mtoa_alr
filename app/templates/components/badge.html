@@ -19,6 +19,6 @@
 {% endmacro %}
 
 {% macro user_status_badge(status) %}
-  {% set status_class_dict = {"active": "bg-green-lt", "locked": "bg-yellow-lt", "inactive": "bg-secondary-lt"} %}
+  {% set status_class_dict = {"active": "bg-green-lt", "pending": "bg-azure-lt", "locked": "bg-yellow-lt", "inactive": "bg-secondary-lt"} %}
   <span class="badge user-status-{{ status }} {{ status_class_dict.get(status, 'bg-secondary-lt') }}">{{ status | user_status_label }}</span>
 {% endmacro %}

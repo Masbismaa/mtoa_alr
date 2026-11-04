@@ -1,20 +1,7 @@
-"""Test halaman register, login 2 langkah (password -> OTP), logout, dan rate limit."""
+"""Test login 2 langkah (password -> OTP), logout, dan rate limit."""
 from app import create_app
 from app.config import TestingConfig
-from app.extensions import db
-from app.models import PendingRegistration, User
 from app.utils.constants import LOGIN_MAX_FAILED_COUNT
-
-def build_register_form_dict(confirm_password="PasswordKuat123"):
-    """Helper: isi form register."""
-    return {
-        "email": "baru@spindo.com",
-        "full_name": "User Baru",
-        "department": "ICT",
-        "job_title": "Staff",
-        "password": "PasswordKuat123",
-        "confirm_password": confirm_password,
-    }
 
 def login_with_otp(client, email, password, otp_code):
     """Helper: jalanin login langkah 1 + 2."""
@@ -28,26 +15,11 @@ def test_home_requires_login(client):
     assert response.status_code == 302
     assert "/auth/login" in response.location
 
-def test_register_page_loads(client):
-    """halaman register kebuka."""
-    response = client.get("/auth/register")
-    assert response.status_code == 200
-    assert "Create Account" in response.get_data(as_text=True)
-
-def test_register_post_creates_pending_registration(client):
-    """daftar -> diarahkan ke verifikasi email; yg kesimpen baru percobaan daftar, akunnya belum dibikin."""
-    response = client.post("/auth/register", data=build_register_form_dict())
-    assert response.status_code == 302
-    assert "/auth/register/verify" in response.location
-    assert db.session.execute(db.select(User).filter_by(email="baru@spindo.com")).scalar_one_or_none() is None
-    pending = db.session.execute(db.select(PendingRegistration).filter_by(email="baru@spindo.com")).scalar_one()
-    assert pending.full_name == "User Baru"
-
-def test_register_password_mismatch(client):
-    """konfirmasi password beda -> tetep di halaman register + pesan error."""
-    response = client.post("/auth/register", data=build_register_form_dict(confirm_password="BedaSendiri123"))
-    assert response.status_code == 200
-    assert "Passwords do not match" in response.get_data(as_text=True)
+def test_register_page_removed(client):
+    """Negative: halaman daftar mandiri udah ga ada, login cuma nyuruh hubungi admin."""
+    assert client.get("/auth/register").status_code == 404
+    login_text = client.get("/auth/login").get_data(as_text=True)
+    assert "auth/register" not in login_text and "Contact the ICT admin" in login_text
 
 def test_full_login_flow(client, registered_user, user_password, fixed_otp_code):
     """login -> Next ke halaman OTP -> isi OTP -> masuk beranda."""

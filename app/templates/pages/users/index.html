@@ -8,21 +8,20 @@
 
 {% block title %}Users{% endblock %}
 
-{# judul layar di title bar atas ala SAP #}
 {% block screen_title %}Display Users{% endblock %}
 
 {% block page_pretitle %}Admin{% endblock %}
 
 {% block page_subtitle %}
-  <div class="text-secondary mt-1">Admins can only be created via the command line. All changes are recorded in Audit Logs.</div>
+  <div class="text-secondary mt-1">New accounts are created here and activated by their owner through the activation link. All changes are recorded in Audit Logs.</div>
 {% endblock %}
 
 {% block page_actions %}
+  <a href="{{ url_for('users.create') }}" class="btn btn-primary">{{ icon("plus") }} Create User</a>
   {{ selection_toolbar(url_for("users.index", _anchor="daftar_user")) }}
 {% endblock %}
 
 {% block content %}
-  {# urutan (sort) aja ga diitung sebagai filter #}
   {% set is_filtered = pagination_query_dict | reject("equalto", "sort") | list | length > 0 %}
 
   {% set summary_card_list = [
@@ -49,7 +48,7 @@
     {% endfor %}
   </div>
 
-  {{ selection_panel(selection_field_list, url_for("users.index", _anchor="daftar_user"), "Search name, email, department, job title... (press /)") }}
+  {{ selection_panel(selection_field_list, url_for("users.index", _anchor="daftar_user"), "Search name, email, department, job title...") }}
 
   <div class="card" id="daftar_user">
     <div class="card-header">
@@ -92,25 +91,33 @@
                 </td>
                 <td data-label="Status" {{ cell_attr(table_view, "status") }}>{{ user_status_badge(row.status) }}</td>
                 <td class="text-nowrap text-secondary" data-label="Last Login" {{ cell_attr(table_view, "last_login") }}>{{ user.last_login_at | time_ago if user.last_login_at else "Never" }}</td>
-                <td class="text-nowrap text-secondary" data-label="Registered" {{ cell_attr(table_view, "created") }}>{{ user.created_at | local_datetime("%d %b %Y") }}</td>
+                <td class="text-nowrap text-secondary" data-label="Created" {{ cell_attr(table_view, "created") }}>{{ user.created_at | local_datetime("%d %b %Y") }}</td>
                 <td class="cell-action">
                   {% if user.id == current_user.id %}
                     <span class="small text-secondary">Your account</span>
-                    {% elif is_admin(user) %}
+                  {% elif is_admin(user) and row.status != "pending" %}
                     <span class="small text-secondary" title="Admin accounts are changed via the command line">Via command</span>
-                    {% else %}
+                  {% else %}
                     {# strategy fixed biar menunya ga kepotong kotak tabel yg bisa di-scroll #}
                     <div class="dropdown">
                       <button type="button" class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">Actions</button>
                       <div class="dropdown-menu dropdown-menu-end">
-                        {% if row.status == "locked" %}
+                        {% if row.status == "pending" %}
+                          <form method="post" action="{{ url_for('users.send_activation_link', user_id=user.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            {{ back_field_list(back_param_dict) }}
+                            <button type="submit" class="dropdown-item">{{ icon("mail", "dropdown-item-icon") }} Send Activation Link</button>
+                          </form>
+                        {% elif row.status == "locked" %}
                           <form method="post" action="{{ url_for('users.unlock', user_id=user.id) }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             {{ back_field_list(back_param_dict) }}
                             <button type="submit" class="dropdown-item">{{ icon("refresh", "dropdown-item-icon") }} Unlock</button>
                           </form>
                         {% endif %}
-                        {% if user.is_active %}
+                        {% if row.status == "pending" %}
+                          {# belum punya password: aktifnya cuma lewat link aktivasi #}
+                        {% elif user.is_active %}
                           <form method="post" action="{{ url_for('users.toggle_active', user_id=user.id) }}" data-confirm-title="Deactivate account?" data-confirm-message="{{ user.full_name }} will be logged out right away and can't log in until reactivated. Their data stays safe." data-confirm-ok="Yes, deactivate">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             {{ back_field_list(back_param_dict) }}
@@ -123,8 +130,10 @@
                             <button type="submit" class="dropdown-item">{{ icon("eye", "dropdown-item-icon") }} Activate</button>
                           </form>
                         {% endif %}
-                        <div class="dropdown-divider"></div>
-                        <a href="{{ url_for('users.delete', user_id=user.id, **back_param_dict) }}" class="dropdown-item text-danger">{{ icon("trash", "dropdown-item-icon") }} Delete account</a>
+                        {% if not is_admin(user) %}
+                          <div class="dropdown-divider"></div>
+                          <a href="{{ url_for('users.delete', user_id=user.id, **back_param_dict) }}" class="dropdown-item text-danger">{{ icon("trash", "dropdown-item-icon") }} Delete account</a>
+                        {% endif %}
                       </div>
                     </div>
                   {% endif %}

@@ -4,7 +4,6 @@
 
 {% block title %}Delete Account {{ target.full_name }}{% endblock %}
 
-{# judul layar di title bar atas ala SAP #}
 {% block screen_title %}Change Account: {{ target.full_name }} (Delete){% endblock %}
 
 {% block page_pretitle %}Admin › Users{% endblock %}
@@ -47,7 +46,7 @@
             <li>{{ icon("globe", "text-secondary") }} <strong>{{ delete_preview_dict.public_entry_count }}</strong> Public links remain, with the owner shown as "Deleted account".</li>
             <li>{{ icon("lock", "text-secondary") }} The account can no longer log in, and the name and email are anonymized.</li>
             <li>{{ icon("group", "text-secondary") }} Leaves all groups, and their links are removed from other people's groups.</li>
-            <li>{{ icon("mail", "text-secondary") }} The email {{ target.email }} can be used to register again.</li>
+            <li>{{ icon("mail", "text-secondary") }} The email {{ target.email }} can be used for a new account again.</li>
             <li>{{ icon("audit", "text-secondary") }} History in Audit Logs is kept.</li>
           </ul>
 
