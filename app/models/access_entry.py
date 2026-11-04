@@ -5,7 +5,7 @@ from app.utils.constants import LINK_STATUS_LIST, LINK_STATUS_UNKNOWN, VISIBILIT
 from app.utils.sql_helper import build_sql_in_list
 
 class AccessEntry(TimestampMixin, db.Model):
-    """Data link akses ICT + petunjuk/kredensialnya."""
+    """Data link akses ICT + petunjuk aksesnya."""
 
     __tablename__ = "access_entries"
 

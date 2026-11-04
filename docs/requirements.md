@@ -26,22 +26,22 @@ sebelumnya tersebar. Link hanya disimpan sebagai teks (tidak dibuka otomatis).
 | ID | Nama | Deskripsi |
 |---|---|---|
 | SR-01 | Master Category | 4 kategori utama bawaan: Web, Application, Network, General (sama untuk semua akun, terkunci, deskripsinya dikelola Admin). Kategori utama lain dan sub-kategori milik pribadi tiap akun: hanya terlihat, dipakai, dan bisa diubah oleh pembuatnya. |
-| SR-02 | Master User | Email, nama lengkap, departemen, jabatan, role, status aktif. |
-| SR-03 | Data Transaksi Access | Title, category, URL, address, port, username, access note/password (terenkripsi), description, attachment, created by, visibility (Public/Private), status, created at, last changed. |
+| SR-02 | Master User | Email, nama lengkap, departemen, jabatan, role, status aktif. Tidak ada registrasi mandiri: Admin membuat user (email, nama, role) dengan status Pending Activation, lalu menekan Send Activation Link; user membuka link di email, mengisi password 2 kali, lalu login (password + OTP). |
+| SR-03 | Data Transaksi Access | Title, category, URL, address, port, username, access note (terenkripsi), description, attachment, created by, visibility (Public/Private), status, created at, last changed. |
 | SR-04 | RBAC Public/Private | Aturan hak akses sesuai bagian 5. |
 | SR-05 | Form Input Dinamis | Field menyesuaikan kategori (Web: URL; Network: Address & Port). Kategori General: tombol "Add field" untuk menambah field satu per satu, isi field memakai editor teks dengan toolbar format. Attachment maks 5 file. |
 | SR-06 | Validasi & Duplikasi | URL wajib http/https; deteksi duplikasi URL atau kombinasi Address + Port. |
 | SR-07 | Validasi File Upload | Ekstensi: jpg, png, pdf, xlsx, doc, docx, txt. Validasi MIME type, maks 10MB per file, nama file diacak, created_at attachment dicatat. |
 | SR-08 | Tampilan Tabel | Title, Category, URL (truncated), Description (truncated), Attachment, Created By, Created At. |
 | SR-09 | Filter & Search | Pencarian keyword dan filter Category. |
-| SR-10 | Export Excel | Export data yang boleh dilihat user ke .xlsx (tanpa password). |
+| SR-10 | Export Excel | Export data yang boleh dilihat user ke .xlsx (tanpa access note). |
 | SR-11 | Edit & Delete | Dengan dialog konfirmasi. |
 | SR-12 | Tombol Copy | Copy URL/Address ke clipboard tanpa blok teks manual. |
 | SR-13 | Database Terstruktur | Skema PostgreSQL ternormalisasi sesuai naming convention. |
 | SR-14 | Cek Status Link | Pengecekan status link aktif / tidak aktif. |
 | SR-15 | Audit Log | Immutable: siapa, IP address, timestamp, tindakan, nilai lama vs baru. |
 | SR-16 | Group / Workspace | User membuat group, mengundang anggota, dan mengisi group dengan link yang ada atau link baru. |
-| SR-17 | UI Sidebar, Customizer & Dark Mode | Sidebar kiri (Dashboard, Categories, Groups, Audit Logs, Settings) + profil ringkas dengan avatar inisial maks 3 huruf (contoh: MBP); panel kustomisasi (warna aksen, compact view, font); toggle Light/Dark yang tersimpan. |
+| SR-17 | UI Sidebar, Customizer & Dark Mode | Sidebar kiri (Dashboard, Categories, Groups, Audit Logs, Settings) + profil ringkas dengan avatar inisial maks 3 huruf (contoh: MBP); panel kustomisasi (compact view, font); toggle Light/Dark yang tersimpan. |
 
 ## 5. Aturan Hak Akses (RBAC)
 | Aksi | Admin | User Entry (data sendiri) | User Entry (Public milik user lain) |

@@ -263,8 +263,6 @@ def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list
     return clean_dict, clean_custom_field_list, prepared_upload_list
 
 
-# ================= SIMPAN =================
-
 # SIMPAN
 def apply_entry_data(entry, clean_dict, clean_custom_field_list):
     """Salin data bersih ke entry (access note dienkripsi, field tambahan diganti semua)."""
@@ -570,4 +568,3 @@ def toggle_archive(user, entry):
     )
     db.session.commit()
     return entry.is_archived
-

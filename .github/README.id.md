@@ -12,7 +12,7 @@
 
 <p align="center">
   Aplikasi web internal yang aman untuk mengelola dan membagikan informasi akses di lingkungan tim ICT.<br>
-  Terenkripsi saat disimpan, berbasis izin, teraudit penuh, dan dirancang untuk alur kerja berbasis keyboard yang terinspirasi SAP GUI.
+  Terenkripsi saat disimpan, berbasis izin, teraudit penuh, dan dirancang dengan alur kerja yang terinspirasi SAP GUI.
 </p>
 
 <p align="center">
@@ -43,7 +43,7 @@ Aplikasi ini dirancang berdasarkan tiga prinsip:
 
 | Prinsip | Penerapan |
 |---|---|
-| **Kerahasiaan** | Catatan akses dienkripsi saat disimpan, tidak pernah disertakan dalam markup halaman, dan hanya ditampilkan atas permintaan eksplisit |
+| **Kerahasiaan** | Catatan akses dienkripsi saat disimpan; kata sandi tidak pernah disimpan di tautan |
 | **Akuntabilitas** | Setiap perubahan, aktivitas masuk, dan ekspor dicatat dalam log audit yang tidak dapat diubah |
 | **Efisiensi** | Konvensi SAP GUI (tombol fungsi, layar seleksi, varian, tabel ALV) bagi pengguna yang bekerja dengan sistem ERP setiap hari |
 
@@ -119,9 +119,9 @@ Pilih salah satu kelompok untuk membukanya. Gambar menyesuaikan tema GitHub yang
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/detail-dark.png">
-        <img src="assets/detail-light.png" alt="Detail Tautan: Catatan akses tersamar, status ketersediaan, dan riwayat perubahan" width="100%">
+        <img src="assets/detail-light.png" alt="Detail Tautan: Catatan akses, status ketersediaan, dan riwayat perubahan" width="100%">
       </picture>
-      <p align="center"><b>Detail Tautan</b><br><sub>Catatan akses tersamar, status ketersediaan, dan riwayat perubahan</sub></p>
+      <p align="center"><b>Detail Tautan</b><br><sub>Catatan akses, status ketersediaan, dan riwayat perubahan</sub></p>
     </td>
   </tr>
   <tr>
@@ -206,9 +206,9 @@ Pilih salah satu kelompok untuk membukanya. Gambar menyesuaikan tema GitHub yang
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="assets/help-dark.png">
-        <img src="assets/help-light.png" alt="Bantuan (F1): Bantuan kontekstual dan daftar lengkap pintasan keyboard" width="100%">
+        <img src="assets/help-light.png" alt="Bantuan: Bantuan kontekstual dan fungsi tombol toolbar" width="100%">
       </picture>
-      <p align="center"><b>Bantuan (F1)</b><br><sub>Bantuan kontekstual dan daftar lengkap pintasan keyboard</sub></p>
+      <p align="center"><b>Bantuan</b><br><sub>Bantuan kontekstual dan fungsi tombol toolbar</sub></p>
     </td>
   </tr>
 </table>
@@ -229,7 +229,7 @@ Buka setiap modul untuk melihat kemampuannya.
 | Jenis data | URL, host atau alamat IP beserta port, atau panduan terstruktur dengan hingga sepuluh kolom tambahan yang ditulis lewat editor teks ala Word (disanitasi dan tidak dienkripsi, jadi bukan untuk kata sandi) |
 | Kategorisasi | Kategori bertingkat hingga empat level (misalnya Web › ERP), dipilih melalui isian berjenjang |
 | Visibilitas | Private (hanya pemilik) atau Public (seluruh pengguna, hanya baca); tautan Public hanya dapat dibuat administrator, sehingga tautan dari pengguna lain, termasuk hasil impor, disimpan sebagai Private |
-| Catatan akses | Petunjuk akses singkat (misalnya masuk via SSO), bukan kata sandi; dienkripsi di basis data dan disamarkan hingga pengguna secara eksplisit membukanya |
+| Catatan akses | Petunjuk akses singkat (misalnya masuk via SSO), bukan kata sandi; dienkripsi di basis data dan ditampilkan apa adanya di detail tautan |
 | Lampiran | Hingga lima berkas per data: gambar, PDF, Excel, Word, dan teks |
 | Favorit | Menandai data dan menyaring daftar khusus favorit |
 | Arsip | Memindahkan tautan yang tidak dipakai ke arsip; tautan yang diarsipkan tetap terlihat dengan label Archived, selalu ditampilkan di bawah tautan aktif, dan dapat dikembalikan |
@@ -246,7 +246,6 @@ Buka setiap modul untuk melihat kemampuannya.
 | Elemen | Keterangan |
 |---|---|
 | Toolbar aplikasi | Back, Exit, Cancel, Save, dan Help pada posisi tetap; tindakan yang tidak tersedia dinonaktifkan |
-| Tombol fungsi | Setiap tindakan pada toolbar memiliki tombol keyboard (lihat [Referensi Keyboard](#referensi-keyboard)) |
 | Layar seleksi | Kriteria pencarian dengan pola wildcard (`ad*`, `*ad`, `*ad*`) dan beberapa nilai per kolom |
 | Varian | Kumpulan kriteria seleksi yang disimpan dengan nama dan dapat digunakan kembali |
 | Tabel bergaya ALV | Pengurutan, filter per kolom, kolom yang dapat diatur dan disembunyikan per pengguna, baris aktif, menu konteks |
@@ -292,7 +291,7 @@ Setiap peran dilengkapi **umpan aktivitas tim**. Tindakan yang berulang digabung
 <summary><b>Akun dan Identitas</b> &nbsp;·&nbsp; autentikasi dan preferensi</summary>
 <br>
 
-- Pendaftaran mandiri yang dibatasi pada domain email perusahaan, dikonfirmasi dengan kode verifikasi
+- Akun dibuat administrator untuk domain email perusahaan dan diaktifkan pemiliknya melalui tautan yang dikirim lewat email
 - Masuk dua langkah: kata sandi, kemudian kode sekali pakai yang dikirim melalui email
 - Pemulihan kata sandi, penggantian kata sandi, dan pemeliharaan profil
 - Notifikasi dalam aplikasi untuk undangan dan perubahan keanggotaan grup, upaya masuk yang diblokir, dan penggantian kata sandi
@@ -325,24 +324,7 @@ Sistem ini memiliki dua peran: User Entry dan Administrator. Tidak ada pemberian
 
 </div>
 
-Tautan privat tetap bersifat privat bagi pemiliknya, termasuk terhadap administrator. Akun administrator hanya dapat dibuat melalui command line.
-
-<br>
-
-## Referensi Keyboard
-
-<div align="center">
-
-| Tombol | Tindakan | Tombol | Tindakan |
-|:---:|---|:---:|---|
-| <kbd>F3</kbd> | Kembali | <kbd>F1</kbd> | Bantuan kontekstual |
-| <kbd>Shift</kbd> + <kbd>F3</kbd> | Keluar ke dasbor | <kbd>/</kbd> | Fokus ke pencarian cepat |
-| <kbd>F12</kbd> | Batalkan perubahan | <kbd>↑</kbd> <kbd>↓</kbd> | Pindah baris aktif tabel |
-| <kbd>Ctrl</kbd> + <kbd>S</kbd> | Simpan | <kbd>Enter</kbd> | Buka baris aktif |
-| <kbd>F8</kbd> | Jalankan seleksi | <kbd>Shift</kbd> + <kbd>F10</kbd> | Menu konteks baris |
-| <kbd>Shift</kbd> + <kbd>F2</kbd> | Hapus | <kbd>Esc</kbd> | Tutup dialog atau menu |
-
-</div>
+Tautan privat tetap bersifat privat bagi pemiliknya, termasuk terhadap administrator. Administrator membuat setiap akun dari layar Users; pemilik akun menetapkan kata sandi melalui tautan aktivasi yang dikirim lewat email. Akun administrator yang sudah ada hanya dapat diubah melalui command line.
 
 <br>
 
@@ -474,6 +456,29 @@ Aturan ini diterapkan sebagai satu predikat SQL yang digunakan oleh seluruh daft
 </details>
 
 <details>
+<summary><b>Alur Aktivasi Akun</b></summary>
+<br>
+
+```mermaid
+sequenceDiagram
+    actor Ad as Administrator
+    actor U as Pengguna Baru
+    participant A as ALR
+    participant E as Email
+    Ad->>A: Buat pengguna (email, nama, peran)
+    A->>A: Simpan akun berstatus Pending Activation<br/>(nonaktif, tanpa kata sandi)
+    Ad->>A: Send Activation Link
+    A->>E: Tautan aktivasi sekali pakai (berlaku 24 jam)
+    U->>A: Buka tautan, isi kata sandi baru dua kali
+    A->>A: Simpan hash Argon2id, aktifkan akun,<br/>nonaktifkan tautan
+    A-->>U: Diarahkan ke halaman masuk
+```
+
+Mengirim tautan baru membuat tautan sebelumnya tidak berlaku. Tidak ada halaman pendaftaran mandiri.
+
+</details>
+
+<details>
 <summary><b>Alur Masuk</b></summary>
 <br>
 
@@ -566,11 +571,10 @@ flowchart LR
 | Ancaman | Mitigasi |
 |---|---|
 | Kebocoran basis data | Catatan akses dienkripsi dengan Fernet (AES); kata sandi di-hash dengan Argon2id; kode sekali pakai disimpan sebagai hash |
-| Enumerasi akun | Proses masuk, pendaftaran, dan pemulihan kata sandi memberikan respons identik untuk email terdaftar maupun tidak |
+| Enumerasi akun | Proses masuk dan pemulihan kata sandi memberikan respons identik untuk email terdaftar maupun tidak; tidak ada halaman pendaftaran mandiri |
 | Serangan brute force | Pembatasan laju per IP dan per email; tiga kali salah kata sandi atau kode mengunci akun selama 15 menit, dan administrator dapat membukanya lebih awal |
 | Pembajakan sesi | Sesi berversi; penggantian atau pemulihan kata sandi mencabut seluruh sesi lain |
 | Akses data tanpa izin | Satu predikat visibilitas untuk seluruh kueri; data yang tidak dapat diakses menghasilkan 404 |
-| Kebocoran catatan akses | Catatan akses tidak disertakan dalam markup halaman; setiap pembukaan merupakan permintaan terpisah yang diotorisasi |
 | Cross-site scripting | Sanitasi input dan Content Security Policy yang hanya mengizinkan skrip milik aplikasi |
 | Cross-site request forgery | Token pada setiap pengiriman formulir dan permintaan JSON |
 | Unggahan berbahaya | Verifikasi tanda tangan berkas, deteksi makro dan zip bomb, serta parsing Excel yang aman dari XXE |
@@ -616,14 +620,6 @@ Pemeriksaan ratusan target dapat memakan waktu beberapa menit. Menjalankannya di
 
 </details>
 
-<details>
-<summary><b>Pengambilan catatan akses sesuai permintaan</b></summary>
-<br>
-
-Menyertakan catatan akses dalam markup halaman membuatnya terlihat oleh siapa pun yang dapat membaca sumber halaman, termasuk cache browser dan ekstensi. Mengambilnya hanya ketika pengguna memilih Show atau Copy menjaga catatan akses tetap di luar markup.
-
-</details>
-
 <br>
 
 ## Penjaminan Mutu
@@ -634,7 +630,7 @@ Menyertakan catatan akses dalam markup halaman membuatnya terlihat oleh siapa pu
 |---|---|:---:|---|
 | Backend | pytest | 731 | Service, route, otorisasi, dan skenario keamanan |
 | Konkurensi basis data | pytest di PostgreSQL | 6 | Permintaan bersamaan, penguncian baris, dan batasan unik |
-| Frontend | Vitest, Testing Library | 46 | Tabel tautan, kolom, pemilihan, dan perilaku keyboard |
+| Frontend | Vitest, Testing Library | 46 | Tabel tautan, kolom, pemilihan, dan menu baris |
 | End-to-end | Chrome headless | 9 skenario | Autentikasi, tabel, akun, kategori, grup, pemantauan, editor teks, dan tombol fungsi |
 
 </div>
