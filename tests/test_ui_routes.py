@@ -107,10 +107,11 @@ def test_update_preference_via_api(logged_in_client):
 
 def test_saved_theme_applied_to_html(logged_in_client):
     """Positive: tema yg disimpen langsung kepasang di <html> pas halaman dibuka."""
-    logged_in_client.post("/settings/preferences", json={"theme_mode": "dark", "accent_color": "#ff6b9d"})
+    logged_in_client.post("/settings/preferences", json={"theme_mode": "dark"})
     html_text = logged_in_client.get("/").get_data(as_text=True)
     assert 'data-theme="dark"' in html_text
-    assert 'data-accent="pink"' in html_text
+    assert "data-accent" not in html_text and "Accent color" not in html_text
+
 
 def test_update_preference_invalid_value_returns_400(logged_in_client):
     """Negative: nilai ngasal ditolak + dikasih tau field mana yg salah."""

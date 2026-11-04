@@ -7,7 +7,7 @@ from app.security.role_guard import api_login_required
 from app.schemas.auth_schema import ChangePasswordForm, ProfileForm
 from app.services.auth_service import change_password, update_profile
 from app.services.preference_service import (
-    build_ui_preference_dict,
+    build_preference_dict,
     delete_selection_variant,
     save_selection_variant,
     update_preference,
@@ -113,7 +113,7 @@ def update_preferences():
     except ValidationError as error:
         return error_response("Invalid preferences", 400, error.error_list)
 
-    return success_response(data=build_ui_preference_dict(preference), message="Preferences saved")
+    return success_response(data=build_preference_dict(preference), message="Preferences saved")
 
 @settings_bp.post("/table-layout")
 @api_login_required

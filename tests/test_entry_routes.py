@@ -78,17 +78,14 @@ def test_create_general_entry_with_custom_fields(logged_in_client, category_dict
     assert response.status_code == 302
     assert db.session.execute(db.select(db.func.count(AccessEntryField.id))).scalar() == 2
 
-def test_detail_never_embeds_access_note(logged_in_client, registered_user, category_dict):
-    """Negative (security): isi access note ga pernah ada di HTML detail (diambil lewat API pas Show/Copy,
-    ditampilin JS pake textContent), jadi script di dalemnya ga bisa jalan & ga kebaca dari source halaman."""
+def test_detail_shows_access_note_escaped(logged_in_client, registered_user, category_dict):
+    """Positive + negative (security): access note langsung tampil di detail, tapi di-escape jadi script ga jalan."""
     entry = create_access_entry(registered_user, build_service_dict(
         category_dict["Web"], access_note="<script>alert(1)</script>",
     ))
     html_text = logged_in_client.get(f"/entries/{entry.id}").get_data(as_text=True)
-    assert "alert(1)" not in html_text
-    assert f'data-secret-url="/entries/{entry.id}/access-note"' in html_text
-    api_data = logged_in_client.post(f"/entries/{entry.id}/access-note").get_json()
-    assert api_data["data"]["access_note"] == "<script>alert(1)</script>"
+    assert "<script>alert(1)</script>" not in html_text
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html_text
 
 def test_private_entry_of_other_user_returns_404(logged_in_client, other_user, category_dict):
     """Negative (security/IDOR): private orang lain dijawab 404 (keberadaannya ga bocor)."""

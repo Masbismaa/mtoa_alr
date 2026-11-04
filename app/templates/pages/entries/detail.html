@@ -5,7 +5,6 @@
 
 {% block title %}{{ entry.title }}{% endblock %}
 
-{# judul layar di title bar atas ala SAP #}
 {% block screen_title %}Display Access Link: {{ entry.title }}{% endblock %}
 
 {# Kembali di toolbar: dibuka dari tabel -> balik ke tabel itu lagi (filter & urutan tetep), dibuka langsung -> ke Daftar Link #}
@@ -38,7 +37,7 @@
     </form>
     <form method="post" action="{{ url_for('entries.delete', entry_id=entry.id, back=back_url) }}" data-confirm-title="Delete this link?" data-confirm-message="The link &quot;{{ entry.title }}&quot; and its additional fields will be permanently deleted." data-confirm-ok="Yes, delete">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="btn btn-danger" data-fkey="Shift+F2" title="Delete (Shift+F2)">{{ icon("trash") }} Delete</button>
+      <button type="submit" class="btn btn-danger" title="Delete">{{ icon("trash") }} Delete</button>
     </form>
   {% endif %}
 {% endblock %}
@@ -73,16 +72,14 @@
             </div>
           {% endif %}
 
-          {% if has_access_note %}
+          {% if access_note or is_note_error %}
             <div class="mb-3">
               <div class="form-label">Access Note</div>
-              <div class="copy-row">
-                <pre class="copy-value secret-value" id="access_note_value" data-secret-url="{{ url_for('entries.reveal_access_note_api', entry_id=entry.id) }}">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</pre>
-                <div class="btn-list flex-nowrap">
-                  <button type="button" class="btn btn-sm" data-secret-toggle="access_note_value" aria-pressed="false">{{ icon("eye") }}<span data-secret-label>Show</span></button>
-                  {{ copy_button(target_id="access_note_value") }}
-                </div>
-              </div>
+              {% if is_note_error %}
+                <div class="text-danger">The access note can't be opened (different encryption key or corrupted data)</div>
+              {% else %}
+                <div class="copy-row"><pre class="copy-value detail-text">{{ access_note }}</pre>{{ copy_button(access_note) }}</div>
+              {% endif %}
             </div>
           {% endif %}
 
@@ -93,7 +90,7 @@
             </div>
           {% endif %}
 
-          {% if not (entry.url or entry.address or entry.username or has_access_note or entry.description) %}
+          {% if not (entry.url or entry.address or entry.username or access_note or is_note_error or entry.description) %}
             <p class="text-secondary mb-0">No access data yet.</p>
           {% endif %}
         </div>
@@ -206,8 +203,4 @@
       {% endif %}
     </div>
   </div>
-{% endblock %}
-
-{% block page_scripts %}
-  <script src="{{ url_for('static', filename='js/components/secret_toggle.js') }}" defer></script>
 {% endblock %}

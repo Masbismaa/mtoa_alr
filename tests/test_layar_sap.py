@@ -124,7 +124,7 @@ def test_page_info_still_shown(logged_in_client, registered_user, category_dict)
 # MENU BAR
 def get_menu_label_list(html_text):
     """Helper: isi dropdown Menu di menu bar."""
-    menu_html = html_text.split('accesskey="m">')[1].split('<div class="dropdown-divider">')[0]
+    menu_html = html_text.split('aria-expanded="false">Menu</button>')[1].split('<div class="dropdown-divider">')[0]
     return [html.unescape(label) for label in re.findall(r'class="dropdown-item">([^<]+)</a>', menu_html)]
 
 def test_menu_lists_only_allowed_menu_without_code(logged_in_client):
@@ -140,11 +140,12 @@ def test_menu_admin_gets_admin_menu(admin_client):
     assert {"Users", "Link Monitoring", "Backup & Restore", "Categories", "Audit Logs"} <= set(get_menu_label_list(get_html(admin_client, "/")))
 
 def test_menu_bar_and_system_toolbar_on_every_screen(logged_in_client):
-    """Positive: menu bar (huruf bergaris bawah) + toolbar sistem ada, tombol standarnya bawa shortcut yg sama."""
+    """Positive: menu bar + toolbar sistem ada (tanpa shortcut keyboard)."""
     html_text = get_html(logged_in_client, "/entries/new")
-    assert 'aria-label="Menu bar"' in html_text and 'accesskey="m"><u>M</u>enu</button>' in html_text
+    assert 'aria-label="Menu bar"' in html_text and 'aria-expanded="false">Menu</button>' in html_text
     system_html = html_text.split('aria-label="System toolbar"')[1].split("</header>")[0]
-    assert 'data-fkey="F12"' in system_html and 'data-fkey="Ctrl+S"' in system_html
+    assert 'title="Save changes" aria-label="Save"' in system_html and 'aria-label="Cancel"' in system_html
+    assert "data-fkey" not in system_html
 
 # EASY ACCESS (layar awal)
 def test_easy_access_tree_shows_favorites_and_allowed_transactions(logged_in_client, registered_user, other_user, category_dict):

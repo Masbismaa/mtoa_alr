@@ -1,4 +1,4 @@
-"""Test navigasi keyboard ala SAP: baris aktif bisa dibuka (data-row-url), shortcut di toolbar & panel, daftar shortcut di Bantuan."""
+"""Test baris tabel bisa dibuka (data-row-url, double-click) & shortcut keyboard udah dihapus total."""
 from app.services.access_entry_service import create_access_entry
 from app.services.audit_service import log_audit
 from app.utils.constants import AUDIT_ACTION_LOGIN_FAILED, VISIBILITY_PRIVATE
@@ -16,7 +16,7 @@ def get_html(client, url):
 
 # BARIS AKTIF
 def test_entry_row_opens_detail(logged_in_client, registered_user, category_dict):
-    """Positive: baris Daftar Link (tabel React) bawa alamat detail (plus alamat tabel asal) buat Enter / double-click."""
+    """Positive: baris Daftar Link (tabel React) bawa alamat detail (plus alamat tabel asal) buat double-click."""
     entry = create_entry(registered_user, category_dict["Web"], "Portal HR")
     html_text = get_html(logged_in_client, "/entries/?run=1")
     assert f'"detail_url": "/entries/{entry.id}?back=/entries/?run%3D1%23daftar_link"' in html_text
@@ -33,32 +33,21 @@ def test_user_row_has_no_access_link(admin_client, registered_user):
     assert "/access" not in html_text
 
 def test_row_script_loaded(logged_in_client):
-    """Positive: script baris aktif & shortcut kepasang di layar aplikasi (shortcut F-key dijalanin app_shell.js)."""
-    html_text = get_html(logged_in_client, "/entries/")
-    assert "js/components/table_row.js" in html_text and "js/components/app_shell.js" in html_text
+    """Positive: script baris aktif (klik / double-click / klik kanan) kepasang di layar aplikasi."""
+    assert "js/components/table_row.js" in get_html(logged_in_client, "/entries/")
 
-# SHORTCUT
-def test_toolbar_shortcut_marks(logged_in_client, registered_user, category_dict):
-    """Positive: tombol toolbar ditandain shortcut SAP + kelihatan di tooltip."""
+# SHORTCUT (udah dihapus total)
+def test_no_keyboard_shortcut_left(logged_in_client, registered_user, category_dict):
+    """Negative: tombol toolbar, Execute, Delete, menu bar & Help ga bawa shortcut keyboard lagi."""
     entry = create_entry(registered_user, category_dict["Web"], "Portal HR")
-    html_text = get_html(logged_in_client, f"/entries/{entry.id}/edit")
-    assert 'title="Back to the previous screen (F3)" data-fkey="F3"' in html_text
-    assert 'title="Exit this screen to Home (Shift+F3)" data-fkey="Shift+F3"' in html_text
-    assert 'data-fkey="F12" aria-keyshortcuts="F12"' in html_text
-    assert 'title="Save changes (Ctrl+S)" data-fkey="Ctrl+S"' in html_text
-    assert 'data-fkey="F1" aria-keyshortcuts="F1"' in html_text
+    for url in (f"/entries/{entry.id}/edit", f"/entries/{entry.id}", "/entries/"):
+        html_text = get_html(logged_in_client, url)
+        for marker in ("data-fkey", "aria-keyshortcuts", "accesskey", "<kbd", "(F3)", "(F8)", "(F1)", "Ctrl+S", "Shift+F", "press /"):
+            assert marker not in html_text, (url, marker)
 
-def test_disabled_toolbar_button_has_no_shortcut(logged_in_client):
-    """Negative: tombol yg nonaktif di layar ini ga ditandain shortcut (jadi F12/Ctrl+S ga ngapa-ngapain)."""
-    html_text = get_html(logged_in_client, "/entries/")
-    assert 'data-fkey="F12"' not in html_text and 'data-fkey="Ctrl+S"' not in html_text
-
-def test_run_shortcut_on_selection_panel(logged_in_client):
-    """Positive: tombol Execute di Kriteria Pencarian bisa dipanggil F8."""
-    assert 'data-fkey="F8" aria-keyshortcuts="F8" title="Execute (F8)"' in get_html(logged_in_client, "/entries/")
-
-def test_help_lists_shortcuts(logged_in_client):
-    """Positive: Bantuan nampilin daftar shortcut keyboard."""
-    help_html = get_html(logged_in_client, "/entries/").split('id="help_dialog"')[1]
-    for key_text in ["F3", "Shift+F3", "F12", "Ctrl+S", "F8", "F1", "Shift+F10"]:
-        assert f"<kbd>{key_text}</kbd>" in help_html
+def test_help_lists_toolbar_buttons_without_keys(logged_in_client):
+    """Positive: Bantuan tetap jelasin fungsi tombol toolbar, tanpa daftar tombol keyboard."""
+    help_html = get_html(logged_in_client, "/entries/").split('id="help_dialog"')[1].split("</dialog>")[0]
+    for label in ["Back", "Exit", "Cancel", "Save", "Execute", "Delete", "Find"]:
+        assert f"<dt>{label}</dt>" in help_html
+    assert "<kbd>" not in help_html

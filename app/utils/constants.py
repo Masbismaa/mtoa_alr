@@ -8,7 +8,6 @@ ROLE_LIST = [ROLE_ADMIN, ROLE_USER_ENTRY]
 THEME_MODE_LIGHT = "light"
 THEME_MODE_DARK = "dark"
 THEME_MODE_LIST = [THEME_MODE_LIGHT, THEME_MODE_DARK]
-DEFAULT_ACCENT_COLOR = "#0a6ed1"
 DEFAULT_FONT_FAMILY = "system"
 
 # Kategori default yang di-seed ke tabel categories
@@ -111,17 +110,6 @@ SESSION_PENDING_USER_KEY = "pending_user_id"
 SESSION_PASSWORD_RESET_KEY = "password_reset"
 
 # UI & Customizer
-# pilihan warna aksen: hex disimpen di DB, key dipake CSS (data-accent)
-ACCENT_COLOR_OPTION_LIST = [
-    {"key": "blue", "hex": "#0a6ed1", "label": "Blue"},
-    {"key": "yellow", "hex": "#ffd23f", "label": "Yellow"},
-    {"key": "pink", "hex": "#ff6b9d", "label": "Pink"},
-    {"key": "lime", "hex": "#a3e635", "label": "Lime"},
-    {"key": "teal", "hex": "#2ec4b6", "label": "Teal"},
-    {"key": "purple", "hex": "#b388ff", "label": "Purple"},
-]
-ACCENT_KEY_BY_HEX_DICT = {option["hex"]: option["key"] for option in ACCENT_COLOR_OPTION_LIST}
-DEFAULT_ACCENT_KEY = "blue"
 
 # pilihan font
 FONT_FAMILY_OPTION_LIST = [

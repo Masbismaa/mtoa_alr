@@ -26,9 +26,7 @@
       const prefKey = optionEl.dataset.prefKey;
       let isSelected = false;
 
-      if (prefKey === "accent_color") {
-        isSelected = optionEl.dataset.accentKey === currentDict.accent_key;
-      } else if (prefKey === "is_compact_view") {
+      if (prefKey === "is_compact_view") {
         isSelected = (optionEl.dataset.prefValue === "true") === currentDict.is_compact_view;
       } else {
         isSelected = optionEl.dataset.prefValue === currentDict[prefKey];
@@ -51,18 +49,10 @@
     }
   }
 
-  // server nyimpen warna aksen dalam bentuk hex, UI pake key (blue/pink)
-  function findAccentHex(accentKey) {
-    const swatchEl = panelEl.querySelector('[data-pref-key="accent_color"][data-accent-key="' + accentKey + '"]');
-    return swatchEl ? swatchEl.dataset.prefValue : null;
-  }
-
   function handleOptionClick(optionEl) {
     const prefKey = optionEl.dataset.prefKey;
     const uiDict = {};
-    if (prefKey === "accent_color") {
-      uiDict.accent_key = optionEl.dataset.accentKey;
-    } else if (prefKey === "is_compact_view") {
+    if (prefKey === "is_compact_view") {
       uiDict.is_compact_view = optionEl.dataset.prefValue === "true";
     } else {
       uiDict[prefKey] = optionEl.dataset.prefValue;
@@ -73,7 +63,6 @@
   function handleReset() {
     preference.apply({
       theme_mode: panelEl.dataset.defaultTheme,
-      accent_key: panelEl.dataset.defaultAccentKey,
       is_compact_view: false,
       font_family: panelEl.dataset.defaultFont
     }, true);
@@ -86,7 +75,6 @@
     showStatus("Saving...");
     const resultDict = await preference.saveToServer({
       theme_mode: currentDict.theme_mode,
-      accent_color: findAccentHex(currentDict.accent_key),
       is_compact_view: currentDict.is_compact_view,
       font_family: currentDict.font_family
     });

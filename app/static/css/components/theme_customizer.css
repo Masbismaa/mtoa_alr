@@ -140,30 +140,3 @@
 
 .density-preview-comfortable { gap: 0.55rem; }
 .density-preview-compact { gap: 0.25rem; }
-
-/* bulatan warna aksen (warnanya sama kayak di atas) */
-.accent-swatch {
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
-  border: 2px solid var(--tblr-bg-surface);
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px var(--tblr-border-color);
-  cursor: pointer;
-  transition: transform 150ms ease, box-shadow 150ms ease;
-}
-
-.accent-swatch:hover {
-  transform: scale(1.08);
-}
-
-.accent-swatch.is-selected {
-  box-shadow: 0 0 0 2px var(--tblr-body-color);
-}
-
-.accent-swatch-blue { background: #066fd1; }
-.accent-swatch-yellow { background: #f59f00; }
-.accent-swatch-pink { background: #d6336c; }
-.accent-swatch-lime { background: #74b816; }
-.accent-swatch-teal { background: #0ca678; }
-.accent-swatch-purple { background: #ae3ec9; }

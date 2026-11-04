@@ -6,14 +6,14 @@
     if (window.AlrStatusBar) window.AlrStatusBar.show(text, type);
   }
 
-  // Find = sama kayak tekan "/" (fokus ke Cari cepat di Kriteria Pencarian, lihat selection_panel.js)
+  // Find = fokus ke Cari cepat di Kriteria Pencarian (selection_panel.js)
   document.querySelectorAll("[data-system-find]").forEach(function (buttonEl) {
     buttonEl.addEventListener("click", function () {
-      if (!document.querySelector("[data-selection-quick]")) {
+      if (!document.querySelector("[data-selection-quick]") || !window.AlrSelection) {
         notify("There is nothing to search on this screen", "info");
         return;
       }
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "/", bubbles: true }));
+      window.AlrSelection.focusQuickSearch();
     });
   });
 })();

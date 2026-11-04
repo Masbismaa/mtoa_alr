@@ -12,6 +12,7 @@ from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
+from app.security.access_policy import is_admin
 from app.services.access_entry_service import get_category_rule
 from app.services.category_service import build_category_label, list_usable_category
 from app.services.export_service import (
@@ -28,7 +29,7 @@ from app.services.export_service import (
     write_section_title,
     write_table_header,
 )
-from app.services.import_service import IMPORT_COLUMN_LIST
+from app.services.import_service import list_import_column
 from app.utils.constants import IMPORT_MAX_ROW_COUNT
 
 HEADER_ROW = 5
@@ -40,9 +41,12 @@ RULE_LIST = [
     "Every row is checked with the same rules as Add Link. If any row has an error, nothing is imported; "
     "fix the rows listed on screen and upload again.",
     "A link whose URL (or Address + Port) already exists, or appears twice in the file, is rejected.",
+    "A category not listed on the Categories sheet is created as your own category only if you tick "
+    "\"Create categories that don't exist yet\" when importing; otherwise the row is rejected.",
     "You become the owner of every imported link.",
     "Access notes are encrypted after import, but this file is not. Delete it once the import is done.",
 ]
+NON_ADMIN_VISIBILITY_RULE = "Every imported link is saved as Private (only you can see it). Only admins can import Public links."
 
 
 def write_sheet_note(sheet, row, last_column, text):
@@ -52,9 +56,9 @@ def write_sheet_note(sheet, row, last_column, text):
                alignment=Alignment(vertical="center"))
 
 
-def build_link_sheet(sheet, category_count):
+def build_link_sheet(sheet, category_count, column_list):
     """Sheet isian: kop, header (+ catatan di tiap judul), 500 baris bergaris, dropdown & batas angka."""
-    last_column = len(IMPORT_COLUMN_LIST)
+    last_column = len(column_list)
     last_row = FIRST_DATA_ROW + IMPORT_MAX_ROW_COUNT - 1
     sheet.title = "Links"
     sheet.sheet_properties.tabColor = COLOR_RED
@@ -62,9 +66,9 @@ def build_link_sheet(sheet, category_count):
     write_letterhead(sheet, 1, last_column, "Access Link Import", f"{REPORT_SUBTITLE}  |  Import template")
     write_sheet_note(sheet, 4, last_column,
                      "Fill one link per row below. * = required. Hover a column title for help, see the Guide sheet for examples.")
-    write_table_header(sheet, HEADER_ROW, 1, [column.header + (" *" if column.is_required else "") for column in IMPORT_COLUMN_LIST])
+    write_table_header(sheet, HEADER_ROW, 1, [column.header + (" *" if column.is_required else "") for column in column_list])
 
-    for index, column in enumerate(IMPORT_COLUMN_LIST, start=1):
+    for index, column in enumerate(column_list, start=1):
         letter = get_column_letter(index)
         sheet.column_dimensions[letter].width = column.width
         header_cell = sheet.cell(row=HEADER_ROW, column=index)
@@ -81,19 +85,21 @@ def build_link_sheet(sheet, category_count):
             if (row - FIRST_DATA_ROW) % 2:
                 cell.fill = BAND_FILL
 
-    column_letter_dict = {column.key: get_column_letter(index) for index, column in enumerate(IMPORT_COLUMN_LIST, start=1)}
+    column_letter_dict = {column.key: get_column_letter(index) for index, column in enumerate(column_list, start=1)}
     if category_count:
         category_list_validation = DataValidation(
             type="list", formula1=f"=Categories!$A${FIRST_DATA_ROW}:$A${FIRST_DATA_ROW + category_count - 1}",
-            allow_blank=True, showErrorMessage=True, errorTitle="Unknown category",
-            error="Pick a category from the list (see the Categories sheet).",
+            # cuma peringatan (bukan tolak) biar jalur kategori baru tetep bisa diketik
+            allow_blank=True, showErrorMessage=True, errorStyle="warning", errorTitle="New category?",
+            error="This category is not in the list. It is created only if you tick \"Create categories that don't exist yet\" when importing.",
         )
         add_validation(sheet, category_list_validation, column_letter_dict["category"], last_row)
-    visibility_validation = DataValidation(
-        type="list", formula1='"Private,Public"', allow_blank=True, showErrorMessage=True,
-        errorTitle="Invalid visibility", error="Choose Private or Public.",
-    )
-    add_validation(sheet, visibility_validation, column_letter_dict["visibility"], last_row)
+    if "visibility" in column_letter_dict:
+        visibility_validation = DataValidation(
+            type="list", formula1='"Private,Public"', allow_blank=True, showErrorMessage=True,
+            errorTitle="Invalid visibility", error="Choose Private or Public.",
+        )
+        add_validation(sheet, visibility_validation, column_letter_dict["visibility"], last_row)
     port_validation = DataValidation(
         type="whole", operator="between", formula1="1", formula2="65535", allow_blank=True, showErrorMessage=True,
         errorTitle="Invalid port", error="Port must be a number from 1 to 65535.",
@@ -115,7 +121,7 @@ def write_body_row(sheet, row, value_list, is_band):
                    alignment=DETAIL_TEXT_ALIGNMENT, fill=BAND_FILL if is_band else None)
 
 
-def build_guide_sheet(sheet):
+def build_guide_sheet(sheet, column_list, rule_list):
     """Panduan: tabel kolom (wajib / cara isi / contoh) + aturan import."""
     sheet.title = "Guide"
     sheet.sheet_view.showGridLines = False
@@ -123,22 +129,22 @@ def build_guide_sheet(sheet):
         sheet.column_dimensions[letter].width = width
     write_letterhead(sheet, 1, 4, "How to Fill the Template", f"{REPORT_SUBTITLE}  |  Import guide")
     write_table_header(sheet, HEADER_ROW, 1, ["Column", "Required", "What to fill", "Example"])
-    for offset, column in enumerate(IMPORT_COLUMN_LIST):
+    for offset, column in enumerate(column_list):
         # contoh angka (Port) ditulis sebagai angka, biar Excel ga ngasih tanda "number stored as text"
         example = int(column.example) if column.example.isdigit() else column.example
         write_body_row(sheet, FIRST_DATA_ROW + offset,
                        [column.header, "Yes" if column.is_required else "No", column.guide, example], offset % 2)
         if column.is_required:
             sheet.cell(row=FIRST_DATA_ROW + offset, column=2).font = make_font(10, is_bold=True, color=COLOR_RED)
-    rule_row = FIRST_DATA_ROW + len(IMPORT_COLUMN_LIST) + 1
+    rule_row = FIRST_DATA_ROW + len(column_list) + 1
     write_section_title(sheet, rule_row, 1, "Import rules")
-    for offset, rule_text in enumerate(RULE_LIST, start=1):
+    for offset, rule_text in enumerate(rule_list, start=1):
         sheet.merge_cells(start_row=rule_row + offset, start_column=1, end_row=rule_row + offset, end_column=4)
         # sel gabungan ga bisa auto-tinggi di Excel: tinggi dihitung dari panjang teks (± 140 huruf per baris)
         sheet.row_dimensions[rule_row + offset].height = 16 * (len(rule_text) // 140 + 1)
         write_cell(sheet, rule_row + offset, 1, f"{offset}.  {rule_text}", font=make_font(10),
                    alignment=Alignment(wrap_text=True, vertical="top"))
-    setup_print(sheet, 4, rule_row + len(RULE_LIST), "portrait", title_row=HEADER_ROW)
+    setup_print(sheet, 4, rule_row + len(rule_list), "portrait", title_row=HEADER_ROW)
 
 
 def describe_category_rule(category):
@@ -171,8 +177,10 @@ def build_import_template(user):
     category_list = list_usable_category(user)
     workbook = Workbook()
     workbook.properties.title = "Access Link Import Template"
-    build_link_sheet(workbook.active, len(category_list))
-    build_guide_sheet(workbook.create_sheet())
+    column_list = list_import_column(user)
+    rule_list = RULE_LIST if is_admin(user) else RULE_LIST + [NON_ADMIN_VISIBILITY_RULE]
+    build_link_sheet(workbook.active, len(category_list), column_list)
+    build_guide_sheet(workbook.create_sheet(), column_list, rule_list)
     build_category_sheet(workbook.create_sheet(), category_list)
     buffer = BytesIO()
     workbook.save(buffer)

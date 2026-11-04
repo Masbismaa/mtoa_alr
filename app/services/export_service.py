@@ -21,7 +21,7 @@ LOGO_HEIGHT_PX = 38
 REPORT_TITLE = "Access Link Register"
 REPORT_SUBTITLE = "ALR · ICT"
 CONFIDENTIAL_TEXT = "CONFIDENTIAL · INTERNAL USE ONLY"
-NOTE_TEXT = "Note: access notes/passwords are not exported. Times are in WIB."
+NOTE_TEXT = "Note: access notes are not exported. Times are in WIB."
 
 # kolom sheet Detail
 DETAIL_COLUMN_LIST = [

@@ -17,7 +17,6 @@
     if (root.dataset.prefSource === "server") {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         theme_mode: root.dataset.theme,
-        accent_key: root.dataset.accent,
         is_compact_view: root.dataset.density === "compact",
         font_family: root.dataset.font
       }));
@@ -28,7 +27,6 @@
     var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
     if (saved) {
       if (saved.theme_mode) setThemeMode(saved.theme_mode);
-      if (saved.accent_key) root.dataset.accent = saved.accent_key;
       if (typeof saved.is_compact_view === "boolean") root.dataset.density = saved.is_compact_view ? "compact" : "comfortable";
       if (saved.font_family) root.dataset.font = saved.font_family;
     } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {

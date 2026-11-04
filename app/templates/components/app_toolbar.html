@@ -3,10 +3,9 @@
    Kembali = ke layar sebelumnya, Keluar = tutup layar ke Home, Batal = buang perubahan form, Simpan = simpan form.
    tombol khusus halaman (block page_actions: Tambah, Edit, Hapus, ...) nyusul di kanan Simpan, gayanya disamain.
    variabel dari layouts/app_base.html: toolbar_back_url, toolbar_exit_url, toolbar_cancel_url, toolbar_save_form, page_action_html #}
-{# fkey = tombol keyboard ala SAP GUI (dijalanin js/components/app_shell.js), ikut ditulis di tooltip #}
-{% macro toolbar_link(url, icon_name, label, title, fkey) %}
+{% macro toolbar_link(url, icon_name, label, title) %}
   {% if url %}
-    <a href="{{ url }}" class="btn btn-sm app-toolbar-btn" title="{{ title }} ({{ fkey }})" data-fkey="{{ fkey }}" aria-keyshortcuts="{{ fkey }}">{{ icon(icon_name) }}<span>{{ label }}</span></a>
+    <a href="{{ url }}" class="btn btn-sm app-toolbar-btn" title="{{ title }}">{{ icon(icon_name) }}<span>{{ label }}</span></a>
   {% else %}
     <span class="btn btn-sm app-toolbar-btn disabled" aria-disabled="true" title="{{ label }} is not available on this screen">{{ icon(icon_name) }}<span>{{ label }}</span></span>
   {% endif %}
@@ -18,12 +17,12 @@
     <div class="app-toolbar-title d-lg-none">{{ shell_title }}</div>
     {# tombol standar: layar besar udah ada di toolbar sistem atas (topbar.html), jadi di sini cuma tampil di HP #}
     <span class="app-toolbar-std">
-    {{ toolbar_link(toolbar_back_url, "arrow_left", "Back", "Back to the previous screen", "F3") }}
-    {{ toolbar_link(toolbar_exit_url, "logout", "Exit", "Exit this screen to Home", "Shift+F3") }}
-    {{ toolbar_link(toolbar_cancel_url, "close", "Cancel", "Discard changes & close this screen", "F12") }}
+    {{ toolbar_link(toolbar_back_url, "arrow_left", "Back", "Back to the previous screen") }}
+    {{ toolbar_link(toolbar_exit_url, "logout", "Exit", "Exit this screen to Home") }}
+    {{ toolbar_link(toolbar_cancel_url, "close", "Cancel", "Discard changes & close this screen") }}
     <span class="app-toolbar-divider" aria-hidden="true"></span>
     {% if toolbar_save_form %}
-      <button type="submit" form="{{ toolbar_save_form }}" class="btn btn-sm btn-primary app-toolbar-btn" title="Save changes (Ctrl+S)" data-fkey="Ctrl+S" aria-keyshortcuts="Control+S">{{ icon("check") }}<span>Save</span></button>
+      <button type="submit" form="{{ toolbar_save_form }}" class="btn btn-sm btn-primary app-toolbar-btn" title="Save changes">{{ icon("check") }}<span>Save</span></button>
     {% else %}
       <span class="btn btn-sm app-toolbar-btn disabled" aria-disabled="true" title="Save is not available on this screen">{{ icon("check") }}<span>Save</span></span>
     {% endif %}
@@ -34,6 +33,6 @@
     {% if page_action_html %}
       <div class="app-toolbar-actions">{{ page_action_html }}</div>
     {% endif %}
-    <button type="button" class="btn btn-sm app-toolbar-btn app-toolbar-std ms-auto" data-help-open data-fkey="F1" aria-keyshortcuts="F1" aria-haspopup="dialog" title="Help for this screen (F1)">{{ icon("info") }}<span>Help</span></button>
+    <button type="button" class="btn btn-sm app-toolbar-btn app-toolbar-std ms-auto" data-help-open aria-haspopup="dialog" title="Help for this screen">{{ icon("info") }}<span>Help</span></button>
   </div>
 </div>

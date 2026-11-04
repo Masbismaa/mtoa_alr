@@ -43,6 +43,9 @@ from app.utils.url_helper import get_safe_back_url
 
 entries_bp = Blueprint("entries", __name__, url_prefix="/entries")
 
+# kategori baru yg disebut di pesan sukses import
+IMPORT_SHOWN_CATEGORY_COUNT = 3
+
 FORM_FIELD_NAME_LIST = [
     "category_id", "title", "url", "address", "port",
     "username", "access_note", "description", "visibility",
@@ -188,26 +191,39 @@ def create():
 @login_required
 @limiter.limit("10 per minute", methods=["POST"])
 def import_page():
-    """Import link dari Excel (template). Ada 1 baris salah -> ga ada yg disimpen, error per baris ditampilin."""
+    """Import link dari Excel (template). Ada 1 baris salah -> ga ada yg disimpen, error per baris ditampilin.
+    Centang create_category -> jalur kategori yg belum ada dibikin jadi kategori pribadi."""
     error_list = []
+    is_create_category = request.form.get("create_category") == "1"
     if request.method == "POST":
         upload_file = request.files.get("import_file")
         if upload_file is None or not upload_file.filename:
             error_list = ["Choose the Excel file to import"]
         else:
             try:
-                imported_count = import_entries(get_current_user(), upload_file)
+                imported_count, new_category_label_list = import_entries(get_current_user(), upload_file, is_create_category)
             except ValidationError as error:
                 error_list = [error_dict["message"] for error_dict in error.error_list]
             else:
-                flash(f"{imported_count} links imported", "success")
+                flash(build_import_message(imported_count, new_category_label_list), "success")
                 return redirect(url_for("entries.index", run=1))
     return render_template(
         "pages/entries/import.html",
         page_title="Import Links",
         error_list=error_list,
+        is_create_category=is_create_category,
         import_max_row_count=IMPORT_MAX_ROW_COUNT,
     )
+
+def build_import_message(imported_count, new_category_label_list):
+    """'3 links imported, 1 new category: Web › Absensi'. Kategori baru disebut maks. 3, sisanya jumlahnya aja."""
+    message = f"{imported_count} links imported"
+    if new_category_label_list:
+        noun = "category" if len(new_category_label_list) == 1 else "categories"
+        shown_text = ", ".join(new_category_label_list[:IMPORT_SHOWN_CATEGORY_COUNT])
+        extra_count = len(new_category_label_list) - IMPORT_SHOWN_CATEGORY_COUNT
+        message += f", {len(new_category_label_list)} new {noun}: {shown_text}" + (f" and {extra_count} more" if extra_count > 0 else "")
+    return message
 
 @entries_bp.get("/import/template")
 @login_required
@@ -223,12 +239,13 @@ def detail(entry_id):
     user = get_current_user()
     entry = get_entry_or_404(user, entry_id)
     is_editable = can_edit_entry(user, entry)
-    # isi access note sengaja ga ditempel di HTML: diambil lewat reveal_access_note_api pas user klik Show/Copy
+    access_note, is_note_error = read_access_note(entry)
     return render_template(
         "pages/entries/detail.html",
         page_title="Detail Link",
         entry=entry,
-        has_access_note=entry.encrypted_access_note is not None,
+        access_note=access_note,
+        is_note_error=is_note_error,
         can_edit=is_editable,
         is_favorite=is_favorite_entry(user, entry),
         # riwayat link cuma buat yg boleh ngubah link ini
@@ -236,22 +253,6 @@ def detail(entry_id):
         # balik ke tabel asal (Daftar Link/kategori/group) lengkap sama filter & urutannya
         back_url=read_back_url(),
     )
-
-@entries_bp.post("/<int:entry_id>/access-note")
-@api_login_required
-@limiter.limit("30 per minute")
-def reveal_access_note_api(entry_id):
-    """Isi access note buat tombol Show/Copy di detail."""
-    user = get_current_user()
-    entry = get_visible_entry(user, entry_id)
-    if entry is None:
-        return error_response("Link not found", 404)
-    access_note, is_note_error = read_access_note(entry)
-    if is_note_error:
-        return error_response("The access note can't be opened (different encryption key or corrupted data)", 500)
-    if not access_note:
-        return error_response("This link has no access note", 404)
-    return success_response(data={"access_note": access_note})
 
 @entries_bp.post("/<int:entry_id>/favorite")
 @login_required

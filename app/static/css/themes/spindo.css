@@ -2,8 +2,8 @@
    judul layar tegak, semuanya rapat, field & tombol kecil, kartu jadi group box bingkai abu.
    dimuat setelah semua CSS lain (sebelum animasi), jadi cukup nimpa yg beda dari tampilan dasar */
 
-/* biru navy Spindo. hex di DB tetep #0a6ed1 (key "blue"), yg diganti cuma warnanya di layar */
-:root[data-accent="blue"] { --app-accent: #1f4b8f; --app-accent-rgb: 31, 75, 143; --app-accent-fg: #ffffff; }
+/* biru navy Spindo */
+html:root { --app-accent: #1f4b8f; --app-accent-rgb: 31, 75, 143; --app-accent-fg: #ffffff; }
 
 html:root {
   /* merah logo Spindo, sama kayak aksen di file export Excel (export_service.COLOR_RED) */

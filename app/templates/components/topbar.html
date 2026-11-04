@@ -2,23 +2,22 @@
 {% from "components/notification_menu.html" import notification_menu with context %}
 {% from "components/user_menu.html" import user_menu with context %}
 {# bagian atas jendela ala SAP GUI (layar besar), 2 baris:
-   1. menu bar: Menu/Edit/Favorites/Tools/Account/Help (huruf bergaris bawah = Alt+huruf), lonceng + profil di kanan.
+   1. menu bar: Menu/Edit/Favorites/Tools/Account/Help, lonceng + profil di kanan.
       tema ada di Tools > Appearance
    2. toolbar sistem: Enter + command field (kode transaksi), Save/Back/Exit/Cancel, Find, Help/Customize
-   tombol standar pake URL & shortcut yg sama kayak toolbar aplikasi (variabel dari layouts/app_base.html).
+   tombol standar pake URL yg sama kayak toolbar aplikasi (variabel dari layouts/app_base.html).
    sengaja ga pake class navbar-expand, biar Tabler ga nyembunyiin sidebar #}
-{% macro menu_title(label) %}<u>{{ label[0] }}</u>{{ label[1:] }}{% endmacro %}
-{% macro menu_link(url, label, shortcut="", icon_name="") %}
+{% macro menu_link(url, label, icon_name="") %}
   {% if url %}
-    <a href="{{ url }}" class="dropdown-item">{% if icon_name %}{{ icon(icon_name, "dropdown-item-icon") }}{% endif %}{{ label }}{% if shortcut %}<kbd class="ms-auto">{{ shortcut }}</kbd>{% endif %}</a>
+    <a href="{{ url }}" class="dropdown-item">{% if icon_name %}{{ icon(icon_name, "dropdown-item-icon") }}{% endif %}{{ label }}</a>
   {% else %}
-    <span class="dropdown-item disabled" aria-disabled="true">{% if icon_name %}{{ icon(icon_name, "dropdown-item-icon") }}{% endif %}{{ label }}{% if shortcut %}<kbd class="ms-auto">{{ shortcut }}</kbd>{% endif %}</span>
+    <span class="dropdown-item disabled" aria-disabled="true">{% if icon_name %}{{ icon(icon_name, "dropdown-item-icon") }}{% endif %}{{ label }}</span>
   {% endif %}
 {% endmacro %}
-{# tombol ikon toolbar sistem. fkey sama kayak toolbar aplikasi; yg dipencet keyboard cuma yg keliatan (app_shell.js) #}
-{% macro system_link(url, icon_name, label, title, fkey, tone) %}
+{# tombol ikon toolbar sistem #}
+{% macro system_link(url, icon_name, label, title, tone) %}
   {% if url %}
-    <a href="{{ url }}" class="btn btn-icon app-system-btn app-tone-{{ tone }}" title="{{ title }} ({{ fkey }})" aria-label="{{ label }}" data-fkey="{{ fkey }}">{{ icon(icon_name) }}</a>
+    <a href="{{ url }}" class="btn btn-icon app-system-btn app-tone-{{ tone }}" title="{{ title }}" aria-label="{{ label }}">{{ icon(icon_name) }}</a>
   {% else %}
     <span class="btn btn-icon app-system-btn app-tone-{{ tone }} disabled" aria-disabled="true" aria-label="{{ label }}" title="{{ label }} is not available on this screen">{{ icon(icon_name) }}</span>
   {% endif %}
@@ -31,7 +30,7 @@
     </a>
 
     <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false" accesskey="m">{{ menu_title("Menu") }}</button>
+      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">Menu</button>
       <div class="dropdown-menu">
         {% for transaction in transaction_list %}
           <a href="{{ transaction.url }}" class="dropdown-item">{{ transaction.label }}</a>
@@ -45,39 +44,39 @@
     </div>
 
     <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false" accesskey="e">{{ menu_title("Edit") }}</button>
+      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">Edit</button>
       <div class="dropdown-menu">
-        {{ menu_link(toolbar_back_url, "Back", "F3", "back_circle") }}
-        {{ menu_link(toolbar_exit_url, "Exit", "Shift+F3", "exit_circle") }}
-        {{ menu_link(toolbar_cancel_url, "Cancel", "F12", "cancel_circle") }}
+        {{ menu_link(toolbar_back_url, "Back", "back_circle") }}
+        {{ menu_link(toolbar_exit_url, "Exit", "exit_circle") }}
+        {{ menu_link(toolbar_cancel_url, "Cancel", "cancel_circle") }}
         <div class="dropdown-divider"></div>
         {% if toolbar_save_form %}
-          <button type="submit" form="{{ toolbar_save_form }}" class="dropdown-item">{{ icon("save", "dropdown-item-icon") }}Save<kbd class="ms-auto">Ctrl+S</kbd></button>
+          <button type="submit" form="{{ toolbar_save_form }}" class="dropdown-item">{{ icon("save", "dropdown-item-icon") }}Save</button>
         {% else %}
-          {{ menu_link("", "Save", "Ctrl+S", "save") }}
+          {{ menu_link("", "Save", "save") }}
         {% endif %}
       </div>
     </div>
 
     <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false" accesskey="f">{{ menu_title("Favorites") }}</button>
+      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">Favorites</button>
       <div class="dropdown-menu">
-        {{ menu_link(url_for("entries.index", favorite="1"), "Favorite links", "LF", "star") }}
+        {{ menu_link(url_for("entries.index", favorite="1"), "Favorite links", "star") }}
       </div>
     </div>
 
     <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false" accesskey="t">{{ menu_title("Tools") }}</button>
+      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">Tools</button>
       <div class="dropdown-menu">
         <button type="button" class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer">{{ icon("palette", "dropdown-item-icon") }}Appearance</button>
-        {{ menu_link(url_for("settings.index"), "Settings", "ST", "settings") }}
+        {{ menu_link(url_for("settings.index"), "Settings", "settings") }}
       </div>
     </div>
 
     <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false" accesskey="a">{{ menu_title("Account") }}</button>
+      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">Account</button>
       <div class="dropdown-menu">
-        {{ menu_link(url_for("settings.index"), "User profile", "", "user") }}
+        {{ menu_link(url_for("settings.index"), "User profile", "user") }}
         <button type="button" class="dropdown-item" data-status-open>{{ icon("history", "dropdown-item-icon") }}Message history</button>
         <div class="dropdown-divider"></div>
         <form method="post" action="{{ url_for('auth.logout') }}">
@@ -88,9 +87,9 @@
     </div>
 
     <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false" accesskey="h">{{ menu_title("Help") }}</button>
+      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">Help</button>
       <div class="dropdown-menu">
-        <button type="button" class="dropdown-item" data-help-open aria-haspopup="dialog">{{ icon("help", "dropdown-item-icon") }}Help for this screen<kbd class="ms-auto">F1</kbd></button>
+        <button type="button" class="dropdown-item" data-help-open aria-haspopup="dialog">{{ icon("help", "dropdown-item-icon") }}Help for this screen</button>
       </div>
     </div>
 
@@ -102,18 +101,18 @@
 
   <div class="app-systembar" role="toolbar" aria-label="System toolbar">
     {% if toolbar_save_form %}
-      <button type="submit" form="{{ toolbar_save_form }}" class="btn btn-icon app-system-btn app-tone-blue" title="Save changes (Ctrl+S)" aria-label="Save" data-fkey="Ctrl+S">{{ icon("save") }}</button>
+      <button type="submit" form="{{ toolbar_save_form }}" class="btn btn-icon app-system-btn app-tone-blue" title="Save changes" aria-label="Save">{{ icon("save") }}</button>
     {% else %}
       <span class="btn btn-icon app-system-btn disabled" aria-disabled="true" aria-label="Save" title="Save is not available on this screen">{{ icon("save") }}</span>
     {% endif %}
     <span class="app-systembar-divider" aria-hidden="true"></span>
-    {{ system_link(toolbar_back_url, "back_circle", "Back", "Back to the previous screen", "F3", "green") }}
-    {{ system_link(toolbar_exit_url, "exit_circle", "Exit", "Exit this screen to Home", "Shift+F3", "orange") }}
-    {{ system_link(toolbar_cancel_url, "cancel_circle", "Cancel", "Discard changes & close this screen", "F12", "red") }}
+    {{ system_link(toolbar_back_url, "back_circle", "Back", "Back to the previous screen", "green") }}
+    {{ system_link(toolbar_exit_url, "exit_circle", "Exit", "Exit this screen to Home", "orange") }}
+    {{ system_link(toolbar_cancel_url, "cancel_circle", "Cancel", "Discard changes & close this screen", "red") }}
     <span class="app-systembar-divider" aria-hidden="true"></span>
-    <button type="button" class="btn btn-icon app-system-btn" data-system-find title="Find (/)" aria-label="Find">{{ icon("find") }}</button>
+    <button type="button" class="btn btn-icon app-system-btn" data-system-find title="Find" aria-label="Find">{{ icon("find") }}</button>
     <span class="app-systembar-divider" aria-hidden="true"></span>
-    <button type="button" class="btn btn-icon app-system-btn app-tone-blue" data-help-open aria-haspopup="dialog" title="Help for this screen (F1)" aria-label="Help">{{ icon("help") }}</button>
+    <button type="button" class="btn btn-icon app-system-btn app-tone-blue" data-help-open aria-haspopup="dialog" title="Help for this screen" aria-label="Help">{{ icon("help") }}</button>
     <button type="button" class="btn btn-icon app-system-btn" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer" title="Customize appearance" aria-label="Customize appearance">{{ icon("customize") }}</button>
   </div>
 </header>

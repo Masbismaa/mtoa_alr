@@ -5,14 +5,12 @@
     data-pref-url="{{ url_for('settings.update_preferences') }}"
     data-theme="{{ ui_preference_dict.theme_mode }}"
     data-bs-theme="{{ ui_preference_dict.theme_mode }}"
-    data-accent="{{ ui_preference_dict.accent_key }}"
     data-density="{{ 'compact' if ui_preference_dict.is_compact_view else 'comfortable' }}"
     data-font="{{ ui_preference_dict.font_family }}"
   {% else %}
     data-pref-source="local"
     data-theme="light"
     data-bs-theme="light"
-    data-accent="blue"
     data-density="comfortable"
     data-font="system"
   {% endif %}>

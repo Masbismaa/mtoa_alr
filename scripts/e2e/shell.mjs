@@ -6,9 +6,9 @@ await runScenario("group", async () => {
 
   check("kolom kode menu udah ga ada", await evaluate(`!document.querySelector("[data-command-input]")`));
 
-  await clickSelector('.app-menubar [accesskey="m"]');
-  await waitFor(`document.querySelector('.app-menubar [accesskey="m"] + .dropdown-menu.show')`);
-  const menuText = await evaluate(`document.querySelector('.app-menubar [accesskey="m"] + .dropdown-menu').innerText`);
+  await clickSelector('.app-menubar .dropdown:first-of-type > .app-menubar-item');
+  await waitFor(`document.querySelector('.app-menubar .dropdown:first-of-type > .app-menubar-item + .dropdown-menu.show')`);
+  const menuText = await evaluate(`document.querySelector('.app-menubar .dropdown:first-of-type > .app-menubar-item + .dropdown-menu').innerText`);
   check("menu Menu isinya menu yg boleh dibuka", menuText.includes("Link List") && !menuText.includes("Users"), menuText.replace(/\n/g, " | "));
   await screenshot("shell_menu.png");
 
@@ -25,7 +25,7 @@ await runScenario("group", async () => {
   check("klik transaksi di pohon -> pindah layar", (await path()) === "/entries/", await path());
 
   await navigate(BASE + "/entries/1");
-  await clickSelector('.app-systembar [data-fkey="F3"]');
+  await clickSelector('.app-systembar a[aria-label="Back"]');
   await waitFor(`location.pathname !== "/entries/1"`);
   check("tombol Back di toolbar sistem jalan", (await path()) !== "/entries/1", await path());
 });

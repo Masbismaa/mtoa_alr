@@ -54,7 +54,7 @@
 {% block content %}
   <div class="alert alert-warning" role="alert">
     <div class="fw-bold">{{ icon("alert_triangle") }} Keep the ENCRYPTION_KEY separately</div>
-    <div class="mt-1">Database backups do not contain the encryption key. Without the same key, the saved passwords inside a backup cannot be read after a restore.</div>
+    <div class="mt-1">Database backups do not contain the encryption key. Without the same key, the access notes inside a backup cannot be read after a restore.</div>
   </div>
 
   {{ backup_card("database", "Database", "database", "The whole PostgreSQL database.", database_backup_list,

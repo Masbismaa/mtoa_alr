@@ -3,11 +3,11 @@
    tanggal: dari - sampai. nilai yg tampil diambil dari URL.
    tombol Execute / Get Variant / Reset ada di toolbar aplikasi (macro selection_toolbar, dipanggil di block page_actions) #}
 
-{# toolbar aplikasi selection screen ala SAP: Execute (F8), Variant (ambil / simpan), Reset.
+{# toolbar aplikasi selection screen ala SAP: Execute, Variant (ambil / simpan), Reset.
    tombolnya nempel ke form kriteria lewat atribut form, soalnya toolbar ada di luar form #}
 {% macro selection_toolbar(action_url) %}
   {% from "components/icon.html" import icon %}
-  <button type="submit" form="selection_form" class="btn btn-primary" data-fkey="F8" aria-keyshortcuts="F8" title="Execute (F8)">{{ icon("check") }} Execute</button>
+  <button type="submit" form="selection_form" class="btn btn-primary" title="Execute">{{ icon("check") }} Execute</button>
   {# Variant ala SAP: simpen isian kriteria pake nama (Save as Variant), panggil lagi (Get Variant) #}
   {% set variant_list = list_screen_variant() %}
   <div class="dropdown">
@@ -102,7 +102,7 @@
           </div>
         {% endfor %}
       </div>
-      <div class="selection-tips">Tips: <code>ad*</code> = starts with "ad", <code>*ad</code> = ends with "ad", <code>*ad*</code> = contains "ad". Then Execute (F8) in the toolbar.</div>
+      <div class="selection-tips">Tips: <code>ad*</code> = starts with "ad", <code>*ad</code> = ends with "ad", <code>*ad*</code> = contains "ad". Then click Execute in the toolbar.</div>
     </div>
   </form>
   <form method="post" action="{{ url_for('settings.save_variant') }}" id="variant_save_form" data-variant-save-form hidden>

@@ -201,9 +201,9 @@ def register_error_handlers(app):
 
 def register_template_helpers(app):
     """Filter & data global buat semua template."""
-    from app.services.preference_service import build_ui_preference_dict, get_or_create_preference
+    from app.services.preference_service import build_preference_dict, get_or_create_preference
     from app.services.user_notification_service import count_unread_notification, list_recent_notification
-    from app.utils.constants import ACCENT_COLOR_OPTION_LIST, FONT_FAMILY_OPTION_LIST
+    from app.utils.constants import FONT_FAMILY_OPTION_LIST
     from app.services.category_service import build_category_label
     from app.utils.datetime_helper import format_local_datetime, format_time_ago
     from app.utils.navigation import build_sidebar_section_list, build_transaction_list
@@ -285,10 +285,9 @@ def register_template_helpers(app):
         }
         return {
             "account_access": account_access,
-            "ui_preference_dict": build_ui_preference_dict(preference),
+            "ui_preference_dict": build_preference_dict(preference),
             "sidebar_section_list": sidebar_sections,
             "transaction_list": build_transaction_list(sidebar_sections),
-            "accent_color_option_list": ACCENT_COLOR_OPTION_LIST,
             "font_family_option_list": FONT_FAMILY_OPTION_LIST,
             "unread_notification_count": count_unread_notification(user),
             "notification_list": list_recent_notification(user),

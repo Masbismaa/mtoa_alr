@@ -19,7 +19,7 @@
     return (text || "").split(",").filter(Boolean);
   }
 
-  // ===== field per kategori =====
+  // field per kategori
   function applyCategoryRule() {
     const optionEl = categorySelect.options[categorySelect.selectedIndex];
     if (!optionEl) return;
@@ -56,7 +56,7 @@
     });
   }
 
-  // ===== kategori bertingkat =====
+  // kategori bertingkat
   // dropdown asli tetep yg dikirim (name=category_id); di layar diganti 1 dropdown per tingkat.
   // boleh berhenti di tingkat mana aja: yg kesimpen tingkat terakhir yg dipilih
   const LEVEL_LABEL_LIST = ["Category", "Sub-category", "Sub-category 2", "Sub-category 3"];
@@ -134,7 +134,7 @@
     });
   }
 
-  // ===== field tambahan =====
+  // field tambahan
   function getRowList() {
     return listEl.querySelectorAll("[data-custom-field]");
   }
