@@ -5,7 +5,7 @@ import { BASE, check, clickSelector, evaluate, login, navigate, pageText, path, 
 const EMAIL = "e2e.user";
 const RESET_PASSWORD = "PasswordReset789";
 const SETTINGS_PASSWORD = "PasswordSettings321";
-const SECRET = "SandiE2E!123";
+const ACCESS_NOTE = "Login via SSO E2E";
 
 await runScenario("table", async () => {
   // 1. lupa password (OTP selalu 123456 di server uji)
@@ -27,27 +27,24 @@ await runScenario("table", async () => {
   await screenshot("account_settings.png");
   check("ganti password -> tetep login di halaman Settings", (await path()) === "/settings/" && (await pageText()).includes("Password changed"), await path());
 
-  // 3. link dgn password: isinya ga ada di HTML, Show ngambil dari server
+  // 3. link dgn access note: isinya langsung tampil di detail
   await navigate(BASE + "/entries/new");
   await waitLoad(() => evaluate(`(() => { const form = document.getElementById("entry_form");
-    form.querySelector('[name="title"]').value = "Link Rahasia E2E";
+    form.querySelector('[name="title"]').value = "Link Akses E2E";
     form.querySelector('[name="url"]').value = "https://rahasia-e2e.spindo.com";
-    form.querySelector('[name="access_note"]').value = ${JSON.stringify(SECRET)};
+    form.querySelector('[name="access_note"]').value = ${JSON.stringify(ACCESS_NOTE)};
     form.requestSubmit(); })()`));
   const detailPath = await path();
   check("link kesimpen", /^\/entries\/\d+$/.test(detailPath), detailPath);
-  check("password ga ada di source halaman detail", !(await evaluate("document.documentElement.outerHTML")).includes(SECRET));
-  await clickSelector("[data-secret-toggle]");
-  check("klik Show -> password tampil", await waitFor(`document.getElementById("access_note_value").textContent === ${JSON.stringify(SECRET)}`));
-  await navigate(BASE + detailPath);
-  check("History ga nyatet buka password", !(await evaluate(`document.querySelector(".entry-history")?.textContent || ""`)).toLowerCase().includes("reveal"));
+  check("access note langsung tampil di detail", (await pageText()).includes(ACCESS_NOTE));
+  check("isi access note ga ikut ke History", !(await evaluate(`document.querySelector(".entry-history")?.textContent || ""`)).includes(ACCESS_NOTE));
 
   // 4. favorit
   await waitLoad(() => evaluate(`Array.from(document.querySelectorAll(".app-toolbar button")).find((el) => el.textContent.includes("Add to Favorites")).click()`));
   check("Add to Favorites -> tombol jadi Remove", (await pageText()).includes("Remove from Favorites"));
   await screenshot("account_detail.png");
   await navigate(BASE + "/entries/?favorite=1");
-  check("menu Favorites cuma isi link favorit", await waitFor(`Array.from(document.querySelectorAll("#daftar_link tbody tr[data-row-url] td[data-column=title]")).map((td) => td.textContent).join() === "Link Rahasia E2E"`),
+  check("menu Favorites cuma isi link favorit", await waitFor(`Array.from(document.querySelectorAll("#daftar_link tbody tr[data-row-url] td[data-column=title]")).map((td) => td.textContent).join() === "Link Akses E2E"`),
     await evaluate(`Array.from(document.querySelectorAll("#daftar_link tbody td[data-column=title]")).map((td) => td.textContent).join()`));
 
   // 5. halaman import + template

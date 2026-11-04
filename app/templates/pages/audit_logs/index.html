@@ -7,7 +7,6 @@
 
 {% block title %}Audit Logs{% endblock %}
 
-{# judul layar di title bar atas ala SAP #}
 {% block screen_title %}Display Audit Logs{% endblock %}
 
 {% block page_pretitle %}Admin{% endblock %}
@@ -23,7 +22,7 @@
 {% block content %}
   {# urutan (sort) aja ga diitung sebagai filter #}
   {% set is_filtered = pagination_query_dict | reject("equalto", "sort") | list | length > 0 %}
-  {{ selection_panel(selection_field_list, url_for("audit.index", _anchor="daftar_audit"), "Search actor email, data ID, IP... (press /)") }}
+  {{ selection_panel(selection_field_list, url_for("audit.index", _anchor="daftar_audit"), "Search actor email, data ID, IP...") }}
 
   <div class="card" id="daftar_audit">
     <div class="card-header">

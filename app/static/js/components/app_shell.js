@@ -18,26 +18,6 @@
     return dialogEl;
   }
 
-  // TOMBOL FUNGSI ALA SAP GUI: tombol yg punya data-fkey (F3 Back, F8 Execute, Ctrl+S Save, ...) dipencet lewat keyboard.
-  // Tombol yg disabled / lagi ga keliatan dicuekin. Ctrl+S & F-key bawaan browser (cari, simpan halaman) diganti
-  function readKeyName(event) {
-    if (!/^F([1-9]|1[0-2])$/.test(event.key) && !(event.ctrlKey && event.key.toLowerCase() === "s")) return "";
-    const keyName = event.key.length === 1 ? event.key.toUpperCase() : event.key;
-    return (event.ctrlKey ? "Ctrl+" : "") + (event.shiftKey ? "Shift+" : "") + keyName;
-  }
-
-  document.addEventListener("keydown", function (event) {
-    if (event.altKey || event.metaKey || event.repeat || document.querySelector("dialog[open]")) return;
-    const keyName = readKeyName(event);
-    if (!keyName) return;
-    const targetEl = Array.from(document.querySelectorAll('[data-fkey="' + keyName + '"]')).find(function (el) {
-      return !el.disabled && el.getAttribute("aria-disabled") !== "true" && el.getClientRects().length > 0;
-    });
-    // Ctrl+S di layar tanpa Save: jangan munculin "Save page" bawaan browser (kayak SAP, ga ngapa-ngapain)
-    if (targetEl || keyName === "Ctrl+S") event.preventDefault();
-    if (targetEl) targetEl.click();
-  });
-
   // JAM DI STATUS BAR (jam komputer user, diperbarui tiap 30 detik)
   const clockEl = document.querySelector("[data-status-clock]");
   function updateClock() {

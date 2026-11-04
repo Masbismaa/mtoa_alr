@@ -1,5 +1,5 @@
-// Nuansa SAP + hapus banyak (admin): centang baris -> Delete selected -> konfirmasi, tombol fungsi keyboard
-// (F3/F8/Ctrl+S), Save as Variant / Get Variant, info user & jam di status bar.
+// Nuansa SAP + hapus banyak (admin): centang baris -> Delete selected -> konfirmasi, tombol toolbar (Back, Execute,
+// Save, Cancel, Exit, Help, Find), shortcut keyboard udah dihapus, Save as Variant / Get Variant, user & jam di status bar.
 // Pake data skenario monitor: e2e.admin punya 60 link Web.
 import { BASE, check, clickSelector, evaluate, login, navigate, path, pressKey, runScenario, screenshot, typeText, waitFor, waitLoad } from "./browser.mjs";
 
@@ -18,17 +18,17 @@ await runScenario("monitor", async () => {
   const buttonText = await evaluate(`Array.from(document.querySelectorAll("#daftar_link button")).find((el) => el.textContent.includes("Delete selected")).textContent`);
   check("centang semua -> 10 kepilih", buttonText.includes("(10)"), buttonText);
   await screenshot("sap_1_centang.png");
-  await pressKey("F2", "F2", 113, 8);
-  check("Shift+F2 -> dialog konfirmasi muncul", await waitFor(`document.getElementById("confirm_dialog").open`));
+  await evaluate(`Array.from(document.querySelectorAll("#daftar_link button")).find((el) => el.textContent.includes("Delete selected")).click(); true`);
+  check("Delete selected -> dialog konfirmasi muncul", await waitFor(`document.getElementById("confirm_dialog").open`));
   await clickSelector(`#confirm_dialog [data-confirm-ok]`);
   check("abis hapus: total jadi 50", await waitFor(`document.querySelector("#daftar_link .card-title").textContent.includes("All links: 50")`, 8000), await headingText());
   check("status bar bilang kehapus", (await evaluate(`document.querySelector("[data-status-text]").textContent`)).includes("10 links deleted"));
 
-  // 2. tombol fungsi: F3 di detail balik ke tabel
+  // 2. tombol Back di detail balik ke tabel
   const detailUrl = await evaluate(`document.querySelector("#daftar_link tbody tr[data-row-url]").dataset.rowUrl`);
   await navigate(BASE + detailUrl);
-  await waitLoad(() => pressKey("F3", "F3", 114));
-  check("F3 di detail -> balik ke Link List", (await path()) === "/entries/", await path());
+  await waitLoad(() => clickSelector('.app-systembar a[aria-label="Back"]'));
+  check("Back di detail -> balik ke Link List", (await path()) === "/entries/", await path());
 
   // 3. Variant: isi kriteria -> Save as Variant -> kriterianya kesimpen & bisa dipanggil lagi
   await navigate(BASE + "/entries/");
@@ -44,16 +44,43 @@ await runScenario("monitor", async () => {
   check("variant muncul di Get Variant", Boolean(variantHref), variantHref);
   await screenshot("sap_2_variant.png");
 
-  // 4. F8 = Execute
-  await waitLoad(() => pressKey("F8", "F8", 119));
-  check("F8 -> Execute (tabel tampil)", await waitFor(`${rowCount} > 0`), await evaluate("location.search"));
+  // 4. Execute
+  await waitLoad(() => clickSelector('button[title="Execute"]'));
+  check("Execute -> tabel tampil", await waitFor(`${rowCount} > 0`), await evaluate("location.search"));
 
-  // 5. Ctrl+S = Save di form edit
-  await navigate(BASE + detailUrl.replace(/\?.*$/, "") + "/edit");
-  await waitLoad(() => pressKey("s", "KeyS", 83, 2));
-  check("Ctrl+S di form edit -> kesimpen", (await evaluate("document.body.innerText")).includes("Changes saved"));
+  // 5. Save di form edit
+  const editUrl = BASE + detailUrl.replace(/\?.*$/, "") + "/edit";
+  await navigate(editUrl);
+  await waitLoad(() => clickSelector('.app-systembar button[aria-label="Save"]'));
+  check("Save di form edit -> kesimpen", (await evaluate("document.body.innerText")).includes("Changes saved"));
 
-  // 6. status bar: user & jam
+  // 6. shortcut keyboard udah dihapus total: F1, F3, Shift+F3, F8, F12, Ctrl+S, Shift+F2, "/" ga ngapa-ngapain
+  const isHelpOpen = `document.getElementById("help_dialog").open`;
+  await navigate(editUrl);
+  for (const [key, code, keyCode, modifiers] of [["F1", "F1", 112, 0], ["F3", "F3", 114, 0], ["F3", "F3", 114, 8], ["F8", "F8", 119, 0],
+    ["F12", "F12", 123, 0], ["s", "KeyS", 83, 2], ["F2", "F2", 113, 8], ["/", "Slash", 191, 0]]) {
+    await pressKey(key, code, keyCode, modifiers);
+  }
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  check("tombol keyboard ga mbuka Help / pindah layar / nyimpen", !(await evaluate(isHelpOpen)) && (await path()).endsWith("/edit")
+    && !(await evaluate(`document.activeElement?.hasAttribute("data-selection-quick") === true`)), await path());
+  await navigate(BASE + "/entries/");
+  await clickSelector('.app-systembar button[aria-label="Help"]');
+  check("tombol Help -> dialog Help kebuka", await waitFor(isHelpOpen));
+  check("Help ga nampilin daftar tombol keyboard", !(await evaluate(`Boolean(document.querySelector("#help_dialog kbd"))`)));
+  await screenshot("sap_4_help.png");
+  await evaluate(`document.querySelector("[data-help-close]").click(); true`);
+  check("Close -> Help ketutup", await waitFor(`!${isHelpOpen}`));
+  await clickSelector('.app-systembar button[aria-label="Find"]');
+  check("tombol Find -> fokus ke Quick search", await waitFor(`document.activeElement?.hasAttribute("data-selection-quick")`));
+  await navigate(editUrl);
+  await waitLoad(() => clickSelector('.app-systembar a[aria-label="Cancel"]'));
+  check("Cancel di form edit -> keluar dari form", !(await path()).endsWith("/edit"), await path());
+  await navigate(BASE + "/entries/");
+  await waitLoad(() => clickSelector('.app-systembar a[aria-label="Exit"]'));
+  check("Exit -> Home", (await path()) === "/", await path());
+
+  // 7. status bar: user & jam
   const clockText = await evaluate(`document.querySelector("[data-status-clock]").textContent`);
   check("status bar ada jam HH:MM", /^\d{2}:\d{2}$/.test(clockText), clockText);
   check("status bar ada user", (await evaluate(`document.querySelector(".app-statusbar").textContent`)).includes("e2e.admin"));

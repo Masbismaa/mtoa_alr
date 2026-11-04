@@ -4,7 +4,6 @@ import pytest
 from app.models import Category
 from app.services.access_entry_service import create_access_entry
 from tests.conftest import create_entry_as_is
-from app.services.category_service import toggle_category_active
 from app.utils import vite_manifest
 from app.utils.constants import PER_PAGE, VISIBILITY_PRIVATE, VISIBILITY_PUBLIC
 
@@ -39,11 +38,11 @@ def get_api_data(client, url):
     assert body["is_success"] is True
     return body["data"]
 
-def make_sub_category(parent, name):
-    """Helper: sub-kategori aktif."""
+def make_sub_category(owner, parent, name):
+    """Helper: sub-kategori aktif milik owner."""
     from app.extensions import db
 
-    category = Category(parent_id=parent.id, name=name, is_active=True)
+    category = Category(parent_id=parent.id, user_id=owner.id, name=name, is_active=True)
     db.session.add(category)
     db.session.commit()
     return category
@@ -152,7 +151,7 @@ def test_index_without_run_has_no_table(logged_in_client, registered_user, categ
 def test_category_api_only_direct_entries(logged_in_client, registered_user, category_dict):
     """Positive: isi kategori = link yg langsung di kategori itu (sub-nya ga ikut), tanpa kolom Kategori & tombol export."""
     web = category_dict["Web"]
-    sub = make_sub_category(web, "SAP")
+    sub = make_sub_category(registered_user, web, "SAP")
     create_entry(registered_user, web, "Langsung Web")
     create_entry(registered_user, sub, "Di SAP")
     data = get_api_data(logged_in_client, f"/categories/{web.id}/table-data")
@@ -162,18 +161,21 @@ def test_category_api_only_direct_entries(logged_in_client, registered_user, cat
     assert data["api_url"] == f"/categories/{web.id}/table-data" and data["page_url"] == f"/categories/{web.id}"
     assert "run" not in data["query"]
 
-def test_category_api_empty_text_mentions_sub_category(logged_in_client, category_dict):
+def test_category_api_empty_text_mentions_sub_category(logged_in_client, registered_user, category_dict):
     """Positive: kategori kosong yg punya sub -> kasih tau link lainnya ada di sub-kategori."""
     web = category_dict["Web"]
-    make_sub_category(web, "SAP")
+    make_sub_category(registered_user, web, "SAP")
     data = get_api_data(logged_in_client, f"/categories/{web.id}/table-data")
     assert data["empty"]["subtitle"] == "Other links are in the sub-categories above."
 
-def test_category_api_not_found_and_inactive(logged_in_client, admin_user, category_dict):
+def test_category_api_not_found_and_inactive(logged_in_client, registered_user, category_dict):
     """Negative: kategori ga ada / nonaktif (buat user biasa) -> 404 JSON."""
+    from app.extensions import db
+
     assert logged_in_client.get("/categories/999999/table-data").status_code == 404
-    sub = make_sub_category(category_dict["Web"], "Lama")
-    toggle_category_active(admin_user, sub)
+    sub = make_sub_category(registered_user, category_dict["Web"], "Lama")
+    sub.is_active = False
+    db.session.commit()
     response = logged_in_client.get(f"/categories/{sub.id}/table-data")
     assert response.status_code == 404 and response.get_json()["is_success"] is False
 

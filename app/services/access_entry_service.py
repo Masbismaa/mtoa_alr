@@ -21,10 +21,8 @@ from app.services.category_service import (
     get_category,
     get_root_category,
     is_category_usable,
-    list_descendant_id,
-    list_all_category,
-    build_child_dict,
-    collect_descendant_id_list,
+    is_category_visible,
+    list_scope_category_id,
     list_usable_category,
 )
 from app.utils.constants import (
@@ -68,19 +66,21 @@ def get_category_rule(category):
     """Aturan field ngikut kategori utamanya (Web › SAP tetep wajib URL kayak Web)."""
     return CATEGORY_FIELD_RULE_DICT.get(get_root_category(category).name, DEFAULT_CATEGORY_FIELD_RULE)
 
-def list_active_category_option():
+def list_active_category_option(user):
     """Pilihan kategori aktif buat isian Kriteria Pencarian Daftar Link: [(id, label lengkap)]."""
-    return [(category.id, build_category_label(category)) for category in list_usable_category()]
+    return [(category.id, build_category_label(category)) for category in list_usable_category(user)]
 
-def get_form_category_list(current_category=None):
-    """Pilihan kategori di form. Pas edit, kategori lama tetep ikut walau udah dinonaktifin admin."""
-    category_list = list(list_usable_category())
-    if current_category is not None and not is_category_usable(current_category):
+def get_form_category_list(user, current_category=None):
+    """Pilihan kategori di form (kategori utama + sub bikinan user). Pas edit, kategori lama tetep ikut walau udah
+    dinonaktifin, atau sub pribadi pemilik link-nya (admin ngedit link Public orang lain)."""
+    category_list = list(list_usable_category(user))
+    if current_category is not None and current_category not in category_list:
         category_list.append(current_category)
     return category_list
 
-def get_category_from_id(raw_category_id, current_category_id=None):
-    """Ambil kategori dari id, None kalau ga valid. Kategori nonaktif cuma boleh kalau itu kategori lama data-nya."""
+def get_category_from_id(user, raw_category_id, current_category_id=None):
+    """Ambil kategori dari id, None kalau ga valid. Kategori nonaktif / sub pribadi orang lain cuma boleh kalau
+    itu kategori lama data-nya."""
     try:
         category_id = int(raw_category_id)
     except (TypeError, ValueError):
@@ -88,7 +88,7 @@ def get_category_from_id(raw_category_id, current_category_id=None):
     category = db.session.get(Category, category_id)
     if category is None:
         return None
-    if not is_category_usable(category) and category.id != current_category_id:
+    if category.id != current_category_id and not (is_category_usable(category) and is_category_visible(user, category)):
         return None
     return category
 
@@ -111,9 +111,9 @@ def build_category_option_list(category_list):
     return option_list
 
 # VALIDASI
-def validate_entry_data(data_dict, current_category_id=None):
+def validate_entry_data(user, data_dict, current_category_id=None):
     """Cek & bersihin data utama. Return (clean_dict, category, error_list)."""
-    category = get_category_from_id(data_dict.get("category_id"), current_category_id)
+    category = get_category_from_id(user, data_dict.get("category_id"), current_category_id)
     if category is None:
         return {}, None, [build_error("category_id", "Invalid category")]
 
@@ -237,7 +237,7 @@ def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list
                        existing_attachment_count=0, exclude_entry_id=None, current_category_id=None, check_duplicate=True):
     """Semua validasi jadi satu (create & update). Return (clean_dict, custom_list, upload_list).
     check_duplicate=False cuma buat import: duplikat ke database dicek sekaligus semua baris (find_duplicate_entry_dict)."""
-    clean_dict, category, error_list = validate_entry_data(data_dict, current_category_id)
+    clean_dict, category, error_list = validate_entry_data(user, data_dict, current_category_id)
     # link Public cuma admin yg boleh bikin; punya user biasa (form, import, request ngakal) otomatis Private
     if clean_dict.get("visibility") == VISIBILITY_PUBLIC and not is_admin(user):
         clean_dict["visibility"] = VISIBILITY_PRIVATE
@@ -262,8 +262,6 @@ def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list
     enforce_upload_quota(user, prepared_upload_list)
     return clean_dict, clean_custom_field_list, prepared_upload_list
 
-
-# ================= SIMPAN =================
 
 # SIMPAN
 def apply_entry_data(entry, clean_dict, clean_custom_field_list):
@@ -427,22 +425,7 @@ def get_visible_entry(user, entry_id):
         .where(AccessEntry.id == entry_id, build_visible_entry_filter(user))
     ).scalar_one_or_none()
 
-def list_selected_category_id(category_id_list, is_include_sub=True):
-    """Kategori yg dicentang (+ sub-nya kalau is_include_sub). Kategori yg ga ada dicuekin."""
-    selected_id_list = []
-    category_list = list_all_category()
-    existing_id_set = {category.id for category in category_list}
-    child_dict = build_child_dict(category_list)
-    seen = set()
-    for category_id in category_id_list:
-        if category_id in existing_id_set:
-            for selected_id in (collect_descendant_id_list(category_id, child_dict) if is_include_sub else [category_id]):
-                if selected_id not in seen:
-                    seen.add(selected_id)
-                    selected_id_list.append(selected_id)
-    return selected_id_list
-
-def apply_entry_selection(query, selection, is_include_sub=True):
+def apply_entry_selection(user, query, selection, is_include_sub=True):
     """Tempel kriteria Select Screen (judul, URL/address, kategori, visibilitas, status, pembuat, tanggal) ke query link."""
     owner_condition = build_text_selection_filter([User.full_name, User.email], selection["owner"])
     category_id_list = selection["category_id_list"]
@@ -450,7 +433,7 @@ def apply_entry_selection(query, selection, is_include_sub=True):
         build_text_selection_filter([AccessEntry.title], selection["title"]),
         build_text_selection_filter([AccessEntry.url, AccessEntry.address], selection["access"]),
         AccessEntry.user_id.in_(db.select(User.id).where(owner_condition)) if owner_condition is not None else None,
-        AccessEntry.category_id.in_(list_selected_category_id(category_id_list, is_include_sub)) if category_id_list else None,
+        AccessEntry.category_id.in_(list_scope_category_id(user, category_id_list, is_include_sub)) if category_id_list else None,
         AccessEntry.visibility.in_(selection["visibility_list"]) if selection["visibility_list"] else None,
         AccessEntry.status.in_(selection["status_list"]) if selection["status_list"] else None,
         build_date_range_filter(AccessEntry.created_at, *selection["created_range"]),
@@ -484,13 +467,11 @@ def build_visible_entry_query(user, keyword=None, category_id=None, visibility=N
         search_column_list = [AccessEntry.title, AccessEntry.url, AccessEntry.address, AccessEntry.description]
         query = query.where(build_keyword_filter(search_column_list, clean_keyword))
     if category_id:
-        category = get_category(category_id)
-        category_id_list = list_descendant_id(category) if category is not None and is_include_sub else [category_id]
-        query = query.where(AccessEntry.category_id.in_(category_id_list))
+        query = query.where(AccessEntry.category_id.in_(list_scope_category_id(user, [category_id], is_include_sub)))
     if visibility in VISIBILITY_LIST:
         query = query.where(AccessEntry.visibility == visibility)
     if selection:
-        query = apply_entry_selection(query, selection, is_include_sub)
+        query = apply_entry_selection(user, query, selection, is_include_sub)
         if selection.get("is_favorite_only"):
             query = query.where(AccessEntry.id.in_(
                 db.select(UserFavorite.access_entry_id).where(UserFavorite.user_id == user.id)
@@ -587,4 +568,3 @@ def toggle_archive(user, entry):
     )
     db.session.commit()
     return entry.is_archived
-

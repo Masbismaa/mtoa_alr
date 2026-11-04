@@ -3,12 +3,10 @@
 
 {% block title %}Access Settings {{ group_entry.access_entry.title }}{% endblock %}
 
-{# judul layar di title bar atas ala SAP #}
 {% block screen_title %}Change Link Access: {{ group_entry.access_entry.title }}{% endblock %}
 
 {% block page_pretitle %}Group › {{ group.name }}{% endblock %}
 
-{# toolbar atas: Simpan & Batal selalu kelihatan walau form panjang #}
 {% block toolbar_save %}viewer_form{% endblock %}
 {% block toolbar_cancel %}{{ url_for('groups.detail', group_id=group.id) }}{% endblock %}
 

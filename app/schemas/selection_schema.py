@@ -59,7 +59,7 @@ def read_entry_selection(args):
     }
 
 # USERS
-USER_CREATED_FIELD = date_range_field("created", "Registration Date")
+USER_CREATED_FIELD = date_range_field("created", "Created Date")
 USER_FIELD_LIST = [
     text_field("name", "Name / Email", "e.g. budi* or *@spindo.com"),
     text_field("department", "Department / Job Title", "e.g. ICT"),

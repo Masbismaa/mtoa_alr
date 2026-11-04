@@ -8,7 +8,6 @@ ROLE_LIST = [ROLE_ADMIN, ROLE_USER_ENTRY]
 THEME_MODE_LIGHT = "light"
 THEME_MODE_DARK = "dark"
 THEME_MODE_LIST = [THEME_MODE_LIGHT, THEME_MODE_DARK]
-DEFAULT_ACCENT_COLOR = "#0a6ed1"
 DEFAULT_FONT_FAMILY = "system"
 
 # Kategori default yang di-seed ke tabel categories
@@ -77,17 +76,15 @@ MIN_PASSWORD_LENGTH = 8
 # + email itu diblokir di auth_throttle biar email ga terdaftar dapet pesan yg sama
 LOGIN_MAX_FAILED_COUNT = 3
 LOGIN_LOCK_MINUTES = 15
-# email "kamu sudah punya akun" (ada yg daftar pakai email terdaftar) maksimal sekali per sekian menit per email
-REGISTER_NOTICE_COOLDOWN_MINUTES = 10
-# kode verifikasi daftar ke satu email maksimal sekian kali per sekian menit (anti spam kotak masuk orang)
-REGISTER_CODE_MAX_COUNT = 5
-REGISTER_CODE_WINDOW_MINUTES = 15
+# kode lupa password ke satu email maksimal sekian kali per sekian menit (anti spam kotak masuk orang)
+RESET_CODE_MAX_COUNT = 5
+RESET_CODE_WINDOW_MINUTES = 15
 # lupa password: percobaan masukin kode per email + IP per hari. Per IP biar tebakan orang lain ga ngabisin jatah pemiliknya
 RESET_ATTEMPT_MAX_COUNT = 10
 # lupa password: kode reset per email per hari. Tiap kode cuma 5x coba, jadi total tebakan lintas IP maks. 10 x 5 sehari
 RESET_CODE_DAILY_MAX_COUNT = 10
-# percobaan daftar yg ga diverifikasi dibuang setelah sekian jam
-PENDING_REGISTRATION_EXPIRE_HOURS = 24
+# link aktivasi akun dari admin berlaku sekian jam
+ACTIVATION_LINK_EXPIRE_HOURS = 24
 
 # aturan OTP
 OTP_LENGTH = 6
@@ -99,34 +96,20 @@ OTP_RESEND_COOLDOWN_SECONDS = 60
 OTP_DELIVERY_CONSOLE = "console"
 OTP_DELIVERY_SMTP = "smtp"
 
-# OTP dipake buat login, verifikasi email pendaftaran, & lupa password (beda judul email).
-# login & reset disimpen di otp_codes (kolom purpose), kode daftar di pending_registrations
+# isi tabel otp_codes dibedain lewat kolom purpose: OTP login, kode lupa password, token link aktivasi akun
 OTP_PURPOSE_LOGIN = "login"
-OTP_PURPOSE_REGISTER = "register"
 OTP_PURPOSE_RESET = "reset"
+OTP_PURPOSE_ACTIVATION = "activation"
 
 # batas panjang password (argon2 lemot kalau inputnya kepanjangan)
 MAX_PASSWORD_LENGTH = 128
 
 # nama key di session buat nyimpen user yg lagi nunggu isi OTP
 SESSION_PENDING_USER_KEY = "pending_user_id"
-# data pendaftaran yg lagi nunggu kode verifikasi email: {"email", "sent_at", "attempt_count"}
-SESSION_PENDING_REGISTER_KEY = "pending_register"
-# lupa password yg lagi nunggu kode: {"email", "sent_at", "attempt_count"} (pola sama kayak daftar)
+# lupa password yg lagi nunggu kode: {"email", "sent_at", "attempt_count"}
 SESSION_PASSWORD_RESET_KEY = "password_reset"
 
 # UI & Customizer
-# pilihan warna aksen: hex disimpen di DB, key dipake CSS (data-accent)
-ACCENT_COLOR_OPTION_LIST = [
-    {"key": "blue", "hex": "#0a6ed1", "label": "Blue"},
-    {"key": "yellow", "hex": "#ffd23f", "label": "Yellow"},
-    {"key": "pink", "hex": "#ff6b9d", "label": "Pink"},
-    {"key": "lime", "hex": "#a3e635", "label": "Lime"},
-    {"key": "teal", "hex": "#2ec4b6", "label": "Teal"},
-    {"key": "purple", "hex": "#b388ff", "label": "Purple"},
-]
-ACCENT_KEY_BY_HEX_DICT = {option["hex"]: option["key"] for option in ACCENT_COLOR_OPTION_LIST}
-DEFAULT_ACCENT_KEY = "blue"
 
 # pilihan font
 FONT_FAMILY_OPTION_LIST = [
@@ -303,20 +286,22 @@ DASHBOARD_RECENT_ACTIVITY_LIMIT = 5
 
 # kelola user
 USER_STATUS_ACTIVE = "active"
+USER_STATUS_PENDING = "pending"
 USER_STATUS_LOCKED = "locked"
 USER_STATUS_INACTIVE = "inactive"
 USER_STATUS_LABEL_DICT = {
     USER_STATUS_ACTIVE: "Active",
+    USER_STATUS_PENDING: "Pending Activation",
     USER_STATUS_LOCKED: "Locked",
     USER_STATUS_INACTIVE: "Inactive",
 }
 
-# hapus akun: data diri diganti biar email aslinya bisa dipake daftar lagi
+# hapus akun: data diri diganti biar email aslinya bisa dipake akun baru lagi
 DELETED_USER_NAME = "Deleted account"
 DELETED_USER_PROFILE_TEXT = "-"
 # .invalid itu domain cadangan, dijamin ga bakal jadi email beneran
 DELETED_USER_EMAIL_DOMAIN = "deleted.invalid"
-# bukan format argon2, jadi verify_password selalu False
+# bukan format argon2, jadi verify_password selalu False. Dipake akun yg dihapus & akun baru yg belum diaktivasi
 UNUSABLE_PASSWORD_HASH = "!"
 
 # export kat excel

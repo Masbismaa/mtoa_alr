@@ -21,7 +21,7 @@ LOGO_HEIGHT_PX = 38
 REPORT_TITLE = "Access Link Register"
 REPORT_SUBTITLE = "ALR · ICT"
 CONFIDENTIAL_TEXT = "CONFIDENTIAL · INTERNAL USE ONLY"
-NOTE_TEXT = "Note: access notes/passwords are not exported. Times are in WIB."
+NOTE_TEXT = "Note: access notes are not exported. Times are in WIB."
 
 # kolom sheet Detail
 DETAIL_COLUMN_LIST = [
@@ -287,12 +287,12 @@ def build_summary_sheet(sheet, entry_list, user, filter_text_list):
     write_cell(sheet, row + 1, 2, NOTE_TEXT, font=make_font(9, is_italic=True, color=COLOR_GRAY_TEXT))
     setup_print(sheet, last_column, row + 1, "portrait")
 
-def build_detail_row(row_number, entry):
+def build_detail_row(row_number, entry, user):
     """Satu baris detail buat satu link. Access note sengaja ga ada."""
     return [
         row_number,
         entry.title,
-        build_category_label(entry.category),
+        build_category_label(entry.category, user),
         entry.url,
         entry.address,
         entry.port,
@@ -341,7 +341,7 @@ def build_detail_sheet(sheet, entry_list, user, filter_text_list):
     write_table_header(sheet, DETAIL_HEADER_ROW, 1, [title for title, _, _ in DETAIL_COLUMN_LIST])
 
     for offset, entry in enumerate(entry_list):
-        value_list = build_detail_row(offset + 1, entry)
+        value_list = build_detail_row(offset + 1, entry, user)
         write_detail_row(sheet, DETAIL_HEADER_ROW + 1 + offset, value_list, entry, offset % 2 == 1)
 
     last_row = DETAIL_HEADER_ROW + len(entry_list)

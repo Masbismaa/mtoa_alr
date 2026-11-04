@@ -13,7 +13,6 @@ from app.models.user import User
 from app.models.user_preference import UserPreference
 from app.models.link_monitor_run import LinkMonitorRun
 from app.models.user_notification import UserNotification
-from app.models.pending_registration import PendingRegistration
 from app.models.user_favorite import UserFavorite
 from app.models.selection_variant import SelectionVariant
 from app.extensions import db
@@ -32,5 +31,5 @@ AccessEntry.attachment_count = db.column_property(
 __all__ = [
     "AccessEntry", "AccessEntryField", "Attachment", "AuditLog", "Category",
     "Group", "GroupEntry", "GroupEntryViewer", "GroupMember", "OtpCode", "User", "UserPreference",
-    "LinkMonitorRun", "UserNotification", "PendingRegistration", "UserFavorite", "SelectionVariant"
+    "LinkMonitorRun", "UserNotification", "UserFavorite", "SelectionVariant"
 ]

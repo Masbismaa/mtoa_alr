@@ -1,38 +1,15 @@
-// Jendela ala SAP GUI: command field (kode transaksi), menu bar, toolbar sistem.
-import { BASE, check, clickSelector, evaluate, login, navigate, path, pressKey, runScenario, screenshot, typeText, waitFor, waitLoad } from "./browser.mjs";
-
-const statusText = () => evaluate(`document.querySelector("[data-status-text]").textContent`);
-
-async function runCommand(code) {
-  await evaluate(`document.querySelector("[data-command-input]").focus()`);
-  await typeText(code);
-  await waitLoad(() => pressKey("Enter", "Enter", 13));
-}
+// Jendela ala SAP GUI: menu bar, toolbar sistem.
+import { BASE, check, clickSelector, evaluate, login, navigate, path, runScenario, screenshot, waitFor, waitLoad } from "./browser.mjs";
 
 await runScenario("group", async () => {
   await login("e2e.user");
 
-  await runCommand("ll");
-  check("ketik LL + Enter -> Link List", (await path()) === "/entries/", await path());
-  await runCommand("/nGR");
-  check("/nGR -> Groups", (await path()) === "/groups/", await path());
-  await runCommand("/n");
-  check("/n -> Home", (await path()) === "/", await path());
+  check("kolom kode menu udah ga ada", await evaluate(`!document.querySelector("[data-command-input]")`));
 
-  await evaluate(`document.querySelector("[data-command-input]").focus()`);
-  await typeText("zz");
-  await pressKey("Enter", "Enter", 13);
-  await waitFor(`document.querySelector("[data-status-text]").textContent.includes("ZZ")`);
-  check("kode ga dikenal -> pesan di status bar, tetep di layar ini", (await statusText()) === "Menu code ZZ not found" && (await path()) === "/", await statusText());
-
-  await evaluate(`document.activeElement.blur()`);
-  await pressKey("/", "Slash", 191, 2);
-  check("Ctrl+/ -> fokus ke command field", await evaluate(`document.activeElement.matches("[data-command-input]")`));
-
-  await clickSelector('.app-menubar [accesskey="m"]');
-  await waitFor(`document.querySelector('.app-menubar [accesskey="m"] + .dropdown-menu.show')`);
-  const menuText = await evaluate(`document.querySelector('.app-menubar [accesskey="m"] + .dropdown-menu').innerText`);
-  check("menu Menu isinya transaksi + kodenya", menuText.includes("Link List") && menuText.includes("LL") && !menuText.includes("Users"), menuText.replace(/\n/g, " | "));
+  await clickSelector('.app-menubar .dropdown:first-of-type > .app-menubar-item');
+  await waitFor(`document.querySelector('.app-menubar .dropdown:first-of-type > .app-menubar-item + .dropdown-menu.show')`);
+  const menuText = await evaluate(`document.querySelector('.app-menubar .dropdown:first-of-type > .app-menubar-item + .dropdown-menu').innerText`);
+  check("menu Menu isinya menu yg boleh dibuka", menuText.includes("Link List") && !menuText.includes("Users"), menuText.replace(/\n/g, " | "));
   await screenshot("shell_menu.png");
 
   // Easy Access: buka folder Data > Links, klik transaksi; lebar pohon paten (ga ada garis geser)
@@ -48,7 +25,7 @@ await runScenario("group", async () => {
   check("klik transaksi di pohon -> pindah layar", (await path()) === "/entries/", await path());
 
   await navigate(BASE + "/entries/1");
-  await clickSelector('.app-systembar [data-fkey="F3"]');
+  await clickSelector('.app-systembar a[aria-label="Back"]');
   await waitFor(`location.pathname !== "/entries/1"`);
   check("tombol Back di toolbar sistem jalan", (await path()) !== "/entries/1", await path());
 });

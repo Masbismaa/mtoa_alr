@@ -39,6 +39,14 @@
               <span class="small text-secondary">No links yet</span>
             {% endif %}
           </div>
+          {% if row.can_delete %}
+            <div class="col-auto">
+              <form method="post" action="{{ url_for('categories.delete', category_id=row.category.id) }}" data-confirm-title="Delete category?" data-confirm-message="Category &quot;{{ row.category.name }}&quot; and its sub-categories will be permanently deleted. Links inside are moved to the parent category, nothing is lost." data-confirm-ok="Yes, delete">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-ghost-danger" aria-label="Delete category {{ row.category.name }}">{{ icon("trash") }} Delete</button>
+              </form>
+            </div>
+          {% endif %}
         </div>
       </div>
     {% endfor %}

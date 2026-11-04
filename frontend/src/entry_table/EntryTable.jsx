@@ -59,7 +59,7 @@ export default function EntryTable({ initialPayload }) {
     defaultLayout: initialPayload.default_layout,
     defaultWidthDict: initialPayload.default_width_dict,
   });
-  const { activeIndex, activate, getTabIndex, setRowRef } = useActiveRow(payload.rows);
+  const { activeIndex, activate } = useActiveRow(payload.rows);
   const [isResizing, setIsResizing] = useState(false);
   // menu klik kanan yg lagi kebuka: { rowIndex, columnKey, x, y }
   const [menu, setMenu] = useState(null);
@@ -94,7 +94,7 @@ export default function EntryTable({ initialPayload }) {
 
   // klik baris: baris jadi aktif, kolom sel yg diklik jadi kolom pilihan
   function handleRowClick(event, index) {
-    activate(index, !isInteractiveTarget(event.target), false);
+    activate(index);
     const cellEl = event.target.closest("td[data-column]");
     if (cellEl) setSelectedColumnKey(cellEl.dataset.column);
   }
@@ -180,41 +180,19 @@ export default function EntryTable({ initialPayload }) {
     return itemList;
   }
 
-  function openMenuAtRow(index) {
-    const rowEl = rowElList.current[index];
-    const rect = rowEl.getBoundingClientRect();
-    openMenu({ rowIndex: index, columnKey: visibleColumns.length ? visibleColumns[0].key : null, x: rect.left + 24, y: rect.bottom });
-  }
-
-  // KEYBOARD & MOUSE DI BARIS
-  function handleRowKeyDown(event, index) {
-    // lagi fokus di link/tombol di dalem baris: biarin jalan normal
-    if (event.target !== event.currentTarget) return;
-    const isMenuKey = event.key === "ContextMenu" || (event.shiftKey && event.key === "F10");
-    if (event.key === "ArrowDown") activate(index + 1, true);
-    else if (event.key === "ArrowUp") activate(index - 1, true);
-    else if (event.key === "Home") activate(0, true);
-    else if (event.key === "End") activate(payload.rows.length - 1, true);
-    else if (event.key === "Enter") openRow(payload.rows[index]);
-    else if (isMenuKey) openMenuAtRow(index);
-    else return;
-    event.preventDefault();
-  }
-
+  // MOUSE DI BARIS
   function handleRowContextMenu(event, index) {
     // klik kanan di link: menu bawaan browser (buka di tab baru, salin link)
     if (isInteractiveTarget(event.target)) return;
     event.preventDefault();
-    activate(index, true, false);
+    activate(index);
     const cellEl = event.target.closest("td");
     openMenu({ rowIndex: index, columnKey: cellEl ? cellEl.dataset.column : null, x: event.clientX, y: event.clientY });
   }
 
   function setRowElement(index) {
-    const setActiveRowRef = setRowRef(index);
     return (element) => {
       rowElList.current[index] = element;
-      setActiveRowRef(element);
     };
   }
 
@@ -261,8 +239,7 @@ export default function EntryTable({ initialPayload }) {
               type="button"
               className="btn btn-sm btn-ghost-danger alv-delete"
               disabled={selectedIdSet.size === 0}
-              data-fkey="Shift+F2"
-              title="Delete the selected links (Shift+F2)"
+              title="Delete the selected links"
               onClick={handleBulkDelete}
             >
               <Icon name="trash" /> Delete selected{selectedIdSet.size ? ` (${selectedIdSet.size})` : ""}
@@ -306,18 +283,15 @@ export default function EntryTable({ initialPayload }) {
                 onToggleAll: toggleAllSelection,
               } : null}
             />
-            <tbody aria-label="Data rows, use the up/down arrows">
+            <tbody>
               {payload.rows.map((row, index) => (
                 <tr
                   key={row.id}
                   ref={setRowElement(index)}
                   data-row-url={row.detail_url}
                   className={index === activeIndex ? "is-active" : undefined}
-                  tabIndex={getTabIndex(index)}
                   onClick={(event) => handleRowClick(event, index)}
-                  onFocus={(event) => { if (event.target === event.currentTarget) activate(index, false); }}
                   onDoubleClick={(event) => { if (!isInteractiveTarget(event.target)) openRow(row); }}
-                  onKeyDown={(event) => handleRowKeyDown(event, index)}
                   onContextMenu={(event) => handleRowContextMenu(event, index)}
                 >
                   {isBulkDelete && (

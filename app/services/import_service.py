@@ -3,6 +3,7 @@
 Tiap baris dicek pake aturan yg sama persis kayak form Add Link (prepare_entry_data); duplikat ke database dicek
 sekaligus semua baris (find_duplicate_entry_dict, aturannya sama kayak find_duplicate_entry).
 Duplikat antar baris di file yg sama dicek di sini (belum ada di database). Link hasil import milik yg upload.
+Opsi "Create categories": jalur kategori yg belum ada dibikin jadi kategori pribadi user di transaksi yg sama.
 """
 import io
 from collections import namedtuple
@@ -10,7 +11,8 @@ from collections import namedtuple
 from openpyxl import load_workbook
 
 from app.extensions import db
-from app.models import AccessEntry
+from app.models import AccessEntry, Category
+from app.security.access_policy import is_admin
 from app.security.file_validator import detect_content_type
 from app.services.access_entry_service import (
     AUDIT_ENTITY_TYPE,
@@ -21,7 +23,14 @@ from app.services.access_entry_service import (
     prepare_entry_data,
 )
 from app.services.audit_service import log_audit
-from app.services.category_service import build_category_label, list_usable_category
+from app.services.category_service import (
+    AUDIT_CATEGORY,
+    build_category_audit_dict,
+    build_category_label,
+    clear_request_category_cache,
+    list_usable_category,
+    validate_category_data,
+)
 from app.utils.constants import (
     ATTACHMENT_MAX_SIZE_BYTES,
     AUDIT_ACTION_CREATE,
@@ -30,6 +39,8 @@ from app.utils.constants import (
     CATEGORY_SPECIFIC_FIELD_LIST,
     CREDENTIAL_FIELD_LIST,
     IMPORT_MAX_ROW_COUNT,
+    MAX_CATEGORY_DEPTH,
+    MAX_CATEGORY_NAME_LENGTH,
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
 )
@@ -40,14 +51,15 @@ from app.utils.exceptions import ValidationError, build_error
 ImportColumn = namedtuple("ImportColumn", ["header", "key", "is_required", "width", "guide", "example"])
 IMPORT_COLUMN_LIST = [
     ImportColumn("Title", "title", True, 30, "Name of the link (max 150 characters).", "HR Portal"),
-    ImportColumn("Category", "category", True, 26, "Pick from the dropdown. The Categories sheet shows which fields each one uses.", "Web > SAP"),
+    ImportColumn("Category", "category", True, 26, "Pick from the dropdown (the Categories sheet shows which fields each one uses), "
+                 "or type a new path and tick \"Create categories that don't exist yet\" when importing.", "Web > SAP"),
     ImportColumn("URL", "url", False, 36, "Starts with http:// or https://. Required for Web.", "https://hr.spindo.com"),
     ImportColumn("Address", "address", False, 20, "IP address or host name. Required for Network.", "10.0.0.1"),
     ImportColumn("Port", "port", False, 9, "Number from 1 to 65535.", "22"),
     ImportColumn("Username", "username", False, 20, "Login username (not used by General).", "hr.admin"),
     ImportColumn("Access Note", "access_note", False, 26, "Access hint, not a password (not used by General).", "Login via SSO"),
     ImportColumn("Description", "description", False, 40, "Short note about the link.", "Payroll & leave portal"),
-    ImportColumn("Visibility", "visibility", False, 12, "Private (only you) or Public (all users, read-only). Empty = Private. Only admins can import Public links; others are saved as Private.", "Private"),
+    ImportColumn("Visibility", "visibility", False, 12, "Private (only you) or Public (all users, read-only). Empty = Private.", "Private"),
 ]
 REQUIRED_HEADER_LIST = [column.key for column in IMPORT_COLUMN_LIST if column.is_required]
 # kop template makan beberapa baris di atas header, jadi header dicari di sekian baris pertama
@@ -55,17 +67,27 @@ HEADER_SEARCH_ROW_COUNT = 10
 VISIBILITY_BY_TEXT_DICT = {"": VISIBILITY_PRIVATE, "private": VISIBILITY_PRIVATE, "public": VISIBILITY_PUBLIC}
 # error yg ditampilin dibatesin biar halaman ga kepanjangan; sisanya cukup disebut jumlahnya
 MAX_SHOWN_ERROR_COUNT = 50
+CREATE_CATEGORY_HINT = 'tick "Create categories that don\'t exist yet" to create it'
+
+
+def list_import_column(user):
+    """Kolom template buat user ini. Non-admin selalu Private, jadi kolom Visibility cuma ada di template admin."""
+    return IMPORT_COLUMN_LIST if is_admin(user) else [column for column in IMPORT_COLUMN_LIST if column.key != "visibility"]
+
+
+def split_category_path(text):
+    """'Web > SAP', 'Web › SAP ' -> ['Web', 'SAP'] (huruf asli, bagian kosong dibuang)."""
+    return [part.strip() for part in text.replace("›", ">").split(">") if part.strip()]
 
 
 def normalize_category_path(text):
     """'Web > SAP', 'web › sap ' -> 'web › sap' (huruf kecil, pemisah disamain) buat dicocokin ke jalur kategori."""
-    part_list = [part.strip() for part in text.replace("›", ">").split(">")]
-    return CATEGORY_PATH_SEPARATOR.join(part for part in part_list if part).lower()
+    return CATEGORY_PATH_SEPARATOR.join(split_category_path(text)).lower()
 
 
-def build_category_dict():
-    """Jalur kategori aktif (huruf kecil) -> Category, misal 'web › sap' -> SAP."""
-    return {normalize_category_path(build_category_label(category)): category for category in list_usable_category()}
+def build_category_dict(user):
+    """Jalur kategori aktif milik user (huruf kecil) -> Category, misal 'web › sap' -> SAP."""
+    return {normalize_category_path(build_category_label(category)): category for category in list_usable_category(user)}
 
 
 def normalize_header(value):
@@ -130,12 +152,58 @@ def read_import_row_list(file_storage):
     return row_list
 
 
-def build_row_data(row_dict, category_dict):
+def create_import_category(user, name, parent, depth):
+    """Satu kategori pribadi baru (aturan sama kayak menu Categories), di-flush biar id-nya kepake baris link.
+    Belum di-commit: kalau ada baris salah, import_entries rollback dan kategorinya ikut batal."""
+    if depth > MAX_CATEGORY_DEPTH:
+        raise ValidationError([build_error("category", f"Categories can be at most {MAX_CATEGORY_DEPTH} levels deep")])
+    # dicek sebelum validate_category_data: sanitize_text di sana motong nama kepanjangan diem-diem
+    if len(name) > MAX_CATEGORY_NAME_LENGTH:
+        raise ValidationError([build_error("category", f"Category names can be at most {MAX_CATEGORY_NAME_LENGTH} characters")])
+    clean_dict = validate_category_data({"name": name}, parent=parent, owner_id=user.id)
+    category = Category(**clean_dict, parent_id=parent.id if parent else None, user_id=user.id, is_active=True)
+    db.session.add(category)
+    db.session.flush()
+    log_audit(AUDIT_ACTION_CREATE, AUDIT_CATEGORY, entity_id=category.id, new_data_dict=build_category_audit_dict(category), user=user)
+    return category
+
+
+def create_missing_category(user, row_list, category_dict):
+    """Bikin tiap tingkat jalur kategori yg belum ada (misal 'Proyek X > Server' -> Proyek X, lalu Server di bawahnya),
+    category_dict ikut diisi. Return (label kategori baru, {nomor baris: [error]})."""
+    new_label_list, error_by_row_dict, failed_dict = [], {}, {}
+    for row_number, row_dict in row_list:
+        part_list = split_category_path(row_dict.get("category", ""))
+        parent = None
+        for depth in range(1, len(part_list) + 1):
+            path_text = CATEGORY_PATH_SEPARATOR.join(part_list[:depth])
+            key = path_text.lower()
+            if key in category_dict:
+                parent = category_dict[key]
+                continue
+            if key not in failed_dict:
+                try:
+                    category = create_import_category(user, part_list[depth - 1], parent, depth)
+                except ValidationError as error:
+                    failed_dict[key] = f'Can\'t create category "{path_text}": {error.error_list[0]["message"]}'
+                else:
+                    category_dict[key] = parent = category
+                    new_label_list.append(path_text)
+                    continue
+            error_by_row_dict[row_number] = [failed_dict[key]]
+            break
+    if new_label_list:
+        clear_request_category_cache()
+    return new_label_list, error_by_row_dict
+
+
+def build_row_data(row_dict, category_dict, is_create_category=False):
     """Isi satu baris jadi data form link + daftar error yg ketauan sebelum dicek aturan link."""
     error_list = []
     category = category_dict.get(normalize_category_path(row_dict.get("category", "")))
     if category is None:
-        error_list.append(f'Unknown or inactive category "{row_dict.get("category", "")}" (see the Categories sheet)')
+        hint = "" if is_create_category else f", or {CREATE_CATEGORY_HINT}"
+        error_list.append(f'Unknown or inactive category "{row_dict.get("category", "")}" (see the Categories sheet{hint})')
     else:
         error_list.extend(find_unused_column_error_list(row_dict, category))
     visibility = VISIBILITY_BY_TEXT_DICT.get(row_dict.get("visibility", "").lower())
@@ -175,17 +243,26 @@ def find_duplicate_in_file(clean_dict, seen_dict, row_number):
     return None
 
 
-def import_entries(user, file_storage):
-    """Import semua baris. Ada 1 baris salah -> ga ada yg disimpen, ValidationError isinya error per baris.
-    Semua bener -> disimpen dalam 1 transaksi + dicatat (per link & 1 catatan import). Return jumlah link."""
+def import_entries(user, file_storage, is_create_category=False):
+    """Import semua baris. Ada 1 baris salah -> ga ada yg disimpen (kategori baru juga), ValidationError isinya
+    error per baris. Semua bener -> disimpen dalam 1 transaksi + dicatat (per link & 1 catatan import).
+    Return (jumlah link, label kategori baru)."""
     row_list = read_import_row_list(file_storage)
-    category_dict = build_category_dict()
+    if not is_admin(user):
+        # non-admin selalu Private: kolom Visibility (file template admin / lama) diabaikan
+        for _, row_dict in row_list:
+            row_dict.pop("visibility", None)
+    category_dict = build_category_dict(user)
+    new_category_label_list, error_by_row_dict = [], {}
+    if is_create_category:
+        new_category_label_list, error_by_row_dict = create_missing_category(user, row_list, category_dict)
     # (nomor baris, clean_dict, field tambahan) yg lolos validasi per baris
     prepared_list = []
-    error_by_row_dict = {}
     seen_dict = {}
     for row_number, row_dict in row_list:
-        data_dict, row_error_list = build_row_data(row_dict, category_dict)
+        if row_number in error_by_row_dict:
+            continue
+        data_dict, row_error_list = build_row_data(row_dict, category_dict, is_create_category)
         if not row_error_list:
             try:
                 # duplikat ke database dicek sekaligus di bawah (1 query, bukan 1 query per baris)
@@ -205,6 +282,9 @@ def import_entries(user, file_storage):
         error_by_row_dict[prepared_list[index][0]] = [message]
 
     if error_by_row_dict:
+        # kategori yg udah di-flush ikut dibatalin
+        db.session.rollback()
+        clear_request_category_cache()
         error_text_list = [f"Row {row_number}: {message}"
                            for row_number in sorted(error_by_row_dict) for message in error_by_row_dict[row_number]]
         shown_list = error_text_list[:MAX_SHOWN_ERROR_COUNT]
@@ -224,10 +304,13 @@ def import_entries(user, file_storage):
         db.session.flush()
         for entry in entry_list:
             log_audit(AUDIT_ACTION_CREATE, AUDIT_ENTITY_TYPE, entity_id=entry.id, new_data_dict=build_entry_audit_dict(entry), user=user)
-        log_audit(AUDIT_ACTION_IMPORT, AUDIT_ENTITY_TYPE, user=user,
-                  new_data_dict={"row_count": len(entry_list), "filename": (file_storage.filename or "")[:255]})
+        import_log_dict = {"row_count": len(entry_list), "filename": (file_storage.filename or "")[:255]}
+        if new_category_label_list:
+            import_log_dict["new_category_list"] = new_category_label_list
+        log_audit(AUDIT_ACTION_IMPORT, AUDIT_ENTITY_TYPE, user=user, new_data_dict=import_log_dict)
         db.session.commit()
     except Exception:
         db.session.rollback()
+        clear_request_category_cache()
         raise
-    return len(entry_list)
+    return len(entry_list), new_category_label_list

@@ -32,7 +32,8 @@ def test_panel_cannot_touch_admin_account(app, admin_user, registered_user):
     assert other_admin.is_active is True
 
 def test_user_entry_sees_admin_menu_locked(app, admin_user, registered_user):
-    """Positive & negative (RBAC): Categories, Audit Logs, Users cuma kebuka buat admin; user biasa liat menunya dikunci."""
+    """Positive & negative (RBAC): Audit Logs, Users cuma kebuka buat admin; user biasa liat menunya dikunci.
+    Categories kebuka buat semua user."""
     with app.test_request_context("/"):
         user_label_list = get_nav_label_list(registered_user)
         admin_label_list = get_nav_label_list(admin_user)
@@ -40,15 +41,17 @@ def test_user_entry_sees_admin_menu_locked(app, admin_user, registered_user):
             item for section in build_sidebar_section_list(registered_user, "main.home")
             for item in section["item_list"] if item.get("is_locked")
         ]
-    for label in ("Categories", "Audit Logs", "Users"):
+    for label in ("Audit Logs", "Users"):
         assert label not in user_label_list
         assert label in admin_label_list
+    assert "Categories" in user_label_list
     assert {item["lock_reason"] for item in locked_item_list} == {"Admins only"}
 
 def test_user_entry_cannot_open_admin_page(logged_in_client):
-    """Negative (RBAC): user biasa 403 di Categories, Audit Logs, Users."""
-    for url in ("/categories/", "/audit-logs/", "/users/"):
+    """Negative (RBAC): user biasa 403 di Audit Logs, Users (Categories kebuka buat semua user)."""
+    for url in ("/audit-logs/", "/users/"):
         assert logged_in_client.get(url).status_code == 403
+    assert logged_in_client.get("/categories/").status_code == 200
 
 def test_admin_can_open_admin_page(admin_client):
     """Positive: admin bisa buka Categories, Audit Logs, Users."""

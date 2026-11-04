@@ -1,4 +1,4 @@
-// menu klik kanan di baris tabel (juga lewat Shift+F10 / tombol Menu di keyboard):
+// menu klik kanan di baris tabel:
 // Buka, Salin <kolom yg diklik>, Salin baris. Panah atas/bawah pindah pilihan, Esc/Tab nutup.
 import { useEffect, useLayoutEffect, useRef } from "react";
 

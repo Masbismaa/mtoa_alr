@@ -8,15 +8,15 @@ Butuh: Node.js 24, Google Chrome, venv Python project. Tiap skenario nyalain ser
 (port 5077, database SQLite sementara, CSRF nyala), jadi server ALR biasa ga perlu & ga kesentuh.
 
 ```powershell
-node scripts/e2e/table.mjs     # tabel link React: urut, filter, halaman, Back, keyboard, klik kanan, layout, sesi habis
-node scripts/e2e/auth.mjs      # daftar + verifikasi email, orang lain daftar email yg sama, login, kunci akun 3x salah password
+node scripts/e2e/table.mjs     # tabel link React: urut, filter, halaman, Back, baris aktif, klik kanan, layout, sesi habis
+node scripts/e2e/auth.mjs      # admin bikin akun + link aktivasi (link lama mati, sekali pakai), login, kunci akun 3x salah password
 node scripts/e2e/group.mjs     # detail group: link per halaman
 node scripts/e2e/monitor.mjs   # Link Monitoring + worker: peringatan, progres otomatis, selesai
 node scripts/e2e/layout.mjs    # tabel versi lama (Users): simpan layout diantrekan & pas pindah halaman
 node scripts/e2e/category.mjs  # form link: kategori dipilih bertingkat, boleh berhenti di tingkat mana aja
 node scripts/e2e/editor.mjs    # editor teks ala Word di field tambahan: gaya, font, warna, rata, list bertingkat, lolos sanitizer
 node scripts/e2e/account.mjs   # lupa & ganti password, edit profil, Show password, favorit, import
-node scripts/e2e/sap.mjs       # admin hapus banyak (centang), tombol fungsi F3/F8/Ctrl+S/Shift+F2, variant, status bar
+node scripts/e2e/sap.mjs       # admin hapus banyak (centang), tombol toolbar, shortcut keyboard udah ga ada, variant, status bar
 ```
 
 Tiap baris hasil `PASS`/`FAIL`, baris terakhir ngecek console browser bersih (ga ada error/peringatan/CSP).

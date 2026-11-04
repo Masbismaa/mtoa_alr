@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
 from app.models import Category, User, UserPreference
-from app.utils.constants import DEFAULT_ACCENT_COLOR, ROLE_USER_ENTRY, THEME_MODE_LIGHT
+from app.utils.constants import ROLE_USER_ENTRY, THEME_MODE_LIGHT
 
 
 def build_user(email="user.test@spindo.com", role=None):

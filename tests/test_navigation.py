@@ -8,14 +8,16 @@ def get_title_list(section_list):
 
 
 def test_admin_section_locked_for_user(app, registered_user, admin_user):
-    """Positive & negative (RBAC): bagian Kelola tampil buat semua, tapi buat user biasa menunya dikunci."""
+    """Positive & negative (RBAC): bagian Kelola tampil buat semua, buat user biasa menunya dikunci kecuali Categories
+    (tiap akun ngelola kategorinya sendiri)."""
     with app.test_request_context("/"):
         user_section_list = build_sidebar_section_list(registered_user, "main.home")
         admin_section_list = build_sidebar_section_list(admin_user, "main.home")
     assert "Manage" in get_title_list(user_section_list)
     user_manage_item_list = next(section["item_list"] for section in user_section_list if section["title"] == "Manage")
     admin_manage_item_list = next(section["item_list"] for section in admin_section_list if section["title"] == "Manage")
-    assert all(item.get("is_locked") for item in user_manage_item_list)
+    assert all(item.get("is_locked") for item in user_manage_item_list if item["label"] != "Categories")
+    assert not next(item for item in user_manage_item_list if item["label"] == "Categories").get("is_locked")
     assert not any(item.get("is_locked") for item in admin_manage_item_list)
 
 

@@ -9,10 +9,7 @@ from app.models import SelectionVariant, User, UserPreference
 from app.schemas.table_schema import TABLE_COLUMN_DICT
 from app.services.audit_service import log_audit
 from app.utils.constants import (
-    ACCENT_KEY_BY_HEX_DICT,
     AUDIT_ACTION_UPDATE,
-    DEFAULT_ACCENT_KEY,
-    DEFAULT_ACCENT_COLOR,
     DEFAULT_FONT_FAMILY,
     THEME_MODE_LIGHT,
     FONT_FAMILY_KEY_LIST,
@@ -29,7 +26,7 @@ from app.utils.sanitizer import sanitize_text
 from app.utils.url_helper import get_safe_back_url
 
 # cuma field ini yg boleh diubah lewat API, sisanya ditolak
-PREFERENCE_FIELD_LIST = ["theme_mode", "accent_color", "is_compact_view", "font_family"]
+PREFERENCE_FIELD_LIST = ["theme_mode", "is_compact_view", "font_family"]
 
 def get_or_create_preference(user, for_write=False):
     """Render memakai default tanpa menulis DB; perubahan disimpan oleh transaksi pemanggil."""
@@ -40,8 +37,8 @@ def get_or_create_preference(user, for_write=False):
     else:
         preference = user.preference
     if preference is None:
-        preference = UserPreference(theme_mode=THEME_MODE_LIGHT, accent_color=DEFAULT_ACCENT_COLOR,
-                                    font_family=DEFAULT_FONT_FAMILY, is_compact_view=False, table_layout={})
+        preference = UserPreference(theme_mode=THEME_MODE_LIGHT, font_family=DEFAULT_FONT_FAMILY,
+                                    is_compact_view=False, table_layout={})
         if for_write:
             user.preference = preference
             db.session.flush()
@@ -50,12 +47,6 @@ def get_or_create_preference(user, for_write=False):
 def build_preference_dict(preference):
     """Preferensi dalam bentuk dict (dipake buat audit & response)."""
     return {field: getattr(preference, field) for field in PREFERENCE_FIELD_LIST}
-
-def build_ui_preference_dict(preference):
-    """Sama kayak build_preference_dict + accent_key buat CSS (data-accent)."""
-    ui_preference_dict = build_preference_dict(preference)
-    ui_preference_dict["accent_key"] = ACCENT_KEY_BY_HEX_DICT.get(preference.accent_color, DEFAULT_ACCENT_KEY)
-    return ui_preference_dict
 
 def validate_preference_data(data_dict):
     """Cek data dari user satu-satu. Return (clean_dict, error_list)."""
@@ -71,15 +62,12 @@ def validate_preference_data(data_dict):
             error_list.append({"field": str(key)[:50], "message": "Unknown field"})
         elif key == "theme_mode" and value not in THEME_MODE_LIST:
             error_list.append({"field": key, "message": "Display mode must be light or dark"})
-        elif key == "accent_color" and (not isinstance(value, str) or value.lower() not in ACCENT_KEY_BY_HEX_DICT):
-            error_list.append({"field": key, "message": "Accent color not available"})
         elif key == "is_compact_view" and not isinstance(value, bool):
             error_list.append({"field": key, "message": "Density must be true or false"})
         elif key == "font_family" and value not in FONT_FAMILY_KEY_LIST:
             error_list.append({"field": key, "message": "Font not available"})
         else:
-            # hex disimpen huruf kecil biar konsisten
-            clean_dict[key] = value.lower() if key == "accent_color" else value
+            clean_dict[key] = value
 
     return clean_dict, error_list
 

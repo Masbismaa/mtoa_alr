@@ -20,7 +20,7 @@ def test_dashboard_shows_topbar_profile(logged_in_client):
     assert 'data-pref-source="server"' in html_text
 
 def test_topbar_has_home_theme_toggle_and_user_menu(logged_in_client):
-    """Topbar ala SAP: link Home (logo), command field, menu profil di kanan atas. Tombol tema cuma di sidebar HP."""
+    """Topbar ala SAP: link Home (logo), tanpa kolom kode menu, menu profil di kanan atas. Tombol tema cuma di sidebar HP."""
     response = logged_in_client.get("/settings/")
     assert response.status_code == 200
     html_text = response.get_data(as_text=True)
@@ -32,16 +32,16 @@ def test_topbar_has_home_theme_toggle_and_user_menu(logged_in_client):
     assert topbar_match is not None, "Header dengan class app-topbar tidak ditemukan"
     topbar_html = topbar_match.group(1)
     assert 'href="/"' in topbar_html
-    assert "data-command-form" in topbar_html and "Log out" in topbar_html
+    assert "data-command-form" not in topbar_html and "Log out" in topbar_html
     assert "user-menu" in topbar_html and "data-theme-toggle" not in topbar_html
 
 def test_user_entry_sees_locked_admin_menu(logged_in_client):
-    """Negative (RBAC): user biasa liat menu Categories & Audit Logs dgn gembok, tapi ga ada link-nya."""
+    """Negative (RBAC): user biasa liat menu Audit Logs dgn gembok tanpa link, Categories kebuka buat semua user."""
     html_text = logged_in_client.get("/").get_data(as_text=True)
     assert "Settings" in html_text
     assert "Groups" in html_text
     assert "Audit Logs" in html_text and 'href="/audit-logs/"' not in html_text
-    assert "Categories" in html_text and 'href="/categories/"' not in html_text
+    assert 'href="/categories/"' in html_text
 
 def test_admin_sees_admin_menu(client, user_password, fixed_otp_code):
     """Positive (RBAC): admin liat menu Categories & Audit Logs."""
@@ -79,7 +79,6 @@ def test_user_entry_dashboard_has_no_extra_access(logged_in_client):
     assert 'data-access-level="standard"' in html_text and "User Entry" in html_text
     assert "User with access" not in html_text and "Your Access" not in html_text
     assert "System Overview" not in html_text and "Admin To-Do" not in html_text
-    assert logged_in_client.get("/categories/").status_code == 403
     assert logged_in_client.get("/users/").status_code == 403
 
 
@@ -108,10 +107,11 @@ def test_update_preference_via_api(logged_in_client):
 
 def test_saved_theme_applied_to_html(logged_in_client):
     """Positive: tema yg disimpen langsung kepasang di <html> pas halaman dibuka."""
-    logged_in_client.post("/settings/preferences", json={"theme_mode": "dark", "accent_color": "#ff6b9d"})
+    logged_in_client.post("/settings/preferences", json={"theme_mode": "dark"})
     html_text = logged_in_client.get("/").get_data(as_text=True)
     assert 'data-theme="dark"' in html_text
-    assert 'data-accent="pink"' in html_text
+    assert "data-accent" not in html_text and "Accent color" not in html_text
+
 
 def test_update_preference_invalid_value_returns_400(logged_in_client):
     """Negative: nilai ngasal ditolak + dikasih tau field mana yg salah."""

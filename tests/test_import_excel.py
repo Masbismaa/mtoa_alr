@@ -8,6 +8,7 @@ from app.models import AccessEntry, AuditLog, Category
 from app.security.encryption_service import decrypt_credential
 from app.services import import_service
 from app.services.access_entry_service import create_access_entry
+from app.services.category_service import build_category_label
 from app.utils.constants import AUDIT_ACTION_CREATE, AUDIT_ACTION_IMPORT
 from tests.conftest import build_office_zip_bytes
 from tests.test_entry_routes import build_service_dict
@@ -26,9 +27,11 @@ def build_xlsx(row_list, header_list=HEADER_LIST):
     return buffer.getvalue()
 
 
-def post_import(client, content_bytes, filename="links.xlsx"):
-    return client.post("/entries/import", data={"import_file": (io.BytesIO(content_bytes), filename)},
-                       content_type="multipart/form-data")
+def post_import(client, content_bytes, filename="links.xlsx", is_create_category=False):
+    data = {"import_file": (io.BytesIO(content_bytes), filename)}
+    if is_create_category:
+        data["create_category"] = "1"
+    return client.post("/entries/import", data=data, content_type="multipart/form-data")
 
 
 def count_entry():
@@ -42,9 +45,9 @@ def web_row(title, url, **override):
     return [row[header] for header in HEADER_LIST]
 
 
-def test_template_download_has_columns_and_categories(logged_in_client, category_dict):
+def test_template_download_has_columns_and_categories(logged_in_client, registered_user, category_dict):
     """Positive: template berisi judul kolom yg dipake import + daftar kategori aktif."""
-    sap = Category(parent_id=category_dict["Web"].id, name="SAP", is_active=True)
+    sap = Category(parent_id=category_dict["Web"].id, user_id=registered_user.id, name="SAP", is_active=True)
     db.session.add(sap)
     db.session.commit()
     response = logged_in_client.get("/entries/import/template")
@@ -52,22 +55,32 @@ def test_template_download_has_columns_and_categories(logged_in_client, category
     workbook = load_workbook(io.BytesIO(response.data))
     assert workbook.sheetnames == ["Links", "Guide", "Categories"]
     header_list = [cell.value for cell in workbook["Links"][5]]
-    assert header_list == ["Title *", "Category *"] + HEADER_LIST[2:]
+    # user biasa selalu Private -> template-nya tanpa kolom Visibility
+    assert header_list == ["Title *", "Category *"] + HEADER_LIST[2:-1]
     category_list = [row[0] for row in workbook["Categories"].iter_rows(min_row=6, values_only=True)]
     assert "Web" in category_list and "Web › SAP" in category_list
     validation_range_list = [str(validation.sqref) for validation in workbook["Links"].data_validations.dataValidation]
-    assert "B6:B505" in validation_range_list and "I6:I505" in validation_range_list
+    assert "B6:B505" in validation_range_list and "I6:I505" not in validation_range_list
+    guide_text = " ".join(str(cell) for row in workbook["Guide"].iter_rows(values_only=True) for cell in row if cell)
+    assert "Every imported link is saved as Private" in guide_text
+
+
+def test_admin_template_has_visibility_column(admin_client, category_dict):
+    """Positive: template admin punya kolom Visibility + dropdown Private/Public."""
+    workbook = load_workbook(io.BytesIO(admin_client.get("/entries/import/template").data))
+    assert [cell.value for cell in workbook["Links"][5]][-1] == "Visibility"
+    validation_range_list = [str(validation.sqref) for validation in workbook["Links"].data_validations.dataValidation]
+    assert "I6:I505" in validation_range_list
 
 
 def test_filled_official_template_imports(logged_in_client, registered_user, category_dict):
-    """Positive: template resmi (header di bawah kop) diisi pake nilai dropdown -> ke-import.
-    Visibility Public dari user biasa disimpen Private (Public cuma admin)."""
-    sap = Category(parent_id=category_dict["Web"].id, name="SAP", is_active=True)
+    """Positive: template resmi (header di bawah kop) diisi pake nilai dropdown -> ke-import sebagai Private."""
+    sap = Category(parent_id=category_dict["Web"].id, user_id=registered_user.id, name="SAP", is_active=True)
     db.session.add(sap)
     db.session.commit()
     workbook = load_workbook(io.BytesIO(logged_in_client.get("/entries/import/template").data))
     sheet = workbook["Links"]
-    for column_index, value in enumerate(["SAP Prod", "Web › SAP", "https://sap.spindo.com", "", None, "", "", "", "Public"], start=1):
+    for column_index, value in enumerate(["SAP Prod", "Web › SAP", "https://sap.spindo.com", "", None, "", "", ""], start=1):
         sheet.cell(row=6, column=column_index, value=value)
     buffer = io.BytesIO()
     workbook.save(buffer)
@@ -86,7 +99,7 @@ def test_empty_official_template_has_nothing_to_import(logged_in_client, categor
 
 def test_import_creates_all_rows_with_encrypted_note(logged_in_client, registered_user, category_dict):
     """Positive: semua baris bener -> kesimpen semua (milik yg upload), password dienkripsi, kecatat audit."""
-    sap = Category(parent_id=category_dict["Web"].id, name="SAP", is_active=True)
+    sap = Category(parent_id=category_dict["Web"].id, user_id=registered_user.id, name="SAP", is_active=True)
     db.session.add(sap)
     db.session.commit()
     content = build_xlsx([
@@ -134,12 +147,12 @@ def test_duplicate_inside_file_and_against_database(logged_in_client, registered
     assert count_entry() == 1
 
 
-def test_unknown_category_and_bad_visibility(logged_in_client, category_dict):
-    """Negative: kategori ga dikenal / visibilitas aneh -> error jelas."""
+def test_unknown_category_and_bad_visibility(admin_client, category_dict):
+    """Negative: kategori ga dikenal / visibilitas aneh (template admin) -> error jelas."""
     content = build_xlsx([web_row("A", "https://a.spindo.com", Category="Ngasal"),
                           web_row("B", "https://b.spindo.com", Visibility="Rahasia")])
-    html_text = post_import(logged_in_client, content).get_data(as_text=True)
-    assert "Row 2: Unknown or inactive category" in html_text
+    html_text = post_import(admin_client, content).get_data(as_text=True)
+    assert "Row 2: Unknown or inactive category" in html_text and "tick &#34;Create categories" in html_text
     assert "Row 3: Visibility must be Public or Private" in html_text
 
 
@@ -225,3 +238,92 @@ def test_admin_import_keeps_public(admin_client, admin_user, category_dict):
     response = post_import(admin_client, build_xlsx([web_row("Portal Umum", "https://umum.spindo.com", Visibility="Public")]))
     assert response.status_code == 302
     assert db.session.execute(db.select(AccessEntry.visibility)).scalar_one() == "public"
+
+
+# KATEGORI BARU LEWAT IMPORT (centang "Create categories that don't exist yet")
+
+def list_category_path(user):
+    return sorted(build_category_label(category) for category in db.session.execute(
+        db.select(Category).where(Category.user_id == user.id)).scalars())
+
+
+def test_create_category_option_creates_missing_paths(logged_in_client, registered_user, category_dict):
+    """Positive: sub baru di kategori bawaan & kategori utama baru 2 tingkat dibikin sekali (walau dipake 2 baris),
+    jadi milik user, dicatat di audit, link-nya masuk ke kategori itu, pesan sukses nyebut kategori barunya."""
+    content = build_xlsx([
+        web_row("Absensi", "https://absensi.spindo.com", Category="Web > Absensi"),
+        web_row("Absensi 2", "https://absensi2.spindo.com", Category="web › absensi"),
+        web_row("Server Proyek", "", Category="Proyek X > Server", Address="10.9.9.9"),
+    ])
+    response = post_import(logged_in_client, content, is_create_category=True)
+    assert response.status_code == 302
+    assert list_category_path(registered_user) == ["Proyek X", "Proyek X › Server", "Web › Absensi"]
+    category_by_title = {entry.title: build_category_label(entry.category)
+                         for entry in db.session.execute(db.select(AccessEntry)).scalars()}
+    assert category_by_title == {"Absensi": "Web › Absensi", "Absensi 2": "Web › Absensi", "Server Proyek": "Proyek X › Server"}
+    category_log_count = db.session.execute(db.select(db.func.count(AuditLog.id)).where(
+        AuditLog.entity_type == "categories", AuditLog.action == AUDIT_ACTION_CREATE)).scalar()
+    assert category_log_count == 3
+    html_text = logged_in_client.get(response.location).get_data(as_text=True)
+    assert "3 links imported, 3 new categories: Web › Absensi, Proyek X, Proyek X › Server" in html_text
+
+
+def test_new_sub_category_keeps_main_category_rule(logged_in_client, registered_user, category_dict):
+    """Negative: sub baru di Web tetep wajib URL kayak Web -> ditolak, kategori barunya ikut batal."""
+    content = build_xlsx([web_row("Tanpa URL", "", Category="Web > Absensi")])
+    html_text = post_import(logged_in_client, content, is_create_category=True).get_data(as_text=True)
+    assert "Row 2: URL is required" in html_text
+    assert list_category_path(registered_user) == [] and count_entry() == 0
+
+
+def test_bad_row_rolls_back_new_categories(logged_in_client, registered_user, category_dict):
+    """Negative: 1 baris lain salah -> ga ada link & ga ada kategori baru yg kesimpen."""
+    content = build_xlsx([web_row("Absensi", "https://absensi.spindo.com", Category="Web > Absensi"),
+                          web_row("Rusak", "")])
+    html_text = post_import(logged_in_client, content, is_create_category=True).get_data(as_text=True)
+    assert "Nothing was imported" in html_text and "Row 3: URL is required" in html_text
+    assert list_category_path(registered_user) == [] and count_entry() == 0
+    assert 'name="create_category" value="1" checked' in html_text
+
+
+def test_option_off_never_creates_category(logged_in_client, registered_user, category_dict):
+    """Negative: ga dicentang -> kategori baru ga dibikin, baris ditolak (typo ga jadi kategori sampah)."""
+    content = build_xlsx([web_row("Absensi", "https://absensi.spindo.com", Category="Web > Absnsi")])
+    html_text = post_import(logged_in_client, content).get_data(as_text=True)
+    assert "Unknown or inactive category &#34;Web &gt; Absnsi&#34;" in html_text
+    assert list_category_path(registered_user) == [] and count_entry() == 0
+
+
+def test_create_category_follows_category_rules(logged_in_client, registered_user, category_dict):
+    """Negative: aturan sama kayak menu Categories: kedalaman maks. 4, nama 2-50 huruf, nama kembar sama kategori
+    nonaktif ditolak per baris."""
+    db.session.add(Category(name="Printer", user_id=registered_user.id, is_active=False))
+    db.session.commit()
+    content = build_xlsx([
+        web_row("Dalam", "https://dalam.spindo.com", Category="Web > A1 > B2 > C3 > D4"),
+        web_row("Pendek", "https://pendek.spindo.com", Category="Web > X"),
+        web_row("Panjang", "https://panjang.spindo.com", Category="Web > " + "N" * 51),
+        web_row("Printer", "https://printer.spindo.com", Category="Printer > Lantai 2"),
+    ])
+    html_text = post_import(logged_in_client, content, is_create_category=True).get_data(as_text=True)
+    assert "Row 2: Can&#39;t create category &#34;Web › A1 › B2 › C3 › D4&#34;: Categories can be at most 4 levels deep" in html_text
+    assert "Row 3: Can&#39;t create category &#34;Web › X&#34;: Category name must be at least 2 characters" in html_text
+    assert "Row 4: Can&#39;t create category" in html_text and "at most 50 characters" in html_text
+    assert "Row 5: Can&#39;t create category &#34;Printer&#34;: Category &#34;Printer&#34; already exists at this level" in html_text
+    assert list_category_path(registered_user) == ["Printer"] and count_entry() == 0
+
+
+def test_template_category_dropdown_only_warns(logged_in_client, category_dict):
+    """Positive: dropdown Category di template cuma peringatan, jadi jalur kategori baru tetep bisa diketik."""
+    workbook = load_workbook(io.BytesIO(logged_in_client.get("/entries/import/template").data))
+    category_validation = next(validation for validation in workbook["Links"].data_validations.dataValidation
+                               if str(validation.sqref).startswith("B"))
+    assert category_validation.errorStyle == "warning"
+
+
+def test_non_admin_visibility_column_is_ignored(logged_in_client, category_dict):
+    """Positive: user biasa pake file dgn kolom Visibility (template admin / lama) -> isinya diabaikan, tetap Private."""
+    content = build_xlsx([web_row("A", "https://a.spindo.com", Visibility="Public"),
+                          web_row("B", "https://b.spindo.com", Visibility="Ngasal")])
+    assert post_import(logged_in_client, content).status_code == 302
+    assert set(db.session.execute(db.select(AccessEntry.visibility)).scalars()) == {"private"}

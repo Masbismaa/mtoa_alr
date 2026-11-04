@@ -1,9 +1,8 @@
 {% from "components/icon.html" import icon %}
-{# panel "atur tampilan". Default = pilihan pertama di tiap daftar (biru & font sistem) #}
-{% set default_accent = accent_color_option_list | first %}
+{# panel "atur tampilan". Default font = pilihan pertama (font sistem) #}
 {% set default_font = font_family_option_list | first %}
 <div class="offcanvas offcanvas-start customizer" tabindex="-1" id="theme_customizer" aria-labelledby="customizer_title" data-customizer
-     data-default-theme="light" data-default-accent-key="{{ default_accent.key }}" data-default-font="{{ default_font.key }}">
+     data-default-theme="light" data-default-font="{{ default_font.key }}">
   <div class="offcanvas-header pb-0">
     <button type="button" class="btn-close ms-auto" data-bs-dismiss="offcanvas" aria-label="Close appearance settings"></button>
   </div>
@@ -12,7 +11,7 @@
     <div class="text-center customizer-intro">
       <span class="avatar avatar-xl bg-primary-lt mb-3">{{ icon("palette") }}</span>
       <h2 class="h3 mb-1" id="customizer_title">Customize the appearance</h2>
-      <p class="text-secondary mb-0">Pick the mode, colors, font, and density. Click <strong>Save</strong> to store them in your account.</p>
+      <p class="text-secondary mb-0">Pick the mode, font, and density. Click <strong>Save</strong> to store them in your account.</p>
     </div>
 
     <hr>
@@ -34,16 +33,6 @@
               <span class="option-card-label">{{ mode_label }}</span>
             </button>
           </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <div class="mb-4">
-      <div class="fw-medium">Accent color</div>
-      <div class="small text-secondary mb-2">Used for buttons, links, and the active menu.</div>
-      <div class="d-flex flex-wrap gap-2" role="radiogroup" aria-label="Accent color">
-        {% for option in accent_color_option_list %}
-          <button type="button" class="accent-swatch accent-swatch-{{ option.key }}" role="radio" aria-checked="false" aria-label="{{ option.label }}" title="{{ option.label }}" data-pref-option data-pref-key="accent_color" data-pref-value="{{ option.hex }}" data-accent-key="{{ option.key }}"></button>
         {% endfor %}
       </div>
     </div>

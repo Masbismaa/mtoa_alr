@@ -1,4 +1,4 @@
-"""Enkripsi & dekripsi kredensial (password/access note) pake Fernet."""
+"""Enkripsi & dekripsi access note pake Fernet."""
 
 from functools import lru_cache
 

@@ -1,5 +1,6 @@
 """Test layar ala SAP: judul layar Display/Create/Change (Data Link = Access Link), kepala halaman di-remark,
 Daftar Link baru nampilin tabel abis Jalankan, filter per kolom di tabel."""
+import html
 import re
 import pytest
 from tests.conftest import create_entry_as_is
@@ -120,28 +121,31 @@ def test_page_info_still_shown(logged_in_client, registered_user, category_dict)
     assert "Web" in page_info_html and "Private" in page_info_html
 
 
-# MENU BAR & COMMAND FIELD
-def get_transaction_code_list(html_text):
-    """Helper: kode transaksi di pilihan command field."""
-    datalist_html = html_text.split('<datalist id="transaction_list">')[1].split("</datalist>")[0]
-    return re.findall(r'<option value="([A-Z]+)">', datalist_html)
+# MENU BAR
+def get_menu_label_list(html_text):
+    """Helper: isi dropdown Menu di menu bar."""
+    menu_html = html_text.split('aria-expanded="false">Menu</button>')[1].split('<div class="dropdown-divider">')[0]
+    return [html.unescape(label) for label in re.findall(r'class="dropdown-item">([^<]+)</a>', menu_html)]
 
-def test_command_field_lists_only_allowed_transactions(logged_in_client):
-    """Positive + security: user biasa dapet kode menu biasa, kode menu khusus admin ga ikut."""
-    code_list = get_transaction_code_list(get_html(logged_in_client, "/"))
-    assert {"DB", "LL", "LA", "GR", "ST"} <= set(code_list)
-    assert not {"US", "LM", "BK", "CA", "AL"} & set(code_list)
+def test_menu_lists_only_allowed_menu_without_code(logged_in_client):
+    """Positive + security: user biasa dapet menu biasa, menu khusus admin ga ikut; kolom kode menu udah ga ada."""
+    html_text = get_html(logged_in_client, "/")
+    label_list = get_menu_label_list(html_text)
+    assert {"Dashboard", "Link List", "Add Link", "Groups", "Categories", "Settings"} <= set(label_list)
+    assert not {"Users", "Link Monitoring", "Backup & Restore", "Audit Logs"} & set(label_list)
+    assert "data-command-input" not in html_text and "Menu code" not in html_text
 
-def test_command_field_admin_gets_admin_transactions(admin_client):
-    """Positive: admin dapet kode menu kelola juga."""
-    assert {"US", "LM", "BK", "CA", "AL"} <= set(get_transaction_code_list(get_html(admin_client, "/")))
+def test_menu_admin_gets_admin_menu(admin_client):
+    """Positive: admin dapet menu kelola juga."""
+    assert {"Users", "Link Monitoring", "Backup & Restore", "Categories", "Audit Logs"} <= set(get_menu_label_list(get_html(admin_client, "/")))
 
 def test_menu_bar_and_system_toolbar_on_every_screen(logged_in_client):
-    """Positive: menu bar (huruf bergaris bawah) + toolbar sistem ada, tombol standarnya bawa shortcut yg sama."""
+    """Positive: menu bar + toolbar sistem ada (tanpa shortcut keyboard)."""
     html_text = get_html(logged_in_client, "/entries/new")
-    assert 'aria-label="Menu bar"' in html_text and 'accesskey="m"><u>M</u>enu</button>' in html_text
+    assert 'aria-label="Menu bar"' in html_text and 'aria-expanded="false">Menu</button>' in html_text
     system_html = html_text.split('aria-label="System toolbar"')[1].split("</header>")[0]
-    assert 'data-fkey="F12"' in system_html and 'data-fkey="Ctrl+S"' in system_html
+    assert 'title="Save changes" aria-label="Save"' in system_html and 'aria-label="Cancel"' in system_html
+    assert "data-fkey" not in system_html
 
 # EASY ACCESS (layar awal)
 def test_easy_access_tree_shows_favorites_and_allowed_transactions(logged_in_client, registered_user, other_user, category_dict):
@@ -161,18 +165,17 @@ def test_easy_access_tree_shows_favorites_and_allowed_transactions(logged_in_cli
     assert "Portal Orang" not in tree_html
     # lebar pohon paten: ga ada garis geser
     assert "data-easy-access-splitter" not in html_text
-    assert '<span class="ea-code">LL</span>' in tree_html and '<span class="ea-code">US</span>' not in tree_html
+    assert "<span>Link List</span>" in tree_html and "<span>Users</span>" not in tree_html and "ea-code" not in tree_html
 
 def test_easy_access_admin_tree_has_admin_transactions(admin_client):
     """Positive: admin dapet folder Manage lengkap di pohon."""
     tree_html = get_html(admin_client, "/").split('aria-label="ALR menu tree"')[1].split("</nav>")[0]
-    assert '<span class="ea-code">US</span>' in tree_html and '<span class="ea-code">AL</span>' in tree_html
+    assert "<span>Users</span>" in tree_html and "<span>Audit Logs</span>" in tree_html
 
 def test_dashboard_is_transaction_db(logged_in_client):
-    """Positive: Dashboard pindah ke /dashboard (kode DB), layar awal jadi Easy Access."""
+    """Positive: Dashboard pindah ke /dashboard, layar awal jadi Easy Access."""
     assert 'data-access-level="standard"' in get_html(logged_in_client, "/dashboard/")
     # alamat tanpa garis miring (diketik manual) dibelokin ke /dashboard/, bukan 404
     response = logged_in_client.get("/dashboard")
     assert response.status_code == 308 and response.headers["Location"].endswith("/dashboard/")
-    code_list = get_transaction_code_list(get_html(logged_in_client, "/"))
-    assert "DB" in code_list
+    assert "Dashboard" in get_menu_label_list(get_html(logged_in_client, "/"))

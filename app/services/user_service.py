@@ -1,12 +1,17 @@
-"""Logika kelola user (khusus admin): daftar, cari, filter, ganti role, aktif/nonaktif, buka kunci, hapus akun."""
+"""Logika kelola user (khusus admin): daftar, cari, filter, link aktivasi, ganti role, aktif/nonaktif, buka kunci, hapus akun."""
+import smtplib
+
+from flask import current_app, url_for
+
 from app.extensions import db
 from app.models import OtpCode, User
 from app.security import auth_throttle
 from app.services.access_entry_service import count_owned_entry, delete_private_entry_list
 from app.services.attachment_service import remove_stored_file_list
 from app.services.audit_service import log_audit
-from app.services.auth_service import is_account_locked
+from app.services.auth_service import is_account_locked, is_otp_cooldown_active, is_pending_activation, issue_activation_token
 from app.services.group_service import find_group_successor, list_owned_group, release_user_group_list
+from app.services.notification_service import send_activation_link
 from app.utils.constants import (
     AUDIT_ACTION_DELETE,
     AUDIT_ACTION_UPDATE,
@@ -14,12 +19,14 @@ from app.utils.constants import (
     DELETED_USER_NAME,
     DELETED_USER_PROFILE_TEXT,
     MAX_SEARCH_KEYWORD_LENGTH,
+    OTP_PURPOSE_ACTIVATION,
     ROLE_ADMIN,
     ROLE_LIST,
     UNUSABLE_PASSWORD_HASH,
     USER_STATUS_ACTIVE,
     USER_STATUS_INACTIVE,
     USER_STATUS_LOCKED,
+    USER_STATUS_PENDING,
     PER_PAGE,
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
@@ -35,7 +42,9 @@ from app.utils.text_helper import normalize_email
 AUDIT_USER = "users"
 
 def get_user_status(user):
-    """Status akun buat ditampilin: nonaktif > terkunci > aktif."""
+    """Status akun buat ditampilin: belum aktivasi > nonaktif > terkunci > aktif."""
+    if is_pending_activation(user):
+        return USER_STATUS_PENDING
     if not user.is_active:
         return USER_STATUS_INACTIVE
     if is_account_locked(user):
@@ -46,8 +55,11 @@ def build_status_condition(status):
     """Kondisi SQL buat filter status. Logikanya harus sama kayak get_user_status."""
     now = utc_now()
     is_locked_condition = db.and_(User.locked_until.is_not(None), User.locked_until > now)
+    is_pending_condition = User.password_hash == UNUSABLE_PASSWORD_HASH
+    if status == USER_STATUS_PENDING:
+        return is_pending_condition
     if status == USER_STATUS_INACTIVE:
-        return User.is_active.is_(False)
+        return db.and_(User.is_active.is_(False), db.not_(is_pending_condition))
     if status == USER_STATUS_LOCKED:
         return db.and_(User.is_active.is_(True), is_locked_condition)
     if status == USER_STATUS_ACTIVE:
@@ -105,7 +117,6 @@ def build_user_summary():
         "inactive": count_user(build_status_condition(USER_STATUS_INACTIVE)),
     }
 
-# ganti role aun
 def get_user(user_id):
     """Satu user, None kalau ga ada."""
     return db.session.get(User, user_id)
@@ -157,10 +168,33 @@ def change_user_role(actor, target, new_role):
     target.role = new_role
     return save_user_change(actor, target, old_data_dict)
 
+def ensure_activated(target):
+    """Akun yg belum aktivasi ga punya password, jadi ga bisa diaktifin manual (harus lewat link aktivasi)."""
+    if is_pending_activation(target):
+        raise ValidationError([build_error("user", "This account hasn't been activated yet; send the activation link instead")])
+
+def send_activation(actor, target):
+    """Kirim link aktivasi ke email akun yg masih Pending. Link lama langsung ga berlaku. actor ga dipake
+    (tanda tangannya disamain sama aksi admin lain buat run_user_action)."""
+    if not is_pending_activation(target):
+        raise ValidationError([build_error("user", "This account is already activated")])
+    if is_otp_cooldown_active(target.id, OTP_PURPOSE_ACTIVATION):
+        raise ValidationError([build_error("user", "Wait a moment before sending another activation link")])
+    token, activation = issue_activation_token(target)
+    try:
+        send_activation_link(target, url_for("auth.activate_account", token=token, _external=True))
+    except (OSError, smtplib.SMTPException, RuntimeError, ValueError):
+        activation.is_used = True
+        db.session.commit()
+        current_app.logger.error("Pengiriman link aktivasi gagal; periksa layanan SMTP")
+        raise ValidationError([build_error("user", "The activation email could not be sent. Try again later.")]) from None
+    return target
+
 def toggle_user_active(actor, target):
     """Aktif <-> nonaktif. User nonaktif langsung ke-logout di request berikutnya & ga bisa login."""
     ensure_not_self(actor, target, "You can't deactivate your own account")
     ensure_not_admin(target)
+    ensure_activated(target)
     old_data_dict = build_user_admin_audit_dict(target)
     target.is_active = not target.is_active
     db.session.execute(db.update(User).where(User.id == target.id)
@@ -197,7 +231,7 @@ def build_delete_preview(target):
     }
 
 def anonymize_user(target):
-    """Ganti data diri jadi anonim + kunci login. Email asli jadi bebas dipake daftar lagi."""
+    """Ganti data diri jadi anonim + kunci login. Email asli jadi bebas dipake akun baru lagi."""
     target.email = f"deleted-{target.id}@{DELETED_USER_EMAIL_DOMAIN}"
     target.full_name = DELETED_USER_NAME
     target.department = DELETED_USER_PROFILE_TEXT

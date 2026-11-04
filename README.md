@@ -12,7 +12,7 @@
 
 <p align="center">
   A secure internal web application for managing and sharing access information across an ICT team.<br>
-  Encrypted at rest, permission-aware, fully audited, and built for keyboard-driven workflows inspired by SAP GUI.
+  Encrypted at rest, permission-aware, fully audited, and built around a workflow inspired by SAP GUI.
 </p>
 
 <p align="center">
@@ -43,7 +43,7 @@ The application is designed around three principles:
 
 | Principle | Implementation |
 |---|---|
-| **Confidentiality** | Access notes are encrypted at rest, never embedded in page markup, and revealed only on explicit request |
+| **Confidentiality** | Access notes are encrypted at rest; passwords are never stored in links |
 | **Accountability** | Every change, sign-in, and export is recorded in an append-only audit log |
 | **Efficiency** | SAP GUI conventions (function keys, selection screens, variants, ALV tables) for users who work in ERP systems every day |
 
@@ -119,9 +119,9 @@ Select a group to expand it. Images adapt to the active GitHub theme.
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset=".github/assets/detail-dark.png">
-        <img src=".github/assets/detail-light.png" alt="Link Detail: Masked access note, availability status, and change history" width="100%">
+        <img src=".github/assets/detail-light.png" alt="Link Detail: Access note, availability status, and change history" width="100%">
       </picture>
-      <p align="center"><b>Link Detail</b><br><sub>Masked access note, availability status, and change history</sub></p>
+      <p align="center"><b>Link Detail</b><br><sub>Access note, availability status, and change history</sub></p>
     </td>
   </tr>
   <tr>
@@ -206,9 +206,9 @@ Select a group to expand it. Images adapt to the active GitHub theme.
     <td width="50%" valign="top">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset=".github/assets/help-dark.png">
-        <img src=".github/assets/help-light.png" alt="Help (F1): Context help and the complete keyboard reference" width="100%">
+        <img src=".github/assets/help-light.png" alt="Help: Context help and the toolbar buttons" width="100%">
       </picture>
-      <p align="center"><b>Help (F1)</b><br><sub>Context help and the complete keyboard reference</sub></p>
+      <p align="center"><b>Help</b><br><sub>Context help and the toolbar buttons</sub></p>
     </td>
   </tr>
 </table>
@@ -229,7 +229,7 @@ Expand a module to view its capabilities.
 | Record types | URL, host or IP address with port, or a structured guide with up to ten custom fields written in a Word-style rich text editor (sanitized and not encrypted, so never meant for passwords) |
 | Categorization | Hierarchical categories up to four levels deep (for example, Web › ERP), selected through cascading inputs |
 | Visibility | Private (owner only) or Public (all users, read-only); only administrators can create Public links, so links from other users, including imported ones, are saved as Private |
-| Access note | A short access hint (for example, sign in via SSO), not a password; encrypted in the database and masked until a user explicitly reveals it |
+| Access note | A short access hint (for example, sign in via SSO), not a password; encrypted in the database and shown as is on the link detail |
 | Attachments | Up to five files per record: images, PDF, Excel, Word, and plain text |
 | Favorites | Bookmark records and filter the list to favorites only |
 | Archive | Move unused links to the archive; archived links stay visible with an Archived badge, are always listed below active links, and can be restored |
@@ -246,7 +246,6 @@ Expand a module to view its capabilities.
 | Element | Description |
 |---|---|
 | Application toolbar | Back, Exit, Cancel, Save, and Help in fixed positions; unavailable actions are disabled |
-| Function keys | Every toolbar action is bound to a key (see [Keyboard Reference](#keyboard-reference)) |
 | Selection screen | Search criteria with wildcard patterns (`ad*`, `*ad`, `*ad*`) and multiple values per field |
 | Variants | Named, reusable sets of selection criteria per screen |
 | ALV-style table | Sorting, per-column filters, adjustable and hideable columns persisted per user, active row, context menu |
@@ -292,11 +291,11 @@ Every role includes a **team activity feed**. Repeated actions are consolidated 
 <summary><b>Account and Identity</b> &nbsp;·&nbsp; authentication and preferences</summary>
 <br>
 
-- Self-registration restricted to the corporate email domain, confirmed by a verification code
+- Accounts created by administrators for the corporate email domain and activated by their owner through an emailed link
 - Two-step sign-in: password followed by a one-time code delivered by email
 - Password recovery, password change, and profile maintenance
 - In-app notifications for group invitations and membership changes, blocked sign-in attempts, and password changes
-- Light and dark themes, accent colors, font selection, and a compact layout
+- Light and dark themes, font selection, and a compact layout
 
 </details>
 
@@ -325,24 +324,7 @@ The system defines two roles: User Entry and Administrator. Permissions are not 
 
 </div>
 
-Private links remain private to their owner, including from administrators. Administrator accounts can only be provisioned through the command line.
-
-<br>
-
-## Keyboard Reference
-
-<div align="center">
-
-| Key | Action | Key | Action |
-|:---:|---|:---:|---|
-| <kbd>F3</kbd> | Back | <kbd>F1</kbd> | Context help |
-| <kbd>Shift</kbd> + <kbd>F3</kbd> | Exit to dashboard | <kbd>/</kbd> | Focus quick search |
-| <kbd>F12</kbd> | Cancel changes | <kbd>↑</kbd> <kbd>↓</kbd> | Move active table row |
-| <kbd>Ctrl</kbd> + <kbd>S</kbd> | Save | <kbd>Enter</kbd> | Open active row |
-| <kbd>F8</kbd> | Execute selection | <kbd>Shift</kbd> + <kbd>F10</kbd> | Row context menu |
-| <kbd>Shift</kbd> + <kbd>F2</kbd> | Delete | <kbd>Esc</kbd> | Close dialog or menu |
-
-</div>
+Private links remain private to their owner, including from administrators. Administrators create every account from the Users screen; the owner sets the password through an emailed activation link. Existing administrator accounts can only be changed through the command line.
 
 <br>
 
@@ -474,6 +456,29 @@ This rule is implemented as a single SQL predicate reused by every list, count, 
 </details>
 
 <details>
+<summary><b>Account Activation Sequence</b></summary>
+<br>
+
+```mermaid
+sequenceDiagram
+    actor Ad as Administrator
+    actor U as New User
+    participant A as ALR
+    participant E as Email
+    Ad->>A: Create user (email, name, role)
+    A->>A: Store account as Pending Activation<br/>(inactive, no password)
+    Ad->>A: Send Activation Link
+    A->>E: Single-use activation link (valid 24 hours)
+    U->>A: Open link, enter new password twice
+    A->>A: Store Argon2id hash, activate account,<br/>invalidate the link
+    A-->>U: Redirect to sign-in
+```
+
+Sending a new link invalidates the previous one. There is no self-registration page.
+
+</details>
+
+<details>
 <summary><b>Sign-In Sequence</b></summary>
 <br>
 
@@ -566,11 +571,10 @@ flowchart LR
 | Threat | Mitigation |
 |---|---|
 | Database disclosure | Access notes encrypted with Fernet (AES); passwords hashed with Argon2id; one-time codes stored as hashes |
-| Account enumeration | Sign-in, registration, and password recovery return identical responses for known and unknown emails |
+| Account enumeration | Sign-in and password recovery return identical responses for known and unknown emails; there is no self-registration page |
 | Credential brute force | Rate limiting per IP and per email; three failed password or code attempts lock the account for 15 minutes, and an administrator can unlock it earlier |
 | Session hijacking | Versioned sessions; a password change or reset revokes all other sessions |
 | Unauthorized data access | One shared visibility predicate for all queries; inaccessible data returns 404 |
-| Access note exposure | Access notes are excluded from page markup; each reveal is a separate authorized request |
 | Cross-site scripting | Input sanitization and a Content Security Policy restricted to first-party scripts |
 | Cross-site request forgery | Tokens on every form submission and JSON request |
 | Malicious uploads | File signature verification, macro and zip bomb detection, and XXE-safe Excel parsing |
@@ -588,7 +592,7 @@ flowchart LR
 <summary><b>Adjacency list for categories</b></summary>
 <br>
 
-Users create their own sub-categories, so the hierarchy depth is not fixed. A single self-referencing table supports any level with uniform queries. Depth is limited to four in the service layer, and the complete tree is small enough to load once per request and assemble in memory.
+Every account shares the four built-in main categories. Any other main category or sub-category is private to the user who created it; public links inside another user's sub-category appear under its built-in main category. The hierarchy depth is not fixed. A single self-referencing table supports any level with uniform queries. Depth is limited to four in the service layer, and the complete tree is small enough to load once per request and assemble in memory.
 
 </details>
 
@@ -616,14 +620,6 @@ Checking hundreds of targets can take several minutes. Executing that work insid
 
 </details>
 
-<details>
-<summary><b>On-demand access note retrieval</b></summary>
-<br>
-
-Embedding an access note in page markup exposes it to anyone who can read the page source, including browser caches and extensions. Retrieving it only when a user selects Show or Copy keeps it out of the markup.
-
-</details>
-
 <br>
 
 ## Quality Assurance
@@ -634,7 +630,7 @@ Embedding an access note in page markup exposes it to anyone who can read the pa
 |---|---|:---:|---|
 | Backend | pytest | 731 | Services, routes, authorization, and security scenarios |
 | Database concurrency | pytest on PostgreSQL | 6 | Concurrent requests, row locks, and unique constraints |
-| Frontend | Vitest, Testing Library | 46 | Link table, columns, selection, and keyboard behavior |
+| Frontend | Vitest, Testing Library | 46 | Link table, columns, selection, and row menu |
 | End-to-end | Headless Chrome | 9 scenarios | Authentication, tables, accounts, categories, groups, monitoring, rich text editor, and function keys |
 
 </div>

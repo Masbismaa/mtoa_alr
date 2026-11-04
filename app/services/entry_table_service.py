@@ -41,9 +41,9 @@ def build_category_scope(category, has_sub_category):
     """Halaman isi satu kategori: link yg ada langsung di kategori itu aja, kolom Kategori disembunyiin."""
     return EntryTableScope("categories.browse", "categories.table_data", {"category_id": category.id}, category, has_sub_category)
 
-def build_scope_field_list(scope):
+def build_scope_field_list(user, scope):
     """Isian Kriteria Pencarian halaman itu (halaman kategori ga punya isian Kategori)."""
-    return build_entry_field_list(list_active_category_option() if scope.category is None else None)
+    return build_entry_field_list(list_active_category_option(user) if scope.category is None else None)
 
 def build_query_dict(args, scope, field_list):
     """Kriteria + urutan yg lagi kepake (tanpa nomor halaman). Daftar Link selalu bawa penanda Jalankan,
@@ -85,7 +85,7 @@ def build_status_title(entry):
         part_list.append(entry.status_note)
     return " · ".join(part_list)
 
-def build_entry_row(entry, back_url, can_delete=False):
+def build_entry_row(user, entry, back_url, can_delete=False):
     """Satu baris tabel. Semua teks udah jadi (label, tanggal WIB), React tinggal nampilin.
     can_delete = baris ini boleh dicentang buat hapus banyak (admin di Daftar Link)."""
     return {
@@ -93,7 +93,7 @@ def build_entry_row(entry, back_url, can_delete=False):
         "can_delete": can_delete,
         "title": entry.title,
         "detail_url": url_for("entries.detail", entry_id=entry.id, back=back_url),
-        "category_label": build_category_label(entry.category),
+        "category_label": build_category_label(entry.category, user),
         "category_url": url_for("categories.browse", category_id=entry.category_id),
         "access_text": build_access_text(entry),
         "description": entry.description or "",
@@ -168,7 +168,7 @@ def search_page(user, selection, scope, sort, page):
 
 def build_entry_table_payload(user, args, scope):
     """Semua data yg dibutuhin komponen React tabel link (lihat docstring modul)."""
-    field_list = build_scope_field_list(scope)
+    field_list = build_scope_field_list(user, scope)
     excluded_key_list = ["category"] if scope.category is not None else []
     table_view = build_table_view(
         TABLE_ENTRY, args, get_table_layout(user, TABLE_ENTRY),
@@ -203,7 +203,7 @@ def build_entry_table_payload(user, args, scope):
         "pages": pagination.pages,
         "total": pagination.total,
         "page_list": list(pagination.iter_pages(left_edge=1, left_current=1, right_current=2, right_edge=1)),
-        "rows": [build_entry_row(entry, back_url, is_bulk_delete and can_edit_entry(user, entry)) for entry in pagination.items],
+        "rows": [build_entry_row(user, entry, back_url, is_bulk_delete and can_edit_entry(user, entry)) for entry in pagination.items],
         # ada kriteria: kalau hasilnya kosong, kepala tabel (+ filter kolom) tetep tampil biar filternya bisa dihapus
         "is_filtered": is_filtered,
         "heading": build_heading(scope, pagination.total, is_filtered),

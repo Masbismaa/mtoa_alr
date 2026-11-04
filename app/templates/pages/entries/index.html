@@ -5,7 +5,6 @@
 
 {% block title %}Link List{% endblock %}
 
-{# judul layar di title bar atas ala SAP #}
 {% block screen_title %}Display Access Link{% endblock %}
 
 {% block page_pretitle %}Links{% endblock %}
@@ -21,7 +20,7 @@
 
 {% block content %}
   {# abis Jalankan, layar langsung ke tabel hasil (#daftar_link) #}
-  {{ selection_panel(selection_field_list, url_for("entries.index", _anchor="daftar_link"), "Search title, URL, address, description... (press /)", is_run_marked=true) }}
+  {{ selection_panel(selection_field_list, url_for("entries.index", _anchor="daftar_link"), "Search title, URL, address, description...", is_run_marked=true) }}
 
   {# ala Select Screen SAP: tabel baru muncul abis Jalankan #}
   {% if entry_table_payload is none %}

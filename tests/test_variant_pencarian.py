@@ -64,8 +64,8 @@ def test_variant_limit_per_screen(logged_in_client):
     assert len(variant_list()) == SELECTION_VARIANT_MAX_COUNT
 
 
-def test_selection_screens_show_sap_function_key_hints(logged_in_client):
-    """Positive: tombol toolbar & Execute bawa penanda tombol fungsi (dijalanin app_shell.js), status bar ada user & jam."""
+def test_selection_screens_toolbar_and_status_bar(logged_in_client):
+    """Positive: tombol Execute & Help ada (tanpa shortcut keyboard), status bar ada user & jam."""
     html_text = logged_in_client.get("/entries/").get_data(as_text=True)
-    assert 'data-fkey="F8"' in html_text and 'data-fkey="F1"' in html_text and 'data-fkey="Shift+F3"' in html_text
+    assert 'title="Execute">' in html_text and 'title="Help for this screen"' in html_text and "data-fkey" not in html_text
     assert 'title="Logged-in user"' in html_text and "data-status-clock" in html_text

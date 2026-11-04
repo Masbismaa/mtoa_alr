@@ -5,7 +5,6 @@
 
 {% block title %}{{ group.name }}{% endblock %}
 
-{# judul layar di title bar atas ala SAP #}
 {% block screen_title %}Display Group: {{ group.name }}{% endblock %}
 
 {% set is_owner = group.user_id == current_user.id %}
@@ -28,7 +27,7 @@
     <a href="{{ url_for('groups.edit', group_id=group.id) }}" class="btn">{{ icon("edit") }} Edit</a>
     <form method="post" action="{{ url_for('groups.delete', group_id=group.id) }}" data-confirm-title="Delete group?" data-confirm-message="Group &quot;{{ group.name }}&quot; and its member & link lists will be deleted. The original links stay safe." data-confirm-ok="Yes, delete">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="btn btn-danger" data-fkey="Shift+F2" title="Delete (Shift+F2)">{{ icon("trash") }} Delete</button>
+      <button type="submit" class="btn btn-danger" title="Delete">{{ icon("trash") }} Delete</button>
     </form>
   {% else %}
     <form method="post" action="{{ url_for('groups.leave', group_id=group.id) }}" data-confirm-title="Leave group?" data-confirm-message="Links you shared in this group will also be removed." data-confirm-ok="Yes, leave">

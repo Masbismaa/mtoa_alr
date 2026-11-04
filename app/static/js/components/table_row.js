@@ -1,6 +1,5 @@
-// baris aktif di tabel ALV (layar lebar): klik baris / Tab ke tabel -> baris jadi aktif.
-// panah atas/bawah pindah, Home/End ke ujung, Enter atau double-click buka (data-row-url),
-// klik kanan / Shift+F10 / tombol Menu -> menu baris: buka, salin nilai sel, salin baris
+// baris aktif di tabel ALV (layar lebar): klik baris -> baris jadi aktif, double-click buka (data-row-url),
+// klik kanan -> menu baris: buka, salin nilai sel, salin baris
 (function () {
   "use strict";
 
@@ -102,65 +101,31 @@
     const rowList = bodyEl ? Array.from(bodyEl.rows) : [];
     if (!rowList.length) return;
     let activeIndex = -1;
-    bodyEl.setAttribute("aria-label", "Data rows, use the up/down arrows");
 
-    // cuma baris aktif yg bisa di-Tab (roving tabindex), jadi Tab ga mampir ke tiap baris
-    rowList.forEach(function (rowEl, index) {
-      rowEl.tabIndex = index === 0 ? 0 : -1;
-    });
-
-    function activate(index, isFocus) {
-      const nextIndex = Math.max(0, Math.min(rowList.length - 1, index));
-      if (activeIndex >= 0 && activeIndex !== nextIndex) {
-        rowList[activeIndex].classList.remove("is-active");
-        rowList[activeIndex].tabIndex = -1;
-      }
-      rowList[nextIndex].classList.add("is-active");
-      rowList[nextIndex].tabIndex = 0;
-      activeIndex = nextIndex;
-      if (isFocus) rowList[nextIndex].focus();
+    function activate(index) {
+      if (activeIndex >= 0 && activeIndex !== index) rowList[activeIndex].classList.remove("is-active");
+      rowList[index].classList.add("is-active");
+      activeIndex = index;
     }
 
     function openRow(rowEl) {
       if (rowEl.dataset.rowUrl) window.location.href = rowEl.dataset.rowUrl;
     }
 
-    function openMenuAtRow(rowEl) {
-      const firstCellEl = Array.from(rowEl.cells).find(function (cellEl) { return cellEl.dataset.column && !cellEl.hidden; });
-      const rowRect = rowEl.getBoundingClientRect();
-      openMenu(tableEl, rowEl, firstCellEl, rowRect.left + 24, rowRect.bottom);
-    }
-
     rowList.forEach(function (rowEl, index) {
       // klik di link/tombol tetep jalan normal, barisnya cuma ditandain aktif
-      rowEl.addEventListener("click", function (event) {
-        activate(index, !event.target.closest(INTERACTIVE_SELECTOR));
-      });
-      rowEl.addEventListener("focus", function () {
-        activate(index, false);
+      rowEl.addEventListener("click", function () {
+        activate(index);
       });
       rowEl.addEventListener("dblclick", function (event) {
         if (event.target.closest(INTERACTIVE_SELECTOR)) return;
         openRow(rowEl);
       });
-      rowEl.addEventListener("keydown", function (event) {
-        // lagi fokus di link/tombol di dalem baris: biarin
-        if (event.target !== rowEl) return;
-        const isMenuKey = event.key === "ContextMenu" || (event.shiftKey && event.key === "F10");
-        if (event.key === "ArrowDown") activate(index + 1, true);
-        else if (event.key === "ArrowUp") activate(index - 1, true);
-        else if (event.key === "Home") activate(0, true);
-        else if (event.key === "End") activate(rowList.length - 1, true);
-        else if (event.key === "Enter") openRow(rowEl);
-        else if (isMenuKey) openMenuAtRow(rowEl);
-        else return;
-        event.preventDefault();
-      });
       // klik kanan di link: menu bawaan browser (buka di tab baru, salin link)
       rowEl.addEventListener("contextmenu", function (event) {
         if (event.target.closest(INTERACTIVE_SELECTOR)) return;
         event.preventDefault();
-        activate(index, true);
+        activate(index);
         openMenu(tableEl, rowEl, event.target.closest("td"), event.clientX, event.clientY);
       });
     });

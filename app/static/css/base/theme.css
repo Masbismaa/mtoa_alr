@@ -1,14 +1,11 @@
-/* tema: warna dasar gaya SAP GUI (Quartz), warna aksen + font + kerapatan dari UI Customizer, efek ganti tema */
+/* tema: warna dasar gaya SAP GUI (Quartz), font + kerapatan dari UI Customizer, efek ganti tema */
 
-/* warna aksen dari UI Customizer -> jadi warna primary Tabler */
-:root[data-accent="blue"] { --app-accent: #0a6ed1; --app-accent-rgb: 10, 110, 209; --app-accent-fg: #ffffff; }
-:root[data-accent="yellow"] { --app-accent: #f59f00; --app-accent-rgb: 245, 159, 0; --app-accent-fg: #1d273b; }
-:root[data-accent="pink"] { --app-accent: #d6336c; --app-accent-rgb: 214, 51, 108; --app-accent-fg: #ffffff; }
-:root[data-accent="lime"] { --app-accent: #74b816; --app-accent-rgb: 116, 184, 22; --app-accent-fg: #1d273b; }
-:root[data-accent="teal"] { --app-accent: #0ca678; --app-accent-rgb: 12, 166, 120; --app-accent-fg: #ffffff; }
-:root[data-accent="purple"] { --app-accent: #ae3ec9; --app-accent-rgb: 174, 62, 201; --app-accent-fg: #ffffff; }
-
-:root[data-accent] {
+/* warna aksen = warna primary Tabler (biru, ditimpa biru navy di themes/spindo.css).
+   html:root biar menang dari :root / [data-bs-theme] bawaan Tabler */
+html:root {
+  --app-accent: #0a6ed1;
+  --app-accent-rgb: 10, 110, 209;
+  --app-accent-fg: #ffffff;
   --tblr-primary: var(--app-accent);
   --tblr-primary-rgb: var(--app-accent-rgb);
   --tblr-primary-fg: var(--app-accent-fg);

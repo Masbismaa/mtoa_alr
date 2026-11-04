@@ -13,14 +13,12 @@ class User(UserMixin, TimestampMixin, db.Model):
 
     __tablename__ = "users"
 
-    # Kolom identitas & profil
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), nullable=False, unique=True, index=True)
     full_name = db.Column(db.String(150), nullable=False)
     department = db.Column(db.String(100), nullable=False)
     job_title = db.Column(db.String(100), nullable=False)
 
-    # Kolom hak akses
     role = db.Column(db.String(20), nullable=False, default=ROLE_USER_ENTRY, server_default=ROLE_USER_ENTRY)
     is_active = db.Column(db.Boolean, nullable=False, default=True, server_default=db.text("true"))
 
@@ -35,7 +33,7 @@ class User(UserMixin, TimestampMixin, db.Model):
     # keisi = akun udah dihapus admin (datanya dianonimkan, barisnya tetep ada buat audit log)
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
-    # Relasi ke preferensi tampilan ikut terhapus jika user dihapus
+    # preferensi tampilan ikut terhapus kalau user dihapus
     preference = db.relationship(
         "UserPreference",
         back_populates="user",
@@ -43,7 +41,6 @@ class User(UserMixin, TimestampMixin, db.Model):
         cascade="all, delete-orphan",
     )
 
-    # Constraint database: role hanya boleh nilai yang terdaftar di ROLE_LIST
     __table_args__ = (
         db.CheckConstraint(f"role IN ({build_sql_in_list(ROLE_LIST)})", name="role_valid"),
     )

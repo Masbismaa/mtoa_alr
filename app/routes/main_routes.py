@@ -78,7 +78,7 @@ def export_entries():
     selection = read_entry_selection(request.args)
     sort = read_sort(request.args, TABLE_COLUMN_DICT[TABLE_ENTRY])
     entry_list, is_truncated = list_visible_entries_for_export(user, keyword=selection["keyword"], selection=selection, sort=sort)
-    filter_text_list = describe_selection(request.args, build_entry_field_list(list_active_category_option()))
+    filter_text_list = describe_selection(request.args, build_entry_field_list(list_active_category_option(user)))
     if is_truncated:
         filter_text_list.append(f"limited to the {EXPORT_MAX_ROW_COUNT} newest links")
     file_buffer = build_entry_workbook(entry_list, user, filter_text_list)

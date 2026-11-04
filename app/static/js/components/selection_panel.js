@@ -172,18 +172,15 @@
     formEl.querySelectorAll("input:disabled").forEach(function (inputEl) { inputEl.disabled = false; });
   });
 
-  // tekan "/" buat langsung ke Cari cepat
+  // tombol Find (toolbar sistem): buka panel kriteria kalau ketutup, lalu fokus ke Cari cepat
   const quickEl = formEl.querySelector("[data-selection-quick]");
-  document.addEventListener("keydown", function (event) {
-    const activeEl = document.activeElement;
-    const isTyping = activeEl && (["INPUT", "TEXTAREA", "SELECT"].includes(activeEl.tagName) || activeEl.isContentEditable);
-    if (event.key === "/" && !isTyping && quickEl) {
-      event.preventDefault();
+  window.AlrSelection = {
+    focusQuickSearch: function () {
       const bodyEl = document.getElementById("selection_body");
       if (bodyEl && !bodyEl.classList.contains("show") && window.bootstrap) window.bootstrap.Collapse.getOrCreateInstance(bodyEl).show();
       quickEl.focus();
-    }
-  });
+    },
+  };
 
   // abis Jalankan / pindah halaman (URL ada #id kartu hasil): fokus ke judul hasil, isinya udah nyebut jumlah data,
   // jadi pengguna keyboard & pembaca layar langsung di hasil, ga mulai dari menu lagi

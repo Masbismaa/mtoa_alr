@@ -6,7 +6,6 @@
 
 {% block title %}{{ path_list | map(attribute="name") | join(" › ") }}{% endblock %}
 
-{# judul layar di title bar atas ala SAP #}
 {% block screen_title %}Display Category: {{ category.name }}{% endblock %}
 
 {% block page_pretitle %}Categories{% endblock %}
@@ -38,9 +37,9 @@
   {% if can_manage %}
     <a href="{{ url_for('categories.edit', category_id=category.id) }}" class="btn">{{ icon("edit") }} Edit</a>
     {% if not is_default %}
-      <form method="post" action="{{ url_for('categories.delete', category_id=category.id) }}" data-confirm-title="Delete category?" data-confirm-message="Category &quot;{{ category.name }}&quot; will be permanently deleted. Only possible when it is empty (no links & sub-categories)." data-confirm-ok="Yes, delete">
+      <form method="post" action="{{ url_for('categories.delete', category_id=category.id) }}" data-confirm-title="Delete category?" data-confirm-message="Category &quot;{{ category.name }}&quot; and its sub-categories will be permanently deleted. Links inside are moved to the parent category, nothing is lost." data-confirm-ok="Yes, delete">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-ghost-danger" data-fkey="Shift+F2" title="Delete (Shift+F2)">{{ icon("trash") }} Delete</button>
+        <button type="submit" class="btn btn-ghost-danger" title="Delete">{{ icon("trash") }} Delete</button>
       </form>
     {% endif %}
   {% endif %}
@@ -63,7 +62,7 @@
     </div>
   {% endif %}
 
-  {{ selection_panel(selection_field_list, url_for("categories.browse", category_id=category.id, _anchor="daftar_link"), "Search title, URL, address, description... (press /)") }}
+  {{ selection_panel(selection_field_list, url_for("categories.browse", category_id=category.id, _anchor="daftar_link"), "Search title, URL, address, description...") }}
 
   {{ entry_table(entry_table_payload) }}
 {% endblock %}

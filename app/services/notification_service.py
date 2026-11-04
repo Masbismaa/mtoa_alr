@@ -1,4 +1,4 @@
-"""Pengiriman email (OTP login, kode verifikasi daftar, pemberitahuan) sesuai mode yang dikonfigurasi."""
+"""Pengiriman email (OTP login, kode lupa password, link aktivasi akun, pemberitahuan) sesuai mode yang dikonfigurasi."""
 
 import smtplib
 import ssl
@@ -6,13 +6,12 @@ from email.message import EmailMessage
 from flask import current_app
 
 from app.utils.constants import (
-    OTP_DELIVERY_CONSOLE, OTP_EXPIRE_MINUTES, OTP_PURPOSE_LOGIN, OTP_PURPOSE_REGISTER, OTP_PURPOSE_RESET,
+    ACTIVATION_LINK_EXPIRE_HOURS, OTP_DELIVERY_CONSOLE, OTP_EXPIRE_MINUTES, OTP_PURPOSE_LOGIN, OTP_PURPOSE_RESET,
 )
 
 # judul email per tujuan OTP (kodenya sama-sama dari tabel otp_codes)
 OTP_SUBJECT_DICT = {
     OTP_PURPOSE_LOGIN: "ALR login code",
-    OTP_PURPOSE_REGISTER: "ALR registration verification code",
     OTP_PURPOSE_RESET: "ALR password reset code",
 }
 
@@ -25,7 +24,6 @@ def send_email(to_address, subject, body):
     delivery_mode = current_app.config["OTP_DELIVERY_MODE"]
 
     if delivery_mode == OTP_DELIVERY_CONSOLE:
-        # Mode development: email ditulis ke terminal.
         print(f"\n===== [DEV] Email ke {to_address}: {subject} =====\n{body}\n=====\n", flush=True)
         return
 
@@ -54,18 +52,20 @@ def send_email(to_address, subject, body):
         connection.send_message(message)
 
 def send_otp_code(user, otp_code, purpose=OTP_PURPOSE_LOGIN):
-    """Kirim kode OTP (login / verifikasi pendaftaran). `user` = User atau PendingRegistration, yg dipake cuma .email."""
+    """Kirim kode OTP login / lupa password ke email user."""
     subject = OTP_SUBJECT_DICT[purpose]
     send_email(user.email, subject, f"{subject}: {otp_code}\nValid for {OTP_EXPIRE_MINUTES} minutes. Do not share this code.")
 
-def send_registration_notice(user):
-    """Ada yg nyoba daftar pakai email yg udah punya akun. Pemiliknya dikabarin lewat email (bukan lewat layar,
-    biar orang lain ga bisa ngecek email mana yg udah terdaftar)."""
+def send_activation_link(user, activation_url):
+    """Link aktivasi akun baru yg dibikin admin. Pemilik email bikin password sendiri lewat link ini."""
     send_email(
         user.email,
-        "ALR registration attempt",
-        "Someone tried to register on ALR with this email, but you already have an account.\n"
-        "If that was you, just log in. If not, ignore this email; your account has not changed.",
+        "Activate your ALR account",
+        f"Hello {user.full_name},\n\n"
+        f"An ICT admin has created an ALR account for {user.email}.\n"
+        f"Open this link to set your password and activate the account:\n{activation_url}\n\n"
+        f"The link is valid for {ACTIVATION_LINK_EXPIRE_HOURS} hours and can only be used once. "
+        "If you weren't expecting this email, ignore it.",
     )
 
 def send_password_changed_notice(user):

@@ -1,4 +1,5 @@
-"""Logika kategori bertingkat: pohon kategori, tambah/ubah/hapus, sama data tampilan forum."""
+"""Logika kategori bertingkat: pohon kategori, tambah/ubah/hapus, sama data tampilan forum.
+Kategori utama (4 bawaan) sama buat semua akun, sub-kategori di bawahnya milik pribadi pembuatnya."""
 from flask import g, has_request_context
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
@@ -92,10 +93,14 @@ def get_root_category(category):
     """Kategori utamanya. Aturan field form link ngikut ini."""
     return get_category_path_list(category)[0]
 
-def build_category_label(category):
-    """Nama lengkap, misal 'Web › SAP › Modul FI'."""
+def build_category_label(category, viewer=None):
+    """Nama lengkap, misal 'Web › SAP › Modul FI'. viewer diisi & ini kategori pribadi orang lain -> cuma nama
+    kategori bawaannya, atau "-" kalau kategori utamanya juga pribadi (nama kategori orang lain ga ditampilin)."""
     if category is None:
         return "-"
+    if viewer is not None and not is_category_visible(viewer, category):
+        root = get_root_category(category)
+        return root.name if is_category_visible(viewer, root) else "-"
     return CATEGORY_PATH_SEPARATOR.join(path_category.name for path_category in get_category_path_list(category))
 
 def is_category_usable(category):
@@ -106,9 +111,13 @@ def get_category_style(category):
     """Ikon & warna ngikut kategori utamanya."""
     return CATEGORY_STYLE_DICT.get(get_root_category(category).name, DEFAULT_CATEGORY_STYLE)
 
-def list_usable_category():
-    """Kategori yg bisa dipilih di form & filter, urut kayak pohon."""
-    child_dict = build_child_dict(list_all_category())
+def is_category_visible(user, category):
+    """4 kategori bawaan keliatan semua akun, kategori lain (utama maupun sub) cuma sama pembuatnya."""
+    return is_default_category(category) or category.user_id == user.id
+
+def list_usable_category(user):
+    """Kategori yg bisa dipilih user di form & filter (4 kategori bawaan + kategori bikinannya), urut kayak pohon."""
+    child_dict = build_child_dict([category for category in list_all_category() if is_category_visible(user, category)])
     return [category for category in walk_category_tree(child_dict) if is_category_usable(category)]
 
 def get_category(category_id):
@@ -125,24 +134,34 @@ def can_manage_category_master(user):
     return is_admin(user)
 
 def can_manage_category(user, category):
-    """Pengelola kategori boleh semua. User lain cuma sub-kategori bikinannya sendiri."""
-    return can_manage_category_master(user) or (category.parent_id is not None and category.user_id == user.id)
+    """Kategori bawaan: admin (cuma deskripsinya). Kategori lain cuma pembuatnya (admin juga ga bisa ngurus
+    kategori pribadi orang lain)."""
+    if is_default_category(category):
+        return can_manage_category_master(user)
+    return category.user_id == user.id
 
 def can_add_sub_category(category):
     """Masih bisa ditambah sub kalau aktif & belum tingkat paling dalam."""
     return is_category_usable(category) and get_category_depth(category) < MAX_CATEGORY_DEPTH
 
 # VALIDASI
-def find_sibling_by_name(name, parent_id, exclude_category_id=None):
-    """Cari saudara (induk sama) dgn nama sama, huruf besar/kecil dianggap sama."""
-    parent_condition = Category.parent_id.is_(None) if parent_id is None else Category.parent_id == parent_id
-    query = db.select(Category).where(parent_condition, db.func.lower(Category.name) == name.lower())
+def find_sibling_by_name(name, parent_id, owner_id, exclude_category_id=None):
+    """Cari saudara (induk & pemilik sama) dgn nama sama, huruf besar/kecil dianggap sama.
+    Kategori pribadi: akun lain boleh punya nama yg sama. Kategori utama juga ga boleh kembar sama kategori bawaan."""
+    if parent_id is None:
+        query = db.select(Category).where(
+            Category.parent_id.is_(None), db.or_(Category.user_id == owner_id, Category.user_id.is_(None)),
+        )
+    else:
+        query = db.select(Category).where(Category.parent_id == parent_id, Category.user_id == owner_id)
+    query = query.where(db.func.lower(Category.name) == name.lower())
     if exclude_category_id is not None:
         query = query.where(Category.id != exclude_category_id)
     return db.session.execute(query.limit(1)).scalar_one_or_none()
 
-def validate_category_data(data_dict, category=None, parent=None):
-    """Cek nama & deskripsi, balikin data bersih. Nama kategori bawaan ga boleh diganti."""
+def validate_category_data(data_dict, category=None, parent=None, owner_id=None):
+    """Cek nama & deskripsi, balikin data bersih. Nama kategori bawaan ga boleh diganti.
+    owner_id = pemilik sub-kategori baru (pas edit diambil dari kategorinya)."""
     clean_name = sanitize_text(data_dict.get("name"), max_length=MAX_CATEGORY_NAME_LENGTH) or ""
     clean_description = sanitize_text(data_dict.get("description"), max_length=MAX_CATEGORY_DESCRIPTION_LENGTH) or None
 
@@ -154,10 +173,10 @@ def validate_category_data(data_dict, category=None, parent=None):
     if len(clean_name) < MIN_CATEGORY_NAME_LENGTH:
         raise ValidationError([build_error("name", f"Category name must be at least {MIN_CATEGORY_NAME_LENGTH} characters")])
     if category is not None:
-        parent_id, exclude_category_id = category.parent_id, category.id
+        parent_id, owner_id, exclude_category_id = category.parent_id, category.user_id, category.id
     else:
         parent_id, exclude_category_id = (parent.id if parent is not None else None), None
-    if find_sibling_by_name(clean_name, parent_id, exclude_category_id) is not None:
+    if find_sibling_by_name(clean_name, parent_id, owner_id, exclude_category_id) is not None:
         raise ValidationError([build_error("name", f'Category "{clean_name}" already exists at this level')])
     return {"name": clean_name, "description": clean_description}
 
@@ -197,17 +216,19 @@ def save_new_category(user, category):
     return category
 
 def create_category(user, data_dict):
-    """Tambah kategori utama (route-nya khusus admin)."""
-    clean_dict = validate_category_data(data_dict)
+    """Tambah kategori utama pribadi, semua user boleh. Cuma keliatan sama pembuatnya."""
+    clean_dict = validate_category_data(data_dict, owner_id=user.id)
     return save_new_category(user, Category(**clean_dict, user_id=user.id, is_active=True))
 
 def create_sub_category(user, parent, data_dict):
-    """Tambah sub-kategori, semua user boleh. Maksimal 4 tingkat."""
+    """Tambah sub-kategori pribadi, semua user boleh, cuma di kategori bawaan / kategori bikinannya. Maksimal 4 tingkat."""
+    if not is_category_visible(user, parent):
+        raise PermissionDeniedError("You can only add sub-categories to your own categories")
     if not is_category_usable(parent):
         raise ValidationError([build_error("parent", "The parent category is inactive")])
     if get_category_depth(parent) >= MAX_CATEGORY_DEPTH:
         raise ValidationError([build_error("parent", f"Categories can be at most {MAX_CATEGORY_DEPTH} levels deep")])
-    clean_dict = validate_category_data(data_dict, parent=parent)
+    clean_dict = validate_category_data(data_dict, parent=parent, owner_id=user.id)
     return save_new_category(user, Category(**clean_dict, parent_id=parent.id, user_id=user.id, is_active=True))
 
 def update_category(user, category, data_dict):
@@ -226,7 +247,9 @@ def update_category(user, category, data_dict):
     return category
 
 def toggle_category_active(user, category):
-    """Aktif <-> nonaktif (route-nya khusus admin). Nonaktif = dia & anak-anaknya ilang dari form."""
+    """Aktif <-> nonaktif, cuma kategori yg user kelola. Nonaktif = dia & anak-anaknya ilang dari form."""
+    if not can_manage_category(user, category):
+        raise PermissionDeniedError("You don't have access to change this category")
     if is_default_category(category):
         raise ValidationError([build_error("is_active", "Built-in categories can't be deactivated")])
     old_data_dict = build_category_audit_dict(category)
@@ -242,31 +265,44 @@ def count_category_entry(category_id):
     """Jumlah link langsung di satu kategori (semua visibilitas)."""
     return db.session.scalar(db.select(db.func.count(AccessEntry.id)).where(AccessEntry.category_id == category_id))
 
-def count_child_category(category_id):
-    """Jumlah sub langsung di bawah kategori ini."""
-    return db.session.scalar(db.select(db.func.count(Category.id)).where(Category.parent_id == category_id))
+def list_subtree_category_id(category_id):
+    """Id kategori ini + semua turunannya (induk duluan), langsung dari database, bukan cache request."""
+    return collect_descendant_id_list(category_id, build_child_dict(query_all_category()))
 
 def delete_category(user, category):
-    """Hapus kategori. Cuma boleh kalau bukan bawaan, ga punya sub, & belum dipake link sama sekali."""
+    """Hapus sub-kategori beserta sub di dalemnya, walau masih ada isinya: semua link di dalemnya dipindah ke induk
+    sub yg dihapus, jadi ga ada link yg ilang. Kategori bawaan ga bisa dihapus, kategori utama lain cuma kalau kosong.
+    Return jumlah link yg dipindah."""
     if not can_manage_category(user, category):
         raise PermissionDeniedError("You don't have access to delete this category")
     if is_default_category(category):
         raise ValidationError([build_error("category", "Built-in categories can't be deleted")])
     # baris dikunci dulu: hapus barengan -> yg kedua nunggu, terus dapet pesan ini (bukan audit hapus dobel).
-    # Sub/link yg lagi ditambah barengan juga ketauan di cek bawah, karena dicek abis kunci kepegang
+    # Sub/link yg lagi ditambah barengan juga ketauan di bawah, karena turunannya diambil abis kunci kepegang
     is_still_there = db.session.execute(
         db.select(Category.id).where(Category.id == category.id).with_for_update()
     ).scalar_one_or_none() is not None
     if not is_still_there:
         db.session.rollback()
         raise ValidationError([build_error("category", "This category was already deleted")])
-    if count_child_category(category.id) > 0:
-        raise ValidationError([build_error("category", "Delete its sub-categories first")])
-    entry_count = count_category_entry(category.id)
-    if entry_count > 0:
-        raise ValidationError([build_error("category", f"Category is still used by {entry_count} links")])
-    log_audit(AUDIT_ACTION_DELETE, AUDIT_CATEGORY, entity_id=category.id, old_data_dict=build_category_audit_dict(category), user=user)
-    db.session.delete(category)
+    subtree_id_list = list_subtree_category_id(category.id)
+    if category.parent_id is None and (len(subtree_id_list) > 1 or count_category_entry(category.id) > 0):
+        raise ValidationError([build_error("category", "A main category can only be deleted when it is empty")])
+    moved_entry_id_list = db.session.execute(
+        db.select(AccessEntry.id).where(AccessEntry.category_id.in_(subtree_id_list)).order_by(AccessEntry.id)
+    ).scalars().all()
+    if moved_entry_id_list:
+        db.session.execute(
+            db.update(AccessEntry).where(AccessEntry.id.in_(moved_entry_id_list)).values(category_id=category.parent_id)
+        )
+    # anak duluan biar foreign key ke induknya ga nolak
+    for category_id in reversed(subtree_id_list):
+        deleted_category = db.session.get(Category, category_id)
+        new_data_dict = {"moved_entry_id_list": moved_entry_id_list} if category_id == category.id and moved_entry_id_list else None
+        log_audit(AUDIT_ACTION_DELETE, AUDIT_CATEGORY, entity_id=category_id, old_data_dict=build_category_audit_dict(deleted_category),
+                  new_data_dict=new_data_dict, user=user)
+        db.session.delete(deleted_category)
+        db.session.flush()
     try:
         db.session.commit()
     except IntegrityError:
@@ -274,6 +310,7 @@ def delete_category(user, category):
         db.session.rollback()
         raise ValidationError([build_error("category", "The category just got a new link or sub-category. Reload and try again.")]) from None
     clear_request_category_cache()
+    return len(moved_entry_id_list)
 
 # TAMPILAN
 def count_entry_by_category(user=None, category_id_list=None):
@@ -286,9 +323,32 @@ def count_entry_by_category(user=None, category_id_list=None):
         query = query.where(AccessEntry.category_id.in_(category_id_list))
     return dict(db.session.execute(query).all())
 
+def list_scope_category_id(user, category_id_list, is_include_sub=True):
+    """Id kategori yg link-nya dianggap ada di kategori-kategori ini buat user (+ sub-nya kalau is_include_sub).
+    Sub-kategori pribadi orang lain ga keliatan, jadi link (Public) di dalemnya dianggap ada langsung di induknya.
+    Id yg ga ada dicuekin, hasilnya ga dobel."""
+    category_list = list_all_category()
+    category_dict = {category.id: category for category in category_list}
+    child_dict = build_child_dict(category_list)
+    selected_id_list = []
+    for category_id in category_id_list:
+        if category_id not in category_dict:
+            continue
+        descendant_id_list = collect_descendant_id_list(category_id, child_dict)
+        if not is_include_sub:
+            descendant_id_list = [category_id] + [
+                descendant_id for descendant_id in descendant_id_list[1:]
+                if not is_category_visible(user, category_dict[descendant_id])
+            ]
+        selected_id_list.extend(descendant_id for descendant_id in descendant_id_list if descendant_id not in selected_id_list)
+    return selected_id_list
+
 def build_forum_row_list(user, parent=None):
-    """Baris ala forum: kategori + sub-nya + jumlah link (termasuk turunannya) + link terbaru."""
-    child_dict = build_child_dict(list_all_category())
+    """Baris ala forum: kategori + sub-nya + jumlah link (termasuk turunannya) + link terbaru.
+    Barisnya cuma kategori yg keliatan user, hitungannya ikut link di sub-kategori orang lain yg boleh dia liat."""
+    category_list = list_all_category()
+    child_dict = build_child_dict(category_list)
+    visible_child_dict = build_child_dict([category for category in category_list if is_category_visible(user, category)])
     # buka satu cabang -> cuma link di cabang itu yg dihitung & diranking (beranda: semua kategori emang ditampilin)
     scope_id_list = None
     if parent is not None:
@@ -308,7 +368,7 @@ def build_forum_row_list(user, parent=None):
     ).scalars()}
     parent_id = parent.id if parent is not None else None
     row_list = []
-    for category in child_dict.get(parent_id, []):
+    for category in visible_child_dict.get(parent_id, []):
         if not category.is_active:
             continue
         descendant_id_list = collect_descendant_id_list(category.id, child_dict)
@@ -318,24 +378,25 @@ def build_forum_row_list(user, parent=None):
         row_list.append({
             "category": category,
             "style": get_category_style(category),
-            "sub_category_list": [child for child in child_dict.get(category.id, []) if child.is_active],
+            "sub_category_list": [child for child in visible_child_dict.get(category.id, []) if child.is_active],
             "entry_count": entry_count,
             "latest_entry": max(candidates, key=lambda entry: (to_utc_aware(entry.created_at), entry.id), default=None),
+            # tombol Delete di baris: cuma sub-kategori bikinan sendiri (kategori utama ga bisa dihapus)
+            "can_delete": category.parent_id is not None and can_manage_category(user, category),
         })
     return row_list
 
-def has_active_child_category(category):
-    """Kategori ini punya sub yg aktif (sama kayak isi daftar sub-kategori di halaman kategori)."""
-    return any(child.is_active for child in build_child_dict(list_all_category()).get(category.id, []))
+def has_active_child_category(user, category):
+    """Kategori ini punya sub aktif yg keliatan user (sama kayak isi daftar sub-kategori di halaman kategori)."""
+    return any(
+        child.is_active and is_category_visible(user, child)
+        for child in build_child_dict(list_all_category()).get(category.id, [])
+    )
 
-def list_descendant_id(category):
-    """Id kategori ini + semua turunannya (buat filter link)."""
-    return collect_descendant_id_list(category.id, build_child_dict(list_all_category()))
-
-def list_category_summary():
-    """Semua kategori urut pohon + tingkat + jumlah link, buat tabel admin."""
-    child_dict = build_child_dict(list_all_category())
-    count_dict = count_entry_by_category()
+def list_category_summary(user):
+    """4 kategori bawaan + kategori bikinan user ini, urut pohon + tingkat + jumlah link yg boleh dia liat, buat tabel kelola."""
+    child_dict = build_child_dict([category for category in list_all_category() if is_category_visible(user, category)])
+    count_dict = count_entry_by_category(user)
     return [
         {
             "category": category,
@@ -343,6 +404,7 @@ def list_category_summary():
             "entry_count": count_dict.get(category.id, 0),
             "child_count": len(child_dict.get(category.id, [])),
             "is_default": is_default_category(category),
+            "can_manage": can_manage_category(user, category),
         }
         for category in walk_category_tree(child_dict)
     ]

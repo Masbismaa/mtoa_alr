@@ -3,9 +3,11 @@ from urllib.parse import urlencode
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from app.extensions import limiter
+from app.schemas.auth_schema import CreateUserForm
 from app.security.role_guard import admin_required
 from app.schemas.selection_schema import USER_FIELD_LIST, USER_FILTER_KEY_LIST, read_user_selection
 from app.schemas.table_schema import TABLE_USER
+from app.services.auth_service import create_pending_user
 from app.services.preference_service import get_table_layout
 from app.services.user_service import (
     build_delete_preview,
@@ -14,12 +16,13 @@ from app.services.user_service import (
     get_user,
     get_user_status,
     search_users,
+    send_activation,
     toggle_user_active,
     unlock_user,
 )
 from app.utils.constants import ROLE_ADMIN, PER_PAGE
 from app.utils.data_table import build_table_view
-from app.utils.exceptions import ValidationError
+from app.utils.exceptions import AuthError, ValidationError
 from app.utils.query_helper import parse_positive_int
 from app.utils.selection import build_selection_query_dict
 from app.utils.form_helper import flash_error_list
@@ -61,6 +64,23 @@ def index():
         table_view=table_view,
     )
 
+@users_bp.route("/new", methods=["GET", "POST"])
+@login_required
+@admin_required
+@limiter.limit("20 per minute", methods=["POST"])
+def create():
+    """Bikin akun baru (status Pending Activation sampai pemiliknya bikin password lewat link aktivasi)."""
+    form = CreateUserForm()
+    if form.validate_on_submit():
+        try:
+            user = create_pending_user(get_current_user(), form.email.data, form.full_name.data, form.role.data)
+        except AuthError as error:
+            flash(str(error), "danger")
+        else:
+            flash(f"Account {user.full_name} created. Send the activation link so they can set a password.", "success")
+            return redirect(url_for("users.index", name=user.email, _anchor="daftar_user"))
+    return render_template("pages/users/form.html", page_title="Create User", form=form, back_url=url_for("users.index"))
+
 def get_target_user_or_404(user_id):
     """User yg mau diubah, ga ada / udah dihapus -> 404."""
     target = get_user(user_id)
@@ -90,6 +110,15 @@ def run_user_action(action_function, success_message, *arg_list):
     else:
         flash(success_message, "success")
     return redirect(build_back_url())
+
+@users_bp.post("/<int:user_id>/send-activation")
+@login_required
+@admin_required
+@limiter.limit("10 per minute")
+def send_activation_link(user_id):
+    """Kirim (ulang) link aktivasi ke email akun yg masih Pending Activation."""
+    target = get_target_user_or_404(user_id)
+    return run_user_action(send_activation, f"Activation link sent to {target.email}", target)
 
 @users_bp.post("/<int:user_id>/toggle-active")
 @login_required

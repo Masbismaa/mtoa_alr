@@ -1,4 +1,4 @@
-{# dialog Bantuan dari toolbar: penjelasan layar ini (block page_help) + fungsi tombol toolbar & shortcut #}
+{# dialog Bantuan dari toolbar: penjelasan layar ini (block page_help) + fungsi tombol toolbar #}
 <dialog class="confirm-dialog help-dialog" id="help_dialog" aria-labelledby="help_dialog_title">
   <div class="modal-content">
     <div class="modal-header">
@@ -7,18 +7,14 @@
     <div class="modal-body">
       {% if page_help_html %}<div class="help-page">{{ page_help_html }}</div>{% endif %}
       <dl class="help-list">
-        <dt>Back <kbd>F3</kbd></dt><dd>Go back to the previous screen.</dd>
-        <dt>Exit <kbd>Shift+F3</kbd></dt><dd>Close this screen and return to the Dashboard.</dd>
-        <dt>Cancel <kbd>F12</kbd></dt><dd>Discard unsaved form changes.</dd>
-        <dt>Save <kbd>Ctrl+S</kbd></dt><dd>Save the form on this screen.</dd>
-        <dt>Execute <kbd>F8</kbd></dt><dd>Run the Selection Criteria.</dd>
-        <dt>Delete <kbd>Shift+F2</kbd></dt><dd>Delete the data on this screen (or the selected rows), after a confirmation.</dd>
-        <dt>Help <kbd>F1</kbd></dt><dd>Open this help.</dd>
-        <dt><kbd>/</kbd></dt><dd>Jump to Quick search (on screens with Selection Criteria).</dd>
-        <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Move the active table row (click a row or Tab into the table first). <kbd>Home</kbd>/<kbd>End</kbd> jump to the first/last row.</dd>
-        <dt><kbd>Enter</kbd></dt><dd>Open the active row (or double-click the row).</dd>
-        <dt><kbd>Shift+F10</kbd></dt><dd>Row menu: open, copy a value (or right-click the row).</dd>
-        <dt><kbd>Esc</kbd></dt><dd>Close the dialog or menu.</dd>
+        <dt>Back</dt><dd>Go back to the previous screen.</dd>
+        <dt>Exit</dt><dd>Close this screen and return to the Dashboard.</dd>
+        <dt>Cancel</dt><dd>Discard unsaved form changes.</dd>
+        <dt>Save</dt><dd>Save the form on this screen.</dd>
+        <dt>Execute</dt><dd>Run the Selection Criteria.</dd>
+        <dt>Delete</dt><dd>Delete the data on this screen (or the selected rows), after a confirmation.</dd>
+        <dt>Find</dt><dd>Jump to Quick search (on screens with Selection Criteria).</dd>
+        <dt>Table row</dt><dd>Double-click a row to open it; right-click a row to open or copy a value.</dd>
       </dl>
       <p class="text-secondary small mb-0">The latest message is always shown in the status bar at the bottom; click it to see the history.</p>
     </div>

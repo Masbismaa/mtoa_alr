@@ -22,10 +22,6 @@
   border-radius: var(--tblr-border-radius);
 }
 
-.secret-value {
-  letter-spacing: 0.08em;
-}
-
 .detail-text {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

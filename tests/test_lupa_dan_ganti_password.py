@@ -14,11 +14,11 @@ from app.utils.constants import (
     AUDIT_ACTION_UPDATE,
     LOGIN_MAX_FAILED_COUNT,
     OTP_MAX_ATTEMPT_COUNT,
-    REGISTER_CODE_MAX_COUNT,
+    RESET_CODE_MAX_COUNT,
     SESSION_PASSWORD_RESET_KEY,
 )
 from tests.conftest import USER_PASSWORD, login_client
-from tests.test_keamanan_login_register import NEW_EMAIL, normalize_page
+from tests.test_keamanan_login_aktivasi import NEW_EMAIL, normalize_page
 
 NEW_PASSWORD = "PasswordBaru456"
 # baris judul email di output mode console (judulnya juga muncul di isi email, jadi yg dihitung baris ini)
@@ -135,9 +135,9 @@ def test_inactive_account_gets_no_reset_code(client, registered_user, capsys):
 
 def test_reset_code_emails_limited_per_email(app, registered_user, capsys):
     """Negative (anti spam): minta reset berkali-kali dari banyak session -> email kode dibatasi per alamat."""
-    for _ in range(REGISTER_CODE_MAX_COUNT + 3):
+    for _ in range(RESET_CODE_MAX_COUNT + 3):
         request_reset(app.test_client(), registered_user.email)
-    assert capsys.readouterr().out.count(RESET_EMAIL_LINE) == REGISTER_CODE_MAX_COUNT
+    assert capsys.readouterr().out.count(RESET_EMAIL_LINE) == RESET_CODE_MAX_COUNT
 
 
 def test_reset_without_session_redirects_to_forgot(client):

@@ -17,8 +17,8 @@ Yang dikerjain React di tabel itu, semuanya **tanpa reload halaman**:
 
 - urutkan kolom, filter per kolom, pindah halaman (URL browser ikut berubah, tombol Back/Forward jalan)
 - geser lebar kolom, sembunyikan kolom (disimpan ke akun lewat `POST /settings/table-layout`)
-- baris aktif + keyboard (panah atas/bawah, Home/End, Enter buka detail)
-- menu klik kanan (juga Shift+F10 / tombol Menu): Buka, Salin nilai sel, Salin baris
+- baris aktif (klik), double-click buka detail
+- menu klik kanan: Buka, Salin nilai sel, Salin baris
 - pesan jelas kalau sesi login habis / jaringan putus, data lama tetep tampil
 
 Tabel **Users** dan **Audit Logs** masih versi Jinja lama (`components/data_table.html` + `js/components/data_table.js`).
@@ -88,7 +88,7 @@ frontend/
       EntryTable.jsx                komponen utama (judul, Export/Kolom, tabel, navigasi halaman, menu klik kanan)
       useTableData.js               ambil data, batalin request lama, history, event ke panel kriteria
       useColumnLayout.js            lebar & kolom tersembunyi + simpan ke akun (debounce, keepalive pas tutup halaman)
-      useActiveRow.js               baris aktif & fokus keyboard
+      useActiveRow.js               baris aktif (yg diklik)
       columns.jsx                   isi sel per kolom + teks buat "Salin"
       TableHead.jsx                 judul kolom (urut), geser lebar, baris filter
       ColumnMenu.jsx, RowContextMenu.jsx, Pagination.jsx, EmptyState.jsx, CopyButton.jsx
@@ -149,10 +149,10 @@ git add frontend app/static/dist   # dist WAJIB ikut
 | Apa | Perintah | Isinya |
 |---|---|---|
 | Python | `pytest -q` | API, hak akses, kontrak bentuk data, data awal = balasan API, XSS, CSP, manifest |
-| React | `cd frontend && npm test` | urut/filter/halaman, request balapan, layout + CSRF + keepalive, keyboard, menu klik kanan, sesi habis, respon rusak |
+| React | `cd frontend && npm test` | urut/filter/halaman, request balapan, layout + CSRF + keepalive, baris aktif, menu klik kanan, sesi habis, respon rusak |
 
 Hal yg cuma kebukti di browser beneran (posisi popup, CSS, Bootstrap, scroll halus) dites di Chrome sebelum rilis:
-`node scripts/e2e/table.mjs` (urut, filter, halaman 2, Back, keyboard, klik kanan di titik klik, Esc, simpan layout,
+`node scripts/e2e/table.mjs` (urut, filter, halaman 2, Back, baris aktif, klik kanan di titik klik, Esc, simpan layout,
 Kembali dari detail, sesi habis + cek console bersih). Skenario lain & cara pakainya: [scripts/e2e/README.md](../scripts/e2e/README.md).
 
 ## Troubleshooting

@@ -1,4 +1,4 @@
-"""Pembatas percobaan login (per email) dan jeda email pemberitahuan register.
+"""Pembatas percobaan login (per email) dan kode lupa password.
 
 Salah password juga ngunci akunnya (users.locked_until, lihat auth_service). Pembatas per email ini tetep ada
 biar email ga terdaftar keblokir dgn pesan yg sama persis (ga ngebocorin email mana yg terdaftar), dan
@@ -21,20 +21,16 @@ from limits.strategies import MovingWindowRateLimiter
 from app.utils.constants import (
     LOGIN_LOCK_MINUTES,
     LOGIN_MAX_FAILED_COUNT,
-    REGISTER_CODE_MAX_COUNT,
-    REGISTER_CODE_WINDOW_MINUTES,
-    REGISTER_NOTICE_COOLDOWN_MINUTES,
     RESET_ATTEMPT_MAX_COUNT,
     RESET_CODE_DAILY_MAX_COUNT,
+    RESET_CODE_MAX_COUNT,
+    RESET_CODE_WINDOW_MINUTES,
 )
 
 EXTENSION_KEY = "auth_throttle"
 LOGIN_FAILURE_LIMIT = parse(f"{LOGIN_MAX_FAILED_COUNT} per {LOGIN_LOCK_MINUTES} minutes")
-REGISTER_NOTICE_LIMIT = parse(f"1 per {REGISTER_NOTICE_COOLDOWN_MINUTES} minutes")
-REGISTER_CODE_LIMIT = parse(f"{REGISTER_CODE_MAX_COUNT} per {REGISTER_CODE_WINDOW_MINUTES} minutes")
+RESET_CODE_LIMIT = parse(f"{RESET_CODE_MAX_COUNT} per {RESET_CODE_WINDOW_MINUTES} minutes")
 LOGIN_FAILURE_NAMESPACE = "login_failure"
-REGISTER_NOTICE_NAMESPACE = "register_notice"
-REGISTER_CODE_NAMESPACE = "register_code"
 RESET_CODE_NAMESPACE = "reset_code"
 RESET_CODE_DAILY_LIMIT = parse(f"{RESET_CODE_DAILY_MAX_COUNT} per 1 day")
 RESET_CODE_DAILY_NAMESPACE = "reset_code_daily"
@@ -67,20 +63,11 @@ def clear_login_failure(email):
     """Login berhasil / akun di-unlock admin / reset password: hitungan gagal email ini dinolin lagi."""
     get_limiter().clear(LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_NAMESPACE, email)
 
-def allow_register_notice(email):
-    """True kalau email pemberitahuan register boleh dikirim ke alamat ini sekarang (anti spam ke pemilik email)."""
-    return get_limiter().hit(REGISTER_NOTICE_LIMIT, REGISTER_NOTICE_NAMESPACE, email)
-
-def allow_register_code(email):
-    """True kalau kode verifikasi daftar boleh dikirim ke alamat ini sekarang. Batasnya per email (bukan per IP),
-    biar orang ga bisa ngebanjirin kotak masuk orang lain pake banyak percobaan daftar."""
-    return get_limiter().hit(REGISTER_CODE_LIMIT, REGISTER_CODE_NAMESPACE, email)
-
 def allow_reset_code(email):
-    """True kalau kode lupa password boleh dikirim ke alamat ini sekarang. Batasnya per email: sama kayak kode daftar
-    (anti banjir kotak masuk) + batas harian. Batas harian ini yg ngebatesin total tebakan kode lintas IP
+    """True kalau kode lupa password boleh dikirim ke alamat ini sekarang. Batasnya per email (anti banjir kotak masuk)
+    + batas harian. Batas harian ini yg ngebatesin total tebakan kode lintas IP
     (tiap kode cuma bisa dicoba OTP_MAX_ATTEMPT_COUNT kali)."""
-    return (get_limiter().hit(REGISTER_CODE_LIMIT, RESET_CODE_NAMESPACE, email)
+    return (get_limiter().hit(RESET_CODE_LIMIT, RESET_CODE_NAMESPACE, email)
             and get_limiter().hit(RESET_CODE_DAILY_LIMIT, RESET_CODE_DAILY_NAMESPACE, email))
 
 def allow_reset_attempt(email, ip_address):

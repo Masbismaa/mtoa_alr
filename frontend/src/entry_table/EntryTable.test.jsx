@@ -301,25 +301,24 @@ describe("layout kolom", () => {
   });
 });
 
-describe("keyboard & menu klik kanan", () => {
-  it("panah bawah pindah baris aktif, Enter buka detail", async () => {
+describe("baris & menu klik kanan", () => {
+  it("shortcut keyboard baris udah dihapus: klik = aktif, double-click buka detail", async () => {
     render(<EntryTable initialPayload={makePayload()} />);
     const [firstRowEl, secondRowEl] = getRowList();
-    expect(firstRowEl).toHaveAttribute("tabindex", "0");
-    expect(secondRowEl).toHaveAttribute("tabindex", "-1");
+    expect(firstRowEl).not.toHaveAttribute("tabindex");
 
-    act(() => firstRowEl.focus());
     fireEvent.keyDown(firstRowEl, { key: "ArrowDown" });
-    expect(secondRowEl).toHaveClass("is-active");
-    expect(secondRowEl).toHaveFocus();
+    fireEvent.keyDown(firstRowEl, { key: "Enter" });
+    fireEvent.keyDown(firstRowEl, { key: "F10", shiftKey: true });
+    expect(secondRowEl).not.toHaveClass("is-active");
+    expect(navigateTo).not.toHaveBeenCalled();
+    expect(screen.queryByRole("menu")).toBeNull();
 
-    fireEvent.keyDown(secondRowEl, { key: "Enter" });
+    fireEvent.click(secondRowEl);
+    expect(secondRowEl).toHaveClass("is-active");
+    fireEvent.doubleClick(secondRowEl);
     expect(navigateTo).toHaveBeenCalledWith(makeRow(2).detail_url);
   });
-
-  it("panah bawah pindah baris aktif, Enter buka detail", async () => {
-    render(<EntryTable initialPayload={makePayload()}/>);
-  })
 
   it("klik kanan di sel -> Salin nilai sel itu", async () => {
     render(<EntryTable initialPayload={makePayload()} />);
@@ -338,19 +337,6 @@ describe("keyboard & menu klik kanan", () => {
     fireEvent.contextMenu(getRowList()[0].querySelector('td[data-column="title"]'), { clientX: 10, clientY: 10 });
     await userEvent.click(screen.getByRole("menuitem", { name: "Copy row" }));
     expect(copyText).toHaveBeenCalledWith("Link 1\tWeb › SAP\thttps://link1.spindo.com\tPublic\tUser Login");
-  });
-
-  it("Shift+F10 buka menu dari keyboard, Esc nutup & fokus balik ke baris", async () => {
-    render(<EntryTable initialPayload={makePayload()} />);
-    const firstRowEl = getRowList()[0];
-    act(() => firstRowEl.focus());
-    fireEvent.keyDown(firstRowEl, { key: "F10", shiftKey: true });
-    const menuEl = screen.getByRole("menu");
-    expect(within(menuEl).getByRole("menuitem", { name: "Open" })).toHaveFocus();
-
-    fireEvent.keyDown(menuEl, { key: "Escape" });
-    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
-    expect(firstRowEl).toHaveFocus();
   });
 
   it("menu React ga pake class .dropdown-menu (Bootstrap nyegat panah/Esc-nya di fase capture -> TypeError)", async () => {

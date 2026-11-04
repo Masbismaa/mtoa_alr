@@ -3,13 +3,12 @@
 
 {% block title %}Categories{% endblock %}
 
-{# judul layar di title bar atas ala SAP #}
 {% block screen_title %}Display Categories{% endblock %}
 
 {% block page_pretitle %}Admin{% endblock %}
 
 {% block page_subtitle %}
-  <div class="text-secondary mt-1">Up to {{ max_category_depth }} levels. Inactive categories (and their subs) don't appear in the Add Link form, but their existing links stay safe.</div>
+  <div class="text-secondary mt-1">The 4 built-in categories are shared by every account. Other main categories and sub-categories are private: each account only sees its own. Up to {{ max_category_depth }} levels. Inactive categories (and their subs) don't appear in the Add Link form, but their existing links stay safe.</div>
 {% endblock %}
 
 {% block page_actions %}
@@ -36,7 +35,6 @@
         <tbody>
           {% for summary in category_summary_list %}
             {% set category = summary.category %}
-            {% set is_empty = summary.entry_count == 0 and summary.child_count == 0 %}
             <tr>
               <td class="cell-title">
                 <div class="category-tree-name category-depth-{{ summary.depth }}">
@@ -47,7 +45,6 @@
                   </div>
                   <div class="small text-secondary mt-1">
                     {{ category.description or "No description yet." }}
-                    {% if category.creator and summary.depth > 1 %} · created by {{ category.creator.full_name }}{% endif %}
                   </div>
                 </div>
               </td>
@@ -58,8 +55,10 @@
               </td>
               <td class="cell-action">
                 <div class="btn-list flex-nowrap justify-content-end">
-                  <a href="{{ url_for('categories.edit', category_id=category.id) }}" class="btn btn-sm">{{ icon("edit") }} Edit</a>
-                  {% if not summary.is_default %}
+                  {% if summary.can_manage %}
+                    <a href="{{ url_for('categories.edit', category_id=category.id) }}" class="btn btn-sm">{{ icon("edit") }} Edit</a>
+                  {% endif %}
+                  {% if summary.can_manage and not summary.is_default %}
                     {% if category.is_active %}
                       <form method="post" action="{{ url_for('categories.toggle', category_id=category.id) }}" data-confirm-title="Deactivate category?" data-confirm-message="Category &quot;{{ category.name }}&quot; and all of its subs will no longer appear in the Add Link form. Existing links stay safe." data-confirm-ok="Yes, deactivate">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -71,12 +70,10 @@
                         <button type="submit" class="btn btn-sm">{{ icon("eye") }} Activate</button>
                       </form>
                     {% endif %}
-                    {% if is_empty %}
-                      <form method="post" action="{{ url_for('categories.delete', category_id=category.id) }}" data-confirm-title="Delete category?" data-confirm-message="Category &quot;{{ category.name }}&quot; will be permanently deleted." data-confirm-ok="Yes, delete">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-sm btn-ghost-danger" aria-label="Delete category {{ category.name }}" title="Delete">{{ icon("trash") }}</button>
-                      </form>
-                    {% endif %}
+                    <form method="post" action="{{ url_for('categories.delete', category_id=category.id) }}" data-confirm-title="Delete category?" data-confirm-message="Category &quot;{{ category.name }}&quot; and its sub-categories will be permanently deleted. Links inside are moved to the parent category, nothing is lost." data-confirm-ok="Yes, delete">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-sm btn-ghost-danger" aria-label="Delete category {{ category.name }}">{{ icon("trash") }} Delete</button>
+                    </form>
                   {% endif %}
                 </div>
               </td>

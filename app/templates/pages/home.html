@@ -219,11 +219,9 @@
   <div class="card mb-3" id="kategori">
     <div class="card-header">
       <h3 class="card-title">{{ icon("category") }} Categories</h3>
-      {% if is_admin(current_user) %}
-        <div class="card-actions">
-          <a href="{{ url_for('categories.index') }}" class="btn btn-sm">{{ icon("settings") }} Manage</a>
-        </div>
-      {% endif %}
+      <div class="card-actions">
+        <a href="{{ url_for('categories.index') }}" class="btn btn-sm">{{ icon("settings") }} Manage</a>
+      </div>
     </div>
     {% if dashboard_dict.forum_row_list %}
       {{ category_forum(dashboard_dict.forum_row_list) }}

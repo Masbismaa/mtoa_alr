@@ -103,7 +103,6 @@ def enforce_entry_attachment_limit(entry, prepared_list, removed_id_list=()):
             f"Up to {ATTACHMENT_MAX_COUNT} attachments per link (already attached: {remaining_count})",
         )])
 
-
 def store_prepared_attachment_list(entry, user, prepared_list):
     """Tulis file ke disk (nama diacak) + tambahin ke entry. Return list path yg udah ketulis."""
     upload_folder = get_upload_folder()

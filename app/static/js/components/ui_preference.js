@@ -10,7 +10,6 @@
   function readCurrent() {
     return {
       theme_mode: root.dataset.theme,
-      accent_key: root.dataset.accent,
       is_compact_view: root.dataset.density === "compact",
       font_family: root.dataset.font
     };
@@ -31,7 +30,6 @@
       root.dataset.theme = uiDict.theme_mode;
       root.dataset.bsTheme = uiDict.theme_mode;
     }
-    if (uiDict.accent_key) root.dataset.accent = uiDict.accent_key;
     if (typeof uiDict.is_compact_view === "boolean") root.dataset.density = uiDict.is_compact_view ? "compact" : "comfortable";
     if (uiDict.font_family) root.dataset.font = uiDict.font_family;
 

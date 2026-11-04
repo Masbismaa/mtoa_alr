@@ -1,7 +1,8 @@
-"""Logika register (dgn verifikasi email), login (password), dan OTP. Route tinggal manggil fungsi di sini.
+"""Logika akun (dibikin admin + aktivasi lewat link email), login (password), OTP, dan lupa password.
+Route tinggal manggil fungsi di sini.
 
 Aturan yg dipegang di file ini:
-- layar ga pernah ngasih tau email mana yg udah terdaftar (login: pesan sama; daftar: alur & tampilan sama persis)
+- layar login & lupa password ga pernah ngasih tau email mana yg udah terdaftar (pesan & alurnya sama)
 - salah password / OTP (digabung) LOGIN_MAX_FAILED_COUNT kali -> akun dikunci 15 menit (status Locked, bisa di-unlock
   admin) + email-nya diblokir di security/auth_throttle.py biar email ga terdaftar dapet pesan yg sama
 """
@@ -15,14 +16,15 @@ from flask import current_app
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
-from app.models import OtpCode, PendingRegistration, User, UserPreference
+from app.models import OtpCode, User, UserPreference
 from app.security import auth_throttle
 from app.security.otp_service import generate_otp_code, hash_otp_code, is_otp_code_match
 from app.security.password_service import hash_password, is_rehash_needed, verify_password
 from app.services.audit_service import log_audit
-from app.services.notification_service import send_otp_code, send_password_changed_notice, send_registration_notice
+from app.services.notification_service import send_otp_code, send_password_changed_notice
 from app.services.user_notification_service import add_notification
 from app.utils.constants import (
+    ACTIVATION_LINK_EXPIRE_HOURS,
     AUDIT_ACTION_CREATE,
     AUDIT_ACTION_LOGIN,
     AUDIT_ACTION_LOGIN_FAILED,
@@ -32,12 +34,13 @@ from app.utils.constants import (
     LOGIN_MAX_FAILED_COUNT,
     OTP_EXPIRE_MINUTES,
     OTP_MAX_ATTEMPT_COUNT,
+    OTP_PURPOSE_ACTIVATION,
     OTP_PURPOSE_LOGIN,
-    OTP_PURPOSE_REGISTER,
     OTP_PURPOSE_RESET,
-    PENDING_REGISTRATION_EXPIRE_HOURS,
     OTP_RESEND_COOLDOWN_SECONDS,
+    ROLE_LIST,
     ROLE_USER_ENTRY,
+    UNUSABLE_PASSWORD_HASH,
 )
 from app.utils.datetime_helper import to_utc_aware, utc_now
 from app.utils.exceptions import AuthError
@@ -49,34 +52,32 @@ from app.utils.text_helper import normalize_email
 GENERIC_LOGIN_ERROR = "Incorrect email or password"
 ACCOUNT_LOCKED_ERROR = f"The account is temporarily locked after too many attempts. Try again in {LOGIN_LOCK_MINUTES} minutes."
 INACTIVE_ACCOUNT_ERROR = "This account is inactive; contact an admin to reactivate it."
-# pesan OTP dipake bareng login & verifikasi daftar (cabang "email udah terdaftar" wajib pake pesan yg sama persis)
+# pesan OTP dipake bareng login & lupa password (cabang email ga terdaftar wajib pake pesan yg sama persis)
 OTP_EXPIRED_ERROR = "The OTP has expired, please request a new one"
 OTP_EXHAUSTED_ERROR = "Too many OTP attempts, please request a new one"
 OTP_WRONG_ERROR = "Incorrect OTP code"
 OTP_COOLDOWN_ERROR = "Wait a moment before requesting a new OTP"
-REGISTRATION_FINISHED_ERROR = "Registration for this email is already complete. Please log in."
+ACTIVATION_LINK_INVALID_ERROR = "This activation link is invalid or has expired. Ask the ICT admin to send a new one."
 
 def build_login_blocked_error(minute_count):
     return f"Too many login attempts. Try again in {minute_count} minutes or contact the ICT admin."
 
 
-# REGISTER
+# AKUN BARU
 #
-# Alur daftar (halaman publik):
-#   start_registration  -> percobaan daftar disimpen di pending_registrations + token di session pendaftar + kode ke email
-#   verify_registration -> kode bener -> BARU bikin akun di users
-# Email yg udah punya akun ngelewatin alur yg kerasa sama persis di layar (tanpa baris DB), pemiliknya cuma dapet email
-# pemberitahuan. Tabel users dijamin cuma berisi akun yg emailnya udah kebukti.
-
-class RegistrationFinishedError(AuthError):
-    """Kode bener, tapi email ini keburu jadi akun lewat percobaan lain. Route ngarahin ke login.
-    Aman ditampilin: cuma bisa nyampe sini kalau pegang kode yg dikirim ke email itu."""
-
+# Ga ada halaman daftar. Admin bikin akun (email + nama + role) -> status Pending Activation (belum aktif, belum punya
+# password) -> admin klik Send Activation Link -> pemilik email buka link, bikin password -> akun aktif -> login biasa.
+# Token link disimpen di otp_codes (purpose=activation) dalam bentuk sha256, token aslinya cuma ada di email.
 
 def is_allowed_email_domain(email):
     """Cek email pake domain yg diizinin (default @spindo.com)."""
     allowed_domain = current_app.config["ALLOWED_EMAIL_DOMAIN"].lower()
     return email.count("@") == 1 and email.endswith(f"@{allowed_domain}")
+
+
+def ensure_allowed_email_domain(clean_email):
+    if not is_allowed_email_domain(clean_email):
+        raise AuthError(f"Email must use the @{current_app.config['ALLOWED_EMAIL_DOMAIN']} domain")
 
 
 def build_user_audit_dict(user):
@@ -91,7 +92,7 @@ def build_user_audit_dict(user):
 
 
 def clean_profile(full_name, department, job_title):
-    """Data profil dibersihin dari tag HTML dkk & wajib keisi semua. Dipake daftar & edit profil di Settings."""
+    """Data profil dibersihin dari tag HTML dkk & wajib keisi semua. Dipake create-admin & edit profil di Settings."""
     profile_dict = {
         "full_name": sanitize_text(full_name, max_length=150),
         "department": sanitize_text(department, max_length=100),
@@ -116,48 +117,27 @@ def update_profile(user, full_name, department, job_title):
     return user
 
 
-def prepare_registration(email, password, full_name, department, job_title):
-    """Validasi isian daftar + hash password. Return (email bersih, dict profil + password_hash).
-    Sengaja ga ngecek email udah kepake atau belum di sini: pesan validasi ga boleh bocorin itu."""
-    clean_email = normalize_email(email)
-
-    # cuma email kantor yg boleh daftar
-    if not is_allowed_email_domain(clean_email):
-        raise AuthError(f"Email must use the @{current_app.config['ALLOWED_EMAIL_DOMAIN']} domain")
-
-    profile_dict = clean_profile(full_name, department, job_title)
-
-    # hash password (sekalian dicek panjang minimalnya). Selalu dijalanin, termasuk buat email yg udah terdaftar,
-    # biar lama respon daftar sama aja
-    try:
-        profile_dict["password_hash"] = hash_password(password)
-    except ValueError as error:
-        raise AuthError(str(error)) from error
-    return clean_email, profile_dict
-
-
 def find_user_by_email(clean_email):
     return db.session.execute(db.select(User).filter_by(email=clean_email)).scalar_one_or_none()
 
 
-def create_user_account(clean_email, profile_dict, role):
-    """Bikin akun + preferensi tampilan default, dicatat ke audit log. Commit-nya di pemanggil."""
+def create_user_account(clean_email, profile_dict, role, actor=None):
+    """Bikin akun + preferensi tampilan default, dicatat ke audit log (actor None = akunnya sendiri). Commit di pemanggil."""
     user = User(email=clean_email, role=role, **profile_dict)
     user.preference = UserPreference()
     db.session.add(user)
     # flush biar user.id udah keisi buat dicatat ke audit
     db.session.flush()
-    log_audit(AUDIT_ACTION_CREATE, "users", entity_id=user.id, new_data_dict=build_user_audit_dict(user), user=user)
+    log_audit(AUDIT_ACTION_CREATE, "users", entity_id=user.id, new_data_dict=build_user_audit_dict(user), user=actor or user)
     return user
 
 
 def register_user(email, password, full_name, department, job_title, role=ROLE_USER_ENTRY):
-    """Bikin akun yg LANGSUNG aktif, tanpa verifikasi email.
-
-    Dipake perintah CLI create-admin (role admin cuma bisa lewat situ) dan data test.
-    Halaman register publik pake start_registration (wajib verifikasi email dulu).
-    """
-    clean_email, profile_dict = prepare_registration(email, password, full_name, department, job_title)
+    """Bikin akun yg LANGSUNG aktif tanpa aktivasi. Cuma dipake perintah CLI create-admin dan data test."""
+    clean_email = normalize_email(email)
+    ensure_allowed_email_domain(clean_email)
+    profile_dict = clean_profile(full_name, department, job_title)
+    profile_dict["password_hash"] = hash_new_password(password)
     if find_user_by_email(clean_email) is not None:
         raise AuthError("Email is already registered")
     user = create_user_account(clean_email, profile_dict, role)
@@ -165,95 +145,93 @@ def register_user(email, password, full_name, department, job_title, role=ROLE_U
     return user
 
 
-def hash_registration_token(token):
-    """Token percobaan daftar disimpen di DB dalam bentuk hash (yg asli cuma ada di session pendaftar)."""
+def create_pending_user(actor, email, full_name, role):
+    """Admin bikin akun baru: belum aktif & belum punya password sampai pemiliknya aktivasi lewat link email.
+    Departemen & jabatan dikosongin, diisi sendiri nanti di Settings."""
+    clean_email = normalize_email(email)
+    ensure_allowed_email_domain(clean_email)
+    clean_full_name = sanitize_text(full_name, max_length=150)
+    if not clean_full_name:
+        raise AuthError("Name is required")
+    if role not in ROLE_LIST:
+        raise AuthError("Invalid role")
+    if find_user_by_email(clean_email) is not None:
+        raise AuthError("Email is already registered")
+    profile_dict = {
+        "full_name": clean_full_name, "department": "", "job_title": "",
+        "password_hash": UNUSABLE_PASSWORD_HASH, "is_active": False,
+    }
+    try:
+        user = create_user_account(clean_email, profile_dict, role, actor=actor)
+        db.session.commit()
+    except IntegrityError:
+        # 2 admin bikin email yg sama di detik yg sama
+        db.session.rollback()
+        raise AuthError("Email is already registered") from None
+    return user
+
+
+def is_pending_activation(user):
+    """Akun dari admin yg pemiliknya belum bikin password lewat link aktivasi."""
+    return user.deleted_at is None and user.password_hash == UNUSABLE_PASSWORD_HASH
+
+
+def hash_activation_token(token):
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def build_registration_state(clean_email, token):
-    """Data pendaftaran yg disimpen di session sampai kode verifikasi dimasukin.
-    sent_at & attempt_count cuma kepake buat cabang "email udah terdaftar" (biar perilakunya sama kayak kode asli)."""
-    return {"email": clean_email, "token": token, "sent_at": utc_now().timestamp(), "attempt_count": 0}
-
-
-def delete_expired_pending_registration():
-    """Buang percobaan daftar yg udah lewat 24 jam (dipanggil tiap ada yg daftar, biar tabelnya ga numpuk)."""
-    expired_before = utc_now() - timedelta(hours=PENDING_REGISTRATION_EXPIRE_HOURS)
-    db.session.execute(db.delete(PendingRegistration).where(PendingRegistration.created_at < expired_before))
-
-
-def issue_registration_code(pending):
-    """Bikin kode baru buat percobaan daftar ini (kode lama otomatis ga berlaku), simpen, baru kirim ke email.
-
-    Gagal kirim (SMTP mati) cuma dicatat di log, ga nongol di layar: cabang "email udah terdaftar" juga diem kalau
-    gagal, jadi tampilannya tetep sama (ga bocor). User tinggal klik Kirim ulang nanti.
-    Kode daftar per email dibatasi (anti spam kotak masuk orang); lewat batas = ga dikirim, layar tetep sama.
-    Batasnya dicek DULUAN: kalau udah habis, kode lama (yg udah nyampe ke email) dibiarin tetep berlaku,
-    jangan diganti kode baru yg ga pernah dikirim."""
-    is_send_allowed = auth_throttle.allow_register_code(pending.email)
-    if not is_send_allowed and pending.id is not None:
-        return
-    code = generate_otp_code()
-    now = utc_now()
-    pending.code_hash = hash_otp_code(code)
-    pending.code_expires_at = now + timedelta(minutes=OTP_EXPIRE_MINUTES)
-    pending.attempt_count = 0
-    pending.last_sent_at = now
-    db.session.add(pending)
-    db.session.commit()
-    # percobaan baru tetep disimpen walau kodenya ga dikirim, biar nanti bisa "Kirim ulang" pas batasnya lewat
-    if not is_send_allowed:
-        return
-    try:
-        send_otp_code(pending, code, OTP_PURPOSE_REGISTER)
-    except (OSError, smtplib.SMTPException, RuntimeError, ValueError):
-        current_app.logger.error("Pengiriman kode verifikasi pendaftaran gagal; periksa layanan SMTP")
-
-
-def start_registration(email, password, full_name, department, job_title):
-    """Daftar lewat halaman register. Return data buat session (build_registration_state).
-
-    Hasil di layar SELALU sama ("kode dikirim ke email kamu"), apa pun kondisi emailnya:
-    - email belum punya akun -> percobaan baru disimpen + kode dikirim. Percobaan lain buat email yg sama
-                                (punya orang lain) ga diubah sama sekali.
-    - email udah punya akun  -> akun ga diubah; pemiliknya dapet email pemberitahuan
-    """
-    clean_email, profile_dict = prepare_registration(email, password, full_name, department, job_title)
+def issue_activation_token(user):
+    """Token link aktivasi baru (link lama langsung ga berlaku). Return (token asli buat link email, baris OtpCode)."""
+    user = lock_auth_user(user)
+    db.session.execute(
+        db.update(OtpCode)
+        .where(OtpCode.user_id == user.id, OtpCode.purpose == OTP_PURPOSE_ACTIVATION, OtpCode.is_used.is_(False))
+        .values(is_used=True)
+    )
     token = secrets.token_urlsafe(32)
-    delete_expired_pending_registration()
-    user = find_user_by_email(clean_email)
-    if user is not None:
-        db.session.commit()
-        send_registration_notice_safely(user)
-        return build_registration_state(clean_email, token)
-
-    issue_registration_code(PendingRegistration(email=clean_email, token_hash=hash_registration_token(token), **profile_dict))
-    return build_registration_state(clean_email, token)
+    activation = OtpCode(
+        user_id=user.id, code_hash=hash_activation_token(token), purpose=OTP_PURPOSE_ACTIVATION,
+        expires_at=utc_now() + timedelta(hours=ACTIVATION_LINK_EXPIRE_HOURS),
+    )
+    db.session.add(activation)
+    db.session.commit()
+    return token, activation
 
 
-def send_registration_notice_safely(user):
-    """Email pemberitahuan ke pemilik akun, maksimal sekali per 10 menit. Gagal kirim cuma dicatat di log:
-    kalau error-nya nongol di layar, ketauan email ini udah terdaftar."""
-    if not auth_throttle.allow_register_notice(user.email):
-        return
-    try:
-        send_registration_notice(user)
-    except (OSError, smtplib.SMTPException, RuntimeError, ValueError):
-        current_app.logger.error("Pengiriman email pemberitahuan pendaftaran gagal; periksa layanan SMTP")
+def get_activation(token, is_lock=False):
+    """Token aktivasi yg masih berlaku + akunnya masih Pending. None kalau link salah / kepake / kedaluwarsa."""
+    if not token:
+        return None
+    query = db.select(OtpCode).where(
+        OtpCode.code_hash == hash_activation_token(token),
+        OtpCode.purpose == OTP_PURPOSE_ACTIVATION,
+        OtpCode.is_used.is_(False),
+    )
+    if is_lock:
+        query = query.with_for_update()
+    activation = db.session.execute(query).scalar_one_or_none()
+    if activation is None or to_utc_aware(activation.expires_at) < utc_now():
+        return None
+    user = db.session.get(User, activation.user_id)
+    return activation if user is not None and is_pending_activation(user) else None
 
 
-def get_pending_registration(state):
-    """Percobaan daftar milik session ini (dikunci barisnya biar verifikasi bareng-bareng ga dobel). None kalau ga ada."""
-    return db.session.execute(
-        db.select(PendingRegistration)
-        .where(PendingRegistration.token_hash == hash_registration_token(state["token"]),
-               PendingRegistration.email == state["email"])
-        .with_for_update()
-    ).scalar_one_or_none()
+def activate_account(token, new_password):
+    """Pemilik email bikin password dari link aktivasi -> akun aktif. Return User. Login-nya tetep lewat password + OTP."""
+    password_hash = hash_new_password(new_password)
+    activation = get_activation(token, is_lock=True)
+    if activation is None:
+        raise AuthError(ACTIVATION_LINK_INVALID_ERROR)
+    user = lock_auth_user(db.session.get(User, activation.user_id))
+    user.is_active = True
+    # token aktivasi ikut hangus di apply_new_password (semua kode aktif user ini)
+    apply_new_password(user, password_hash, "activation")
+    db.session.commit()
+    return user
 
 
-def check_registration_without_account(state):
-    """Cabang "email udah terdaftar": ga ada kode yg bener, tapi pesan, batas percobaan, & kedaluwarsanya
+def check_code_without_account(state):
+    """Lupa password buat email tanpa akun aktif: ga ada kode yg bener, tapi pesan, batas percobaan, & kedaluwarsanya
     dibikin sama persis kayak kode asli. Selalu lempar AuthError; hitungannya disimpen di state (session)."""
     sent_at = datetime.fromtimestamp(state["sent_at"], tz=timezone.utc)
     if state["attempt_count"] >= OTP_MAX_ATTEMPT_COUNT or sent_at + timedelta(minutes=OTP_EXPIRE_MINUTES) < utc_now():
@@ -262,56 +240,6 @@ def check_registration_without_account(state):
     if state["attempt_count"] >= OTP_MAX_ATTEMPT_COUNT:
         raise AuthError(OTP_EXHAUSTED_ERROR)
     raise AuthError(OTP_WRONG_ERROR)
-
-
-def verify_registration(state, code):
-    """Cek kode verifikasi daftar. Bener -> akun dibikin pake data percobaan INI (bukan percobaan lain), return User.
-    Salah kode di sini ga ngunci akun siapa pun (akunnya emang belum ada)."""
-    pending = get_pending_registration(state)
-    if pending is None:
-        check_registration_without_account(state)
-    if pending.attempt_count >= OTP_MAX_ATTEMPT_COUNT or to_utc_aware(pending.code_expires_at) < utc_now():
-        raise AuthError(OTP_EXPIRED_ERROR)
-    if not is_otp_code_match(code, pending.code_hash):
-        pending.attempt_count += 1
-        db.session.commit()
-        raise AuthError(OTP_EXHAUSTED_ERROR if pending.attempt_count >= OTP_MAX_ATTEMPT_COUNT else OTP_WRONG_ERROR)
-
-    clean_email = pending.email
-    profile_dict = {key: getattr(pending, key) for key in ("full_name", "department", "job_title", "password_hash")}
-    # cuma percobaan INI yg dihapus. Percobaan lain buat email yg sama dibiarin sampe kedaluwarsa (24 jam):
-    # kalau pemiliknya masukin kode bener di situ -> "sudah selesai, silakan login", bukan "kode salah" yg bikin bingung
-    db.session.delete(pending)
-    if find_user_by_email(clean_email) is not None:
-        db.session.commit()
-        raise RegistrationFinishedError(REGISTRATION_FINISHED_ERROR)
-    try:
-        user = create_user_account(clean_email, profile_dict, ROLE_USER_ENTRY)
-        db.session.commit()
-    except IntegrityError:
-        # 2 percobaan sah diverifikasi di detik yg sama: yg kalah diarahin login
-        db.session.rollback()
-        raise RegistrationFinishedError(REGISTRATION_FINISHED_ERROR) from None
-    return user
-
-
-def resend_registration_code(state):
-    """Kirim ulang kode verifikasi daftar (jeda 60 dtk). Cabang "email udah terdaftar" ngirim ulang
-    email pemberitahuan (tetep dibatasi 10 menit). state di-reset kayak kode baru."""
-    sent_at = datetime.fromtimestamp(state["sent_at"], tz=timezone.utc)
-    if sent_at + timedelta(seconds=OTP_RESEND_COOLDOWN_SECONDS) > utc_now():
-        raise AuthError(OTP_COOLDOWN_ERROR)
-    pending = get_pending_registration(state)
-    if pending is not None:
-        if to_utc_aware(pending.last_sent_at) + timedelta(seconds=OTP_RESEND_COOLDOWN_SECONDS) > utc_now():
-            raise AuthError(OTP_COOLDOWN_ERROR)
-        issue_registration_code(pending)
-    else:
-        user = find_user_by_email(state["email"])
-        if user is not None:
-            send_registration_notice_safely(user)
-    state["sent_at"] = utc_now().timestamp()
-    state["attempt_count"] = 0
 
 
 # LOGIN LANGKAH 1: EMAIL + PASSWORD
@@ -515,7 +443,7 @@ def verify_otp_code(user, otp_code):
 
 # LUPA PASSWORD & GANTI PASSWORD
 #
-# Lupa password ngikutin pola daftar: layar SELALU sama ("kalau terdaftar, kode udah dikirim"), state di session,
+# Layar lupa password SELALU sama ("kalau terdaftar, kode udah dikirim"), state di session,
 # email yg ga punya akun aktif ngelewatin alur palsu yg pesannya sama persis. Kode reset disimpen di otp_codes
 # (purpose=reset), kepisah dari OTP login. Salah kode reset sengaja ga ngunci akun: kalau ngunci, orang iseng tinggal
 # minta reset ke email orang lain terus salahin kodenya. Tebakan udah kebatas per kode (OTP_MAX_ATTEMPT_COUNT) & per email.
@@ -563,8 +491,7 @@ def start_password_reset(email):
     ponytail: lama kirim email (SMTP) masih bisa beda dikit antara email terdaftar & nggak; kalau perlu ditutup,
     kirim emailnya lewat antrean/worker biar respon langsung balik."""
     clean_email = normalize_email(email)
-    if not is_allowed_email_domain(clean_email):
-        raise AuthError(f"Email must use the @{current_app.config['ALLOWED_EMAIL_DOMAIN']} domain")
+    ensure_allowed_email_domain(clean_email)
     user = find_resettable_user(clean_email)
     if user is not None:
         issue_password_reset_code(user)
@@ -621,8 +548,7 @@ def reset_password(state, code, new_password):
         raise AuthError(RESET_BLOCKED_ERROR)
     user = find_resettable_user(state["email"])
     if user is None:
-        # ga ada akun: pesan, batas percobaan, & kedaluwarsanya dibikin sama persis kayak kode asli (selalu gagal)
-        check_registration_without_account(state)
+        check_code_without_account(state)
     user = lock_auth_user(user)
     reset_otp = get_latest_otp(user.id, is_unused_only=True, purpose=OTP_PURPOSE_RESET)
     if reset_otp is None or to_utc_aware(reset_otp.expires_at) < utc_now():

@@ -45,10 +45,11 @@ await runScenario("table", async ({ info }) => {
   await waitFor(`!location.search.includes("page=2") && ${rowCount} === 10`);
   check("Back -> balik ke halaman 1", (await evaluate("location.search")) === "?run=1&sort=title&title=router*", await evaluate("location.search"));
 
-  // keyboard
-  await evaluate(`document.querySelector("#daftar_link tbody tr[data-row-url]").focus(); true`);
+  // baris aktif cuma lewat klik (shortcut panah udah dihapus)
+  await clickSelector('#daftar_link tbody tr[data-row-url]:nth-child(2) td[data-column="owner"]');
+  check("klik baris ke-2 -> baris itu aktif", await evaluate(`document.querySelectorAll("#daftar_link tbody tr[data-row-url]")[1].classList.contains("is-active")`));
   await pressKey("ArrowDown", "ArrowDown", 40);
-  check("panah bawah -> baris ke-2 aktif", await evaluate(`document.querySelectorAll("#daftar_link tbody tr[data-row-url]")[1].classList.contains("is-active") && document.activeElement === document.querySelectorAll("#daftar_link tbody tr[data-row-url]")[1]`));
+  check("panah bawah ga mindahin baris aktif", await evaluate(`!document.querySelectorAll("#daftar_link tbody tr[data-row-url]")[2].classList.contains("is-active")`));
 
   // menu klik kanan: harus muncul pas di titik klik (bug lama: kegeser karena animasi transform kartu)
   const clickPoint = await clickSelector('#daftar_link tbody tr[data-row-url]:nth-child(2) td[data-column="owner"]', "right");
@@ -92,7 +93,7 @@ await runScenario("table", async ({ info }) => {
   await waitFor(`${rowCount} > 0`);
   await evaluate(`document.querySelector("#daftar_link tbody tr[data-row-url] td[data-column=title] a").click(); true`);
   await waitFor(`location.pathname.startsWith("/entries/") && location.pathname !== "/entries/" && document.readyState === "complete"`);
-  const backHref = await evaluate(`document.querySelector(".app-toolbar a[data-fkey='F3']")?.getAttribute("href")`);
+  const backHref = await evaluate(`document.querySelector(".app-toolbar a[title='Back to the previous screen']")?.getAttribute("href")`);
   check("tombol Kembali di detail balik ke tabel + filter", backHref === "/entries/?run=1&title=portal*#daftar_link", backHref);
 
   // sesi habis: logout di "tab lain" lalu urutkan
