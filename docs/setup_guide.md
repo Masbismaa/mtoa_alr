@@ -1,6 +1,6 @@
 # Panduan Setup Lokal MTOA ALR
 
-Panduan ini buat laptop developer (Windows, PowerShell). Untuk server production, lihat [deploy.md](deploy.md).
+Panduan ini buat laptop developer (Windows, PowerShell). Untuk server Linux (uji coba / production), lihat [deploy.md](deploy.md).
 
 ## 1. Python & library
 

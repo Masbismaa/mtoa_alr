@@ -9,7 +9,6 @@ from app.extensions import db
 from app.models import AccessEntry, Attachment, User
 from app.security.access_policy import build_visible_entry_filter
 from app.security.file_validator import clean_display_filename, detect_content_type
-from app.security.upload_scanner import scan_upload
 from app.utils.constants import ATTACHMENT_MAX_COUNT, ATTACHMENT_MAX_SIZE_BYTES
 from app.utils.exceptions import ValidationError, build_error
 
@@ -59,7 +58,6 @@ def prepare_upload_list(file_storage_list, existing_count=0):
 
         try:
             extension, content_type = detect_content_type(display_name, content_bytes)
-            scan_upload(content_bytes)
         except ValueError as error:
             error_list.append(build_error(ATTACHMENT_FIELD, f"{display_name}: {error}"))
             continue

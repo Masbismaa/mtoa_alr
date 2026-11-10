@@ -35,21 +35,14 @@ def check_upload_folder():
     return os.access(get_upload_folder(), os.W_OK)
 
 
-def check_scanner():
-    from app.security.upload_scanner import ping_scanner
-
-    return ping_scanner()
-
-
 READINESS_CHECK_DICT = {
     "database": check_database,
     "limit_storage": check_limit_storage,
     "upload_folder": check_upload_folder,
-    "upload_scanner": check_scanner,
 }
 
 
-# hasil cek disimpen sebentar per proses: dipanggil beruntun ga bikin DB/Redis/ClamAV kebanjiran. Sengaja bukan
+# hasil cek disimpen sebentar per proses: dipanggil beruntun ga bikin DB/Redis kebanjiran. Sengaja bukan
 # rate limiter (Flask-Limiter nyimpen hitungan di Redis, yg justru lagi dicek: Redis mati = 500, bukan laporan 503)
 READINESS_CACHE_SECONDS = 5
 readiness_cache = {"expires_at": 0.0, "response": None}
@@ -70,8 +63,7 @@ def readiness_check():
         except Exception:  # noqa: BLE001 - layanan putus apa pun bentuk error-nya = belum siap
             current_app.logger.exception("Readiness check %s gagal", name)
             is_ok = False
-        # None = belum diatur di environment ini (misal scanner di laptop), ga dianggap gagal
-        result_dict[name] = "skipped" if is_ok is None else ("ok" if is_ok else "failed")
+        result_dict[name] = "ok" if is_ok else "failed"
     is_ready = "failed" not in result_dict.values()
     response = ({"status": "ready" if is_ready else "not_ready", "checks": result_dict}, 200 if is_ready else 503)
     readiness_cache.update(expires_at=time.monotonic() + READINESS_CACHE_SECONDS, response=response)

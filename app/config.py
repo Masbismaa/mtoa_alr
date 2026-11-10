@@ -63,9 +63,6 @@ class BaseConfig:
     LINK_CHECK_ALLOW_PRIVATE_NETWORKS = os.environ.get("LINK_CHECK_ALLOW_PRIVATE_NETWORKS", "false").lower() == "true"
     LINK_CHECK_CA_FILE = os.environ.get("LINK_CHECK_CA_FILE") or None
     UPLOAD_USER_QUOTA_BYTES = int(os.environ.get("UPLOAD_USER_QUOTA_BYTES", str(500 * 1024 * 1024)))
-    UPLOAD_SCANNER_HOST = os.environ.get("UPLOAD_SCANNER_HOST", "")
-    UPLOAD_SCANNER_PORT = int(os.environ.get("UPLOAD_SCANNER_PORT", "3310"))
-    UPLOAD_SCANNER_TIMEOUT_SECONDS = 15
 
     # Rate limit (anti brute force)
     RATELIMIT_ENABLED = True
@@ -86,8 +83,9 @@ class ProductionConfig(BaseConfig):
 
     DEBUG = False
     IS_PRODUCTION = True
-    SESSION_COOKIE_SECURE = True
-    # server uji yg pake config produksi bisa ngisi APP_ENV_LABEL=TEST di .env
+    # cookie login cuma lewat HTTPS. Server QAS yg masih HTTP biasa boleh ngisi SESSION_COOKIE_SECURE=false di .env
+    SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "true").lower() != "false"
+    # server uji yg pake config produksi bisa ngisi APP_ENV_LABEL=QAS di .env
     APP_ENV_LABEL = os.environ.get("APP_ENV_LABEL", "PROD")
 
 class TestingConfig(BaseConfig):
@@ -106,7 +104,6 @@ class TestingConfig(BaseConfig):
     ALLOWED_EMAIL_DOMAIN = "spindo.com"
     OTP_DELIVERY_MODE = "console"
     LINK_CHECK_ALLOW_PRIVATE_NETWORKS = False
-    UPLOAD_SCANNER_HOST = ""
     SMTP_CERT_SHA256 = ""
     SMTP_SECURITY = "starttls"
     SMTP_PORT = 587
