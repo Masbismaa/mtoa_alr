@@ -1,4 +1,4 @@
-# Deploy ALR ke Server UAT (192.168.0.57)
+# Deploy ALR ke Server QAS (192.168.0.57)
 
 Dijalankan di terminal server lewat MobaXterm (SSH). Polanya sama dengan aplikasi lain di server ini
 (`ict-pgg-web`): kode di folder home user, Gunicorn lewat Unix socket, dijalankan `systemd`, diteruskan nginx.
@@ -20,7 +20,7 @@ Butuh deploy key server yg udah didaftarin di GitLab (Settings â†’ Repository â†
 
 ```bash
 cd ~
-git clone -b feature/intramail git@192.168.0.58:ict_group/ict-alr-web.git alr
+git clone git@192.168.0.58:ict_group/ict-alr-web.git alr
 cd ~/alr
 python3.13 -m venv .venv
 .venv/bin/pip install -r requirements.txt
@@ -38,12 +38,12 @@ Isi minimal:
 
 ```ini
 APP_ENV=production
-APP_ENV_LABEL=TEST
-# UAT masih HTTP, jadi cookie login boleh lewat HTTP. Production (HTTPS) jangan isi baris ini
+APP_ENV_LABEL=QAS
+# QAS masih HTTP, jadi cookie login boleh lewat HTTP. Production (HTTPS) jangan isi baris ini
 SESSION_COOKIE_SECURE=false
 SECRET_KEY=<hasil: python3.13 -c "import secrets; print(secrets.token_hex(32))">
 ENCRYPTION_KEY=<hasil: .venv/bin/python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())">
-DATABASE_URL=postgresql+psycopg://alr_uat:PASSWORD@localhost:5432/db_alr_uat
+DATABASE_URL=postgresql+psycopg://alr_qas:PASSWORD@localhost:5432/db_alr_qas
 OTP_DELIVERY_MODE=smtp
 SMTP_HOST=intramail.dnsalias.com
 SMTP_PORT=465
@@ -60,8 +60,8 @@ TRUSTED_PROXY_COUNT=1
 ## 4. Database & admin pertama
 
 ```bash
-sudo -u postgres createuser --pwprompt alr_uat
-sudo -u postgres createdb -O alr_uat db_alr_uat
+sudo -u postgres createuser --pwprompt alr_qas
+sudo -u postgres createdb -O alr_qas db_alr_qas
 cd ~/alr
 .venv/bin/flask --app run db upgrade
 .venv/bin/flask --app run seed-categories
@@ -125,12 +125,12 @@ curl -s --unix-socket /run/alr/alr.sock http://localhost/health/ready   # semua 
 
 ## 6. nginx
 
-`sudo nano /etc/nginx/sites-available/alr-uat`:
+`sudo nano /etc/nginx/sites-available/alr-qas`:
 
 ```nginx
 server {
     listen 80;
-    server_name alr-uat.spindo.com;
+    server_name alr-qas.spindo.com;
 
     server_tokens off;
 
@@ -161,14 +161,14 @@ server {
 ```
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/alr-uat /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/alr-qas /etc/nginx/sites-enabled/
 # nginx -t gagal = jangan reload, situs lain tetap jalan
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
 Nginx (user `www-data`) harus bisa baca folder static: `chmod 755 /home/bisma` kalau halaman tampil tanpa CSS.
-Nama `alr-uat.spindo.com` perlu didaftarkan ke DNS kantor (minta ke infra), sementara bisa dites lewat
-file hosts di laptop: `192.168.0.57 alr-uat.spindo.com`.
+Nama `alr-qas.spindo.com` perlu didaftarkan ke DNS kantor (minta ke infra), sementara bisa dites lewat
+file hosts di laptop: `192.168.0.57 alr-qas.spindo.com`.
 
 ## Update versi baru
 

@@ -104,7 +104,7 @@ def test_readiness_reports_redis_down_as_503(monkeypatch):
 
 @pytest.mark.parametrize("raw_value, is_secure", [(None, True), ("true", True), ("false", False), ("FALSE", False)])
 def test_production_session_cookie_secure_from_env(raw_value, is_secure):
-    """Positive: production default cookie HTTPS-only; UAT yg masih HTTP bisa matiin lewat SESSION_COOKIE_SECURE=false.
+    """Positive: production default cookie HTTPS-only; QAS yg masih HTTP bisa matiin lewat SESSION_COOKIE_SECURE=false.
     Dicek di proses terpisah biar config modul test lain ga ikut keganti."""
     import os
     import subprocess

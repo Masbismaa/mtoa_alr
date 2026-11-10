@@ -83,9 +83,9 @@ class ProductionConfig(BaseConfig):
 
     DEBUG = False
     IS_PRODUCTION = True
-    # cookie login cuma lewat HTTPS. Server UAT yg masih HTTP biasa boleh ngisi SESSION_COOKIE_SECURE=false di .env
+    # cookie login cuma lewat HTTPS. Server QAS yg masih HTTP biasa boleh ngisi SESSION_COOKIE_SECURE=false di .env
     SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "true").lower() != "false"
-    # server uji yg pake config produksi bisa ngisi APP_ENV_LABEL=TEST di .env
+    # server uji yg pake config produksi bisa ngisi APP_ENV_LABEL=QAS di .env
     APP_ENV_LABEL = os.environ.get("APP_ENV_LABEL", "PROD")
 
 class TestingConfig(BaseConfig):
