@@ -1,47 +1,49 @@
-# Deploy ALR di Server Linux
+# Deploy ALR ke Server UAT (192.168.0.57)
 
-Langkah ini dijalankan di terminal server (misalnya lewat MobaXterm / SSH). Contoh perintah untuk Ubuntu/Debian.
-Ganti `/opt/alr` dan user `alr` kalau lokasinya beda.
+Dijalankan di terminal server lewat MobaXterm (SSH). Polanya sama dengan aplikasi lain di server ini
+(`ict-pgg-web`): kode di folder home user, Gunicorn lewat Unix socket, dijalankan `systemd`, diteruskan nginx.
+Contoh di bawah pakai user `bisma` dan folder `/home/bisma/alr`.
 
-## Yang dibutuhkan server
+## 1. Sekali di awal: Redis
 
-| Layanan | Kenapa wajib |
-|---|---|
-| Python 3.13 + venv | menjalankan aplikasi |
-| PostgreSQL + `postgresql-client` | database; `pg_dump`/`pg_restore` dipakai fitur backup |
-| Redis | rate limit & blokir salah login dibagi ke semua proses gunicorn (aplikasi menolak start tanpa ini) |
-| nginx + sertifikat HTTPS | cookie login production cuma dikirim lewat HTTPS. Lewat `http://` login **tidak akan bisa** |
+Rate limit & blokir salah login dibagi ke semua proses Gunicorn lewat Redis (aplikasi menolak start tanpa ini).
 
 ```bash
-# Ubuntu 22.04 bawaannya Python 3.10, versi 3.13 dari PPA deadsnakes (dipasang di samping, python3 sistem ga berubah)
-sudo add-apt-repository -y ppa:deadsnakes/ppa
-sudo apt install python3.13 python3.13-venv postgresql-client redis-server nginx
+sudo apt install -y redis-server python3.13-venv
 sudo systemctl enable --now redis-server
+redis-cli ping   # harus PONG
 ```
 
-Redis cukup dengar di `127.0.0.1`, jangan dibuka ke jaringan.
+## 2. Ambil kode
 
-## 1. Kode & library
+Butuh deploy key server yg udah didaftarin di GitLab (Settings → Repository → Deploy keys, tanpa write access).
 
 ```bash
-sudo useradd --system --home /opt/alr alr
-sudo git clone <url-repo> /opt/alr && sudo chown -R alr: /opt/alr
-cd /opt/alr
-sudo -u alr python3.13 -m venv .venv
-sudo -u alr .venv/bin/pip install -r requirements.txt
+cd ~
+git clone -b feature/intramail git@192.168.0.58:ict_group/ict-alr-web.git alr
+cd ~/alr
+python3.13 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
-## 2. File `.env`
+## 3. File `.env`
 
-Salin `.env.example` ke `.env`, lalu isi minimal:
+```bash
+cp .env.example .env
+chmod 600 .env
+nano .env
+```
+
+Isi minimal:
 
 ```ini
 APP_ENV=production
-# server uji coba: label TEST tampil di layar biar ga ketuker sama production
 APP_ENV_LABEL=TEST
-SECRET_KEY=<generate baru, jangan pakai punya laptop>
-ENCRYPTION_KEY=<generate baru; simpan juga di tempat aman, backup tanpa kunci ini tidak bisa dibaca>
-DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/db_ict_alr
+# UAT masih HTTP, jadi cookie login boleh lewat HTTP. Production (HTTPS) jangan isi baris ini
+SESSION_COOKIE_SECURE=false
+SECRET_KEY=<hasil: python3.13 -c "import secrets; print(secrets.token_hex(32))">
+ENCRYPTION_KEY=<hasil: .venv/bin/python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())">
+DATABASE_URL=postgresql+psycopg://alr_uat:PASSWORD@localhost:5432/db_alr_uat
 OTP_DELIVERY_MODE=smtp
 SMTP_HOST=intramail.dnsalias.com
 SMTP_PORT=465
@@ -55,40 +57,47 @@ RATELIMIT_STORAGE_URI=redis://127.0.0.1:6379/0
 TRUSTED_PROXY_COUNT=1
 ```
 
-```bash
-sudo chmod 600 /opt/alr/.env && sudo chown alr: /opt/alr/.env
-```
-
-## 3. Database & admin pertama
+## 4. Database & admin pertama
 
 ```bash
-cd /opt/alr
-sudo -u alr .venv/bin/flask --app run db upgrade
-sudo -u alr .venv/bin/flask --app run seed-categories
-sudo -u alr .venv/bin/flask --app run create-admin
+sudo -u postgres createuser --pwprompt alr_uat
+sudo -u postgres createdb -O alr_uat db_alr_uat
+cd ~/alr
+.venv/bin/flask --app run db upgrade
+.venv/bin/flask --app run seed-categories
+.venv/bin/flask --app run create-admin
 ```
 
-## 4. Service web & worker (systemd)
+## 5. Service web & worker
 
-`/etc/systemd/system/alr-web.service`:
+`sudo nano /etc/systemd/system/alr.service`:
 
 ```ini
 [Unit]
-Description=ALR web
+Description=Gunicorn ALR App (Python 3.13 venv)
 After=network.target postgresql.service redis-server.service
 
 [Service]
-User=alr
-WorkingDirectory=/opt/alr
-# port 8010: 8000 di server uji sudah dipakai Docker. timeout 300 dtk: backup & restore database jalan di dalam request
-ExecStart=/opt/alr/.venv/bin/gunicorn --bind 127.0.0.1:8010 --workers 3 --timeout 300 run:app
+User=bisma
+Group=www-data
+WorkingDirectory=/home/bisma/alr
+Environment="PATH=/home/bisma/alr/.venv/bin"
+EnvironmentFile=/home/bisma/alr/.env
+RuntimeDirectory=alr
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=yes
+# timeout 300 dtk: backup & restore database jalan di dalam request
+ExecStart=/home/bisma/alr/.venv/bin/gunicorn -w 3 --timeout 300 -b unix:/run/alr/alr.sock run:app
+Umask=007
 Restart=always
+RestartSec=3
+ExecReload=/bin/kill -s HUP $MAINPID
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-`/etc/systemd/system/alr-monitor.service` (worker cek link, tombol "Cek Semua" cuma mengantrekan):
+`sudo nano /etc/systemd/system/alr-monitor.service` (worker cek link, tombol "Cek Semua" cuma mengantrekan):
 
 ```ini
 [Unit]
@@ -96,10 +105,12 @@ Description=ALR link monitor worker
 After=network.target postgresql.service
 
 [Service]
-User=alr
-WorkingDirectory=/opt/alr
-ExecStart=/opt/alr/.venv/bin/flask --app run monitor-worker
+User=bisma
+WorkingDirectory=/home/bisma/alr
+EnvironmentFile=/home/bisma/alr/.env
+ExecStart=/home/bisma/alr/.venv/bin/flask --app run monitor-worker
 Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
@@ -107,58 +118,73 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now alr-web alr-monitor
-curl -s http://127.0.0.1:8010/health/ready   # semua harus "ok"
+sudo systemctl enable --now alr alr-monitor
+systemctl is-active alr alr-monitor
+curl -s --unix-socket /run/alr/alr.sock http://localhost/health/ready   # semua harus "ok"
 ```
 
-## 5. nginx (HTTPS)
+## 6. nginx
 
-`/etc/nginx/sites-available/alr`:
+`sudo nano /etc/nginx/sites-available/alr-uat`:
 
 ```nginx
 server {
-    listen 443 ssl;
-    server_name alr.contoh.local;
-    ssl_certificate     /etc/ssl/alr/alr.crt;
-    ssl_certificate_key /etc/ssl/alr/alr.key;
+    listen 80;
+    server_name alr-uat.spindo.com;
+
+    server_tokens off;
+
     # samakan dengan MAX_CONTENT_LENGTH aplikasi (5 lampiran x 10 MB)
     client_max_body_size 55m;
 
+    access_log /var/log/nginx/alr-access.log;
+    error_log /var/log/nginx/alr-error.log warn;
+
     location / {
-        proxy_pass http://127.0.0.1:8010;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header X-Forwarded-Proto https;
+        include /etc/nginx/proxy_params;
+        proxy_pass http://unix:/run/alr/alr.sock;
+        proxy_connect_timeout 5s;
         proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
     }
-}
-server {
-    listen 80;
-    server_name alr.contoh.local;
-    return 301 https://$host$request_uri;
+
+    location /static/ {
+        alias /home/bisma/alr/app/static/;
+        access_log off;
+        expires 1h;
+    }
+
+    location ~ /\.(?!well-known/) {
+        return 404;
+    }
 }
 ```
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/alr /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/alr-uat /etc/nginx/sites-enabled/
+# nginx -t gagal = jangan reload, situs lain tetap jalan
 sudo nginx -t && sudo systemctl reload nginx
 ```
+
+Nginx (user `www-data`) harus bisa baca folder static: `chmod 755 /home/bisma` kalau halaman tampil tanpa CSS.
+Nama `alr-uat.spindo.com` perlu didaftarkan ke DNS kantor (minta ke infra), sementara bisa dites lewat
+file hosts di laptop: `192.168.0.57 alr-uat.spindo.com`.
 
 ## Update versi baru
 
 ```bash
-cd /opt/alr
-sudo -u alr .venv/bin/flask --app run backup --only database
-sudo -u alr git pull
-sudo -u alr .venv/bin/pip install -r requirements.txt
-sudo -u alr .venv/bin/flask --app run db upgrade
-sudo systemctl restart alr-web alr-monitor
+cd ~/alr
+.venv/bin/flask --app run backup --only database
+git pull
+.venv/bin/pip install -r requirements.txt
+.venv/bin/flask --app run db upgrade
+sudo systemctl restart alr alr-monitor
 ```
 
 ## Kalau ada masalah
 
 ```bash
-sudo journalctl -u alr-web -n 100      # log aplikasi
+sudo journalctl -u alr -n 100          # log aplikasi
 sudo journalctl -u alr-monitor -n 100  # log worker
-curl -s http://127.0.0.1:8010/health/ready
+sudo tail -50 /var/log/nginx/alr-error.log
 ```

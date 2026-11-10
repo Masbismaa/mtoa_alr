@@ -99,3 +99,21 @@ def test_readiness_reports_redis_down_as_503(monkeypatch):
     response = create_app("testing").test_client().get("/health/ready")
     assert response.status_code == 503
     assert response.get_json()["checks"]["limit_storage"] == "failed"
+
+
+
+@pytest.mark.parametrize("raw_value, is_secure", [(None, True), ("true", True), ("false", False), ("FALSE", False)])
+def test_production_session_cookie_secure_from_env(raw_value, is_secure):
+    """Positive: production default cookie HTTPS-only; UAT yg masih HTTP bisa matiin lewat SESSION_COOKIE_SECURE=false.
+    Dicek di proses terpisah biar config modul test lain ga ikut keganti."""
+    import os
+    import subprocess
+    import sys
+    env = {key: value for key, value in os.environ.items() if key != "SESSION_COOKIE_SECURE"}
+    if raw_value is not None:
+        env["SESSION_COOKIE_SECURE"] = raw_value
+    output = subprocess.run(
+        [sys.executable, "-c", "from app.config import ProductionConfig as c; print(c.SESSION_COOKIE_SECURE)"],
+        env=env, capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    assert output == str(is_secure)
