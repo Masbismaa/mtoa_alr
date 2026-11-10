@@ -22,7 +22,7 @@ from tests.test_keamanan_login_aktivasi import NEW_EMAIL, normalize_page
 
 NEW_PASSWORD = "PasswordBaru456"
 # baris judul email di output mode console (judulnya juga muncul di isi email, jadi yg dihitung baris ini)
-RESET_EMAIL_LINE = "ALR password reset code ====="
+RESET_EMAIL_LINE = "Kode reset password ALR ====="
 
 
 def as_client(client):
@@ -78,7 +78,7 @@ def test_reset_password_full_flow(client, registered_user, fixed_otp_code, capsy
     assert auth_service.authenticate_user(user.email, NEW_PASSWORD).id == user.id
     assert [log.new_data for log in find_audit(AUDIT_ACTION_PASSWORD_CHANGE)] == [{"method": "reset"}]
     assert db.session.execute(db.select(UserNotification).filter_by(user_id=user.id)).scalars().first() is not None
-    assert "ALR password changed" in capsys.readouterr().out
+    assert "Password ALR Anda telah diganti" in capsys.readouterr().out
 
 
 def test_reset_logs_out_other_sessions(app, registered_user, fixed_otp_code):
@@ -169,7 +169,7 @@ def test_change_password_keeps_this_session_and_logs_out_others(app, registered_
     assert "/auth/login" in as_client(other_session).get("/").location
     assert auth_service.authenticate_user(registered_user.email, NEW_PASSWORD).id == registered_user.id
     assert [log.new_data for log in find_audit(AUDIT_ACTION_PASSWORD_CHANGE)] == [{"method": "settings"}]
-    assert "ALR password changed" in capsys.readouterr().out
+    assert "Password ALR Anda telah diganti" in capsys.readouterr().out
 
 
 def test_change_password_wrong_current_counts_toward_block(app, logged_in_client, registered_user):

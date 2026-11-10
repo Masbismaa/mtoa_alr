@@ -1,4 +1,6 @@
 """Regresi replay cookie, pengiriman OTP, SSRF, kuota, dan pemindaian lampiran."""
+import hashlib
+import re
 import socket
 import ssl
 from unittest.mock import MagicMock
@@ -71,6 +73,22 @@ def test_smtp_encrypts_before_authentication(app, registered_user, monkeypatch):
     assert connection.send_message.call_args.args[0]["To"] == registered_user.email
 
 
+@pytest.mark.parametrize("pin, sent", [(hashlib.sha256(b"cert-der").hexdigest(), True), ("0" * 64, False)])
+def test_smtp_pinned_cert_checked_before_login(app, registered_user, monkeypatch, pin, sent):
+    app.config.update(OTP_DELIVERY_MODE="smtp", SMTP_HOST="mail.test", SMTP_FROM="otp@test.local", SMTP_SECURITY="ssl",
+                      SMTP_PORT=465, SMTP_USERNAME="relay-user", SMTP_PASSWORD="dummy", SMTP_CERT_SHA256=pin)
+    connection = MagicMock()
+    connection.__enter__.return_value = connection
+    connection.sock.getpeercert.return_value = b"cert-der"
+    monkeypatch.setattr(notification_service.smtplib, "SMTP_SSL", MagicMock(return_value=connection))
+    if sent:
+        notification_service.send_otp_code(registered_user, "123456")
+    else:
+        with pytest.raises(ssl.SSLError):
+            notification_service.send_otp_code(registered_user, "123456")
+    assert connection.login.called is sent and connection.send_message.called is sent
+
+
 @pytest.mark.parametrize("ip", ["10.0.0.1", "192.168.1.1", "fc00::1", "100.100.100.200", "2002:7f00:1::"])
 def test_non_public_targets_blocked_by_default(ip):
     with pytest.raises(LinkTargetBlockedError):
@@ -125,3 +143,19 @@ def test_security_headers_and_no_cache(client):
     assert response.headers["X-Frame-Options"] == "DENY"
     assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
     assert response.headers["Cache-Control"] == "private, no-store"
+
+
+def test_email_has_html_signature_and_escapes_name(app, registered_user, monkeypatch):
+    app.config.update(OTP_DELIVERY_MODE="smtp", SMTP_HOST="mail.test", SMTP_FROM="otp@test.local")
+    connection = MagicMock()
+    connection.__enter__.return_value = connection
+    monkeypatch.setattr(notification_service.smtplib, "SMTP", MagicMock(return_value=connection))
+    registered_user.full_name = "<b>Budi</b>"
+    notification_service.send_activation_link(registered_user, "http://localhost/auth/activate/abc")
+    message = connection.send_message.call_args.args[0]
+    text = message.get_body(("plain",)).get_content()
+    html = message.get_body(("html",)).get_content()
+    assert "ICT SPINDO" in text and "ICT SPINDO" in re.sub(r"<[^>]+>", "", html)
+    assert "http://localhost/auth/activate/abc" in text and 'href="http://localhost/auth/activate/abc"' in html
+    assert "<b>Budi</b>" not in html and "&lt;b&gt;Budi&lt;/b&gt;" in html
+    assert 'src="cid:spindo-logo"' in html and any(part["Content-ID"] == "<spindo-logo>" for part in message.walk())

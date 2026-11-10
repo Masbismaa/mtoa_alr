@@ -56,6 +56,8 @@ class BaseConfig:
     SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "")
     SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
     SMTP_FROM = os.environ.get("SMTP_FROM", "")
+    # SHA-256 sertifikat mail server self-signed (boleh pakai titik dua); kosong = verifikasi CA biasa
+    SMTP_CERT_SHA256 = os.environ.get("SMTP_CERT_SHA256", "").replace(":", "").strip().lower()
     SMTP_TIMEOUT_SECONDS = 10
     TRUSTED_PROXY_COUNT = int(os.environ.get("TRUSTED_PROXY_COUNT", "0"))
     LINK_CHECK_ALLOW_PRIVATE_NETWORKS = os.environ.get("LINK_CHECK_ALLOW_PRIVATE_NETWORKS", "false").lower() == "true"
@@ -105,6 +107,9 @@ class TestingConfig(BaseConfig):
     OTP_DELIVERY_MODE = "console"
     LINK_CHECK_ALLOW_PRIVATE_NETWORKS = False
     UPLOAD_SCANNER_HOST = ""
+    SMTP_CERT_SHA256 = ""
+    SMTP_SECURITY = "starttls"
+    SMTP_PORT = 587
     TRUSTED_PROXY_COUNT = 0
     UPLOAD_USER_QUOTA_BYTES = 500 * 1024 * 1024
     RATELIMIT_STORAGE_URI = "memory://"
