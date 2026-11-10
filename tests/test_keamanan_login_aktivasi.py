@@ -253,7 +253,7 @@ def test_pending_account_rules(admin_client, capsys, registered_user):
 
     capsys.readouterr()
     as_client(admin_client).post("/auth/forgot", data={"email": NEW_EMAIL})
-    assert "ALR password reset code" not in capsys.readouterr().out
+    assert "Kode reset password ALR" not in capsys.readouterr().out
 
 
 def test_pending_status_filter_and_summary(admin_client):
