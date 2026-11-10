@@ -114,14 +114,16 @@
   color: var(--app-label-color);
 }
 
-/* foto kanan (app/static/images/easy_access.jpg, 16:9): menuhin panel, nempel atas biar logo ga kepotong */
+/* logo kanan (app/static/images/easy_access.png): utuh di tengah, padding kiri-kanan atur besar logonya */
 .ea-image {
   width: 100%;
   height: 100%;
   min-width: 0;
-  object-fit: cover;
-  object-position: center top;
-  background: linear-gradient(#171733, #0b0b0e);
+  object-fit: contain;
+  box-sizing: border-box;
+  padding: 12% 30%;
+  object-position: center;
+  background: #fff;
 }
 
 /* HP: pohon aja, gambar disembunyiin */

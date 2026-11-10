@@ -28,7 +28,7 @@ from app.utils.request_helper import get_current_user
 
 main_bp = Blueprint("main", __name__)
 
-EASY_ACCESS_IMAGE = "images/easy_access.jpg"
+EASY_ACCESS_IMAGE = "images/easy_access.png"
 
 def read_static_version(filename):
     """Versi file static = waktu terakhir diubah. Ditempel di URL (?v=), jadi foto yg ditimpa langsung kepake tanpa Ctrl+F5."""
