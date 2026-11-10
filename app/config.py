@@ -63,9 +63,6 @@ class BaseConfig:
     LINK_CHECK_ALLOW_PRIVATE_NETWORKS = os.environ.get("LINK_CHECK_ALLOW_PRIVATE_NETWORKS", "false").lower() == "true"
     LINK_CHECK_CA_FILE = os.environ.get("LINK_CHECK_CA_FILE") or None
     UPLOAD_USER_QUOTA_BYTES = int(os.environ.get("UPLOAD_USER_QUOTA_BYTES", str(500 * 1024 * 1024)))
-    UPLOAD_SCANNER_HOST = os.environ.get("UPLOAD_SCANNER_HOST", "")
-    UPLOAD_SCANNER_PORT = int(os.environ.get("UPLOAD_SCANNER_PORT", "3310"))
-    UPLOAD_SCANNER_TIMEOUT_SECONDS = 15
 
     # Rate limit (anti brute force)
     RATELIMIT_ENABLED = True
@@ -106,7 +103,6 @@ class TestingConfig(BaseConfig):
     ALLOWED_EMAIL_DOMAIN = "spindo.com"
     OTP_DELIVERY_MODE = "console"
     LINK_CHECK_ALLOW_PRIVATE_NETWORKS = False
-    UPLOAD_SCANNER_HOST = ""
     SMTP_CERT_SHA256 = ""
     SMTP_SECURITY = "starttls"
     SMTP_PORT = 587

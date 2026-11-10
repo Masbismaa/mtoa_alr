@@ -30,6 +30,8 @@ Flask-Limiter[redis]==4.1.1
 openpyxl==3.1.5
 # dipake otomatis sama openpyxl pas baca file import dari user (cegah XXE / bom entity di XML)
 defusedxml==0.7.1
+# server web production (Linux), cara pakainya di docs/deploy.md. Ga jalan di Windows, jadi dilewati di laptop
+gunicorn==26.2.0; sys_platform != "win32"
 # Baca gambar logo buat kop excel
 Pillow==12.3.0
 

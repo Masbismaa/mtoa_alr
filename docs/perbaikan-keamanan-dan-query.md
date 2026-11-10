@@ -47,11 +47,8 @@ Jangan membuat migrasi duplikat untuk kolom atau tabel ini.
   CSP ini belum membatasi sumber JavaScript; jangan menganggap seluruh risiko XSS selesai.
 - Upload baru `.doc` tidak diterima karena signature OLE tidak membuktikan dokumen Word.
   Unduhan lampiran lama tetap tersedia. OOXML diperiksa struktur, batas dekompresi, bagian
-  makro/objek tertanam. Pemeriksaan struktur bukan pengganti antivirus.
-- ClamAV INSTREAM memindai upload sebelum disimpan. Production wajib mengisi
-  `UPLOAD_SCANNER_HOST`; jika scanner mati atau menolak file, upload ditolak. Batasi akses
-  clamd ke aplikasi saja; protokol ini bukan TLS. Sesuaikan batas INSTREAM clamd dengan
-  batas lampiran 10 MiB. Development boleh tanpa scanner.
+  makro/objek tertanam. Pemeriksaan struktur bukan pengganti antivirus; sengaja tanpa antivirus
+  (ClamAV) karena aplikasi khusus internal dan RAM server terbatas.
 - Kuota awal 500 MiB per akun, diatur `UPLOAD_USER_QUOTA_BYTES`. Upload paralel diserialkan
   lewat baris akun. Penggantian lampiran menghitung file lama sampai transaksi selesai;
   akun penuh perlu menghapus lampiran dahulu sebelum mengunggah penggantinya.

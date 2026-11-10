@@ -35,11 +35,11 @@ def test_create_app_without_secret_key_raises_error(monkeypatch):
         create_app("testing")
 
 def test_readiness_ok_when_services_up(client):
-    """Positive: DB, penyimpanan rate limit, & folder upload nyambung -> 200 ready (scanner belum diatur = skipped)."""
+    """Positive: DB, penyimpanan rate limit, & folder upload nyambung -> 200 ready."""
     response = client.get("/health/ready")
     assert response.status_code == 200
     assert response.get_json() == {"status": "ready", "checks": {
-        "database": "ok", "limit_storage": "ok", "upload_folder": "ok", "upload_scanner": "skipped",
+        "database": "ok", "limit_storage": "ok", "upload_folder": "ok",
     }}
 
 
@@ -56,15 +56,6 @@ def test_readiness_fails_when_database_down(client, monkeypatch):
     assert response.get_json()["checks"]["database"] == "failed"
     assert "rahasia" not in response.get_data(as_text=True)
     assert client.get("/health").status_code == 200
-
-
-def test_readiness_checks_scanner_when_configured(app, client, monkeypatch):
-    """Negative: scanner diatur tapi ga jawab -> 503."""
-    app.config["UPLOAD_SCANNER_HOST"] = "127.0.0.1"
-    app.config["UPLOAD_SCANNER_PORT"] = 9
-    response = client.get("/health/ready")
-    assert response.status_code == 503
-    assert response.get_json()["checks"]["upload_scanner"] == "failed"
 
 
 def test_proxy_header_without_trusted_proxy_logs_warning_once(client, caplog):
@@ -84,7 +75,7 @@ def test_no_proxy_warning_for_direct_access(client, caplog):
 
 
 def test_readiness_result_cached_briefly(client, monkeypatch):
-    """Positive (temuan audit): dipanggil beruntun dalam 5 detik -> hasil disimpen, DB/Redis/ClamAV cuma dicek sekali."""
+    """Positive (temuan audit): dipanggil beruntun dalam 5 detik -> hasil disimpen, DB/Redis cuma dicek sekali."""
     from app.routes import health_routes
 
     call_list = []

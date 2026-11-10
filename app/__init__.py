@@ -107,8 +107,6 @@ def validate_required_config(app):
     if app.config.get("IS_PRODUCTION"):
         if app.config["RATELIMIT_STORAGE_URI"].startswith("memory://"):
             raise RuntimeError("Production membutuhkan penyimpanan rate limit bersama, misalnya Redis")
-        if not app.config["UPLOAD_SCANNER_HOST"]:
-            raise RuntimeError("Production membutuhkan UPLOAD_SCANNER_HOST (ClamAV)")
 
 
 def register_response_security(app):

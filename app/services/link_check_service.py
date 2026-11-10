@@ -91,10 +91,6 @@ def send_request(parsed_url, pinned_ip, ssl_context):
     finally:
         connection.close()
 
-def open_checked_url(parsed_url, pinned_ip, ca_file=None):
-    """Sertifikat selalu diverifikasi; CA kantor dapat disediakan oleh operator."""
-    return send_request(parsed_url, pinned_ip, ssl.create_default_context(cafile=ca_file)), ""
-
 def build_http_result(status_code, note_suffix=""):
     """Server ngejawab di bawah 500 (termasuk 401/403 halaman login) dianggap aktif."""
     status = LINK_STATUS_UP if status_code < 500 else LINK_STATUS_DOWN
@@ -105,12 +101,11 @@ def follow_url(url, allow_private=None, ca_file=None):
     parsed_url = parse_check_url(url)
     pinned_ip = resolve_safe_ip(parsed_url.hostname, parsed_url.port, allow_private)
     current_url = url
-    note_suffix = ""
     for redirect_count in range(LINK_CHECK_MAX_REDIRECT_COUNT + 1):
-        (status_code, location), cert_note = open_checked_url(parsed_url, pinned_ip, ca_file)
-        note_suffix = note_suffix or cert_note
+        # sertifikat selalu diverifikasi; CA kantor dapat disediakan oleh operator
+        status_code, location = send_request(parsed_url, pinned_ip, ssl.create_default_context(cafile=ca_file))
         if status_code not in REDIRECT_STATUS_SET or not location:
-            return build_http_result(status_code, note_suffix)
+            return build_http_result(status_code)
         if redirect_count == LINK_CHECK_MAX_REDIRECT_COUNT:
             break
         next_url = urljoin(current_url, location)

@@ -4,13 +4,14 @@ import {
   BASE, check, evaluate, login, navigate, pageText, path, runScenario, screenshot, send, sleep, submitForm, waitLoad,
 } from "./browser.mjs";
 
-const LOGIN_SUBJECT = "ALR login code";
+const LOGIN_SUBJECT = "Kode login ALR";
 const NEW_PASSWORD = "PasswordAktivasi1";
 
 await runScenario("auth", async (server) => {
   // kode / link terbaru yg "dikirim" ke email tertentu (format email console: app/services/notification_service.py)
   function latestCode(email, subject) {
-    const pattern = new RegExp(`Email ke ${email.replace(/[.]/g, "\\.")}: ${subject} =====\\r?\\n${subject}: (\\d{6})`, "g");
+    // kode OTP = baris pertama yg isinya cuma 6 angka setelah judul email
+    const pattern = new RegExp(`Email ke ${email.replace(/[.]/g, "\\.")}: ${subject} =====[\\s\\S]*?^(\\d{6})\\r?$`, "gm");
     const matchList = [...server.output().matchAll(pattern)];
     return matchList.length ? matchList[matchList.length - 1][1] : null;
   }

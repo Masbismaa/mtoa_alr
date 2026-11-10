@@ -1,7 +1,6 @@
-"""Regresi replay cookie, pengiriman OTP, SSRF, kuota, dan pemindaian lampiran."""
+"""Regresi replay cookie, pengiriman OTP, SSRF, dan kuota lampiran."""
 import hashlib
 import re
-import socket
 import ssl
 from unittest.mock import MagicMock
 
@@ -12,7 +11,6 @@ from app.extensions import db
 from app.models import Attachment, OtpCode
 from app.security.link_target_guard import LinkTargetBlockedError, resolve_safe_ip
 from app.security.login_loader import load_user
-from app.security.upload_scanner import scan_upload
 from app.services import auth_service, notification_service
 from app.services.attachment_service import enforce_upload_quota
 from app.services.user_service import toggle_user_active
@@ -98,31 +96,6 @@ def test_non_public_targets_blocked_by_default(ip):
 def test_cgnat_blocked_even_in_intranet_mode():
     with pytest.raises(LinkTargetBlockedError):
         resolve_safe_ip("100.100.100.200", 80, allow_private=True)
-
-
-def test_scanner_rejects_detection_and_unavailability(app, monkeypatch):
-    app.config["UPLOAD_SCANNER_HOST"] = "scanner.test"
-    connection = MagicMock()
-    connection.__enter__.return_value = connection
-    connection.recv.return_value = b"stream: Eicar-Test-Signature FOUND\0"
-    monkeypatch.setattr(socket, "create_connection", MagicMock(return_value=connection))
-    with pytest.raises(ValueError, match="rejected"):
-        scan_upload(b"dummy")
-    monkeypatch.setattr(socket, "create_connection", MagicMock(side_effect=OSError()))
-    with pytest.raises(ValueError, match="not available"):
-        scan_upload(b"dummy")
-
-
-def test_scanner_streams_file_and_requires_clean_response(app, monkeypatch):
-    app.config["UPLOAD_SCANNER_HOST"] = "scanner.test"
-    connection = MagicMock()
-    connection.__enter__.return_value = connection
-    connection.recv.side_effect = [b"stream: ", b"OK\0"]
-    monkeypatch.setattr(socket, "create_connection", MagicMock(return_value=connection))
-    scan_upload(b"abc")
-    assert [call.args[0] for call in connection.sendall.call_args_list] == [
-        b"zINSTREAM\0", b"\0\0\0\3abc", b"\0\0\0\0",
-    ]
 
 
 def test_quota_counts_previously_stored_files(app, registered_user, category_dict):
