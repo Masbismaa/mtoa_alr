@@ -47,7 +47,6 @@ def detail(log_id):
     audit_log = get_audit_log(log_id)
     if audit_log is None:
         abort(404)
-    # data Private punya orang lain tetep ga boleh keliatan, termasuk sama admin
     is_data_visible = can_view_audit_data(get_current_user(), audit_log)
     return render_template(
         "pages/audit_logs/detail.html",

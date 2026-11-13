@@ -42,7 +42,7 @@ def test_admin_deletes_selected_links_and_each_is_audited(admin_client, admin_us
 
 
 def test_private_link_of_other_user_is_skipped(admin_client, registered_user, category_dict):
-    """Negative (security): link Private orang lain ga ikut kehapus walau id-nya dikirim (admin ga boleh liat)."""
+    """Negative (security): link Private orang lain ga ikut kehapus walau id-nya dikirim (admin cuma boleh liat)."""
     private_entry = make_entry(registered_user, category_dict["Web"], "Private Orang")
     response = admin_client.post(API_URL, json={"entry_id_list": [private_entry.id]})
     assert response.get_json()["data"]["deleted_count"] == 0

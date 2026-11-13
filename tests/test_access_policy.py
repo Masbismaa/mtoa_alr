@@ -30,10 +30,10 @@ def test_admin_can_edit_public_of_other_user(admin_user, other_user):
     entry = build_entry(other_user, VISIBILITY_PUBLIC)
     assert can_edit_entry(admin_user, entry) is True
 
-def test_admin_cannot_see_private_of_other_user(admin_user, other_user):
-    """Negative (security): admin pun ga bisa liat private orang lain."""
+def test_admin_can_see_but_not_edit_private_of_other_user(admin_user, other_user):
+    """Positive & negative: admin bisa liat private orang lain, tapi tetep ga bisa ubah/hapus."""
     entry = build_entry(other_user, VISIBILITY_PRIVATE)
-    assert can_view_entry(admin_user, entry) is False
+    assert can_view_entry(admin_user, entry) is True
     assert can_edit_entry(admin_user, entry) is False
 
 def build_entry_audit_log(actor, old_visibility, new_visibility):
@@ -49,10 +49,10 @@ def test_admin_can_view_public_audit_data(admin_user, other_user):
     audit_log = build_entry_audit_log(other_user, VISIBILITY_PUBLIC, VISIBILITY_PUBLIC)
     assert can_view_audit_data(admin_user, audit_log) is True
 
-def test_admin_cannot_view_private_audit_data_of_other_user(admin_user, other_user):
-    """Negative (security): data yg pernah Private punya orang lain tetep ketutup buat admin."""
+def test_admin_can_view_private_audit_data_of_other_user(admin_user, other_user):
+    """Positive: data Private punya orang lain juga keliatan buat admin."""
     audit_log = build_entry_audit_log(other_user, VISIBILITY_PUBLIC, VISIBILITY_PRIVATE)
-    assert can_view_audit_data(admin_user, audit_log) is False
+    assert can_view_audit_data(admin_user, audit_log) is True
 
 def test_admin_can_view_own_private_audit_data(admin_user):
     """Positive: data Private punya admin sendiri boleh diliat."""

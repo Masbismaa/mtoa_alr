@@ -92,6 +92,13 @@ def test_private_entry_of_other_user_returns_404(logged_in_client, other_user, c
     entry = create_access_entry(other_user, build_service_dict(category_dict["Web"]))
     assert logged_in_client.get(f"/entries/{entry.id}").status_code == 404
 
+def test_admin_can_view_but_not_edit_private_entry_of_other_user(admin_client, other_user, category_dict):
+    """Positive & negative: admin bisa buka private orang lain, tapi ga bisa ubah/hapus."""
+    entry = create_access_entry(other_user, build_service_dict(category_dict["Web"]))
+    assert admin_client.get(f"/entries/{entry.id}").status_code == 200
+    assert admin_client.get(f"/entries/{entry.id}/edit").status_code == 403
+    assert admin_client.post(f"/entries/{entry.id}/delete").status_code == 403
+
 def test_edit_public_entry_of_other_user_returns_403(logged_in_client, other_user, category_dict):
     """Negative (security): public orang lain cuma read-only."""
     entry = create_entry_as_is(other_user, build_service_dict(category_dict["Web"], visibility=VISIBILITY_PUBLIC))
