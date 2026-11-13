@@ -26,10 +26,8 @@
             </div>
           </div>
           {{ render_field(profile_form.full_name, autocomplete="name") }}
-          <div class="row g-2">
-            <div class="col-sm-6">{{ render_field(profile_form.department) }}</div>
-            <div class="col-sm-6">{{ render_field(profile_form.job_title) }}</div>
-          </div>
+          {{ render_field(profile_form.department) }}
+          {{ render_field(profile_form.job_title) }}
         </div>
         <div class="card-footer text-end">
           {{ profile_form.submit(class_="btn btn-primary") }}
