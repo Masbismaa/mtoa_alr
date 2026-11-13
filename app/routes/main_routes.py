@@ -3,7 +3,8 @@ import os
 
 from flask import Blueprint, current_app, redirect, render_template, request, send_file, url_for
 from flask_login import login_required
-from app.extensions import limiter
+from app.extensions import db, limiter
+from app.models import AuditLog
 from app.services.access_entry_service import (
     list_active_category_option,
     list_visible_entries_for_export,
@@ -21,7 +22,7 @@ from app.utils.constants import (
     XLSX_MIMETYPE,
 )
 from app.utils.data_table import read_sort
-from app.utils.datetime_helper import to_local_time, utc_now
+from app.utils.datetime_helper import build_utc_range_from_local_date, to_local_time, utc_now
 from app.utils.selection import describe_selection
 from app.utils.text_helper import get_initials
 from app.utils.request_helper import get_current_user
@@ -38,10 +39,18 @@ def read_static_version(filename):
         return 0
 
 def build_export_filename(user):
-    """Nama file export, misal ALR_MBP_2026-10-05.xlsx. Inisial cuma huruf/angka biar nama file aman."""
+    """Nama file export, misal ALR_MBP_2026-10-05-V2.xlsx. Inisial cuma huruf/angka biar nama file aman.
+    V = export ke-berapa user ini hari ini (WIB), dihitung dari audit log export (dipanggil abis export dicatat)."""
     initial_text = "".join(char for char in get_initials(user.full_name) if char.isalnum()) or "USER"
-    date_text = to_local_time(utc_now()).strftime("%Y-%m-%d")
-    return f"ALR_{initial_text}_{date_text}.xlsx"
+    local_date = to_local_time(utc_now()).date()
+    start_at, end_at = build_utc_range_from_local_date(local_date, local_date)
+    version = db.session.execute(
+        db.select(db.func.count(AuditLog.id)).where(
+            AuditLog.user_id == user.id, AuditLog.action == AUDIT_ACTION_EXPORT,
+            AuditLog.created_at >= start_at, AuditLog.created_at < end_at,
+        )
+    ).scalar_one()
+    return f"ALR_{initial_text}_{local_date:%Y-%m-%d}-V{max(version, 1)}.xlsx"
 
 
 @main_bp.get("/")

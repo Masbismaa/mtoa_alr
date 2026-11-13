@@ -1,9 +1,11 @@
 """Test export Excel daftar link (SR-10): hak akses, filter, access note, formula injection, audit."""
+import re
 from io import BytesIO
 from openpyxl import load_workbook
 from app.extensions import db
 from app.models import AuditLog
 from app.services.access_entry_service import create_access_entry, list_visible_entries_for_export
+from app.services.audit_service import log_audit
 from tests.conftest import create_entry_as_is
 from app.utils.constants import AUDIT_ACTION_EXPORT, VISIBILITY_PRIVATE, VISIBILITY_PUBLIC, XLSX_MIMETYPE
 
@@ -62,6 +64,14 @@ def test_export_returns_xlsx_file(logged_in_client, registered_user, category_di
     assert "ALR_UL_" in disposition_text and ".xlsx" in disposition_text
     assert load_report(response).sheetnames == ["Summary", "Detail"]
     assert read_table_row_list(response)[0][:2] == ["No", "Title"]
+
+def test_export_filename_version_goes_up_per_export(logged_in_client, other_user):
+    """Positive: export ke-1 hari ini -V1, ke-2 -V2 (export user lain ga ikut dihitung)."""
+    log_audit(AUDIT_ACTION_EXPORT, "access_entries", new_data_dict={"row_count": 0}, user=other_user, is_commit=True)
+    first_text = logged_in_client.get("/export").headers["Content-Disposition"]
+    second_text = logged_in_client.get("/export").headers["Content-Disposition"]
+    assert re.search(r"ALR_UL_\d{4}-\d{2}-\d{2}-V1\.xlsx", first_text)
+    assert re.search(r"ALR_UL_\d{4}-\d{2}-\d{2}-V2\.xlsx", second_text)
 
 def test_export_only_visible_entries(logged_in_client, registered_user, other_user, category_dict):
     """Positive/Negative: private orang lain ga ikut, private sendiri & public orang lain ikut."""
