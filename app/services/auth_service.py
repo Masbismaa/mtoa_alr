@@ -81,7 +81,7 @@ def build_user_audit_dict(user):
 
 
 def clean_profile(full_name, department, job_title):
-    """Data profil dibersihin dari tag HTML dkk & wajib keisi semua. Dipake create-admin & edit profil di Settings."""
+    """Data profil dibersihin dari tag HTML dkk & wajib keisi semua."""
     profile_dict = {
         "full_name": sanitize_text(full_name, max_length=150),
         "department": sanitize_text(department, max_length=100),
@@ -92,8 +92,8 @@ def clean_profile(full_name, department, job_title):
     return profile_dict
 
 
-def update_profile(user, full_name, department, job_title):
-    """Edit profil sendiri (email & role ga bisa diubah dari sini). Dicatat ke audit log kalau ada yg berubah."""
+def update_profile(actor, user, full_name, department, job_title):
+    """Admin edit profil user (email & role ga ikut). Dicatat ke audit log kalau ada yg berubah."""
     profile_dict = clean_profile(full_name, department, job_title)
     old_data_dict = build_user_audit_dict(user)
     for key, value in profile_dict.items():
@@ -101,7 +101,7 @@ def update_profile(user, full_name, department, job_title):
     new_data_dict = build_user_audit_dict(user)
     if new_data_dict != old_data_dict:
         log_audit(AUDIT_ACTION_UPDATE, "users", entity_id=user.id, old_data_dict=old_data_dict,
-                  new_data_dict=new_data_dict, user=user)
+                  new_data_dict=new_data_dict, user=actor)
     db.session.commit()
     return user
 
@@ -134,21 +134,16 @@ def register_user(email, password, full_name, department, job_title, role=ROLE_U
     return user
 
 
-def create_pending_user(actor, email, full_name, role):
+def create_pending_user(actor, email, full_name, department, job_title, role):
     """Admin bikin akun Pending, aktif setelah pemiliknya aktivasi lewat email."""
     clean_email = normalize_email(email)
     ensure_allowed_email_domain(clean_email)
-    clean_full_name = sanitize_text(full_name, max_length=150)
-    if not clean_full_name:
-        raise AuthError("Name is required")
+    profile_dict = clean_profile(full_name, department, job_title)
     if role not in ROLE_LIST:
         raise AuthError("Invalid role")
     if find_user_by_email(clean_email) is not None:
         raise AuthError("Email is already registered")
-    profile_dict = {
-        "full_name": clean_full_name, "department": "", "job_title": "",
-        "password_hash": UNUSABLE_PASSWORD_HASH, "is_active": False,
-    }
+    profile_dict.update(password_hash=UNUSABLE_PASSWORD_HASH, is_active=False)
     try:
         user = create_user_account(clean_email, profile_dict, role, actor=actor)
         db.session.commit()

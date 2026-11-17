@@ -4,8 +4,8 @@ from flask_login import login_required, login_user
 
 from app.extensions import limiter
 from app.security.role_guard import api_login_required
-from app.schemas.auth_schema import ChangePasswordForm, ProfileForm
-from app.services.auth_service import change_password, update_profile
+from app.schemas.auth_schema import ChangePasswordForm
+from app.services.auth_service import change_password
 from app.services.preference_service import (
     build_preference_dict,
     delete_selection_variant,
@@ -21,37 +21,19 @@ from app.utils.url_helper import get_safe_back_url
 
 settings_bp = Blueprint("settings", __name__, url_prefix="/settings")
 
-def render_settings(profile_form=None, password_form=None):
-    """Halaman Settings. Form yg barusan dikirim (ada error-nya) dipake lagi, sisanya diisi data akun."""
-    user = get_current_user()
+def render_settings(password_form=None):
+    """Halaman Settings. Form password yg barusan dikirim (ada error-nya) dipake lagi."""
     return render_template(
         "pages/settings.html",
         page_title="Settings",
-        profile_form=profile_form or ProfileForm(obj=user, formdata=None),
         password_form=password_form or ChangePasswordForm(formdata=None),
     )
 
 @settings_bp.get("/")
 @login_required
 def index():
-    """Profil (bisa diedit), ganti password, & tombol buka UI Customizer."""
+    """Profil (cuma dilihat, diubah admin), ganti password, & tombol buka UI Customizer."""
     return render_settings()
-
-@settings_bp.post("/profile")
-@login_required
-@limiter.limit("10 per minute")
-def update_profile_page():
-    """Simpan nama, departemen, jabatan."""
-    form = ProfileForm()
-    if form.validate_on_submit():
-        try:
-            update_profile(get_current_user(), form.full_name.data, form.department.data, form.job_title.data)
-        except AuthError as error:
-            flash(str(error), "danger")
-        else:
-            flash("Profile saved", "success")
-            return redirect(url_for("settings.index"))
-    return render_settings(profile_form=form)
 
 @settings_bp.post("/password")
 @login_required

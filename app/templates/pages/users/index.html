@@ -94,14 +94,15 @@
                 <td class="text-nowrap text-secondary" data-label="Created" {{ cell_attr(table_view, "created") }}>{{ user.created_at | local_datetime("%d %b %Y") }}</td>
                 <td class="cell-action">
                   {% if user.id == current_user.id %}
-                    <span class="small text-secondary">Your account</span>
+                    <a href="{{ url_for('users.edit', user_id=user.id) }}" class="small">Edit profile</a>
                   {% elif is_admin(user) and row.status != "pending" %}
-                    <span class="small text-secondary" title="Admin accounts are changed via the command line">Via command</span>
+                    <a href="{{ url_for('users.edit', user_id=user.id) }}" class="small" title="Role & status of admin accounts are changed via the command line">Edit profile</a>
                   {% else %}
                     {# strategy fixed biar menunya ga kepotong kotak tabel yg bisa di-scroll #}
                     <div class="dropdown">
                       <button type="button" class="btn btn-sm dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">Actions</button>
                       <div class="dropdown-menu dropdown-menu-end">
+                        <a href="{{ url_for('users.edit', user_id=user.id) }}" class="dropdown-item">{{ icon("user", "dropdown-item-icon") }} Edit profile</a>
                         {% if row.status == "pending" %}
                           <form method="post" action="{{ url_for('users.send_activation_link', user_id=user.id) }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

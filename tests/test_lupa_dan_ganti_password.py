@@ -1,4 +1,4 @@
-"""Test lupa password, ganti password, & edit profil."""
+"""Test lupa password, ganti password, & edit profil (lewat admin)."""
 import pytest
 from flask import g
 
@@ -192,24 +192,34 @@ def test_change_password_requires_login(client):
 
 # EDIT PROFIL
 
-def test_update_profile_saves_sanitized_and_audited(logged_in_client, registered_user):
-    """Positive: profil keganti (tag HTML dibuang), email & role ga ikut berubah walau dikirim, dicatat audit."""
-    response = logged_in_client.post("/settings/profile", data={
+def test_update_profile_saves_sanitized_and_audited(admin_client, admin_user, registered_user):
+    """Positive: admin ganti profil (tag HTML dibuang), email & role ga ikut berubah walau dikirim, dicatat audit."""
+    response = admin_client.post(f"/users/{registered_user.id}/edit", data={
         "full_name": "<b>Nama Baru</b>", "department": "Finance", "job_title": "Supervisor",
         "email": "hack@spindo.com", "role": "admin",
     }, follow_redirects=True)
-    assert "Profile saved" in response.get_data(as_text=True)
+    assert "Profile of Nama Baru saved" in response.get_data(as_text=True)
     user = db.session.get(User, registered_user.id)
     assert (user.full_name, user.department, user.job_title) == ("Nama Baru", "Finance", "Supervisor")
     assert (user.email, user.role) == ("user.login@spindo.com", "user_entry")
     audit_log = find_audit(AUDIT_ACTION_UPDATE)[-1]
     assert audit_log.old_data["department"] == "ICT" and audit_log.new_data["department"] == "Finance"
+    assert audit_log.user_id == admin_user.id
 
 
-def test_update_profile_empty_rejected(logged_in_client, registered_user):
+def test_update_profile_empty_rejected(admin_client, registered_user):
     """Negative: nama kosong ditolak, profil ga berubah."""
-    response = logged_in_client.post("/settings/profile", data={"full_name": "  ", "department": "X", "job_title": "Y"})
+    response = admin_client.post(f"/users/{registered_user.id}/edit", data={"full_name": "  ", "department": "X", "job_title": "Y"})
     assert response.status_code == 200
+    assert db.session.get(User, registered_user.id).full_name == "User Login"
+
+
+def test_user_cannot_edit_own_profile(logged_in_client, registered_user):
+    """Negative (security): user biasa ga bisa ubah profil sendiri, Settings cuma nampilin + suruh hubungi admin."""
+    data = {"full_name": "Ganti", "department": "X", "job_title": "Y"}
+    assert logged_in_client.post("/settings/profile", data=data).status_code in (404, 405)
+    assert logged_in_client.post(f"/users/{registered_user.id}/edit", data=data).status_code == 403
+    assert "silakan hubungi admin" in logged_in_client.get("/settings/").get_data(as_text=True)
     assert db.session.get(User, registered_user.id).full_name == "User Login"
 
 

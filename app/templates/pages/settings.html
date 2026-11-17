@@ -5,15 +5,14 @@
 {% block title %}Settings{% endblock %}
 
 {% block page_help %}
-  <p>Edit your name, department, and job title under <b>Profile</b>. Your email and role can't be changed here.</p>
+  <p>Your <b>Profile</b> is managed by the admin.</p>
   <p><b>Change Password</b> logs out all your other sessions; this one stays logged in.</p>
 {% endblock %}
 
 {% block content %}
   <div class="row row-cards">
     <div class="col-lg-7">
-      <form method="post" action="{{ url_for('settings.update_profile_page') }}" class="card mb-3" id="profile_form" novalidate data-form-guard>
-        {{ profile_form.hidden_tag() }}
+      <div class="card mb-3" id="profile_card">
         <div class="card-header">
           <h3 class="card-title">{{ icon("user") }} Profile</h3>
         </div>
@@ -25,14 +24,14 @@
               <span class="badge {{ account_access.color_class }} mt-1">{{ account_access.label }}</span>
             </div>
           </div>
-          {{ render_field(profile_form.full_name, autocomplete="name") }}
-          {{ render_field(profile_form.department) }}
-          {{ render_field(profile_form.job_title) }}
+          <dl class="row mb-3">
+            <dt class="col-5">Full Name</dt><dd class="col-7">{{ current_user.full_name }}</dd>
+            <dt class="col-5">Department</dt><dd class="col-7">{{ current_user.department or "-" }}</dd>
+            <dt class="col-5">Job Title</dt><dd class="col-7 mb-0">{{ current_user.job_title or "-" }}</dd>
+          </dl>
+          <div class="alert alert-info mb-0">Apabila ada kesalahan data pada profile Anda, silakan hubungi admin untuk memperbarui profile Anda.</div>
         </div>
-        <div class="card-footer text-end">
-          {{ profile_form.submit(class_="btn btn-primary") }}
-        </div>
-      </form>
+      </div>
 
       <form method="post" action="{{ url_for('settings.change_password_page') }}" class="card" id="password_form" novalidate>
         {{ password_form.hidden_tag() }}

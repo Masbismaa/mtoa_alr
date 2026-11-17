@@ -113,7 +113,9 @@ def as_client(client):
 
 
 def create_user(admin_client, email=NEW_EMAIL, full_name="User Baru", role=ROLE_USER_ENTRY):
-    return as_client(admin_client).post("/users/new", data={"email": email, "full_name": full_name, "role": role})
+    return as_client(admin_client).post("/users/new", data={
+        "email": email, "full_name": full_name, "department": "ICT", "job_title": "Staff", "role": role,
+    })
 
 
 def send_activation(admin_client, capsys, email=NEW_EMAIL):
@@ -137,7 +139,7 @@ def test_admin_creates_user_then_owner_activates_and_logs_in(app, admin_client, 
     response = create_user(admin_client)
     assert response.status_code == 302
     user = find_user(NEW_EMAIL)
-    assert (user.full_name, user.role, user.is_active, user.department, user.job_title) == ("User Baru", ROLE_USER_ENTRY, False, "", "")
+    assert (user.full_name, user.role, user.is_active, user.department, user.job_title) == ("User Baru", ROLE_USER_ENTRY, False, "ICT", "Staff")
     assert get_user_status(user) == USER_STATUS_PENDING
     create_log = db.session.execute(db.select(AuditLog).filter_by(action=AUDIT_ACTION_CREATE, entity_id=user.id)).scalar_one()
     assert create_log.user_id == admin_user.id
