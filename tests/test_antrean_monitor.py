@@ -64,7 +64,8 @@ def test_monitor_saves_batches_without_loading_secrets(app, registered_user, cat
     progress = []
     result = link_check_service.check_all_entry_status(progress_callback=lambda done, total: progress.append((done, total)))
     assert result == Counter({LINK_STATUS_UP: 25})
-    assert (20, 25) in progress and progress[-1] == (25, 25)
+    # angka tengahnya ngikut thread mana yg kelar duluan, jadi yg dicek cuma ga mundur & berakhir di 25
+    assert progress == sorted(progress) and progress[-1] == (25, 25)
     assert db.session.scalar(db.select(db.func.count(AccessEntry.id)).where(AccessEntry.status == LINK_STATUS_UP)) == 25
 
 

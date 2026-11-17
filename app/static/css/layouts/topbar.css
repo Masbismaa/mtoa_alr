@@ -290,3 +290,19 @@
     display: none;
   }
 }
+
+/* submenu menu bar (Data > Links >): kebuka ke kanan pas di-hover / difokus */
+.app-menubar-submenu {
+  position: relative;
+}
+
+.app-menubar-submenu > .dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -0.25rem;
+}
+
+.app-menubar-submenu:hover > .dropdown-menu,
+.app-menubar-submenu:focus-within > .dropdown-menu {
+  display: block;
+}

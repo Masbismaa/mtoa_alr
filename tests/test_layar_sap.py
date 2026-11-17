@@ -122,9 +122,9 @@ def test_page_info_still_shown(logged_in_client, registered_user, category_dict)
 
 # MENU BAR
 def get_menu_label_list(html_text):
-    """Helper: isi dropdown Menu di menu bar."""
-    menu_html = html_text.split('aria-expanded="false">Menu</button>')[1].split('<div class="dropdown-divider">')[0]
-    return [html.unescape(label) for label in re.findall(r'class="dropdown-item">([^<]+)</a>', menu_html)]
+    """Helper: semua isi dropdown di menu bar (Overview/Data/Manage/Account)."""
+    menu_html = html_text.split('aria-label="Menu bar"')[1].split('class="app-menubar-end"')[0]
+    return [html.unescape(label.strip()) for label in re.findall(r'class="dropdown-item">\s*(?:<svg.*?</svg>)?\s*([^<]+)</a>', menu_html, re.S)]
 
 def test_menu_lists_only_allowed_menu_without_code(logged_in_client):
     """Positive + security: user biasa dapet menu biasa, menu khusus admin ga ikut; kolom kode menu udah ga ada."""
@@ -141,7 +141,10 @@ def test_menu_admin_gets_admin_menu(admin_client):
 def test_menu_bar_and_system_toolbar_on_every_screen(logged_in_client):
     """Positive: menu bar + toolbar sistem ada (tanpa shortcut keyboard)."""
     html_text = get_html(logged_in_client, "/entries/new")
-    assert 'aria-label="Menu bar"' in html_text and 'aria-expanded="false">Menu</button>' in html_text
+    assert 'aria-label="Menu bar"' in html_text
+    for title in ("Overview", "Data", "Manage", "Account"):
+        assert f'aria-expanded="false">{title}</button>' in html_text
+    assert 'aria-expanded="false">Tools</button>' not in html_text
     system_html = html_text.split('aria-label="System toolbar"')[1].split("</header>")[0]
     assert 'title="Save changes" aria-label="Save"' in system_html and 'aria-label="Cancel"' in system_html
     assert "data-fkey" not in system_html
