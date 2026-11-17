@@ -72,13 +72,3 @@ def build_sidebar_section_list(user, active_endpoint):
             "is_open": any(item.get("is_active") or item.get("is_open") for item in item_list),
         })
     return section_list
-
-def build_transaction_list(section_list):
-    """Menu yg boleh dibuka user ini (dari hasil build_sidebar_section_list): [{label, url}]."""
-    transaction_list = []
-    for section in section_list:
-        for nav_item in section["item_list"]:
-            for item in nav_item.get("child_list", [nav_item]):
-                if item.get("url") and not nav_item.get("is_locked"):
-                    transaction_list.append({"label": item["label"], "url": item["url"]})
-    return transaction_list

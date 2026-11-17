@@ -2,8 +2,7 @@
 {% from "components/notification_menu.html" import notification_menu with context %}
 {% from "components/user_menu.html" import user_menu with context %}
 {# bagian atas jendela ala SAP GUI (layar besar), 2 baris:
-   1. menu bar: Menu/Edit/Favorites/Tools/Account/Help, lonceng + profil di kanan.
-      tema ada di Tools > Appearance
+   1. menu bar: Overview/Data/Manage/Account (dari sidebar), lonceng + profil di kanan
    2. toolbar sistem: Enter + command field (kode transaksi), Save/Back/Exit/Cancel, Find, Help/Customize
    tombol standar pake URL yg sama kayak toolbar aplikasi (variabel dari layouts/app_base.html).
    sengaja ga pake class navbar-expand, biar Tabler ga nyembunyiin sidebar #}
@@ -29,69 +28,30 @@
       {% include "components/brand_logo.html" %}
     </a>
 
-    <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">Menu</button>
-      <div class="dropdown-menu">
-        {% for transaction in transaction_list %}
-          <a href="{{ transaction.url }}" class="dropdown-item">{{ transaction.label }}</a>
-        {% endfor %}
-        <div class="dropdown-divider"></div>
-        <form method="post" action="{{ url_for('auth.logout') }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="dropdown-item">{{ icon("logout", "dropdown-item-icon") }}Log out</button>
-        </form>
+    {# isinya sama persis dgn sidebar (sidebar_section_list), menu yg dikunci ga ikut #}
+    {% for section in sidebar_section_list %}
+      <div class="dropdown">
+        <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">{{ section.title }}</button>
+        <div class="dropdown-menu">
+          {% for nav_item in section.item_list if not nav_item.is_locked %}
+            {% if nav_item.child_list %}
+              <h6 class="dropdown-header">{{ nav_item.label }}</h6>
+              {% for child_item in nav_item.child_list %}{{ menu_link(child_item.url, child_item.label) }}{% endfor %}
+            {% else %}
+              {{ menu_link(nav_item.url, nav_item.label, nav_item.icon) }}
+            {% endif %}
+          {% endfor %}
+          {% if loop.last %}
+            <button type="button" class="dropdown-item" data-status-open>{{ icon("history", "dropdown-item-icon") }}Message history</button>
+            <div class="dropdown-divider"></div>
+            <form method="post" action="{{ url_for('auth.logout') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="dropdown-item">{{ icon("logout", "dropdown-item-icon") }}Log out</button>
+            </form>
+          {% endif %}
+        </div>
       </div>
-    </div>
-
-    <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">Edit</button>
-      <div class="dropdown-menu">
-        {{ menu_link(toolbar_back_url, "Back", "back_circle") }}
-        {{ menu_link(toolbar_exit_url, "Exit", "exit_circle") }}
-        {{ menu_link(toolbar_cancel_url, "Cancel", "cancel_circle") }}
-        <div class="dropdown-divider"></div>
-        {% if toolbar_save_form %}
-          <button type="submit" form="{{ toolbar_save_form }}" class="dropdown-item">{{ icon("save", "dropdown-item-icon") }}Save</button>
-        {% else %}
-          {{ menu_link("", "Save", "save") }}
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">Favorites</button>
-      <div class="dropdown-menu">
-        {{ menu_link(url_for("entries.index", favorite="1"), "Favorite links", "star") }}
-      </div>
-    </div>
-
-    <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">Tools</button>
-      <div class="dropdown-menu">
-        <button type="button" class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#theme_customizer" aria-controls="theme_customizer">{{ icon("palette", "dropdown-item-icon") }}Appearance</button>
-        {{ menu_link(url_for("settings.index"), "Settings", "settings") }}
-      </div>
-    </div>
-
-    <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">Account</button>
-      <div class="dropdown-menu">
-        {{ menu_link(url_for("settings.index"), "User profile", "user") }}
-        <button type="button" class="dropdown-item" data-status-open>{{ icon("history", "dropdown-item-icon") }}Message history</button>
-        <div class="dropdown-divider"></div>
-        <form method="post" action="{{ url_for('auth.logout') }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="dropdown-item">{{ icon("logout", "dropdown-item-icon") }}Log out</button>
-        </form>
-      </div>
-    </div>
-
-    <div class="dropdown">
-      <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">Help</button>
-      <div class="dropdown-menu">
-        <button type="button" class="dropdown-item" data-help-open aria-haspopup="dialog">{{ icon("help", "dropdown-item-icon") }}Help for this screen</button>
-      </div>
-    </div>
+    {% endfor %}
 
     <div class="app-menubar-end">
       {{ notification_menu() }}
