@@ -31,22 +31,27 @@
     {# isinya sama persis dgn sidebar (sidebar_section_list), menu yg dikunci ga ikut #}
     {% for section in sidebar_section_list %}
       <div class="dropdown">
-        <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" aria-expanded="false">{{ section.title }}</button>
+        <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">{{ section.title }}</button>
         <div class="dropdown-menu">
           {% for nav_item in section.item_list if not nav_item.is_locked %}
             {% if nav_item.child_list %}
-              <h6 class="dropdown-header">{{ nav_item.label }}</h6>
-              {% for child_item in nav_item.child_list %}{{ menu_link(child_item.url, child_item.label) }}{% endfor %}
+              {# submenu ke samping, kebuka pas di-hover / fokus keyboard (CSS :focus-within) #}
+              <div class="app-menubar-submenu">
+                <button type="button" class="dropdown-item d-flex">{{ nav_item.label }}<span class="ms-auto ps-3" aria-hidden="true">›</span></button>
+                <div class="dropdown-menu">
+                  {% for child_item in nav_item.child_list %}{{ menu_link(child_item.url, child_item.label) }}{% endfor %}
+                </div>
+              </div>
             {% else %}
-              {{ menu_link(nav_item.url, nav_item.label, nav_item.icon) }}
+              {{ menu_link(nav_item.url, nav_item.label) }}
             {% endif %}
           {% endfor %}
           {% if loop.last %}
-            <button type="button" class="dropdown-item" data-status-open>{{ icon("history", "dropdown-item-icon") }}Message history</button>
+            <button type="button" class="dropdown-item" data-status-open>Message history</button>
             <div class="dropdown-divider"></div>
             <form method="post" action="{{ url_for('auth.logout') }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="dropdown-item">{{ icon("logout", "dropdown-item-icon") }}Log out</button>
+              <button type="submit" class="dropdown-item">Log out</button>
             </form>
           {% endif %}
         </div>
