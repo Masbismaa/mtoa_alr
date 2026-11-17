@@ -137,8 +137,7 @@ def test_get_visible_attachment_hides_private_of_other_user(app, registered_user
     assert get_visible_attachment(registered_user, private_entry.attachment_list[0].id) is None
     assert get_visible_attachment(registered_user, public_entry.attachment_list[0].id) is not None
 def test_concurrent_upload_cannot_exceed_entry_limit(app, registered_user, category_dict, sample_file_dict, make_file_storage):
-    """Negative (temuan audit, upload barengan): request ini masih megang data lama (4 lampiran), padahal request
-    lain udah nambah lampiran ke-5. Nambah 1 lagi harus ditolak, bukan jadi 6."""
+    """Negative: upload barengan ga bisa lewat batas lampiran."""
     entry = create_access_entry(
         registered_user, build_entry_dict(category_dict["Web"]),
         upload_file_list=[make_file_storage(sample_file_dict["png"], f"lama{index}.png") for index in range(4)],
@@ -159,8 +158,7 @@ def test_concurrent_upload_cannot_exceed_entry_limit(app, registered_user, categ
     assert db.session.scalar(db.select(db.func.count(Attachment.id)).where(Attachment.access_entry_id == entry.id)) <= 5
 
 def test_same_attachment_deleted_twice_not_counted_twice(app, registered_user, category_dict, sample_file_dict, make_file_storage):
-    """Negative (temuan audit): request ini mau hapus lampiran A + nambah 1, padahal request lain udah duluan
-    hapus A & nambah 1 (jadi 5 lagi). Penghapusan A ga boleh kehitung dua kali -> nambah lagi ditolak, bukan jadi 6."""
+    """Negative: lampiran yg dihapus barengan ga kehitung dua kali."""
     entry = create_access_entry(
         registered_user, build_entry_dict(category_dict["Web"]),
         upload_file_list=[make_file_storage(sample_file_dict["png"], f"lama{index}.png") for index in range(5)],
@@ -181,7 +179,7 @@ def test_same_attachment_deleted_twice_not_counted_twice(app, registered_user, c
 
 
 def test_cleanup_attachments_deletes_only_old_orphan_files(app, registered_user, category_dict, make_file_storage, sample_file_dict):
-    """Negative (data hilang): --delete cuma buang file yatim lama; lampiran terdaftar & file yatim baru tetep ada."""
+    """Negative: --delete cuma mindahin file yatim lama ke folder orphan."""
     import os
     import time
 
@@ -203,6 +201,9 @@ def test_cleanup_attachments_deletes_only_old_orphan_files(app, registered_user,
     assert "1 file yatim ditemukan" in runner.invoke(args=["cleanup-attachments"]).output
     assert old_orphan.exists()
     result = runner.invoke(args=["cleanup-attachments", "--delete"])
-    assert "1 file yatim dihapus" in result.output
+    assert "1 file yatim dipindah" in result.output
     assert not old_orphan.exists()
+    # ga dihapus permanen: masih bisa dibalikin dari folder orphan
+    from app.services.backup_service import get_backup_folder
+    assert (get_backup_folder("website") / "orphan" / "yatim_lama.png").read_bytes() == b"x"
     assert registered_file.exists() and new_orphan.exists()

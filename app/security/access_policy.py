@@ -15,10 +15,7 @@ def is_entry_owner(user, entry):
     return entry.user_id == user.id
 
 def build_visible_group_entry_condition(user):
-    """SATU-SATUNYA aturan link di group yg boleh diliat user: link ga terbatas, atau user = pemilik group /
-    yg nambahin link / pemilik link-nya / viewer yg dipilih. Dipake daftar & hitungan di halaman group
-    (group_service) dan akses detail link (build_shared_entry_id_query), jadi hasilnya selalu sama.
-    Query pemakainya wajib join Group. Pemilik link dicek pake alias biar ga nyambung ke AccessEntry di query luar."""
+    """Satu-satunya aturan link group yg boleh diliat user; query pemakai wajib join Group."""
     link_entry = aliased(AccessEntry)
     is_viewer = db.select(GroupEntryViewer.id).where(
         GroupEntryViewer.group_entry_id == GroupEntry.id, GroupEntryViewer.user_id == user.id,

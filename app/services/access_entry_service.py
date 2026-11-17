@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload, undefer
 
 from app.extensions import db
-from app.models import AccessEntry, AccessEntryField, Category, User, UserFavorite
+from app.models import AccessEntry, AccessEntryField, Category, GroupEntry, User, UserFavorite
 from app.security.access_policy import build_visible_entry_filter, can_edit_entry, is_admin, is_entry_owner
 from app.security.encryption_service import decrypt_credential, encrypt_credential
 from app.services.attachment_service import (
@@ -55,6 +55,14 @@ from app.utils.selection import apply_condition_list, build_date_range_filter, b
 
 AUDIT_ENTITY_TYPE = "access_entries"
 
+# relasi yg disentuh audit & cascade hapus: diambil sekaligus biar hapus banyak link ga 1 query per link
+DELETE_LOAD_OPTION_LIST = [
+    selectinload(AccessEntry.custom_field_list),
+    selectinload(AccessEntry.attachment_list),
+    selectinload(AccessEntry.group_entry_list).selectinload(GroupEntry.viewer_list),
+    selectinload(AccessEntry.favorite_list),
+]
+
 # kolom yg langsung disalin dari data bersih ke model
 ENTRY_COLUMN_FIELD_LIST = ["category_id", "title", "url", "address", "port", "username", "description", "visibility"]
 
@@ -71,16 +79,14 @@ def list_active_category_option(user):
     return [(category.id, build_category_label(category)) for category in list_usable_category(user)]
 
 def get_form_category_list(user, current_category=None):
-    """Pilihan kategori di form (kategori utama + sub bikinan user). Pas edit, kategori lama tetep ikut walau udah
-    dinonaktifin, atau sub pribadi pemilik link-nya (admin ngedit link Public orang lain)."""
+    """Pilihan kategori di form; pas edit kategori lama tetep ikut."""
     category_list = list(list_usable_category(user))
     if current_category is not None and current_category not in category_list:
         category_list.append(current_category)
     return category_list
 
 def get_category_from_id(user, raw_category_id, current_category_id=None):
-    """Ambil kategori dari id, None kalau ga valid. Kategori nonaktif / sub pribadi orang lain cuma boleh kalau
-    itu kategori lama data-nya."""
+    """Kategori dari id, None kalau ga valid atau ga boleh dipake."""
     try:
         category_id = int(raw_category_id)
     except (TypeError, ValueError):
@@ -210,8 +216,7 @@ def find_duplicate_entry(user, clean_dict, exclude_entry_id=None):
     return None, None
 
 def find_duplicate_entry_dict(user, clean_dict_list):
-    """Versi sekaligus find_duplicate_entry (buat import): 1 query buat semua baris, aturannya sama
-    (URL sama, atau Address + Port sama, di data sendiri + Public). Return {index baris: pesan galat}."""
+    """Cek duplikat semua baris import dalam 1 query: {index baris: pesan}."""
     url_set = {clean_dict["url"] for clean_dict in clean_dict_list if clean_dict.get("url")}
     address_set = {clean_dict["address"] for clean_dict in clean_dict_list if clean_dict.get("address")}
     if not url_set and not address_set:
@@ -235,8 +240,7 @@ def find_duplicate_entry_dict(user, clean_dict_list):
 
 def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list=None,
                        existing_attachment_count=0, exclude_entry_id=None, current_category_id=None, check_duplicate=True):
-    """Semua validasi jadi satu (create & update). Return (clean_dict, custom_list, upload_list).
-    check_duplicate=False cuma buat import: duplikat ke database dicek sekaligus semua baris (find_duplicate_entry_dict)."""
+    """Semua validasi create & update: (clean_dict, custom_list, upload_list)."""
     clean_dict, category, error_list = validate_entry_data(user, data_dict, current_category_id)
     # link Public cuma admin yg boleh bikin; punya user biasa (form, import, request ngakal) otomatis Private
     if clean_dict.get("visibility") == VISIBILITY_PUBLIC and not is_admin(user):
@@ -334,8 +338,7 @@ def update_access_entry(user, entry, data_dict, custom_field_pair_list=None,
     )
     # dicek ulang setelah link dikunci (upload barengan ke link yg sama ga boleh lewat batas)
     enforce_entry_attachment_limit(entry, prepared_upload_list, [attachment.id for attachment in delete_attachment_list])
-    # visibilitas cuma boleh diganti pemiliknya. Link Public lama punya user biasa tetep Public selama ga
-    # dipindah ke Private (pindah ke Public ditolak di prepare_entry_data)
+    # visibilitas cuma boleh diganti pemiliknya
     if not is_entry_owner(user, entry) or data_dict.get("visibility") == entry.visibility:
         clean_dict["visibility"] = entry.visibility
 
@@ -372,12 +375,10 @@ def delete_access_entry(user, entry):
     remove_stored_file_list(stored_filename_list)
 
 def delete_access_entry_list(user, entry_id_list):
-    """Hapus banyak link sekaligus (admin, buat bersih-bersih). Cuma link yg boleh diliat & boleh dihapus user ini
-    yg kehapus, sisanya dilewatin (link Private orang lain tetep ga kesentuh). Satu transaksi, tiap link dicatat
-    di audit kayak hapus satuan. Return jumlah yg kehapus."""
+    """Admin hapus banyak link yg boleh dia hapus, 1 transaksi. Return jumlahnya."""
     entry_list = db.session.execute(
         db.select(AccessEntry)
-        .options(selectinload(AccessEntry.custom_field_list), selectinload(AccessEntry.attachment_list))
+        .options(*DELETE_LOAD_OPTION_LIST)
         .where(AccessEntry.id.in_(entry_id_list), build_visible_entry_filter(user))
     ).scalars().all()
     stored_filename_list = []
@@ -394,9 +395,10 @@ def delete_access_entry_list(user, entry_id_list):
     return deleted_count
 
 def delete_private_entry_list(actor, owner):
-    """Hapus semua link Private punya owner (dipake pas akun dihapus). Belum di-commit, return nama file lampiran buat dihapus abis commit."""
+    """Hapus link Private owner (hapus akun), belum commit. Return (jumlah, nama file lampiran)."""
     entry_list = db.session.execute(
-        db.select(AccessEntry).where(AccessEntry.user_id == owner.id, AccessEntry.visibility == VISIBILITY_PRIVATE)
+        db.select(AccessEntry).options(*DELETE_LOAD_OPTION_LIST)
+        .where(AccessEntry.user_id == owner.id, AccessEntry.visibility == VISIBILITY_PRIVATE)
     ).scalars().all()
     stored_filename_list = []
     for entry in entry_list:
@@ -426,7 +428,7 @@ def get_visible_entry(user, entry_id):
     ).scalar_one_or_none()
 
 def apply_entry_selection(user, query, selection, is_include_sub=True):
-    """Tempel kriteria Select Screen (judul, URL/address, kategori, visibilitas, status, pembuat, tanggal) ke query link."""
+    """Tempel kriteria Select Screen ke query link."""
     owner_condition = build_text_selection_filter([User.full_name, User.email], selection["owner"])
     category_id_list = selection["category_id_list"]
     return apply_condition_list(query, [
@@ -452,7 +454,7 @@ ENTRY_SORT_COLUMN_DICT = {
 
 def build_visible_entry_query(user, keyword=None, category_id=None, visibility=None, is_include_sub=True, selection=None,
                               sort=None):
-    """Query data yg boleh diliat user + filter + urutan (dipake tabel Home, halaman kategori, & export Excel biar hasilnya sama persis)."""
+    """Query link yg boleh diliat user + filter + urutan (tabel & export)."""
     query = (
         db.select(AccessEntry)
         .options(
@@ -491,7 +493,7 @@ def search_visible_entries(user, keyword=None, category_id=None, visibility=None
 
 def list_visible_entries_for_export(user, keyword=None, category_id=None, visibility=None, max_count=EXPORT_MAX_ROW_COUNT,
                                     selection=None, sort=None):
-    """Semua data hasil filter buat export, urutannya sama kayak tabel (dibatesin biar server ga berat). Return (entry_list, is_truncated)."""
+    """Link hasil filter buat export, dibatesin. Return (entry_list, is_truncated)."""
     query = build_visible_entry_query(user, keyword, category_id, visibility, selection=selection, sort=sort).limit(max_count + 1)
     entry_list = db.session.execute(query).unique().scalars().all()
     return entry_list[:max_count], len(entry_list) > max_count
@@ -538,9 +540,7 @@ def list_visible_favorite_entry(user, limit):
     ).scalars().all()
 
 def toggle_favorite(user, entry):
-    """Tandain / lepas bintang link ini. Return True kalau sekarang jadi favorit. Cuma buat link yg boleh diliat
-    (dicek route); kalau nanti aksesnya ilang, favoritnya otomatis ga muncul karena filter favorit tetep lewat
-    build_visible_entry_filter."""
+    """Tandain / lepas favorit. Return True kalau sekarang favorit."""
     favorite = db.session.execute(
         db.select(UserFavorite).filter_by(user_id=user.id, access_entry_id=entry.id)
     ).scalar_one_or_none()

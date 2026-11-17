@@ -237,3 +237,12 @@ def test_delete_rate_limited(monkeypatch):
         db.drop_all()
     assert status_code_list[:5] == [200] * 5
     assert status_code_list[5] == 429
+
+def test_pending_admin_typo_can_be_deleted(admin_client, admin_user):
+    """Akun admin Pending (email typo) bisa dihapus dari panel; admin aktif tetep ga bisa."""
+    typo = auth_service.create_pending_user(admin_user, "admin.tpyo@spindo.com", "Admin Typo", ROLE_ADMIN)
+    response = admin_client.post(f"/users/{typo.id}/delete", data={"confirm_email": typo.email})
+    assert response.status_code == 302
+    assert db.session.get(User, typo.id).deleted_at is not None
+    with pytest.raises(ValidationError):
+        delete_user_account(None, admin_user, admin_user.email)

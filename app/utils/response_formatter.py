@@ -3,9 +3,7 @@
 from flask import jsonify, request
 
 def wants_json_response():
-    """True kalau yg minta itu script (fetch) yg nunggu JSON: body-nya JSON, atau header Accept lebih milih JSON
-    daripada HTML. Navigasi browser biasa (Accept: text/html,...) tetep dapet halaman error HTML.
-    Dipake handler error (CSRF, 403, 404, 429, 500, ...) biar script ga dapet HTML & nampilin "Respon server tidak valid"."""
+    """True kalau yg minta nunggu JSON (fetch), bukan halaman HTML."""
     if request.is_json:
         return True
     accept = request.accept_mimetypes

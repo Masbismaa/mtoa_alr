@@ -9,8 +9,7 @@ from app.utils.response_formatter import error_response
 SESSION_EXPIRED_MESSAGE = "Your login session expired, reload the page and log in again"
 
 def api_login_required(view_function):
-    """Pengganti @login_required buat endpoint JSON: belum login -> 401 JSON, bukan redirect ke halaman login
-    (fetch ngikutin redirect diem-diem, ujungnya dapet HTML login yg ga bisa dibaca)."""
+    """@login_required versi JSON: belum login -> 401, bukan redirect."""
     @wraps(view_function)
     def wrapper(*args, **kwargs):
         if not current_user.is_authenticated:

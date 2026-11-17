@@ -100,8 +100,7 @@ def search_audit_logs(keyword=None, action=None, entity_type=None, date_from=Non
     return db.paginate(query, page=page, per_page=per_page, error_out=False)
 
 def list_entity_history(entity_type, entity_id, limit=ENTITY_HISTORY_LIMIT):
-    """Riwayat satu data (misal satu link), terbaru dulu: [{audit_log, changed_field_list}].
-    Isi field rahasia udah di-mask pas dicatat, di sini cuma nama field yg berubah yg ditampilin."""
+    """Riwayat satu data, terbaru dulu: [{audit_log, changed_field_list}]."""
     audit_log_list = db.session.execute(
         db.select(AuditLog)
         .where(AuditLog.entity_type == entity_type, AuditLog.entity_id == str(entity_id))

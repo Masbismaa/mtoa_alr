@@ -26,20 +26,14 @@ def get_fernet():
 
 
 def encrypt_credential(plain_text):
-    """Enkripsi teks biasa jadi token acak yg aman disimpen ke database.
-
-    Return None kalau input kosong, biar kolom di DB tetep NULL.
-    """
+    """Enkripsi teks jadi token; input kosong -> None."""
     if plain_text is None or plain_text == "":
         return None
     return get_fernet().encrypt(plain_text.encode("utf-8")).decode("utf-8")
 
 
 def decrypt_credential(encrypted_text):
-    """Buka lagi token hasil encrypt_credential jadi teks asli.
-
-    Kalau token rusak / diutak-atik / key-nya beda, lempar InvalidCredentialError.
-    """
+    """Buka token encrypt_credential; token rusak / key beda -> InvalidCredentialError."""
     if not encrypted_text:
         return None
     try:

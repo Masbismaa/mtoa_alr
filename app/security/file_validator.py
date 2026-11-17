@@ -31,9 +31,7 @@ ZIP_READ_CHUNK_BYTES = 64 * 1024
 ALLOWED_ZIP_COMPRESS_TYPE_SET = {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}
 
 def read_zip_part(zip_file, name):
-    """Baca 1 isi zip sedikit-sedikit dgn batas ukuran NYATA. Angka ukuran di header zip bisa dipalsuin
-    (ngaku kecil padahal isinya ratusan MB) dan zip_file.read() langsung ngebuka semuanya ke RAM sebelum
-    ketauan, jadi di sini dibaca per 64 KB dan langsung ditolak begitu lewat batas."""
+    """Baca 1 isi zip per 64 KB dgn batas ukuran nyata (header zip bisa bohong)."""
     info = zip_file.getinfo(name)
     limit = min(info.file_size, MAX_ZIP_PART_BYTES)
     chunk_list = []

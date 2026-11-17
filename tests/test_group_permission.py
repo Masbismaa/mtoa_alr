@@ -209,8 +209,7 @@ def test_unknown_group_entry_viewer_page_404(logged_in_client, registered_user):
     assert logged_in_client.get(f"/groups/{group.id}/entries/999/viewers").status_code == 404
 
 def test_group_link_visibility_same_on_group_page_and_link_detail(app, registered_user, other_user, third_user, category_dict):
-    """Positive & negative (security): siapa liat link apa di group, buat tiap peran (pemilik group, yg nambahin,
-    viewer dipilih). Daftar di halaman group & hak buka detail link-nya harus sama persis (satu aturan)."""
+    """Positive & negative (security): hak liat link group sama di halaman group & detail."""
     from app.security.access_policy import can_view_entry
 
     group = create_group(registered_user, {"name": "Tim Network"})

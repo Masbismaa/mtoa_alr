@@ -97,7 +97,7 @@ def build_docx_with_lying_header(real_size, fake_size=1000):
     return bytes(data)
 
 def test_zip_with_lying_size_rejected_without_using_much_memory():
-    """Negative (security/zip bomb): header zip ngaku kecil padahal isinya 30 MB -> ditolak tanpa ngebuka semuanya ke RAM."""
+    """Negative (security): zip bomb ditolak tanpa makan RAM."""
     import tracemalloc
 
     bomb = build_docx_with_lying_header(30 * 1024 * 1024)

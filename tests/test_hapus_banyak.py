@@ -22,7 +22,7 @@ def remaining_title_list():
 
 def test_admin_deletes_selected_links_and_each_is_audited(admin_client, admin_user, registered_user, category_dict,
                                                           make_file_storage, sample_file_dict):
-    """Positive: admin hapus link sendiri + link Public orang lain sekaligus; lampiran ikut kehapus, tiap link kecatat."""
+    """Positive: admin hapus banyak link, tiap link kecatat di audit."""
     web = category_dict["Web"]
     own = create_access_entry(admin_user, build_service_dict(web, title="Punya Admin", url="https://admin.spindo.com"),
                               upload_file_list=[make_file_storage(sample_file_dict["png"], "foto.png")])

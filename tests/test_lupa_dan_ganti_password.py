@@ -1,7 +1,4 @@
-"""Test lupa password, ganti password di Settings, & edit profil:
-- lupa password ga bocorin email mana yg terdaftar, kodenya kepisah dari OTP login, salah kode ga ngunci akun
-- password keganti (lewat mana pun) -> semua sesi lain ke-logout, dicatat di audit, pemilik dikabarin
-"""
+"""Test lupa password, ganti password, & edit profil."""
 import pytest
 from flask import g
 
@@ -26,8 +23,7 @@ RESET_EMAIL_LINE = "Kode reset password ALR ====="
 
 
 def as_client(client):
-    """Flask-Login nyimpen user yg login di g, dan semua request test berbagi 1 app context (fixture app).
-    Ganti-ganti client (sesi berbeda) -> buang dulu cache-nya biar tiap client dibaca dari cookie-nya sendiri."""
+    """Ganti client test: buang cache user di g."""
     g.pop("_login_user", None)
     return client
 
@@ -93,7 +89,7 @@ def test_reset_logs_out_other_sessions(app, registered_user, fixed_otp_code):
 
 
 def test_reset_code_and_login_otp_are_separate(app, client, registered_user, monkeypatch):
-    """Negative (security): kode reset ga bisa buat login & OTP login ga bisa buat reset; minta OTP login ga ngehanguskan kode reset."""
+    """Negative (security): kode reset & OTP login kepisah."""
     use_code_sequence(monkeypatch, "111111", "222222")
     request_reset(client, registered_user.email)
     auth_service.start_otp_challenge(registered_user)
@@ -218,8 +214,7 @@ def test_update_profile_empty_rejected(logged_in_client, registered_user):
 
 
 def test_reset_attempts_limited_per_email_across_new_codes(app, registered_user, monkeypatch):
-    """Negative (security): minta kode baru terus ga bikin tebakan tanpa batas dari 1 perangkat; email ga terdaftar
-    kena batas yg sama."""
+    """Negative (security): tebakan kode reset kebatas per email."""
     from app.utils.constants import RESET_ATTEMPT_MAX_COUNT
 
     use_code_sequence(monkeypatch, *[f"{index:06d}" for index in range(100, 200)])
@@ -232,8 +227,7 @@ def test_reset_attempts_limited_per_email_across_new_codes(app, registered_user,
 
 
 def test_reset_guesses_from_other_device_do_not_block_owner(app, registered_user, monkeypatch):
-    """Negative (security, temuan audit): orang lain salahin kode reset sampe kena batas -> pemilik akun
-    (perangkat lain) tetep bisa reset hari itu."""
+    """Negative (security): tebakan orang lain ga ngeblok reset pemilik."""
     from app.utils.constants import RESET_ATTEMPT_MAX_COUNT
 
     use_code_sequence(monkeypatch, "111111", "222222")
@@ -251,8 +245,7 @@ def test_reset_guesses_from_other_device_do_not_block_owner(app, registered_user
 
 
 def test_change_password_cancels_pending_login_and_codes(app, registered_user, fixed_otp_code):
-    """Negative (security, temuan audit): orang yg udah lolos password lama & lagi nunggu OTP -> pemilik ganti
-    password -> login itu batal walau kode OTP-nya bener, dan semua OTP yg masih aktif hangus."""
+    """Negative (security): ganti password batalin login yg nunggu OTP."""
     from app.models import OtpCode
 
     intruder = app.test_client()

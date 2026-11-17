@@ -8,8 +8,7 @@ def get_title_list(section_list):
 
 
 def test_admin_section_locked_for_user(app, registered_user, admin_user):
-    """Positive & negative (RBAC): bagian Kelola tampil buat semua, buat user biasa menunya dikunci kecuali Categories
-    (tiap akun ngelola kategorinya sendiri)."""
+    """Positive & negative (RBAC): menu Kelola dikunci buat user biasa kecuali Categories."""
     with app.test_request_context("/"):
         user_section_list = build_sidebar_section_list(registered_user, "main.home")
         admin_section_list = build_sidebar_section_list(admin_user, "main.home")

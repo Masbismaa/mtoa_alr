@@ -70,7 +70,7 @@ def render_category_form(form, page_title, form_action, cancel_url, parent=None,
 @categories_bp.get("/")
 @login_required
 def index():
-    """Tabel kelola kategori (semua user): 4 kategori bawaan + kategori bikinan sendiri (bentuk pohon) + jumlah link-nya."""
+    """Tabel kelola kategori: bawaan + bikinan sendiri + jumlah link."""
     return render_template(
         "pages/categories/index.html",
         page_title="Categories",
@@ -119,7 +119,7 @@ def browse(category_id):
 @api_login_required
 @limiter.limit("120 per minute")
 def table_data(category_id):
-    """API tabel link di kategori ini (dipanggil React pas urutan/filter/halaman berubah). Parameter sama kayak halamannya."""
+    """API tabel link di kategori ini (dipanggil React)."""
     user = get_current_user()
     category = get_category(category_id)
     if category is None or not is_category_visible(user, category) or (

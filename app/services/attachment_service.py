@@ -84,10 +84,7 @@ def enforce_upload_quota(user, prepared_list):
 
 
 def enforce_entry_attachment_limit(entry, prepared_list, removed_id_list=()):
-    """Hitung ulang jumlah lampiran link SETELAH barisnya dikunci. Hitungan awal (prepare_upload_list) dibaca
-    sebelum ada kunci, jadi 2 upload barengan ke link yg sama bisa sama-sama liat 4 lalu masing-masing nambah 1.
-    removed_id_list = id lampiran yg dihapus di request yg sama; yg ga dihitung cuma yg emang MASIH ada di DB
-    (kalau request lain udah duluan ngehapus lampiran yg sama, penghapusannya ga kehitung dua kali)."""
+    """Cek ulang batas lampiran setelah baris link dikunci (upload barengan)."""
     if not prepared_list or entry.id is None:
         return
     db.session.execute(db.select(AccessEntry.id).where(AccessEntry.id == entry.id).with_for_update()).scalar_one()

@@ -1,4 +1,4 @@
-"""Test import link dari Excel: semua-atau-tidak-sama-sekali, aturan sama kayak form Add Link, file berbahaya ditolak."""
+"""Test import link dari Excel."""
 import io
 
 from openpyxl import Workbook, load_workbook
@@ -248,8 +248,7 @@ def list_category_path(user):
 
 
 def test_create_category_option_creates_missing_paths(logged_in_client, registered_user, category_dict):
-    """Positive: sub baru di kategori bawaan & kategori utama baru 2 tingkat dibikin sekali (walau dipake 2 baris),
-    jadi milik user, dicatat di audit, link-nya masuk ke kategori itu, pesan sukses nyebut kategori barunya."""
+    """Positive: opsi create category bikin jalur kategori yg belum ada."""
     content = build_xlsx([
         web_row("Absensi", "https://absensi.spindo.com", Category="Web > Absensi"),
         web_row("Absensi 2", "https://absensi2.spindo.com", Category="web › absensi"),
@@ -295,8 +294,7 @@ def test_option_off_never_creates_category(logged_in_client, registered_user, ca
 
 
 def test_create_category_follows_category_rules(logged_in_client, registered_user, category_dict):
-    """Negative: aturan sama kayak menu Categories: kedalaman maks. 4, nama 2-50 huruf, nama kembar sama kategori
-    nonaktif ditolak per baris."""
+    """Negative: kategori dari import ikut aturan menu Categories."""
     db.session.add(Category(name="Printer", user_id=registered_user.id, is_active=False))
     db.session.commit()
     content = build_xlsx([
@@ -322,7 +320,7 @@ def test_template_category_dropdown_only_warns(logged_in_client, category_dict):
 
 
 def test_non_admin_visibility_column_is_ignored(logged_in_client, category_dict):
-    """Positive: user biasa pake file dgn kolom Visibility (template admin / lama) -> isinya diabaikan, tetap Private."""
+    """Positive: kolom Visibility dari user biasa diabaikan."""
     content = build_xlsx([web_row("A", "https://a.spindo.com", Visibility="Public"),
                           web_row("B", "https://b.spindo.com", Visibility="Ngasal")])
     assert post_import(logged_in_client, content).status_code == 302

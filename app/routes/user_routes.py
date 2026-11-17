@@ -7,7 +7,7 @@ from app.schemas.auth_schema import CreateUserForm
 from app.security.role_guard import admin_required
 from app.schemas.selection_schema import USER_FIELD_LIST, USER_FILTER_KEY_LIST, read_user_selection
 from app.schemas.table_schema import TABLE_USER
-from app.services.auth_service import create_pending_user
+from app.services.auth_service import create_pending_user, is_pending_activation
 from app.services.preference_service import get_table_layout
 from app.services.user_service import (
     build_delete_preview,
@@ -144,7 +144,7 @@ def unlock(user_id):
 def delete(user_id):
     """Hapus akun: tampilin dampaknya dulu, admin ngetik ulang email buat konfirmasi."""
     target = get_target_user_or_404(user_id)
-    admin_redirect = redirect_if_admin(target, "Admin accounts can't be deleted from the panel")
+    admin_redirect = None if is_pending_activation(target) else redirect_if_admin(target, "Admin accounts can't be deleted from the panel")
     if admin_redirect:
         return admin_redirect
 

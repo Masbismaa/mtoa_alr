@@ -14,8 +14,7 @@ def test_categories_require_login(client):
     assert "/auth/login" in response.location
 
 def test_user_manages_own_categories_on_category_page(logged_in_client, registered_user, other_user, category_dict):
-    """Positive + negative (RBAC): user biasa buka halaman kelola kategori, cuma liat sub bikinannya sendiri
-    (Edit, Deactivate, Delete), kategori bawaan ga bisa diubah, sub orang lain ga keliatan & ga bisa diubah."""
+    """Positive + negative (RBAC): user cuma bisa kelola kategori sendiri."""
     web = category_dict["Web"]
     sap = create_sub_category(registered_user, web, {"name": "SAP", "description": ""})
     other_sap = create_sub_category(other_user, web, {"name": "SAP Orang", "description": ""})
@@ -40,8 +39,7 @@ def test_admin_sidebar_category_menu_is_link(admin_client, category_dict):
     assert 'href="/categories/"' in admin_client.get("/").get_data(as_text=True)
 
 def test_user_adds_private_main_category(logged_in_client, other_user, category_dict):
-    """Positive + negative: user biasa nambah kategori utama sendiri lewat form (bisa dibuka & dikelola),
-    kategori utama pribadi orang lain ga keliatan & ga bisa dibuka."""
+    """Positive + negative: user bikin kategori utama pribadi."""
     assert "Add Main Category" in logged_in_client.get("/categories/").get_data(as_text=True)
     response = logged_in_client.post("/categories/new", data={"name": "Database", "description": "Server DB"})
     assert response.status_code == 302

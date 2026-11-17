@@ -45,8 +45,7 @@ class BaseConfig:
     # Proteksi CSRF aktif untuk semua form
     WTF_CSRF_ENABLED = True
 
-    # Login & OTP
-    # Domain email yang diizinkan untuk pendaftaran.
+    # Login & OTP: domain email yg diizinkan
     ALLOWED_EMAIL_DOMAIN = os.environ.get("ALLOWED_EMAIL_DOMAIN", "spindo.com")
     # console untuk development; smtp disediakan untuk implementasi production.
     OTP_DELIVERY_MODE = os.environ.get("OTP_DELIVERY_MODE", "console")

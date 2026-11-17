@@ -1,7 +1,6 @@
 """Layar awal setelah login (ALR Home), dashboard ringkasan, export Excel Daftar Link."""
-import os
 
-from flask import Blueprint, current_app, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, redirect, render_template, request, send_file, url_for
 from flask_login import login_required
 from app.extensions import db, limiter
 from app.models import AuditLog
@@ -29,18 +28,8 @@ from app.utils.request_helper import get_current_user
 
 main_bp = Blueprint("main", __name__)
 
-EASY_ACCESS_IMAGE = "images/easy_access.png"
-
-def read_static_version(filename):
-    """Versi file static = waktu terakhir diubah. Ditempel di URL (?v=), jadi foto yg ditimpa langsung kepake tanpa Ctrl+F5."""
-    try:
-        return int(os.path.getmtime(os.path.join(current_app.static_folder, filename)))
-    except OSError:
-        return 0
-
 def build_export_filename(user):
-    """Nama file export, misal ALR_MBP_2026-10-05-V2.xlsx. Inisial cuma huruf/angka biar nama file aman.
-    V = export ke-berapa user ini hari ini (WIB), dihitung dari audit log export (dipanggil abis export dicatat)."""
+    """Nama file export, misal ALR_MBP_2026-10-05-V2.xlsx (V = export ke-berapa hari ini)."""
     initial_text = "".join(char for char in get_initials(user.full_name) if char.isalnum()) or "USER"
     local_date = to_local_time(utc_now()).date()
     start_at, end_at = build_utc_range_from_local_date(local_date, local_date)
@@ -56,16 +45,14 @@ def build_export_filename(user):
 @main_bp.get("/")
 @login_required
 def home():
-    """Layar awal (Home): pohon menu (Favorites + ALR Menu) di kiri, gambar di kanan."""
-    # link lama yg masih bawa kriteria (misal /?q=router) dilempar ke Daftar Link, langsung ke tabelnya.
-    # query string-nya diterusin apa adanya (bukan lewat url_for, biar parameter kayak _anchor ga ikut kebaca)
+    """Layar awal (Home): pohon menu (Favorites + ALR Menu) di kiri, logo di kanan."""
+    # link lama yg bawa kriteria (/?q=...) dilempar ke Daftar Link, query string diterusin apa adanya
     if request.query_string:
         return redirect(f"{url_for('entries.index')}?{request.query_string.decode('latin-1')}#daftar_link")
     return render_template(
         "pages/easy_access.html",
         page_title="ALR Home",
         favorite_entry_list=list_visible_favorite_entry(get_current_user(), EASY_ACCESS_FAVORITE_LIMIT),
-        image_url=url_for("static", filename=EASY_ACCESS_IMAGE, v=read_static_version(EASY_ACCESS_IMAGE)),
     )
 
 @main_bp.get("/dashboard/")

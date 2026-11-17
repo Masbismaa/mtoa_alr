@@ -1,4 +1,4 @@
-"""Panel admin Backup & Restore: database & lampiran website dipisah, masing-masing bisa dibikin, diunduh, di-restore."""
+"""Panel admin Backup & Restore (database & lampiran)."""
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, send_file, url_for
 from flask_login import current_user, login_required
 

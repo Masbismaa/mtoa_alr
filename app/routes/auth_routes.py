@@ -32,8 +32,7 @@ from app.utils.text_helper import mask_email
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 def get_pending_user():
-    """Ambil user yg udah lolos password tapi belum isi OTP. Password diganti setelah langkah 1 (session_version
-    naik) -> login yg lagi nunggu ini batal, harus mulai dari password baru."""
+    """User yg lolos password tapi belum OTP; batal kalau password keburu diganti."""
     pending = session.get(SESSION_PENDING_USER_KEY)
     if not isinstance(pending, dict):
         return None

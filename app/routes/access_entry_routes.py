@@ -99,7 +99,7 @@ def render_entry_form(form, category_list, custom_field_pair_list, page_title, f
 @entries_bp.get("/")
 @login_required
 def index():
-    """Daftar Link ala Select Screen SAP: awalnya cuma Kriteria Pencarian, tabel (ALV, React) baru muncul abis Jalankan."""
+    """Daftar Link: Kriteria Pencarian dulu, tabel baru muncul abis Jalankan."""
     user = get_current_user()
     scope = build_index_scope()
     field_list = build_scope_field_list(user, scope)
@@ -165,8 +165,7 @@ def create():
             attachment_error_list = attach_error_list(form, error.error_list)
         else:
             if target_group is not None:
-                # link-nya udah kesimpen duluan. Kalau masuk ke group gagal (misal izin nambah link baru aja dicabut),
-                # kasih tau jelas & arahin ke link-nya, biar user ga bikin link yg sama dua kali
+                # link udah kesimpen; kalau gagal masuk group, kasih tau & arahin ke link-nya biar ga dobel
                 try:
                     add_group_entry(user, target_group, entry.id)
                 except (PermissionDeniedError, ValidationError) as error:
@@ -191,8 +190,7 @@ def create():
 @login_required
 @limiter.limit("10 per minute", methods=["POST"])
 def import_page():
-    """Import link dari Excel (template). Ada 1 baris salah -> ga ada yg disimpen, error per baris ditampilin.
-    Centang create_category -> jalur kategori yg belum ada dibikin jadi kategori pribadi."""
+    """Import link dari Excel; 1 baris salah -> ga ada yg disimpen."""
     error_list = []
     is_create_category = request.form.get("create_category") == "1"
     if request.method == "POST":

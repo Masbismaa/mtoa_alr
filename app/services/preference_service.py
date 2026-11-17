@@ -138,8 +138,7 @@ def clean_table_layout(data_dict):
     return table_key, {"hidden_list": clean_hidden_list, "width_dict": width_dict}, save_order
 
 def read_layout_save_order(data_dict, error_list):
-    """client_id (acak per tab browser) + sequence (naik terus tiap kirim). Opsional, tapi harus berpasangan.
-    Dipake buat nolak kiriman lama yg telat nyampe (lihat update_table_layout)."""
+    """Baca client_id + sequence (opsional, harus berpasangan)."""
     client_id, sequence = data_dict.get("client_id"), data_dict.get("sequence")
     if client_id is None and sequence is None:
         return None
@@ -151,13 +150,7 @@ def read_layout_save_order(data_dict, error_list):
     return {"client_id": client_id, "sequence": sequence}
 
 def update_table_layout(user, data_dict):
-    """Simpen layout satu tabel. Ga dicatat di audit log: cuma tampilan pribadi & bisa berubah tiap kolom digeser.
-    Return (layout yg berlaku sekarang, is_stale).
-
-    is_stale True = kiriman ini lebih lama dari yg udah kesimpen dari tab yg sama (sequence <= yg terakhir tab itu),
-    jadi DIABAIKAN. Kejadian kalau request lama telat nyampe, misal kalah duluan sama kiriman pas halaman ditutup.
-    Nomor urut diinget PER TAB (urutan A-2, B-1, lalu A-1 telat -> A-1 tetep ditolak).
-    Antar tab/perangkat (client_id beda) tetep "yg terakhir nyampe yg menang"."""
+    """Simpen layout satu tabel. Return (layout, is_stale); kiriman lama dari tab yg sama diabaikan."""
     table_key, layout_dict, save_order = clean_table_layout(data_dict)
     # baris user dikunci: kiriman barengan diproses satu-satu, jadi perbandingan sequence-nya aman
     preference = get_or_create_preference(user, for_write=True)

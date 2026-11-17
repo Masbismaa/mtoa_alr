@@ -1,9 +1,4 @@
-"""File template import link (Excel), tampilannya disamain sama laporan export (kop, warna, font):
-- Links: tempat ngisi. Header di bawah kop, Category & Visibility pake dropdown, Port cuma angka, siap print
-- Guide: penjelasan tiap kolom + contoh + aturan import
-- Categories: jalur kategori yg bisa dipake + field apa yg dipake/wajib (sumber dropdown Category)
-Sengaja ga ada baris contoh di sheet Links: kalau lupa dihapus, ikut ke-import. Contohnya di sheet Guide.
-"""
+"""Template import Excel (sheet Links, Guide, Categories)."""
 from io import BytesIO
 
 from openpyxl import Workbook

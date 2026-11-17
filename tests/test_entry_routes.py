@@ -129,8 +129,7 @@ def test_create_entry_into_group(logged_in_client, registered_user, category_dic
     assert len(group.group_entry_list) == 1
 
 def test_create_entry_into_group_partial_failure_is_explained(logged_in_client, registered_user, category_dict, monkeypatch):
-    """Negative (temuan audit): link udah kesimpen tapi gagal masuk group (misal izin dicabut barengan) ->
-    bukan error 500; user diarahin ke link-nya + dikasih tau, dan link ga kebikin dobel."""
+    """Negative: link kesimpen tapi gagal masuk group -> dikasih tau, bukan 500."""
     from app.routes import access_entry_routes
     from app.services.group_service import create_group
     from app.utils.exceptions import PermissionDeniedError

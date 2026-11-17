@@ -130,7 +130,7 @@
                             <button type="submit" class="dropdown-item">{{ icon("eye", "dropdown-item-icon") }} Activate</button>
                           </form>
                         {% endif %}
-                        {% if not is_admin(user) %}
+                        {% if not is_admin(user) or row.status == "pending" %}
                           <div class="dropdown-divider"></div>
                           <a href="{{ url_for('users.delete', user_id=user.id, **back_param_dict) }}" class="dropdown-item text-danger">{{ icon("trash", "dropdown-item-icon") }} Delete account</a>
                         {% endif %}

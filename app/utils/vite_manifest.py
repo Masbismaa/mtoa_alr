@@ -1,9 +1,4 @@
-"""Nulis tag <script>/<link> buat komponen React hasil build Vite (folder frontend/).
-
-Vite ngasih nama file ber-hash (misal entry_table-3f9a1c.js) biar cache browser ga nyangkut pas ada versi baru.
-Nama aslinya dicatat di app/static/dist/.vite/manifest.json, file itu yg dibaca di sini.
-Cara pake di template: {{ vite_tags("entry_table") }}  (nama entry = kunci di rollupOptions.input vite.config.js)
-"""
+"""Tag <script>/<link> komponen React dari manifest Vite."""
 import json
 from pathlib import Path
 

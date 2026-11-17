@@ -707,7 +707,7 @@ flask --app run run
 | `monitor-worker` | Run the link monitoring worker as a long-lived process |
 | `check-links` | Execute a single availability check from the terminal |
 | `recover-link-monitor` | Recover an interrupted monitoring run |
-| `cleanup-attachments` | Detect and remove orphaned attachment files |
+| `cleanup-attachments` | Detect orphaned attachment files; `--delete` moves them to the backup orphan folder |
 | `cleanup-old-data` | Purge expired codes and obsolete records |
 
 Invoke each command as `flask --app run <command>`.

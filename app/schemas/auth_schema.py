@@ -1,5 +1,4 @@
-"""Form login, OTP, aktivasi akun, lupa/ganti password, profil, dan bikin user (admin). Validasi dasar di sini,
-aturan bisnis di auth_service."""
+"""Form login, OTP, aktivasi, password, profil, & bikin user."""
 from flask import current_app
 from flask_wtf import FlaskForm
 from wtforms import EmailField, PasswordField, SelectField, StringField, SubmitField

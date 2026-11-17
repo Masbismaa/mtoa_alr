@@ -1,4 +1,4 @@
-"""Logika group: bikin, undang anggota, izin tambah link, bagi link (bisa dibatasi per anggota), keluar/dikeluarin."""
+"""Logika group: anggota, izin, bagi link."""
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import or_
 from app.extensions import db
@@ -79,10 +79,7 @@ def delete_group(user, group):
     db.session.commit()
 
 def get_member_group(user, group_id):
-    """Group yg user jadi anggota aktifnya. None kalau bukan anggota (jadi 404).
-    Anggota (+ data user-nya) ikut diambil karena dipake cek peran di tiap aksi & jumlahnya kecil.
-    Link group SENGAJA ga diambil di sini (bisa ribuan): halaman detail ngambilnya sendiri per halaman
-    lewat search_visible_group_entry."""
+    """Group yg user jadi anggota aktifnya (+ anggota), None kalau bukan."""
     return db.session.execute(
         db.select(Group)
         .join(GroupMember, GroupMember.group_id == Group.id)
@@ -138,8 +135,7 @@ def count_visible_group_entries(user, group_list):
     return {group_id: counts.get(group_id, 0) for group_id in group_ids}
 
 def search_visible_group_entry(user, group, page=1, per_page=PER_PAGE):
-    """Link di group yg boleh diliat user, per halaman, disaring di SQL (bukan ngambil semua terus disaring di Python).
-    Halaman kebablasan (misal link-nya abis dicabut) dijepit ke halaman terakhir."""
+    """Link group yg boleh diliat user, per halaman."""
     query = (
         db.select(GroupEntry)
         .join(Group, Group.id == GroupEntry.group_id)
@@ -238,8 +234,7 @@ def decline_invitation(user, invitation):
     db.session.commit()
 
 def detach_member(group, member):
-    """Lepas anggota dari group: link punya dia dicabut, izin liat link terbatas dihapus, keanggotaannya dihapus.
-    Pake DELETE langsung (jumlah query tetep, ga ngambil semua link group satu-satu). Commit di pemanggil."""
+    """Lepas anggota dari group beserta link & izin liatnya. Commit di pemanggil."""
     member_entry_id_query = (
         db.select(GroupEntry.id).join(AccessEntry, AccessEntry.id == GroupEntry.access_entry_id)
         .where(GroupEntry.group_id == group.id, AccessEntry.user_id == member.user_id)
@@ -337,7 +332,7 @@ def list_owned_group(user):
     ).scalars().all()
 
 def release_user_group_list(actor, user):
-    """Lepas user dari semua group pas akunnya dihapus. Group miliknya pindah ke anggota terlama, kalau ga ada anggota group-nya dihapus."""
+    """Lepas user dari semua group pas akunnya dihapus (group miliknya pindah / dihapus)."""
     summary_dict = {"transferred_group_id_list": [], "deleted_group_id_list": [], "left_group_id_list": []}
     membership_list = db.session.execute(
         # anggota group + user-nya ikut diambil: find_group_successor & detach_member baca itu (biar ga 1 query per anggota)

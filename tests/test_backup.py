@@ -1,5 +1,4 @@
-"""Test backup & restore (database & website dipisah). pg_dump / pg_restore diganti palsu (test pake SQLite);
-jalur PostgreSQL beneran dicek manual."""
+"""Test backup & restore (pg_dump / pg_restore dipalsuin)."""
 import json
 import zipfile
 from pathlib import Path
@@ -145,7 +144,7 @@ def test_admin_creates_downloads_and_restores_per_kind(admin_client, fake_pg):
 
 
 def test_cli_backup_creates_both_kinds_and_restore_detects_kind(app, fake_pg, tmp_path):
-    """Positive + negative: "flask backup" bikin dua-duanya (--only satu), "flask restore" milih jenis dari nama file."""
+    """Positive + negative: CLI backup & restore."""
     runner = app.test_cli_runner()
     assert runner.invoke(args=["backup"]).exit_code == 0
     assert len(backup_service.list_backup("database")) == 1 and len(backup_service.list_backup("website")) == 1
@@ -165,3 +164,10 @@ def test_cli_backup_creates_both_kinds_and_restore_detects_kind(app, fake_pg, tm
     other_path = tmp_path / "random.zip"
     other_path.write_bytes(b"x")
     assert runner.invoke(args=["restore", str(other_path), "--yes"]).exit_code != 0
+    # Negative (data hilang): file luar yg namanya sama kayak backup yg udah ada ga boleh nimpa backup itu
+    kept_path = backup_service.get_backup_folder("website") / outside_path.name
+    kept_bytes = kept_path.read_bytes()
+    outside_path.write_bytes(b"isi lain")
+    result = runner.invoke(args=["restore", str(outside_path), "--yes"])
+    assert result.exit_code != 0 and "sudah ada" in result.output
+    assert kept_path.read_bytes() == kept_bytes

@@ -1,4 +1,4 @@
-"""Tunggu PostgreSQL siap nerima koneksi (dipake job CI postgres_test sebelum migrasi). Gagal kalau lewat 60 detik."""
+"""Tunggu PostgreSQL siap (maks 60 detik)."""
 import os
 import sys
 import time

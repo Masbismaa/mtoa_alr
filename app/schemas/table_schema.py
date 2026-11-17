@@ -1,14 +1,11 @@
-"""Kolom tabel ala ALV per tabel: judul, lebar awal, bisa diurutin/disembunyiin atau nggak.
-Layout yg disimpen user (kolom disembunyiin & lebar) dicek pake daftar ini, kolom yg ga dikenal ditolak."""
+"""Kolom tabel ala ALV per tabel (judul, lebar, bisa diurut/disembunyiin)."""
 from collections import namedtuple
 
 TABLE_ENTRY = "entry"
 TABLE_USER = "user"
 TABLE_AUDIT = "audit"
 
-# width = lebar awal (px), totalnya pas di layar 1280 px biar ga perlu geser ke samping
-# is_default_hidden = disembunyiin kalau user belum pernah ngatur layout
-# filter_key = isian Kriteria Pencarian yg dipake filter per kolom (baris filter di bawah judul kolom), None = ga ada filter
+# width = lebar awal (px), is_default_hidden = sembunyi bawaan, filter_key = isian filter kolom
 TableColumn = namedtuple(
     "TableColumn",
     ["key", "label", "width", "is_sortable", "is_hideable", "is_default_hidden", "filter_key"],

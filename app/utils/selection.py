@@ -1,5 +1,4 @@
-"""Select Screen ala SAP: baca kriteria dari URL (banyak nilai, sertakan/kecualikan, wildcard *) & ubah jadi filter SQL.
-Dipake bareng sama Daftar Link, Users, Audit Logs, dan Groups."""
+"""Select Screen ala SAP: kriteria dari URL jadi filter SQL."""
 from collections import namedtuple
 from sqlalchemy import and_, not_, or_
 from app.utils.constants import MAX_SEARCH_KEYWORD_LENGTH, SELECTION_EXCLUDE_SUFFIX, SELECTION_MAX_VALUE_COUNT, TABLE_SORT_KEY

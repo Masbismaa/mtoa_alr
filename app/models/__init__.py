@@ -17,9 +17,7 @@ from app.models.user_favorite import UserFavorite
 from app.models.selection_variant import SelectionVariant
 from app.extensions import db
 
-# jumlah lampiran dihitung di SQL (buat tabel & export), biar ga perlu ngambil semua baris lampiran.
-# deferred: cuma ikut query yg minta lewat undefer(AccessEntry.attachment_count).
-# ditaruh di sini karena butuh dua model yg saling refer
+# jumlah lampiran dihitung di SQL (deferred, ambil lewat undefer); ditaruh sini karena butuh 2 model
 AccessEntry.attachment_count = db.column_property(
     db.select(db.func.count(Attachment.id))
     .where(Attachment.access_entry_id == AccessEntry.id)

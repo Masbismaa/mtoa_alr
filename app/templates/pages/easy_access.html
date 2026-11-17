@@ -85,8 +85,7 @@
         </li>
       </ul>
     </nav>
-    {# logo kanan: timpa app/static/images/easy_access.png (nama sama), versinya otomatis ganti #}
-    <img class="ea-image" src="{{ image_url }}" alt="">
+    <div class="ea-image">{% include "components/brand_logo.html" %}</div>
   </div>
 {% endblock %}
 

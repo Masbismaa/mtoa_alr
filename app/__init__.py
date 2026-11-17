@@ -24,7 +24,7 @@ CSRF_ERROR_PAGE = ("Form session expired", "This page was open too long. Reload 
 
 
 def resolve_config_name(config_name=None):
-    """Nama environment yg dipake. Default production: lupa ngisi APP_ENV di server ga bikin pengaman production mati."""
+    """Nama environment, default production biar pengaman ga mati kalau APP_ENV lupa diisi."""
     return config_name or os.environ.get("APP_ENV", "production")
 
 
@@ -69,9 +69,7 @@ def create_app(config_name=None):
     return app
 
 def warn_untrusted_proxy_header(app):
-    """Ada header X-Forwarded-For padahal TRUSTED_PROXY_COUNT=0 -> aplikasi kemungkinan di belakang reverse proxy
-    yg belum diatur. Semua user bakal keliatan dari 1 IP (IP proxy): rate limit login & blokir salah password
-    jadi berlaku buat sekantor. Cukup dicatat sekali per proses biar log ga kebanjiran."""
+    """Catat sekali per proses kalau ada X-Forwarded-For tapi TRUSTED_PROXY_COUNT=0."""
     is_warned = []
 
     @app.before_request
@@ -162,8 +160,7 @@ def build_error_handler(error_code, error_title, error_message):
         from app.utils.response_formatter import error_response, wants_json_response
 
         if error_code >= 500:
-            # Handler ini dipanggil saat ada request, jadi application context
-            # dan session SQLAlchemy sudah tersedia di sini.
+            # Dipanggil per request, jadi app context & session SQLAlchemy udah ada.
             db.session.rollback()
         # request dari script (fetch JSON) dapet JSON dgn pesan yg sama, bukan halaman HTML
         if wants_json_response():

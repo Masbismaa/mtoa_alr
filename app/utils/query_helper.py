@@ -8,15 +8,14 @@ def escape_like_pattern(text):
     return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 def build_like_pattern(keyword):
-    """Kata kunci jadi pola LIKE. Tanpa * = mengandung kata itu. Pake * ala SAP: ad* = diawali ad, *ad = diakhiri ad, a*d = a...d.
-    % dan _ yg diketik user tetep dianggap huruf biasa."""
+    """Kata kunci jadi pola LIKE, * ala SAP (ad*, *ad, a*d)."""
     escaped_keyword = escape_like_pattern(keyword)
     if SEARCH_WILDCARD not in keyword:
         return f"%{escaped_keyword}%"
     return escaped_keyword.replace(SEARCH_WILDCARD, "%")
 
 def build_keyword_filter(column_list, keyword):
-    """Filter LIKE (ga peduli huruf besar/kecil) ke beberapa kolom sekaligus. Kolom kosong (NULL) dianggap teks kosong."""
+    """Filter LIKE tanpa beda huruf ke beberapa kolom."""
     like_pattern = build_like_pattern(keyword)
     return or_(*(func.coalesce(column, "").ilike(like_pattern, escape="\\") for column in column_list))
 
@@ -28,8 +27,7 @@ def parse_positive_int(raw_value, default=None):
         return default
     return number if number > 0 else default
 
-# tanggal filter di luar rentang ini dianggap ga valid (diabaikan): tahun 0001 / 9999 bikin konversi WIB->UTC
-# & "sampe akhir hari" (+1 hari) kelewat batas datetime Python -> OverflowError (error 500)
+# tanggal di luar rentang ini diabaikan biar ga OverflowError
 MIN_FILTER_DATE = date(1900, 1, 1)
 MAX_FILTER_DATE = date(2999, 12, 31)
 

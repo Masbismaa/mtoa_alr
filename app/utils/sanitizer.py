@@ -37,10 +37,7 @@ RICH_TEXT_ATTRIBUTE_VALUE_DICT = {
 }
 
 def sanitize_text(value, max_length=MAX_TEXT_LENGTH):
-    """Buang semua tag HTML, karakter kontrol, spasi di ujung, terus potong sesuai max_length.
-
-    Hasilnya teks polos. Pas ditampilin, Jinja2 tetep escape lagi (lapis kedua).
-    """
+    """Buang tag HTML & karakter kontrol, potong sesuai max_length."""
     if value is None:
         return None
 
@@ -58,10 +55,7 @@ def sanitize_text(value, max_length=MAX_TEXT_LENGTH):
     return cleaned_text[:max_length]
 
 def sanitize_rich_text(value, max_length=MAX_RICH_TEXT_LENGTH):
-    """Bersihin HTML dari editor teks: cuma tag format yg diizinin, link cuma http/https.
-
-    Link otomatis dikasih rel="noopener noreferrer".
-    """
+    """Bersihin HTML editor: cuma tag format, link http/https."""
     if not value:
         return ""
     return nh3.clean(

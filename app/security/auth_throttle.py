@@ -1,15 +1,5 @@
-"""Pembatas percobaan login (per email) dan kode lupa password.
-
-Salah password juga ngunci akunnya (users.locked_until, lihat auth_service). Pembatas per email ini tetep ada
-biar email ga terdaftar keblokir dgn pesan yg sama persis (ga ngebocorin email mana yg terdaftar), dan
-sengaja ga pakai IP supaya admin bisa ngebuka blokirnya bareng kunci akun (clear_login_failure).
-Konsekuensinya: orang yg tau email kita bisa ngunci akun kita 15 menit dgn sengaja salah password.
-
-Sengaja pakai library `limits` langsung (bukan dekorator Flask-Limiter): Flask-Limiter mati total kalau
-RATELIMIT_ENABLED=False (misal di test), padahal pembatas ini bagian dari aturan keamanan login, bukan sekadar anti spam.
-Penyimpanannya sama dgn rate limit (RATELIMIT_STORAGE_URI): memory di laptop/test, Redis di production
-(wajib, biar semua proses server ngitung bareng).
-"""
+"""Pembatas percobaan login per email & kode lupa password (pakai `limits` langsung)."""
+# bukan Flask-Limiter: itu mati total kalau RATELIMIT_ENABLED=False, padahal ini aturan keamanan login
 import math
 import time
 
@@ -64,13 +54,10 @@ def clear_login_failure(email):
     get_limiter().clear(LOGIN_FAILURE_LIMIT, LOGIN_FAILURE_NAMESPACE, email)
 
 def allow_reset_code(email):
-    """True kalau kode lupa password boleh dikirim ke alamat ini sekarang. Batasnya per email (anti banjir kotak masuk)
-    + batas harian. Batas harian ini yg ngebatesin total tebakan kode lintas IP
-    (tiap kode cuma bisa dicoba OTP_MAX_ATTEMPT_COUNT kali)."""
+    """True kalau kode lupa password boleh dikirim ke email ini sekarang."""
     return (get_limiter().hit(RESET_CODE_LIMIT, RESET_CODE_NAMESPACE, email)
             and get_limiter().hit(RESET_CODE_DAILY_LIMIT, RESET_CODE_DAILY_NAMESPACE, email))
 
 def allow_reset_attempt(email, ip_address):
-    """True kalau email ini masih boleh nyoba kode lupa password hari ini dari IP ini. Per email + IP, biar orang lain
-    yg sengaja salah-salahin kode ga bikin pemiliknya ga bisa reset (total tebakan udah kebatas di allow_reset_code)."""
+    """True kalau email + IP ini masih boleh nyoba kode lupa password hari ini."""
     return get_limiter().hit(RESET_ATTEMPT_LIMIT, RESET_ATTEMPT_NAMESPACE, email, ip_address)

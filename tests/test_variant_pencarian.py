@@ -13,8 +13,7 @@ def variant_list():
 
 
 def test_save_variant_then_it_shows_on_that_screen_only(logged_in_client):
-    """Positive: variant kesimpen (tanpa nomor halaman & isian kosong), balik ke layar dgn kriteria itu,
-    & muncul di menu Variant layar itu aja."""
+    """Positive: variant kesimpen & cuma muncul di layar itu."""
     response = save_variant(logged_in_client, "Network Down", "run=1&status=down&title=&page=3")
     assert response.status_code == 302
     assert response.location.endswith("/entries/?run=1&status=down")

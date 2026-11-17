@@ -1,5 +1,4 @@
-"""Worker uji skenario monitor: sama kayak `flask monitor-worker`, tapi pemeriksaan jaringan diganti nunggu 1 detik
-per link (link ke-4, 8, ... dianggap tidak aktif). Database-nya sama dgn server uji (E2E_DB_PATH)."""
+"""Worker monitor buat uji E2E (cek jaringan diganti nunggu 1 detik)."""
 import os
 import sys
 import time

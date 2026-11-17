@@ -9,14 +9,7 @@ from app.utils.constants import ALLOWED_URL_SCHEME_SET, MAX_ADDRESS_LENGTH, MAX_
 ADDRESS_PATTERN = re.compile(r"^[a-z0-9.\-:\[\]]+$")
 
 def normalize_url(raw_url):
-    """Validasi URL terus dirapihin biar gampang dicek duplikatnya.
-
-    - wajib http/https
-    - skema & host jadi huruf kecil, garis miring di akhir dibuang
-    - ga boleh ada spasi atau username/password di dalem URL
-
-    Lempar ValueError (pesannya aman ditampilin) kalau ga sesuai.
-    """
+    """Validasi & rapihin URL (http/https). Ga valid -> ValueError."""
     url_text = (raw_url or "").strip()
     if not url_text:
         raise ValueError("URL is required")
@@ -71,8 +64,7 @@ def parse_port(raw_port):
         raise ValueError("Port must be between 1 and 65535")
     return port_number
 def get_safe_back_url(raw_value):
-    """Alamat balik dari ?back= (misal balik ke tabel + filternya). Cuma boleh path di dalem ALR sendiri (/...),
-    bukan //situs-lain, http://, atau backslash, biar ga bisa dipake buat lempar user ke situs luar. Ga aman -> None."""
+    """Alamat ?back= kalau path di dalem ALR, selain itu None."""
     back_url = (raw_value or "").strip()
     if not back_url.startswith("/") or back_url.startswith("//") or len(back_url) > MAX_URL_LENGTH:
         return None

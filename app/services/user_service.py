@@ -1,4 +1,4 @@
-"""Logika kelola user (khusus admin): daftar, cari, filter, link aktivasi, ganti role, aktif/nonaktif, buka kunci, hapus akun."""
+"""Kelola user (admin): cari, role, aktif/nonaktif, buka kunci, hapus akun."""
 import smtplib
 
 from flask import current_app, url_for
@@ -136,9 +136,8 @@ def ensure_not_admin(target):
         raise ValidationError([build_error("user", "Admin accounts can only be changed via the command line")])
 
 def ensure_other_admin_left(target):
-    """Minimal harus nyisa 1 admin aktif selain target. Baris semua admin aktif dikunci dulu (FOR UPDATE), jadi
-    2 perintah barengan yg nurunin 2 admin beda diproses satu-satu & ga bisa sama-sama liat "masih ada admin lain".
-    (FOR UPDATE ga boleh bareng COUNT di PostgreSQL, makanya id-nya yg diambil)"""
+    """Minimal nyisa 1 admin aktif selain target (baris admin dikunci FOR UPDATE)."""
+    # ambil id, bukan COUNT: PostgreSQL ga ngizinin FOR UPDATE bareng COUNT
     admin_id_list = db.session.scalars(
         db.select(User.id).where(User.deleted_at.is_(None), User.role == ROLE_ADMIN, User.is_active.is_(True))
         .with_for_update()
@@ -174,8 +173,7 @@ def ensure_activated(target):
         raise ValidationError([build_error("user", "This account hasn't been activated yet; send the activation link instead")])
 
 def send_activation(actor, target):
-    """Kirim link aktivasi ke email akun yg masih Pending. Link lama langsung ga berlaku. actor ga dipake
-    (tanda tangannya disamain sama aksi admin lain buat run_user_action)."""
+    """Kirim link aktivasi ke akun Pending, link lama hangus."""
     if not is_pending_activation(target):
         raise ValidationError([build_error("user", "This account is already activated")])
     if is_otp_cooldown_active(target.id, OTP_PURPOSE_ACTIVATION):
@@ -248,7 +246,9 @@ def anonymize_user(target):
 def delete_user_account(actor, target, confirm_email):
     """Hapus akun: link Private + lampirannya dihapus, link Public tetep ada, group dilepas, data diri dianonimkan."""
     ensure_not_self(actor, target, "You can't delete your own account")
-    ensure_not_admin(target)
+    # akun Pending belum pernah login, jadi admin yg salah ketik email boleh dihapus dari panel
+    if not is_pending_activation(target):
+        ensure_not_admin(target)
     if target.deleted_at is not None:
         raise ValidationError([build_error("user", "This account has already been deleted")])
     ensure_delete_confirmed(target, confirm_email)
