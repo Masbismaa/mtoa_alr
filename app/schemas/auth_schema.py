@@ -1,5 +1,4 @@
-"""Form login, OTP, aktivasi akun, lupa/ganti password, profil, dan bikin user (admin). Validasi dasar di sini,
-aturan bisnis di auth_service."""
+"""Form login, OTP, aktivasi, password, profil, & bikin user."""
 from flask import current_app
 from flask_wtf import FlaskForm
 from wtforms import EmailField, PasswordField, SelectField, StringField, SubmitField
@@ -58,6 +57,8 @@ class CreateUserForm(FlaskForm):
     """Admin bikin akun baru. Password dibikin sendiri sama pemiliknya lewat link aktivasi."""
     email = EmailField("Corporate Email", validators=EMAIL_VALIDATOR_LIST, filters=[complete_corporate_email])
     full_name = StringField("Full Name", validators=FULL_NAME_VALIDATOR_LIST)
+    department = StringField("Department", validators=DEPARTMENT_VALIDATOR_LIST)
+    job_title = StringField("Job Title", validators=JOB_TITLE_VALIDATOR_LIST)
     role = SelectField("Role", choices=[(role, ROLE_LABEL_DICT[role]) for role in (ROLE_USER_ENTRY, ROLE_ADMIN)])
     submit = SubmitField("Create User")
 
@@ -100,7 +101,7 @@ class ChangePasswordForm(FlaskForm):
     submit = SubmitField("Change Password")
 
 class ProfileForm(FlaskForm):
-    """Edit profil sendiri di Settings (email & role ga ikut)."""
+    """Admin edit profil user (email & role ga ikut)."""
     full_name = StringField("Full Name", validators=FULL_NAME_VALIDATOR_LIST)
     department = StringField("Department", validators=DEPARTMENT_VALIDATOR_LIST)
     job_title = StringField("Job Title", validators=JOB_TITLE_VALIDATOR_LIST)

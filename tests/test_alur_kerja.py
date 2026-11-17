@@ -1,5 +1,4 @@
-"""Test alur kerja ala SAP GUI: toolbar aplikasi (Kembali/Keluar/Batal/Simpan/Bantuan), status bar,
-peringatan form belum disimpan, dan konteks daftar asal yg kebawa lewat detail -> edit -> simpan/batal/hapus."""
+"""Test alur kerja ala SAP GUI: toolbar, status bar, form guard, konteks daftar asal."""
 import pytest
 from app.extensions import db
 from app.models import AccessEntry

@@ -2,9 +2,9 @@
 {% from "components/form_field.html" import render_field %}
 {% from "components/icon.html" import icon %}
 
-{% block title %}Create User{% endblock %}
+{% block title %}{{ page_title }}{% endblock %}
 
-{% block screen_title %}Create User{% endblock %}
+{% block screen_title %}{{ page_title }}{% endblock %}
 
 {% block page_pretitle %}Admin{% endblock %}
 
@@ -17,13 +17,21 @@
       <form id="user_form" method="post" class="card" novalidate data-form-guard{% if request.method == "POST" %} data-form-guard-dirty{% endif %}>
         {{ form.hidden_tag() }}
         <div class="card-header">
-          <h3 class="card-title">{{ icon("user") }} Create User</h3>
+          <h3 class="card-title">{{ icon("user") }} {{ page_title }}</h3>
         </div>
         <div class="card-body">
-          {{ render_field(form.email, suffix="@" ~ config.ALLOWED_EMAIL_DOMAIN, value=(form.email.data or "").split("@")[0], placeholder="name", autocomplete="off") }}
+          {% if target %}
+            <div class="text-secondary mb-3">{{ target.email }}</div>
+          {% else %}
+            {{ render_field(form.email, suffix="@" ~ config.ALLOWED_EMAIL_DOMAIN, value=(form.email.data or "").split("@")[0], placeholder="name", autocomplete="off") }}
+          {% endif %}
           {{ render_field(form.full_name, placeholder="Example: Budi Santoso", autocomplete="off") }}
-          {{ render_field(form.role) }}
-          <p class="text-secondary mb-0">The account stays <b>Pending Activation</b> until its owner sets a password. After saving, use <b>Send Activation Link</b> in the user list to email them the link.</p>
+          {{ render_field(form.department, autocomplete="off") }}
+          {{ render_field(form.job_title, autocomplete="off") }}
+          {% if not target %}
+            {{ render_field(form.role) }}
+            <p class="text-secondary mb-0">The account stays <b>Pending Activation</b> until its owner sets a password. After saving, use <b>Send Activation Link</b> in the user list to email them the link.</p>
+          {% endif %}
         </div>
       </form>
     </div>

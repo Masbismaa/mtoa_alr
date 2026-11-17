@@ -1,10 +1,4 @@
-"""Import link dari Excel: download template, upload, cek SEMUA baris dulu, baru simpen semua (atau ga sama sekali).
-
-Tiap baris dicek pake aturan yg sama persis kayak form Add Link (prepare_entry_data); duplikat ke database dicek
-sekaligus semua baris (find_duplicate_entry_dict, aturannya sama kayak find_duplicate_entry).
-Duplikat antar baris di file yg sama dicek di sini (belum ada di database). Link hasil import milik yg upload.
-Opsi "Create categories": jalur kategori yg belum ada dibikin jadi kategori pribadi user di transaksi yg sama.
-"""
+"""Import link dari Excel: cek semua baris dulu, simpen semua atau ga sama sekali."""
 import io
 from collections import namedtuple
 
@@ -46,8 +40,7 @@ from app.utils.constants import (
 )
 from app.utils.exceptions import ValidationError, build_error
 
-# kolom template. header dicocokin tanpa beda huruf besar/kecil & tanda * (penanda wajib di template).
-# width/guide/example cuma buat tampilan template (import_template_service.py)
+# kolom template; header dicocokin tanpa beda huruf & tanda *
 ImportColumn = namedtuple("ImportColumn", ["header", "key", "is_required", "width", "guide", "example"])
 IMPORT_COLUMN_LIST = [
     ImportColumn("Title", "title", True, 30, "Name of the link (max 150 characters).", "HR Portal"),
@@ -153,8 +146,7 @@ def read_import_row_list(file_storage):
 
 
 def create_import_category(user, name, parent, depth):
-    """Satu kategori pribadi baru (aturan sama kayak menu Categories), di-flush biar id-nya kepake baris link.
-    Belum di-commit: kalau ada baris salah, import_entries rollback dan kategorinya ikut batal."""
+    """Bikin satu kategori pribadi buat import (flush, belum commit)."""
     if depth > MAX_CATEGORY_DEPTH:
         raise ValidationError([build_error("category", f"Categories can be at most {MAX_CATEGORY_DEPTH} levels deep")])
     # dicek sebelum validate_category_data: sanitize_text di sana motong nama kepanjangan diem-diem
@@ -169,8 +161,7 @@ def create_import_category(user, name, parent, depth):
 
 
 def create_missing_category(user, row_list, category_dict):
-    """Bikin tiap tingkat jalur kategori yg belum ada (misal 'Proyek X > Server' -> Proyek X, lalu Server di bawahnya),
-    category_dict ikut diisi. Return (label kategori baru, {nomor baris: [error]})."""
+    """Bikin tiap tingkat jalur kategori yg belum ada. Return (label baru, error per baris)."""
     new_label_list, error_by_row_dict, failed_dict = [], {}, {}
     for row_number, row_dict in row_list:
         part_list = split_category_path(row_dict.get("category", ""))
@@ -216,8 +207,7 @@ def build_row_data(row_dict, category_dict, is_create_category=False):
 
 
 def find_unused_column_error_list(row_dict, category):
-    """Kolom keisi tapi ga dipake kategori ini (misal Access Note di General). Aturan link bakal ngebuang isinya
-    diem-diem, jadi di import ditolak biar password/URL yg diisi user ga ilang tanpa ketauan."""
+    """Tolak kolom yg keisi tapi ga dipake kategorinya (biar isinya ga ilang diem-diem)."""
     rule = get_category_rule(category)
     used_key_set = set(rule["field_list"]) | (set(CREDENTIAL_FIELD_LIST) if rule["has_credential_field"] else set())
     return [
@@ -244,9 +234,7 @@ def find_duplicate_in_file(clean_dict, seen_dict, row_number):
 
 
 def import_entries(user, file_storage, is_create_category=False):
-    """Import semua baris. Ada 1 baris salah -> ga ada yg disimpen (kategori baru juga), ValidationError isinya
-    error per baris. Semua bener -> disimpen dalam 1 transaksi + dicatat (per link & 1 catatan import).
-    Return (jumlah link, label kategori baru)."""
+    """Import semua baris dalam 1 transaksi. Return (jumlah link, label kategori baru)."""
     row_list = read_import_row_list(file_storage)
     if not is_admin(user):
         # non-admin selalu Private: kolom Visibility (file template admin / lama) diabaikan

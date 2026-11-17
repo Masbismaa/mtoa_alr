@@ -1,12 +1,4 @@
-"""Data tabel link ala ALV yg dirender React (frontend/src/entry_table).
-
-Satu fungsi build_entry_table_payload dipake dua kali dgn hasil yg sama persis:
-  1. render awal halaman -> ditempel di atribut data-entry-table (tabel langsung tampil, ga nunggu request)
-  2. API table-data -> dipanggil React tiap urutan / filter kolom / halaman berubah (tanpa reload)
-Jadi aturan filter, hak akses, label, format tanggal, & URL cuma ada di Python. React cuma nampilin.
-
-Halaman yg pake tabel ini dijelasin lewat EntryTableScope (Daftar Link & isi satu kategori).
-"""
+"""Data tabel link React; dipake render awal & API table-data biar hasilnya sama."""
 from collections import namedtuple
 from urllib.parse import urlencode
 
@@ -28,9 +20,7 @@ from app.utils.text_helper import get_link_status_label, get_visibility_label
 # id kartu tabel di halaman, dipake buat #anchor (balik dari detail langsung ke tabel)
 TABLE_ANCHOR = "daftar_link"
 
-# satu halaman yg nampilin tabel link:
-# page_endpoint/api_endpoint + url_kwargs = alamat halaman & API-nya, category = None (Daftar Link) / kategori yg dibuka,
-# has_sub_category = kategori itu punya sub (cuma buat teks kosong)
+# halaman yg nampilin tabel link (Daftar Link / satu kategori)
 EntryTableScope = namedtuple("EntryTableScope", ["page_endpoint", "api_endpoint", "url_kwargs", "category", "has_sub_category"])
 
 def build_index_scope():
@@ -46,8 +36,7 @@ def build_scope_field_list(user, scope):
     return build_entry_field_list(list_active_category_option(user) if scope.category is None else None)
 
 def build_query_dict(args, scope, field_list):
-    """Kriteria + urutan yg lagi kepake (tanpa nomor halaman). Daftar Link selalu bawa penanda Jalankan,
-    soalnya tabelnya cuma tampil abis Jalankan; kalau semua filter kolom dikosongin tabelnya tetep tampil."""
+    """Kriteria + urutan aktif (tanpa nomor halaman)."""
     query_dict = build_selection_query_dict(args, field_list)
     if scope.category is None:
         # ditaruh paling depan biar URL-nya rapi: /entries/?run=1&sort=...
@@ -86,8 +75,7 @@ def build_status_title(entry):
     return " · ".join(part_list)
 
 def build_entry_row(user, entry, back_url, can_delete=False):
-    """Satu baris tabel. Semua teks udah jadi (label, tanggal WIB), React tinggal nampilin.
-    can_delete = baris ini boleh dicentang buat hapus banyak (admin di Daftar Link)."""
+    """Satu baris tabel, semua teks udah jadi."""
     return {
         "id": entry.id,
         "can_delete": can_delete,
@@ -151,7 +139,7 @@ def build_sort_text(sort):
     return f"{TABLE_SORT_DESC_PREFIX if sort.is_desc else ''}{sort.key}"
 
 def search_page(user, selection, scope, sort, page):
-    """Ambil satu halaman data. Nomor halaman kebablasan (misal data abis dihapus) -> halaman terakhir, bukan tabel kosong."""
+    """Ambil satu halaman; nomor kebablasan -> halaman terakhir."""
     search_kwargs = {
         "keyword": selection["keyword"],
         "category_id": scope.category.id if scope.category is not None else None,

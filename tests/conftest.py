@@ -22,6 +22,7 @@ def app(tmp_path):
     app = create_app("testing")
     # lampiran test ditaruh di folder sementara, abis test otomatis dihapus pytest
     app.config["UPLOAD_FOLDER"] = str(tmp_path / "uploads")
+    app.config["BACKUP_FOLDER"] = str(tmp_path / "backups")
     with app.app_context():
         db.create_all()
         yield app
@@ -30,11 +31,9 @@ def app(tmp_path):
 
 @pytest.fixture(autouse=True)
 def close_database_connections():
-    """Abis tiap test, semua koneksi DB ditutup, termasuk punya app yg dibikin langsung pake create_app() di dalem test.
-    Tanpa ini muncul ResourceWarning "unclosed database" (nongolnya di test lain, pas garbage collector jalan).
-    _app_engines = daftar engine per app di Flask-SQLAlchemy 3.x (ga ada API publiknya); kalau versi baru
-    ngubah namanya, getattr ngasih {} -> test tetep jalan, cuma warning-nya balik lagi."""
+    """Tutup semua koneksi DB abis tiap test (biar ga ResourceWarning)."""
     yield
+    # _app_engines bukan API publik Flask-SQLAlchemy 3.x; kalau namanya berubah, getattr ngasih {} & test tetep jalan
     for engine_dict in list(getattr(db, "_app_engines", {}).values()):
         for engine in engine_dict.values():
             engine.dispose()
@@ -113,8 +112,7 @@ def admin_user(app):
     )
 
 def create_entry_as_is(user, data_dict, *arg_list, **kwarg_dict):
-    """Bikin link lewat service, terus visibilitasnya dipasang persis sesuai data_dict. Buat test yg butuh link Public
-    punya user biasa = data lama sebelum aturan "Public cuma admin" (service sekarang otomatis bikin Private)."""
+    """Bikin link lewat service, visibilitasnya dipasang persis (buat data Public lama)."""
     from app.services.access_entry_service import create_access_entry
 
     entry = create_access_entry(user, data_dict, *arg_list, **kwarg_dict)
@@ -162,8 +160,7 @@ def make_file_storage():
 
 @pytest.fixture()
 def read_entry_table():
-    """Pabrik: buka halaman, ambil data tabel link (React) yg ditempel server di atribut data-entry-table.
-    Isinya sama persis kayak balasan API table-data (app/services/entry_table_service.py)."""
+    """Ambil data tabel link dari atribut data-entry-table."""
 
     def read(client, url):
         html_text = client.get(url).get_data(as_text=True)

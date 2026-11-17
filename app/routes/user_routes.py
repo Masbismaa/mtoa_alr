@@ -3,11 +3,11 @@ from urllib.parse import urlencode
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from app.extensions import limiter
-from app.schemas.auth_schema import CreateUserForm
+from app.schemas.auth_schema import CreateUserForm, ProfileForm
 from app.security.role_guard import admin_required
 from app.schemas.selection_schema import USER_FIELD_LIST, USER_FILTER_KEY_LIST, read_user_selection
 from app.schemas.table_schema import TABLE_USER
-from app.services.auth_service import create_pending_user
+from app.services.auth_service import create_pending_user, is_pending_activation, update_profile
 from app.services.preference_service import get_table_layout
 from app.services.user_service import (
     build_delete_preview,
@@ -73,7 +73,9 @@ def create():
     form = CreateUserForm()
     if form.validate_on_submit():
         try:
-            user = create_pending_user(get_current_user(), form.email.data, form.full_name.data, form.role.data)
+            user = create_pending_user(
+                get_current_user(), form.email.data, form.full_name.data, form.department.data, form.job_title.data, form.role.data,
+            )
         except AuthError as error:
             flash(str(error), "danger")
         else:
@@ -87,6 +89,24 @@ def get_target_user_or_404(user_id):
     if target is None or target.deleted_at is not None:
         abort(404)
     return target
+
+@users_bp.route("/<int:user_id>/edit", methods=["GET", "POST"])
+@login_required
+@admin_required
+@limiter.limit("20 per minute", methods=["POST"])
+def edit(user_id):
+    """Admin betulin nama, department, job title user (user ga bisa ubah sendiri)."""
+    target = get_target_user_or_404(user_id)
+    form = ProfileForm(obj=target)
+    if form.validate_on_submit():
+        try:
+            update_profile(get_current_user(), target, form.full_name.data, form.department.data, form.job_title.data)
+        except AuthError as error:
+            flash(str(error), "danger")
+        else:
+            flash(f"Profile of {target.full_name} saved", "success")
+            return redirect(url_for("users.index", name=target.email, _anchor="daftar_user"))
+    return render_template("pages/users/form.html", page_title="Edit Profile", form=form, target=target, back_url=url_for("users.index"))
 
 def redirect_if_admin(target, message):
     """Akun admin ga bisa diatur dari panel, balik ke tabel + kasih info. None kalau bukan admin."""
@@ -144,7 +164,7 @@ def unlock(user_id):
 def delete(user_id):
     """Hapus akun: tampilin dampaknya dulu, admin ngetik ulang email buat konfirmasi."""
     target = get_target_user_or_404(user_id)
-    admin_redirect = redirect_if_admin(target, "Admin accounts can't be deleted from the panel")
+    admin_redirect = None if is_pending_activation(target) else redirect_if_admin(target, "Admin accounts can't be deleted from the panel")
     if admin_redirect:
         return admin_redirect
 

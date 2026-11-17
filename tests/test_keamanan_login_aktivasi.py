@@ -1,7 +1,4 @@
-"""Test celah login & akun baru:
-- salah password LOGIN_MAX_FAILED_COUNT kali -> akun dikunci (status Locked) & bisa dibuka admin
-- akun baru cuma dibikin admin, aktif setelah pemiliknya bikin password lewat link aktivasi di email
-"""
+"""Test kunci akun & aktivasi akun baru."""
 import re
 from datetime import timedelta
 
@@ -41,7 +38,7 @@ def find_user(email):
 # LOCKOUT AKUN
 
 def test_wrong_password_locks_account_until_admin_unlock(client, registered_user, admin_user, user_password):
-    """Positive & negative (security): 3x salah password -> akun Locked (dari IP mana pun ditolak), admin unlock -> bisa login."""
+    """Positive & negative (security): salah password 3x -> Locked, admin unlock -> bisa login."""
     from app.services.user_service import get_user_status, unlock_user
     from app.utils.constants import USER_STATUS_LOCKED
 
@@ -59,7 +56,7 @@ def test_wrong_password_locks_account_until_admin_unlock(client, registered_user
     assert "/auth/otp" in owner_response.location
 
 def test_unknown_email_blocked_with_same_message(client, registered_user):
-    """Negative (security): email ga terdaftar diblokir dgn pesan yg sama persis kayak akun yg kekunci (ga ngebocorin email terdaftar)."""
+    """Negative (security): email ga terdaftar dapet pesan blokir yg sama."""
     def blocked_text(email):
         for _ in range(LOGIN_MAX_FAILED_COUNT):
             post_login(client, email, WRONG_PASSWORD, ATTACKER_IP)
@@ -110,14 +107,15 @@ ACTIVATION_LINK_PATTERN = re.compile(r"http://localhost/auth/activate/(\S+)")
 
 
 def as_client(client):
-    """Semua request test berbagi 1 app context, jadi user yg login ke-cache di g. Ganti client (admin <-> pemilik
-    akun) -> cache dibuang biar tiap client dibaca dari cookie-nya sendiri."""
+    """Ganti client test: buang cache user di g."""
     g.pop("_login_user", None)
     return client
 
 
 def create_user(admin_client, email=NEW_EMAIL, full_name="User Baru", role=ROLE_USER_ENTRY):
-    return as_client(admin_client).post("/users/new", data={"email": email, "full_name": full_name, "role": role})
+    return as_client(admin_client).post("/users/new", data={
+        "email": email, "full_name": full_name, "department": "ICT", "job_title": "Staff", "role": role,
+    })
 
 
 def send_activation(admin_client, capsys, email=NEW_EMAIL):
@@ -135,14 +133,13 @@ def activate(client, token, password=ACTIVATION_PASSWORD, confirm_password=None)
 
 
 def test_admin_creates_user_then_owner_activates_and_logs_in(app, admin_client, admin_user, capsys):
-    """Positive: admin bikin akun (email + nama + role) -> Pending Activation, belum bisa login -> admin kirim link ->
-    pemilik bikin password 2x -> akun aktif -> balik ke login -> password baru lanjut ke OTP."""
+    """Positive: admin bikin akun -> pemilik aktivasi -> bisa login."""
     from app.services.user_service import get_user_status
 
     response = create_user(admin_client)
     assert response.status_code == 302
     user = find_user(NEW_EMAIL)
-    assert (user.full_name, user.role, user.is_active, user.department, user.job_title) == ("User Baru", ROLE_USER_ENTRY, False, "", "")
+    assert (user.full_name, user.role, user.is_active, user.department, user.job_title) == ("User Baru", ROLE_USER_ENTRY, False, "ICT", "Staff")
     assert get_user_status(user) == USER_STATUS_PENDING
     create_log = db.session.execute(db.select(AuditLog).filter_by(action=AUDIT_ACTION_CREATE, entity_id=user.id)).scalar_one()
     assert create_log.user_id == admin_user.id
@@ -170,7 +167,7 @@ def test_admin_creates_user_then_owner_activates_and_logs_in(app, admin_client, 
 
 
 def test_activation_link_works_once_and_new_link_replaces_old(app, admin_client, capsys, monkeypatch):
-    """Negative (security): kirim ulang -> link lama mati; link yg udah dipake ga bisa dipake lagi buat ganti password."""
+    """Negative (security): link aktivasi cuma sekali pakai & yg lama mati."""
     create_user(admin_client)
     monkeypatch.setattr(auth_service, "OTP_RESEND_COOLDOWN_SECONDS", 0)
     _, old_token = send_activation(admin_client, capsys)
@@ -226,8 +223,7 @@ def test_only_admin_can_create_user_or_send_link(logged_in_client, registered_us
 
 
 def test_admin_role_account_also_needs_activation(app, admin_client, capsys):
-    """Positive: admin bisa bikin akun Admin; tetep Pending & tombol Send Activation Link-nya ada (walau akun admin
-    lain ga bisa diubah dari panel)."""
+    """Positive: akun Admin baru juga harus aktivasi."""
     create_user(admin_client, role=ROLE_ADMIN)
     assert find_user(NEW_EMAIL).role == ROLE_ADMIN
     _, token = send_activation(admin_client, capsys)
@@ -236,8 +232,7 @@ def test_admin_role_account_also_needs_activation(app, admin_client, capsys):
 
 
 def test_pending_account_rules(admin_client, capsys, registered_user):
-    """Negative: akun Pending ga bisa diaktifin manual (belum punya password), kirim link ke akun aktif ditolak,
-    kirim ulang kecepetan ditolak, lupa password diperlakuin kayak email ga terdaftar."""
+    """Negative: aturan akun Pending."""
     create_user(admin_client)
     user = find_user(NEW_EMAIL)
     toggle_text = as_client(admin_client).post(f"/users/{user.id}/toggle-active", follow_redirects=True).get_data(as_text=True)

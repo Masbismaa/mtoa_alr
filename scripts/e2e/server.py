@@ -1,10 +1,4 @@
-"""Server Flask buat uji E2E (dinyalain otomatis sama skenario *.mjs di folder ini, ga perlu dijalanin manual).
-
-python scripts/e2e/server.py <skenario>   skenario: table | auth | group | monitor
-- database SQLite baru di E2E_DB_PATH (dibikin skenario di folder sementara), CSRF nyala kayak aslinya
-- OTP selalu 123456, kecuali skenario auth (kode acak, dibaca skenario dari output email mode console)
-- kalau udah siap nerima koneksi, nyetak 1 baris: SIAP {json info buat skenario}
-"""
+"""Server Flask buat uji E2E (dinyalain skenario *.mjs)."""
 import json
 import os
 import sys

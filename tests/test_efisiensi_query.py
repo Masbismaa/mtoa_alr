@@ -139,8 +139,7 @@ def test_group_detail_query_count_does_not_grow_per_link(app, logged_in_client, 
 
 
 def test_member_removal_query_count_does_not_grow_per_link(app, registered_user, other_user, category_dict):
-    """Positive: ngeluarin anggota dari group jumlah query-nya tetep, mau group-nya isi 2 atau 10 link
-    (link punya dia & izin liatnya dihapus pake DELETE langsung, bukan satu-satu)."""
+    """Positive: query hapus anggota group ga nambah per link."""
     from app.services.group_service import (
         accept_invitation, add_group_entry, create_group, invite_member, remove_member, set_group_entry_viewers,
     )
@@ -168,8 +167,7 @@ def test_member_removal_query_count_does_not_grow_per_link(app, registered_user,
 
 
 def test_delete_preview_query_count_does_not_grow_per_member(app, registered_user):
-    """Positive (temuan audit): preview hapus akun nyari calon pemilik group baru tanpa 1 query per anggota
-    (anggota yg akunnya nonaktif dilewatin, jadi semua anggota sempet kebaca)."""
+    """Positive: query preview hapus akun ga nambah per anggota."""
     from app.services.auth_service import register_user
     from app.services.user_service import build_delete_preview
 
@@ -212,3 +210,50 @@ def test_account_deletion_query_count_does_not_grow_per_member(app, admin_user):
     large_owner = build_owner_with_group("Besar", 6)
     _, large_statements = count_queries(lambda: delete_user_account(admin_user, large_owner, large_owner.email))
     assert len(large_statements) == len(small_statements)
+
+
+def add_linked_entries(owner, category, name, count, group_owner=None):
+    """Link Private yg masing-masing difavoritin & ada di group: semua relasi yg ikut kehapus keisi."""
+    from app.models import UserFavorite
+
+    group = create_group(group_owner or owner, {"name": name})
+    entry_id_list = []
+    for number in range(count):
+        entry = AccessEntry(user_id=owner.id, category_id=category.id, title=f"{name} {number}", visibility=VISIBILITY_PRIVATE)
+        db.session.add(entry)
+        db.session.flush()
+        db.session.add(UserFavorite(user_id=owner.id, access_entry_id=entry.id))
+        db.session.add(GroupEntry(group_id=group.id, access_entry_id=entry.id, user_id=owner.id))
+        entry_id_list.append(entry.id)
+    db.session.commit()
+    db.session.expire_all()
+    return entry_id_list
+
+
+def test_account_deletion_query_count_does_not_grow_per_private_link(app, admin_user, category_dict):
+    """Positive (temuan review): hapus akun yg punya banyak link Private ga 1 query per link."""
+    from app.services.auth_service import register_user
+    from app.services.user_service import delete_user_account
+
+    def delete_owner_with_links(name, link_count):
+        owner = register_user(f"pemilik.{name.lower()}@spindo.com", "PasswordKuat123", "Pemilik", "ICT", "Staff")
+        # group-nya punya admin: yg diukur cuma hapus link Private, bukan hapus group
+        add_linked_entries(owner, category_dict["Web"], name, link_count, group_owner=admin_user)
+        return count_queries(lambda: delete_user_account(admin_user, owner, owner.email))[1]
+
+    small_statements = delete_owner_with_links("Kecil", 2)
+    large_statements = delete_owner_with_links("Besar", 10)
+    assert len(large_statements) == len(small_statements)
+    assert db.session.scalar(db.select(db.func.count(AccessEntry.id))) == 0
+
+
+def test_bulk_delete_query_count_does_not_grow_per_link(app, admin_user, category_dict):
+    """Positive (temuan review): hapus banyak link (admin) ga 1 query per link."""
+    from app.services.access_entry_service import delete_access_entry_list
+
+    small_id_list = add_linked_entries(admin_user, category_dict["Web"], "Kecil", 2)
+    _, small_statements = count_queries(lambda: delete_access_entry_list(admin_user, small_id_list))
+    large_id_list = add_linked_entries(admin_user, category_dict["Web"], "Besar", 10)
+    _, large_statements = count_queries(lambda: delete_access_entry_list(admin_user, large_id_list))
+    assert len(large_statements) == len(small_statements)
+    assert db.session.scalar(db.select(db.func.count(AccessEntry.id))) == 0

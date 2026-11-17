@@ -46,8 +46,7 @@ class AuditLog(CreatedAtMixin, db.Model):
         """Representasi singkat buat debugging."""
         return f"<AuditLog {self.action} {self.entity_type}:{self.entity_id}>"
 
-# kunci lapis 1 (Python): tolak update & delete lewat ORM
-# lapis 2 ada di trigger PostgreSQL (file migrasi)
+# kunci lapis 1: tolak update/delete lewat ORM (lapis 2 trigger PostgreSQL)
 @event.listens_for(AuditLog, "before_update")
 def block_audit_log_update(mapper, connection, target):
     """Stop kalau ada kode yg nyoba ngubah audit log."""

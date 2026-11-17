@@ -6,7 +6,7 @@ def read_form_data(form, field_name_list):
     return {field_name: form[field_name].data for field_name in field_name_list}
 
 def attach_form_error_list(form, error_list):
-    """Error dari service ditempel ke field form-nya. Return error yg ga punya field di form (biar pemanggil yg nentuin)."""
+    """Tempel error service ke field form. Return error yg ga punya field."""
     leftover_list = []
     for error_dict in error_list:
         field_name = error_dict.get("field")

@@ -1,5 +1,4 @@
-"""Tabel ala ALV SAP: baca urutan dari URL, susun ORDER BY, dan siapin data kolom (lebar, disembunyiin, urutan) buat template.
-Dipake bareng sama Daftar Link, Users, dan Audit Logs. Daftar kolomnya ada di app/schemas/table_schema.py."""
+"""Tabel ala ALV: urutan dari URL, ORDER BY, & data kolom buat template."""
 from collections import namedtuple
 from app.schemas.table_schema import TABLE_COLUMN_DICT
 from app.utils.constants import TABLE_SORT_DESC_PREFIX, TABLE_SORT_KEY
@@ -8,7 +7,7 @@ from app.utils.selection import RUN_KEY, SELECTION_CHOICE, SELECTION_TEXT, clean
 SortOption = namedtuple("SortOption", ["key", "is_desc"])
 
 def read_sort(args, column_list):
-    """Urutan dari ?sort=title (naik) / ?sort=-title (turun). Kolom yg ga dikenal / ga bisa diurutin -> None (urutan bawaan)."""
+    """Urutan dari ?sort=title / ?sort=-title, ga valid -> None."""
     raw_value = (args.get(TABLE_SORT_KEY) or "").strip()
     is_desc = raw_value.startswith(TABLE_SORT_DESC_PREFIX)
     key = raw_value[len(TABLE_SORT_DESC_PREFIX):] if is_desc else raw_value
@@ -31,8 +30,7 @@ def build_default_layout(table_key):
     }
 
 def build_column_filter(args, column, field_dict):
-    """Filter satu kolom (baris filter di bawah judul kolom). Pake isian Kriteria Pencarian yg sama, jadi hasilnya nyambung.
-    Isian yg lagi diisi lebih dari satu nilai (lewat Multi Selection) dikunci, ngubahnya lewat Kriteria Pencarian aja."""
+    """Filter satu kolom, pakai isian Kriteria Pencarian yg sama."""
     field = field_dict.get(column.filter_key)
     if field is None or field.kind not in (SELECTION_TEXT, SELECTION_CHOICE):
         return None
@@ -46,10 +44,7 @@ def build_column_filter(args, column, field_dict):
     }
 
 def build_table_view(table_key, args, layout_dict, excluded_key_list=(), field_list=(), is_run_marked=False):
-    """Data kolom buat template: lebar, disembunyiin atau nggak, status urutan + nilai sort kalau judulnya diklik,
-    plus filter per kolom. excluded_key_list = kolom yg emang ga ada di halaman itu (misal Kategori di halaman kategori),
-    field_list = isian Kriteria Pencarian halaman itu (sumber filter per kolom),
-    is_run_marked = halaman yg tabelnya baru muncul abis Jalankan (Daftar Link): filter kolom selalu bawa penanda run."""
+    """Data kolom buat template: lebar, disembunyiin, urutan, & filter per kolom."""
     column_list = TABLE_COLUMN_DICT[table_key]
     field_dict = {field.key: field for field in field_list}
     sort = read_sort(args, column_list)

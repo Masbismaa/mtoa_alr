@@ -1,5 +1,4 @@
-"""Test layar ala SAP: judul layar Display/Create/Change (Data Link = Access Link), kepala halaman di-remark,
-Daftar Link baru nampilin tabel abis Jalankan, filter per kolom di tabel."""
+"""Test layar ala SAP: judul layar, Jalankan, filter per kolom."""
 import html
 import re
 import pytest
@@ -44,7 +43,7 @@ def test_other_screen_titles(logged_in_client, registered_user):
     assert get_screen_title(get_html(logged_in_client, "/settings/")) == "Settings"
 
 def test_page_header_remarked(logged_in_client):
-    """Positive: kepala halaman lama (judul kecil + judul + keterangan) udah ga tampil, judul cukup di title bar & toolbar."""
+    """Positive: kepala halaman lama udah ga tampil."""
     html_text = get_html(logged_in_client, "/entries/")
     assert 'class="page-header' not in html_text and 'class="page-pretitle"' not in html_text
     assert '<div class="app-toolbar-title d-lg-none">Display Access Link</div>' in html_text

@@ -12,8 +12,8 @@ health_bp = Blueprint("health", __name__)
 
 @health_bp.get("/health")
 def health_check():
-    """Liveness: proses web hidup, balikin {"status": "ok"}. Sengaja ga nyebut nama/versi app & ga nyentuh DB,
-    biar service manager ga restart aplikasi cuma gara-gara DB lagi gangguan sebentar."""
+    """Liveness: cuma {"status": "ok"}, ga nyentuh DB."""
+    # sengaja ga cek DB: DB gangguan sebentar jangan sampe bikin service manager restart aplikasi
     return jsonify({"status": "ok"})
 
 
@@ -42,17 +42,14 @@ READINESS_CHECK_DICT = {
 }
 
 
-# hasil cek disimpen sebentar per proses: dipanggil beruntun ga bikin DB/Redis kebanjiran. Sengaja bukan
-# rate limiter (Flask-Limiter nyimpen hitungan di Redis, yg justru lagi dicek: Redis mati = 500, bukan laporan 503)
+# hasil cek di-cache sebentar per proses; bukan rate limiter karena Redis-nya ikut dicek
 READINESS_CACHE_SECONDS = 5
 readiness_cache = {"expires_at": 0.0, "response": None}
 
 
 @health_bp.get("/health/ready")
 def readiness_check():
-    """Readiness: dipake load balancer / monitoring sebelum ngarahin user ke server ini.
-    200 kalau semua layanan pendukung nyambung, 503 + nama yg gagal kalau ada yg putus.
-    Detail error sengaja ga ditampilin (bisa bocorin alamat/kredensial), cukup dicatat di log server."""
+    """Readiness: 200 kalau layanan pendukung nyambung, 503 + nama yg gagal kalau putus."""
     if time.monotonic() < readiness_cache["expires_at"]:
         result_dict, status_code = readiness_cache["response"]
         return jsonify(result_dict), status_code

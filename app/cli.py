@@ -103,11 +103,13 @@ def register_cli_commands(app):
         click.echo("Pemeriksaan dicabut." if recover_stale_monitor() else "Tidak ada pemeriksaan macet.")
 
     @app.cli.command("cleanup-attachments")
-    @click.option("--delete", is_flag=True, help="Hapus file yatim yang sudah lebih dari 24 jam.")
+    @click.option("--delete", is_flag=True, help="Pindahkan file yatim (> 24 jam) ke BACKUP_FOLDER/website/orphan.")
     def cleanup_attachments_command(delete):
-        """Default hanya menampilkan jumlah file yatim; tidak menghapus file terdaftar."""
+        """Cari file lampiran yatim; --delete mindahin ke folder orphan."""
+        import shutil
         from app.models import Attachment
         from app.services.attachment_service import get_upload_folder
+        from app.services.backup_service import BACKUP_KIND_WEBSITE, get_backup_folder
         cutoff = time.time() - 86400
         count = 0
         paths = [path for path in get_upload_folder().iterdir()
@@ -122,11 +124,14 @@ def register_cli_commands(app):
                     continue
                 count += 1
                 if delete:
+                    orphan_folder = get_backup_folder(BACKUP_KIND_WEBSITE) / "orphan"
                     try:
-                        path.unlink(missing_ok=True)
+                        orphan_folder.mkdir(exist_ok=True)
+                        # shutil.move, bukan rename: folder backup bisa beda disk dgn uploads
+                        shutil.move(path, orphan_folder / path.name)
                     except OSError:
-                        raise click.ClickException("Lampiran belum dapat dihapus; periksa izin folder") from None
-        click.echo(f"{count} file yatim {'dihapus' if delete else 'ditemukan (belum dihapus)'}.")
+                        raise click.ClickException("Lampiran belum dapat dipindah; periksa izin folder") from None
+        click.echo(f"{count} file yatim {'dipindah ke folder orphan' if delete else 'ditemukan (belum dipindah)'}.")
 
     @app.cli.command("backup")
     @click.option("--only", type=click.Choice(["database", "website"]), help="Cuma satu jenis (default dua-duanya).")
@@ -147,7 +152,7 @@ def register_cli_commands(app):
     @click.argument("backup_file", type=click.Path(exists=True, dir_okay=False))
     @click.confirmation_option(prompt="Data sekarang bakal ditimpa / ditambah isi backup. Lanjut?")
     def restore_command(backup_file):
-        """Restore dari file backup (alr-db-... = database, alr-web-... = lampiran). File di luar foldernya disalin ke sana dulu."""
+        """Restore dari file backup alr-db-/alr-web-; file di luar folder backup disalin dulu."""
         import shutil
         from pathlib import Path
         from app.services.backup_service import (
@@ -157,8 +162,11 @@ def register_cli_commands(app):
         kind = read_backup_kind(source_path.name)
         if kind is None:
             raise click.ClickException("Nama file bukan backup ALR (alr-db-....zip / alr-web-....zip)")
-        if source_path.parent != get_backup_folder(kind):
-            shutil.copy2(source_path, get_backup_folder(kind) / source_path.name)
+        target_path = get_backup_folder(kind) / source_path.name
+        if source_path.parent != target_path.parent:
+            if target_path.exists():
+                raise click.ClickException("Backup dengan nama ini sudah ada di folder backup; restore pakai file itu langsung")
+            shutil.copy2(source_path, target_path)
         try:
             if kind == BACKUP_KIND_DATABASE:
                 safety_backup_path = restore_database_backup(source_path.name)
@@ -172,9 +180,7 @@ def register_cli_commands(app):
     @app.cli.command("cleanup-old-data")
     @click.option("--delete", is_flag=True, help="Hapus beneran (default cuma ngitung).")
     def cleanup_old_data_command(delete):
-        """Buang data sementara yg udah ga kepake biar tabel ga numpuk bertahun-tahun: OTP yg udah kedaluwarsa,
-        dan notifikasi yg udah dibaca & lebih tua dari 90 hari.
-        Default cuma nampilin jumlahnya. Audit log sengaja ga disentuh (emang ga boleh dihapus)."""
+        """Hapus OTP kedaluwarsa & notifikasi lama yg udah dibaca."""
         from datetime import timedelta
 
         from app.models import OtpCode, UserNotification

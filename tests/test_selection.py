@@ -1,4 +1,4 @@
-"""Test Select Screen: wildcard *ad / ad*, Multi Selection (sertakan/kecualikan), pilihan multi, rentang tanggal, menu terkunci."""
+"""Test Select Screen."""
 from werkzeug.datastructures import MultiDict
 from tests.conftest import create_entry_as_is
 from app.services.audit_service import log_audit

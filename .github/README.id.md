@@ -707,7 +707,7 @@ flask --app run run
 | `monitor-worker` | Menjalankan worker pemantauan tautan sebagai proses berkelanjutan |
 | `check-links` | Menjalankan satu pemeriksaan ketersediaan dari terminal |
 | `recover-link-monitor` | Memulihkan proses pemantauan yang terhenti |
-| `cleanup-attachments` | Mendeteksi dan menghapus berkas lampiran yatim |
+| `cleanup-attachments` | Mendeteksi berkas lampiran yatim; `--delete` memindahkannya ke folder orphan di backup |
 | `cleanup-old-data` | Menghapus kode kedaluwarsa dan data usang |
 
 Jalankan setiap perintah dengan format `flask --app run <perintah>`.

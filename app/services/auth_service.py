@@ -1,11 +1,4 @@
-"""Logika akun (dibikin admin + aktivasi lewat link email), login (password), OTP, dan lupa password.
-Route tinggal manggil fungsi di sini.
-
-Aturan yg dipegang di file ini:
-- layar login & lupa password ga pernah ngasih tau email mana yg udah terdaftar (pesan & alurnya sama)
-- salah password / OTP (digabung) LOGIN_MAX_FAILED_COUNT kali -> akun dikunci 15 menit (status Locked, bisa di-unlock
-  admin) + email-nya diblokir di security/auth_throttle.py biar email ga terdaftar dapet pesan yg sama
-"""
+"""Logika akun, login, OTP, & lupa password."""
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 import hashlib
@@ -63,11 +56,7 @@ def build_login_blocked_error(minute_count):
     return f"Too many login attempts. Try again in {minute_count} minutes or contact the ICT admin."
 
 
-# AKUN BARU
-#
-# Ga ada halaman daftar. Admin bikin akun (email + nama + role) -> status Pending Activation (belum aktif, belum punya
-# password) -> admin klik Send Activation Link -> pemilik email buka link, bikin password -> akun aktif -> login biasa.
-# Token link disimpen di otp_codes (purpose=activation) dalam bentuk sha256, token aslinya cuma ada di email.
+# AKUN BARU: admin bikin akun Pending -> pemilik aktivasi lewat link email (token sha256 di otp_codes)
 
 def is_allowed_email_domain(email):
     """Cek email pake domain yg diizinin (default @spindo.com)."""
@@ -92,7 +81,7 @@ def build_user_audit_dict(user):
 
 
 def clean_profile(full_name, department, job_title):
-    """Data profil dibersihin dari tag HTML dkk & wajib keisi semua. Dipake create-admin & edit profil di Settings."""
+    """Data profil dibersihin dari tag HTML dkk & wajib keisi semua."""
     profile_dict = {
         "full_name": sanitize_text(full_name, max_length=150),
         "department": sanitize_text(department, max_length=100),
@@ -103,8 +92,8 @@ def clean_profile(full_name, department, job_title):
     return profile_dict
 
 
-def update_profile(user, full_name, department, job_title):
-    """Edit profil sendiri (email & role ga bisa diubah dari sini). Dicatat ke audit log kalau ada yg berubah."""
+def update_profile(actor, user, full_name, department, job_title):
+    """Admin edit profil user (email & role ga ikut). Dicatat ke audit log kalau ada yg berubah."""
     profile_dict = clean_profile(full_name, department, job_title)
     old_data_dict = build_user_audit_dict(user)
     for key, value in profile_dict.items():
@@ -112,7 +101,7 @@ def update_profile(user, full_name, department, job_title):
     new_data_dict = build_user_audit_dict(user)
     if new_data_dict != old_data_dict:
         log_audit(AUDIT_ACTION_UPDATE, "users", entity_id=user.id, old_data_dict=old_data_dict,
-                  new_data_dict=new_data_dict, user=user)
+                  new_data_dict=new_data_dict, user=actor)
     db.session.commit()
     return user
 
@@ -122,7 +111,7 @@ def find_user_by_email(clean_email):
 
 
 def create_user_account(clean_email, profile_dict, role, actor=None):
-    """Bikin akun + preferensi tampilan default, dicatat ke audit log (actor None = akunnya sendiri). Commit di pemanggil."""
+    """Bikin akun + preferensi default + audit. Commit di pemanggil."""
     user = User(email=clean_email, role=role, **profile_dict)
     user.preference = UserPreference()
     db.session.add(user)
@@ -145,22 +134,16 @@ def register_user(email, password, full_name, department, job_title, role=ROLE_U
     return user
 
 
-def create_pending_user(actor, email, full_name, role):
-    """Admin bikin akun baru: belum aktif & belum punya password sampai pemiliknya aktivasi lewat link email.
-    Departemen & jabatan dikosongin, diisi sendiri nanti di Settings."""
+def create_pending_user(actor, email, full_name, department, job_title, role):
+    """Admin bikin akun Pending, aktif setelah pemiliknya aktivasi lewat email."""
     clean_email = normalize_email(email)
     ensure_allowed_email_domain(clean_email)
-    clean_full_name = sanitize_text(full_name, max_length=150)
-    if not clean_full_name:
-        raise AuthError("Name is required")
+    profile_dict = clean_profile(full_name, department, job_title)
     if role not in ROLE_LIST:
         raise AuthError("Invalid role")
     if find_user_by_email(clean_email) is not None:
         raise AuthError("Email is already registered")
-    profile_dict = {
-        "full_name": clean_full_name, "department": "", "job_title": "",
-        "password_hash": UNUSABLE_PASSWORD_HASH, "is_active": False,
-    }
+    profile_dict.update(password_hash=UNUSABLE_PASSWORD_HASH, is_active=False)
     try:
         user = create_user_account(clean_email, profile_dict, role, actor=actor)
         db.session.commit()
@@ -217,7 +200,7 @@ def get_activation(token, is_lock=False):
 
 
 def activate_account(token, new_password):
-    """Pemilik email bikin password dari link aktivasi -> akun aktif. Return User. Login-nya tetep lewat password + OTP."""
+    """Bikin password dari link aktivasi -> akun aktif. Return User."""
     password_hash = hash_new_password(new_password)
     activation = get_activation(token, is_lock=True)
     if activation is None:
@@ -231,8 +214,7 @@ def activate_account(token, new_password):
 
 
 def check_code_without_account(state):
-    """Lupa password buat email tanpa akun aktif: ga ada kode yg bener, tapi pesan, batas percobaan, & kedaluwarsanya
-    dibikin sama persis kayak kode asli. Selalu lempar AuthError; hitungannya disimpen di state (session)."""
+    """Alur palsu lupa password buat email tanpa akun aktif (pesannya sama). Selalu AuthError."""
     sent_at = datetime.fromtimestamp(state["sent_at"], tz=timezone.utc)
     if state["attempt_count"] >= OTP_MAX_ATTEMPT_COUNT or sent_at + timedelta(minutes=OTP_EXPIRE_MINUTES) < utc_now():
         raise AuthError(OTP_EXPIRED_ERROR)
@@ -274,15 +256,10 @@ def notify_login_blocked(user, ip_address):
 
 
 def authenticate_user(email, password):
-    """Cek email + password. Return User kalau bener, lempar AuthError kalau salah.
-
-    Urutannya penting biar ga bocor:
-    1. email lagi diblokir -> tolak (pesannya sama buat email terdaftar maupun ngga)
-    2. email ga ada / nonaktif / password salah -> pesan generik + catat gagal per email (+ hitungan kunci akun)
-    3. akun lagi dikunci -> pesan "dikunci" cuma keluar kalau password-nya bener
-    """
+    """Cek email + password. Return User, salah -> AuthError (pesan ga bocorin email terdaftar)."""
     clean_email = normalize_email(email)
     ip_address = get_client_ip() or "-"
+    # urutan penting: blokir email -> kredensial -> kunci akun; pesan "dikunci" cuma kalau password bener biar ga bocor
     blocked_minute_count = auth_throttle.get_login_block_minutes(clean_email)
     if blocked_minute_count:
         log_audit(AUDIT_ACTION_LOGIN_FAILED, "users", actor_email=clean_email[:255],
@@ -413,8 +390,7 @@ def verify_otp_code(user, otp_code):
     if active_otp is None or to_utc_aware(active_otp.expires_at) < utc_now():
         raise AuthError(OTP_EXPIRED_ERROR)
 
-    # OTP salah: dihitung per OTP & ikut nambah hitungan gagal akun,
-    # biar ga bisa nebak OTP terus-terusan cuma modal minta OTP baru
+    # OTP salah dihitung per OTP & ikut hitungan gagal akun
     if not is_otp_code_match(otp_code, active_otp.code_hash):
         active_otp.attempt_count += 1
         register_failed_attempt(user)
@@ -441,12 +417,7 @@ def verify_otp_code(user, otp_code):
     return user
 
 
-# LUPA PASSWORD & GANTI PASSWORD
-#
-# Layar lupa password SELALU sama ("kalau terdaftar, kode udah dikirim"), state di session,
-# email yg ga punya akun aktif ngelewatin alur palsu yg pesannya sama persis. Kode reset disimpen di otp_codes
-# (purpose=reset), kepisah dari OTP login. Salah kode reset sengaja ga ngunci akun: kalau ngunci, orang iseng tinggal
-# minta reset ke email orang lain terus salahin kodenya. Tebakan udah kebatas per kode (OTP_MAX_ATTEMPT_COUNT) & per email.
+# LUPA & GANTI PASSWORD: layar selalu sama; salah kode reset ga ngunci akun biar orang iseng ga bisa ngunci akun orang
 
 RESET_BLOCKED_ERROR = "Too many reset attempts from this device. Try again tomorrow or contact the ICT admin."
 PASSWORD_CHANGED_NOTIFICATION = "Your password was changed. If this wasn't you, contact the ICT admin right away."
@@ -463,8 +434,7 @@ def find_resettable_user(clean_email):
 
 
 def issue_password_reset_code(user):
-    """Kode reset baru (yg lama hangus), simpen, baru kirim. Lewat batas per email / SMTP mati: diem aja
-    (cuma dicatat di log), soalnya kalau nongol di layar ketauan email ini terdaftar."""
+    """Kirim kode reset baru; gagal kirim cuma dicatat di log biar ga bocor."""
     if not auth_throttle.allow_reset_code(user.email):
         return
     # dikunci kayak verifikasi: 2 permintaan barengan ga bisa sama-sama ninggalin kode aktif
@@ -487,9 +457,8 @@ def issue_password_reset_code(user):
 
 
 def start_password_reset(email):
-    """Minta kode lupa password. Return state buat session. Hasil di layar sama, terdaftar atau nggak.
-    ponytail: lama kirim email (SMTP) masih bisa beda dikit antara email terdaftar & nggak; kalau perlu ditutup,
-    kirim emailnya lewat antrean/worker biar respon langsung balik."""
+    """Minta kode lupa password, hasil sama terdaftar atau nggak."""
+    # shortcut: waktu kirim SMTP bisa beda dikit, pindah ke worker kalau perlu
     clean_email = normalize_email(email)
     ensure_allowed_email_domain(clean_email)
     user = find_resettable_user(clean_email)
@@ -513,8 +482,7 @@ def resend_password_reset_code(state):
 
 
 def apply_new_password(user, password_hash, method):
-    """Simpen password baru + logout semua sesi lama (session_version naik, login yg lagi nunggu OTP ikut batal)
-    + semua OTP aktif (login & reset) hangus + catat audit. Dipake reset & ganti password. Commit di pemanggil."""
+    """Simpen password baru, logout semua sesi, hanguskan OTP, catat audit. Commit di pemanggil."""
     db.session.execute(
         db.update(OtpCode).where(OtpCode.user_id == user.id, OtpCode.is_used.is_(False)).values(is_used=True)
     )
@@ -571,8 +539,7 @@ def reset_password(state, code, new_password):
 
 
 def change_password(user, current_password, new_password):
-    """Ganti password dari Settings. Password lama salah ikut hitungan blokir login & kunci akun, biar sesi yg kebajak
-    ga bisa dipake nebak password. Return User (session_version-nya udah naik, route login-in ulang sesi ini)."""
+    """Ganti password dari Settings; password lama salah ikut hitungan kunci akun."""
     blocked_minute_count = auth_throttle.get_login_block_minutes(user.email)
     if blocked_minute_count:
         raise AuthError(build_login_blocked_error(blocked_minute_count))

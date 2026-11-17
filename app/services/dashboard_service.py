@@ -1,5 +1,4 @@
-"""Isi halaman dashboard: angka ringkas (bisa diklik ke Link List), link yg perlu dicek, & aktivitas tim.
-Semua angka ngikut hak akses user (data Private orang lain ga ikut kehitung / ga ditampilin)."""
+"""Isi dashboard, semua angka ngikut hak akses user."""
 from collections import namedtuple
 from datetime import timedelta
 
@@ -36,9 +35,7 @@ from app.utils.constants import (
 )
 from app.utils.datetime_helper import to_local_time, utc_now
 
-# AKTIVITAS TIM
-# Kalimat per jenis aktivitas: (satu kali, beberapa kali). Yg ga ada di sini ga pernah tampil di dashboard
-# (login/logout, preferensi tampilan, group: isinya urusan anggota group itu aja).
+# AKTIVITAS TIM: kalimat per jenis aktivitas (satu kali, beberapa kali); yg ga ada ga tampil
 ActivityText = namedtuple("ActivityText", ["single", "plural", "is_admin_only"])
 ACTIVITY_TEXT_DICT = {
     # boleh diliat semua user: cuma link Public & kategori (emang udah keliatan semua orang)
@@ -103,9 +100,7 @@ def build_actor_name_dict(audit_log_list):
 
 
 def list_team_activity(viewer):
-    """Aktivitas orang lain beberapa hari terakhir, dibikin kalimat & digabung biar ga spam:
-    aktivitas yg sama dari orang yg sama di hari yg sama jadi SATU baris ("Budi added 5 public links").
-    User biasa cuma liat yg emang Public; admin juga liat aktivitas akun & keamanan."""
+    """Aktivitas orang lain beberapa hari terakhir, digabung per orang/aksi/hari."""
     is_viewer_admin = is_admin(viewer)
     since = utc_now() - timedelta(days=DASHBOARD_ACTIVITY_DAY_COUNT)
     allowed_activity = db.or_(*[
@@ -217,8 +212,6 @@ def list_recent_own_activity(user):
 
 
 # TAMPILAN PER PERAN
-# admin: ringkasan sistem & tugas admin.
-# User Entry: data sendiri aja (+ panduan mulai kalau belum punya link).
 
 def build_admin_panel():
     """Ringkasan sistem buat admin: akun, hasil cek link, antrean monitoring, akun yg lagi kekunci."""

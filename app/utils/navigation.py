@@ -6,8 +6,7 @@ from app.security.access_policy import is_admin
 # parameter URL yg ikut nentuin menu mana yg aktif (misal filter visibilitas di Daftar Link)
 NAV_MATCH_QUERY_KEY_LIST = ["visibility", "favorite"]
 
-# endpoint yg belum dibikin otomatis tampil "Segera" (ga bisa diklik).
-# menu yg user ga punya aksesnya tetep tampil tapi dikunci (ikon gembok), biar user tau menunya ada
+# endpoint yg belum ada tampil "Segera"; menu tanpa akses tampil dikunci
 SIDEBAR_SECTION_LIST = [
     {"title": "Overview", "item_list": [
         {"label": "Dashboard", "endpoint": "main.dashboard", "icon": "dashboard"},

@@ -1,4 +1,4 @@
-"""Pengiriman email (OTP login, kode lupa password, link aktivasi akun, pemberitahuan) sesuai mode yang dikonfigurasi."""
+"""Kirim email sesuai OTP_DELIVERY_MODE."""
 
 import hashlib
 import smtplib
@@ -19,11 +19,7 @@ OTP_SUBJECT_DICT = {
 SIGNATURE_TEXT = "Best Regards,\nICT SPINDO"
 
 def send_email(to_address, subject, paragraph_list, code=None, link=None, link_label=None, note_list=()):
-    """Kirim satu email (teks biasa + HTML dgn tanda tangan ICT SPINDO) sesuai OTP_DELIVERY_MODE.
-
-    console -> dicetak ke terminal (khusus ujicoba).
-    smtp    -> SMTP dengan STARTTLS atau TLS langsung, sertifikat selalu diverifikasi.
-    """
+    """Kirim satu email (console / smtp)."""
     delivery_mode = current_app.config["OTP_DELIVERY_MODE"]
     text_part_list = [*paragraph_list, *([code] if code else []), *([link] if link else []), *note_list, SIGNATURE_TEXT]
     body = "\n\n".join(text_part_list)

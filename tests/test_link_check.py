@@ -231,8 +231,7 @@ def test_check_links_command_runs_monitor(app, monkeypatch):
     assert "3 links · 2 up · 1 down" in result.output
 
 def test_stuck_target_does_not_hold_whole_check(app, registered_user, category_dict, monkeypatch):
-    """Negative: 1 link macet (misal DNS ga jawab) -> ditandai tidak aktif setelah batas waktu,
-    link lain tetep kesimpen, dan pemeriksaan ga nungguin selamanya."""
+    """Negative: 1 link macet ga nahan pemeriksaan."""
     import threading
     import time
 
@@ -280,8 +279,7 @@ def test_unexpected_error_on_one_target_does_not_stop_check(app, registered_user
     assert (broken_entry.status, normal_entry.status) == (LINK_STATUS_UNKNOWN, LINK_STATUS_UP)
 
 def test_slow_links_do_not_hold_other_links(app, registered_user, category_dict, monkeypatch):
-    """Positive (kecepatan): pemeriksa ga saling nunggu. 40 link, 2 di antaranya lambat (1 dtk) & beda kelompok baca DB;
-    dgn 2 pemeriksa harusnya selesai ~1 dtk (link lambat jalan barengan), bukan ~2 dtk (nunggu per kelompok)."""
+    """Positive: link lambat ga nahan link lain."""
     import time
 
     entry_id_list = [
@@ -325,8 +323,7 @@ def make_concurrency_probe(slow_seconds_by_id, release_event=None):
     return fake_check, state
 
 def test_overdue_threads_still_count_toward_worker_limit(app, registered_user, category_dict, monkeypatch):
-    """Negative (resource): link yg lewat batas waktu dilaporin duluan, tapi thread-nya tetep ngisi slot sampe kelar,
-    jadi pemeriksaan yg jalan barengan ga pernah lebih dari jumlah pemeriksa."""
+    """Negative: thread lewat batas tetep ngisi slot."""
     entry_id_list = [create_access_entry(registered_user, build_entry_dict(
         category_dict["Web"], f"Link {number}", f"https://l{number}.spindo.com")).id for number in range(9)]
     fake_check, state = make_concurrency_probe({entry_id: 0.6 for entry_id in entry_id_list[:3]})
@@ -338,8 +335,7 @@ def test_overdue_threads_still_count_toward_worker_limit(app, registered_user, c
     assert state["peak"] <= 3
 
 def test_all_workers_stuck_stops_check_instead_of_hanging(app, registered_user, category_dict, monkeypatch):
-    """Negative (resource): semua pemeriksa macet & masih ada link -> pemeriksaan dihentiin dgn error yg jelas
-    (bukan nambah thread terus / nungguin selamanya). Hasil yg udah ada tetep kesimpen."""
+    """Negative: semua pemeriksa macet -> pemeriksaan berhenti."""
     import threading
     import time
 
@@ -362,8 +358,7 @@ def test_all_workers_stuck_stops_check_instead_of_hanging(app, registered_user, 
     assert reported_count == 2
 
 def test_stuck_threads_still_count_in_next_check(app, registered_user, category_dict, monkeypatch):
-    """Negative (temuan audit): thread macet sisa pemeriksaan sebelumnya tetep ngisi slot di pemeriksaan berikutnya,
-    jadi total thread se-proses worker ga lewat batas (pemeriksaan kedua berhenti, bukan bikin thread baru)."""
+    """Negative: thread macet sisa pemeriksaan lalu tetep ngisi slot."""
     import threading
 
     release_event = threading.Event()
@@ -382,8 +377,7 @@ def test_stuck_threads_still_count_in_next_check(app, registered_user, category_
         release_event.set()
 
 def test_running_threads_recorded_when_check_fails_midway(app, registered_user, category_dict, monkeypatch):
-    """Negative (temuan audit): pemeriksaan gagal di tengah jalan (misal gagal nyimpen hasil) pas thread lain masih
-    jalan -> thread itu tetep dicatet makan slot, biar pemeriksaan berikutnya ga bikin thread baru di atasnya."""
+    """Negative: pemeriksaan gagal di tengah tetep nyatet thread yg jalan."""
     import threading
 
     release_event = threading.Event()

@@ -150,9 +150,7 @@ def check_target(target, allow_private=None, ca_file=None):
     return LinkCheckResult(LINK_STATUS_UNKNOWN, "No URL or Address")
 
 def save_check_result(target, result):
-    """Simpen hasil cek. updated_at sengaja ga ikut berubah, soalnya ngecek bukan ngedit data.
-    Cuma disimpen kalau URL/Address/Port di DB masih sama kayak yg tadi dicek: kalau link-nya diedit pas
-    pengecekan lagi jalan, hasil buat alamat lama ga boleh nempel ke alamat baru. Return True kalau kesimpen."""
+    """Simpen hasil cek kalau alamatnya belum diedit. Return True kalau kesimpen."""
     update_result = db.session.execute(
         db.update(AccessEntry)
         .where(
@@ -172,8 +170,7 @@ def save_check_result(target, result):
     return update_result.rowcount == 1
 
 def iter_check_target(upper_id):
-    """Ambil link yg mau dicek dari DB sedikit-sedikit (per CHECK_BATCH_SIZE), transaksi langsung ditutup
-    biar ga nahan DB selama nunggu jaringan. Jalan di thread utama (session DB ga boleh dipake thread pemeriksa)."""
+    """Ambil link yg mau dicek per batch, transaksi langsung ditutup."""
     last_id = 0
     while True:
         rows = db.session.execute(
@@ -197,8 +194,7 @@ def read_future_result(future, target):
         return LinkCheckResult(LINK_STATUS_UNKNOWN, "Error while checking, see the server log")
 
 def save_result_list(result_pair_list, counts, total, progress_callback):
-    """Simpen hasil yg udah kelar + update progres. Callback dicek dulu sebelum nulis: kalau kepemilikan
-    pemeriksaan udah dicabut (recover-link-monitor), callback lempar error & hasil worker lama ga ditulis."""
+    """Simpen hasil cek + update progres."""
     if progress_callback:
         progress_callback(sum(counts.values()), total)
     for target, result in result_pair_list:
@@ -208,22 +204,14 @@ def save_result_list(result_pair_list, counts, total, progress_callback):
         progress_callback(sum(counts.values()), total)
     db.session.commit()
 
-# thread pemeriksa yg udah lewat batas waktu tapi masih jalan, DIBAGI antar pemeriksaan dalam satu proses worker:
-# thread macet dari pemeriksaan sebelumnya tetep makan slot, jadi total thread se-proses ga pernah lebih dari batas
+# thread yg lewat batas tapi masih jalan, dibagi antar pemeriksaan biar total thread ga lewat batas
 OVERDUE_FUTURE_SET = set()
 
 class LinkCheckStuckError(RuntimeError):
     """Semua slot pemeriksa kepake thread yg macet kelamaan: pemeriksaan dihentiin (status run jadi gagal)."""
 
 def check_all_entry_status(max_worker_count=LINK_CHECK_MAX_WORKER_COUNT, progress_callback=None):
-    """Cek semua link. Pemeriksa jalan terus: begitu 1 link kelar, slot-nya langsung ngambil link berikutnya
-    (ga nungguin link lain yg lebih lambat), dan hasilnya langsung disimpen.
-
-    Tiap link dibatesin LINK_CHECK_TARGET_DEADLINE_SECONDS sejak mulai dicek. Timeout socket cuma ngebatesin
-    tiap operasi (DNS yg macet / server yg ngirim data dikit-dikit bisa nahan lama), jadi yg lewat batas langsung
-    dilaporin tidak aktif. Thread-nya ga bisa dihentiin paksa, jadi slot-nya tetep diitung kepake sampe thread itu
-    beneran kelar: total thread ga pernah lebih dari max_worker_count. Kalau semua slot keisi thread macet lebih
-    lama dari LINK_CHECK_STUCK_LIMIT_SECONDS, pemeriksaan dihentiin (LinkCheckStuckError) biar worker ga ketahan."""
+    """Cek semua link pakai thread pool, tiap link ada batas waktunya. Return counter status."""
     upper_id = db.session.scalar(db.select(db.func.max(AccessEntry.id))) or 0
     total = db.session.scalar(db.select(db.func.count(AccessEntry.id)).where(AccessEntry.id <= upper_id))
     check = partial(check_target, allow_private=current_app.config["LINK_CHECK_ALLOW_PRIVATE_NETWORKS"],
@@ -245,8 +233,7 @@ def check_all_entry_status(max_worker_count=LINK_CHECK_MAX_WORKER_COUNT, progres
     try:
         while True:
             overdue_set.difference_update([future for future in overdue_set if future.done()])
-            # slot kosong = thread pool beneran nganggur, jadi link yg dikirim langsung mulai dicek
-            # (batas waktunya ga kepotong antrean)
+            # slot kosong = thread nganggur, link langsung mulai dicek
             while len(waiting_dict) + len(overdue_set) < max_worker_count:
                 target, next_target = next_target or next(target_iter, None), None
                 if target is None:
@@ -277,14 +264,14 @@ def check_all_entry_status(max_worker_count=LINK_CHECK_MAX_WORKER_COUNT, progres
             now = time.monotonic()
             for future in [future for future, (_, deadline) in waiting_dict.items() if deadline <= now]:
                 target, _ = waiting_dict.pop(future)
+                # thread ga bisa dihentiin paksa, jadi yg lewat batas tetep diitung makan slot sampe beneran kelar
                 overdue_set.add(future)
                 result_pair_list.append((target, LinkCheckResult(
                     LINK_STATUS_DOWN, f"Check took longer than {LINK_CHECK_TARGET_DEADLINE_SECONDS} seconds")))
             if result_pair_list:
                 save_result_list(result_pair_list, counts, total, progress_callback)
     finally:
-        # keluar lewat error (misal gagal nyimpen hasil): thread yg masih jalan tetep dicatet biar makan slot
-        # di pemeriksaan berikutnya. Thread ga bisa dihentiin paksa, dibiarin kelar sendiri; yg belum mulai dibatalin
+        # thread yg masih jalan dicatet biar tetep makan slot; yg belum mulai dibatalin
         overdue_set.update(future for future in waiting_dict if not future.done())
         executor.shutdown(wait=False, cancel_futures=True)
     return counts

@@ -20,7 +20,7 @@ def test_dashboard_shows_topbar_profile(logged_in_client):
     assert 'data-pref-source="server"' in html_text
 
 def test_topbar_has_home_theme_toggle_and_user_menu(logged_in_client):
-    """Topbar ala SAP: link Home (logo), tanpa kolom kode menu, menu profil di kanan atas. Tombol tema cuma di sidebar HP."""
+    """Topbar ala SAP: Home, menu profil, tombol tema di sidebar HP."""
     response = logged_in_client.get("/settings/")
     assert response.status_code == 200
     html_text = response.get_data(as_text=True)
@@ -73,8 +73,7 @@ def test_sidebar_renders_inline_folders_and_opens_active_branch(logged_in_client
 
 
 def test_user_entry_dashboard_has_no_extra_access(logged_in_client):
-    """Positive: role "User with access" & akses tambahan udah dihapus -> user biasa dapet dashboard User Entry,
-    tanpa panel "Your Access", dan menu admin ga kebuka."""
+    """Positive: user biasa dapet dashboard User Entry tanpa akses tambahan."""
     html_text = logged_in_client.get("/dashboard/").get_data(as_text=True)
     assert 'data-access-level="standard"' in html_text and "User Entry" in html_text
     assert "User with access" not in html_text and "Your Access" not in html_text

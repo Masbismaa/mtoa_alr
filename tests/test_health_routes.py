@@ -59,8 +59,7 @@ def test_readiness_fails_when_database_down(client, monkeypatch):
 
 
 def test_proxy_header_without_trusted_proxy_logs_warning_once(client, caplog):
-    """Negative (temuan audit): aplikasi di belakang reverse proxy tapi TRUSTED_PROXY_COUNT=0 -> ada peringatan
-    di log (sekali aja), biar ketauan kenapa semua user keliatan dari 1 IP."""
+    """Negative: header proxy tanpa TRUSTED_PROXY_COUNT -> warning sekali."""
     with caplog.at_level("WARNING"):
         client.get("/health", headers={"X-Forwarded-For": "10.1.2.3"})
         client.get("/health", headers={"X-Forwarded-For": "10.1.2.4"})
@@ -86,8 +85,7 @@ def test_readiness_result_cached_briefly(client, monkeypatch):
 
 
 def test_readiness_reports_redis_down_as_503(monkeypatch):
-    """Negative (temuan audit): Redis (penyimpanan rate limit) mati -> /health/ready tetep bisa ngelaporin 503
-    + nama yg gagal, bukan error 500 (endpoint ini ga lewat rate limiter yg butuh Redis)."""
+    """Negative: Redis mati -> /health/ready 503, bukan 500."""
     from app.config import TestingConfig
     from app.routes import health_routes
 
@@ -104,8 +102,7 @@ def test_readiness_reports_redis_down_as_503(monkeypatch):
 
 @pytest.mark.parametrize("raw_value, is_secure", [(None, True), ("true", True), ("false", False), ("FALSE", False)])
 def test_production_session_cookie_secure_from_env(raw_value, is_secure):
-    """Positive: production default cookie HTTPS-only; QAS yg masih HTTP bisa matiin lewat SESSION_COOKIE_SECURE=false.
-    Dicek di proses terpisah biar config modul test lain ga ikut keganti."""
+    """Positive: cookie session production HTTPS-only, bisa dimatiin lewat env."""
     import os
     import subprocess
     import sys

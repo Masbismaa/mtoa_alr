@@ -1,10 +1,4 @@
-"""Test integrasi PostgreSQL beneran: kunci baris (FOR UPDATE), index unik, & trigger audit log.
-
-Test lain pakai SQLite di memori, yg ga punya FOR UPDATE & ga ngejalanin migrasi, jadi balapan request
-barengan ga kebukti di sana. File ini cuma jalan kalau TEST_POSTGRES_URL diisi (job CI postgres_test),
-ke database yg skemanya udah dibikin lewat `flask db upgrade` (bukan create_all), biar migrasinya ikut keuji.
-Data test ga dihapus (audit log emang ga bisa dihapus), jadi pakai database khusus test yg dibuang abis CI.
-"""
+"""Test integrasi PostgreSQL (cuma jalan kalau TEST_POSTGRES_URL diisi)."""
 import io
 import os
 import threading
@@ -42,8 +36,7 @@ def pg_app(monkeypatch, tmp_path):
 
 
 def run_together(app, callback_list):
-    """Jalanin beberapa fungsi di thread terpisah (tiap thread punya koneksi DB sendiri), mulai barengan.
-    Return list ("ok", hasil) / ("error", exception) sesuai urutan callback."""
+    """Jalanin fungsi barengan di thread terpisah. Return [("ok"/"error", hasil)]."""
     barrier = threading.Barrier(len(callback_list))
     result_list = [None] * len(callback_list)
 
@@ -73,8 +66,7 @@ def build_entry_dict(category_id):
 
 
 def test_concurrent_uploads_cannot_exceed_entry_limit(pg_app, monkeypatch):
-    """Negative: 2 upload barengan ke link yg udah punya 4 lampiran, dua-duanya sempet ngitung "4" sebelum ngunci
-    -> cuma satu yg boleh masuk, total maksimal 5 (FOR UPDATE di baris link)."""
+    """Negative: upload barengan tetep maks 5 lampiran."""
     with pg_app.app_context():
         user = register_user(f"pg.{uuid.uuid4().hex[:8]}@spindo.com", "PasswordKuat123", "PG", "ICT", "Staff")
         web_id = db.session.execute(db.select(Category.id).filter_by(name="Web", parent_id=None)).scalar_one()
@@ -110,8 +102,7 @@ def test_concurrent_uploads_cannot_exceed_entry_limit(pg_app, monkeypatch):
 
 
 def test_concurrent_category_names_differing_case(pg_app, monkeypatch):
-    """Negative: 2 admin barengan bikin "Server X" & "SERVER X", dua-duanya lolos cek nama -> index unik lower(name)
-    nolak satu, & yg kalah dapet pesan validasi (bukan error 500)."""
+    """Negative: nama kategori kembar beda huruf barengan -> satu ditolak."""
     with pg_app.app_context():
         admin = register_user(f"pg.admin.{uuid.uuid4().hex[:8]}@spindo.com", "PasswordKuat123", "PG", "ICT", "Staff", role="admin")
         admin_id = admin.id
@@ -153,8 +144,7 @@ def test_audit_log_cannot_be_changed(pg_app):
 
 
 def test_concurrent_admin_demotion_keeps_one_admin(pg_app, monkeypatch):
-    """Negative (temuan audit): 2 perintah unset-admin barengan buat 2 admin terakhir yg beda -> satu ditolak,
-    minimal tetep nyisa 1 admin aktif (baris admin dikunci sebelum dihitung)."""
+    """Negative: unset-admin barengan tetep nyisa 1 admin."""
     from app.models import User
     from app.services import user_service
 
@@ -209,8 +199,7 @@ def slow_child_count(monkeypatch):
 
 
 def test_concurrent_delete_same_category(pg_app, monkeypatch):
-    """Negative (temuan audit): 2 admin hapus kategori yg sama barengan -> satu berhasil, satu dapet pesan
-    "already deleted" (bukan error), & audit hapusnya cuma 1."""
+    """Negative: hapus kategori yg sama barengan -> satu dapet pesan."""
     from app.models import User
 
     admin_id, category_id = make_admin_and_category(pg_app)
@@ -229,8 +218,7 @@ def test_concurrent_delete_same_category(pg_app, monkeypatch):
 
 
 def test_delete_category_while_sub_added_never_errors(pg_app, monkeypatch):
-    """Negative (temuan audit): hapus kategori barengan orang nambah sub di dalemnya -> salah satu ditolak pake
-    pesan validasi (bukan error 500), & ga ada sub-kategori yatim."""
+    """Negative: hapus kategori barengan tambah sub -> ga ada sub yatim."""
     from app.models import User
 
     admin_id, category_id = make_admin_and_category(pg_app)

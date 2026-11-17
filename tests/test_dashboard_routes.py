@@ -47,7 +47,7 @@ def test_dashboard_has_copy_button(logged_in_client, registered_user, category_d
     assert payload["rows"][0]["access_text"] == "https://hr.spindo.com"
 
 def test_dashboard_truncates_long_description(logged_in_client, registered_user, category_dict, read_entry_table):
-    """Positive: deskripsi panjang dikirim utuh (buat tooltip), motongnya di tampilan React (dites di columns.test.jsx)."""
+    """Positive: deskripsi panjang dikirim utuh, dipotong di React."""
     long_text = "A" * 200
     create_access_entry(registered_user, build_entry_dict(
         category_dict["Web"], "Portal HR", "https://hr.spindo.com", description=long_text,

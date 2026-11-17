@@ -42,7 +42,7 @@ def test_favorites_filter_shows_only_my_favorites(logged_in_client, registered_u
 
 
 def test_favorite_of_link_that_became_private_disappears(logged_in_client, registered_user, other_user, category_dict, read_entry_table):
-    """Negative (security): bintangin link Public orang, terus pemiliknya bikin Private -> ga muncul lagi & ga bisa dibuka."""
+    """Negative (security): favorit link yg jadi Private ilang."""
     entry = make_entry(other_user, category_dict["Web"], visibility=VISIBILITY_PUBLIC)
     logged_in_client.post(f"/entries/{entry.id}/favorite")
     update_access_entry(other_user, entry, build_service_dict(category_dict["Web"], title="Portal HR",

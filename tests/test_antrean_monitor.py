@@ -102,8 +102,7 @@ def test_status_api_reports_progress(admin_client):
     ("queued", 10, False), ("queued", 61, True), ("running", 100, False), ("running", 121, True), ("completed", 999, False),
 ])
 def test_worker_warning_only_when_queue_stuck(app, state, seconds_ago, has_warning):
-    """Positive & negative: peringatan "worker kemungkinan tidak berjalan" cuma muncul kalau antrean ga diambil > 1 menit
-    atau pemeriksaan ga maju > 2 menit."""
+    """Positive & negative: peringatan worker cuma muncul kalau antrean macet."""
     set_run_age(state, seconds_ago, processed=1, total=5)
     assert (link_monitor_service.build_monitor_status()["warning"] is not None) == has_warning
 
@@ -119,8 +118,7 @@ def test_page_shows_worker_command_when_queue_stuck(admin_client):
 
 
 def test_worker_recovers_run_left_running_by_dead_worker(app):
-    """Negative (temuan audit): worker sebelumnya mati di tengah pemeriksaan -> status ketinggalan "running".
-    Worker yg baru nyala nyabut run itu sendiri (setelah 5 menit tanpa kemajuan), tombol admin kebuka lagi."""
+    """Negative: run "running" sisa worker mati dicabut otomatis."""
     set_run_age("running", 6 * 60, processed=3, total=10)
     result = app.test_cli_runner().invoke(args=["monitor-worker", "--once"])
     assert result.exit_code == 0, result.output
@@ -129,8 +127,7 @@ def test_worker_recovers_run_left_running_by_dead_worker(app):
 
 
 def test_cleanup_old_data_only_removes_expired_rows(app, registered_user):
-    """Positive & negative (temuan audit): cleanup-old-data cuma ngitung tanpa --delete; dgn --delete yg dibuang cuma
-    OTP kedaluwarsa & notifikasi dibaca > 90 hari. OTP aktif & notifikasi belum dibaca / masih baru tetep ada."""
+    """Positive & negative: cleanup-old-data cuma ngapus OTP kedaluwarsa & notifikasi lama dibaca."""
     from app.models import OtpCode, UserNotification
 
     now = utc_now()

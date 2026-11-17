@@ -1,7 +1,4 @@
-"""Backup & restore, dipisah 2 jenis di folder masing-masing (BACKUP_FOLDER/database & BACKUP_FOLDER/website):
-- database: .zip isi manifest + dump PostgreSQL (pg_dump format custom)
-- website: .zip isi manifest + semua lampiran (folder uploads)
-ENCRYPTION_KEY sengaja ga ikut di file backup: simpen terpisah, tanpa kunci itu password di backup ga bisa dibaca."""
+"""Backup & restore database dan lampiran (ENCRYPTION_KEY ga ikut)."""
 import json
 import os
 import re
@@ -84,7 +81,7 @@ def read_db_revision():
 
 
 def run_pg(tool, *arg_list):
-    """Jalanin pg_dump / pg_restore ke database app. Password lewat env, bukan argumen, biar ga keliatan di daftar proses."""
+    """Jalanin pg_dump / pg_restore; password lewat env."""
     url = read_db_url()
     executable = shutil.which(tool, path=current_app.config["PG_BIN_DIR"] or None)
     if not executable:
@@ -100,8 +97,7 @@ def run_pg(tool, *arg_list):
 
 
 def write_backup_file(kind, manifest_dict, write_content, user=None):
-    """Bikin file backup baru di folder jenisnya, return path-nya. write_content(zip_file) ngisi isinya.
-    Ditulis ke .part dulu: backup yg gagal di tengah ga pernah nongol di daftar."""
+    """Bikin file backup baru (lewat .part dulu). Return path-nya."""
     name = f"{BACKUP_PREFIX_DICT[kind]}-{utc_now():%Y%m%d-%H%M%S}.zip"
     backup_path = get_backup_folder(kind) / name
     part_path = backup_path.with_name(name + ".part")
@@ -153,8 +149,7 @@ def read_backup_manifest(zip_file, kind):
 
 
 def restore_database_backup(name, actor_email=None):
-    """Timpa database dari backup. Sebelumnya otomatis bikin backup database keadaan sekarang
-    (return path-nya), jadi restore yg salah pilih masih bisa dibalikin."""
+    """Timpa database dari backup, bikin safety backup dulu. Return path safety backup."""
     backup_path = get_backup_path(BACKUP_KIND_DATABASE, name)
     with zipfile.ZipFile(backup_path) as zip_file:
         manifest = read_backup_manifest(zip_file, BACKUP_KIND_DATABASE)
@@ -176,9 +171,7 @@ def restore_database_backup(name, actor_email=None):
             run_pg("pg_restore", "--clean", "--if-exists", "--single-transaction", "--exit-on-error",
                    "--no-owner", "--no-privileges", dump_path)
 
-    # user_id sengaja kosong: akun yg nge-restore belum tentu ada di database hasil restore.
-    # audit log ikut balik ke isi backup, jadi catatan sesudah backup_created_at (termasuk pembuatan backup ini &
-    # backup pengamannya) cuma ada di safety_backup
+    # user_id kosong: akun yg nge-restore belum tentu ada di database hasil restore
     log_audit(AUDIT_ACTION_IMPORT, BACKUP_ENTITY, name, new_data_dict={
         "safety_backup": safety_backup_path.name, "backup_created_at": manifest.get("created_at"),
     }, actor_email=actor_email, is_commit=True)
@@ -186,8 +179,7 @@ def restore_database_backup(name, actor_email=None):
 
 
 def restore_website_backup(name, actor_email=None):
-    """Balikin lampiran dari backup: cuma nambahin file yg belum ada, file yg udah ada ga ditimpa / dihapus.
-    Return jumlah file yg dibalikin."""
+    """Balikin lampiran yg belum ada dari backup. Return jumlahnya."""
     backup_path = get_backup_path(BACKUP_KIND_WEBSITE, name)
     with zipfile.ZipFile(backup_path) as zip_file:
         read_backup_manifest(zip_file, BACKUP_KIND_WEBSITE)
@@ -198,8 +190,7 @@ def restore_website_backup(name, actor_email=None):
             if not file_name or file_name.startswith(".") or "\\" in file_name or Path(file_name).name != file_name:
                 fail("The backup file contains an invalid path")
 
-        # nama file lampiran unik (acak), jadi file yg udah ada pasti isinya sama: cukup tambahin yg belum ada.
-        # file yg ga dirujuk database lagi dibersihin lewat "flask cleanup-attachments"
+        # nama file lampiran unik, jadi cukup tambahin yg belum ada
         upload_folder = get_upload_folder()
         restored_count = 0
         for entry in upload_name_list:

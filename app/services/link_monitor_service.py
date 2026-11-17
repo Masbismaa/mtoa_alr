@@ -38,10 +38,7 @@ def get_monitor_run():
 WORKER_COMMAND = "python -m flask --app run monitor-worker"
 
 def build_monitor_status():
-    """Status pemeriksaan buat halaman Link Monitoring (render awal & polling JSON pake fungsi yg sama).
-
-    is_active: masih nunggu / jalan (halaman perlu terus nanya status).
-    warning: diisi kalau kemungkinan worker ga jalan (antrean ga diambil-ambil) atau berhenti di tengah jalan."""
+    """Status pemeriksaan buat halaman Link Monitoring (render & polling)."""
     run = get_monitor_run()
     state = run.state if run else "idle"
     processed_count = run.processed_count if run else 0

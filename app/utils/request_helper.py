@@ -10,10 +10,7 @@ def get_current_user():
     return current_user._get_current_object()
 
 def get_client_ip():
-    """IP klien pada request aktif, atau None di luar request.
-
-    X-Forwarded-For tidak digunakan sebelum reverse proxy tepercaya dikonfigurasi.
-    """
+    """IP klien request aktif, None di luar request."""
     if not has_request_context():
         return None
     return request.remote_addr

@@ -1,5 +1,4 @@
-"""Test tabel link React: API table-data (Daftar Link & isi kategori), data awal yg ditempel di halaman,
-kontrak bentuk data (harus sama kayak frontend/src/test/makePayload.js), keamanan, & tag script hasil build Vite."""
+"""Test tabel link React: API, data awal, kontrak payload, keamanan."""
 import pytest
 from app.models import Category
 from app.services.access_entry_service import create_access_entry
@@ -99,8 +98,7 @@ def test_api_ignores_bad_params(logged_in_client, registered_user, category_dict
     assert len(data["rows"]) <= 1
 
 def test_title_is_escaped_in_page(logged_in_client, registered_user, category_dict, read_entry_table):
-    """Negative (security): karakter yg lolos sanitasi (kutip, < >, &) ga bisa keluar dari atribut data-entry-table.
-    Tag HTML-nya sendiri udah dibuang sanitize_text pas disimpen; React nampilin sisanya sebagai teks (dites di frontend)."""
+    """Negative (security): judul ga bisa keluar dari atribut data-entry-table."""
     tricky_title = "1 < 2 > 0 'kutip' \"dua\" & dan"
     create_entry(registered_user, category_dict["Web"], tricky_title, url="https://hack.spindo.com")
     html_text = logged_in_client.get("/entries/?run=1").get_data(as_text=True)
@@ -109,7 +107,7 @@ def test_title_is_escaped_in_page(logged_in_client, registered_user, category_di
     assert read_entry_table(logged_in_client, "/entries/?run=1")["rows"][0]["title"] == tricky_title
 
 def test_csp_blocks_inline_script(logged_in_client, category_dict):
-    """Positive (security): CSP cuma ngizinin script dari server sendiri, halaman tabel tetep jalan (tanpa script inline)."""
+    """Positive (security): CSP cuma ngizinin script dari server sendiri."""
     response = logged_in_client.get("/entries/?run=1")
     assert "script-src 'self'" in response.headers["Content-Security-Policy"]
     html_text = response.get_data(as_text=True)
@@ -149,7 +147,7 @@ def test_index_without_run_has_no_table(logged_in_client, registered_user, categ
 
 # HALAMAN KATEGORI
 def test_category_api_only_direct_entries(logged_in_client, registered_user, category_dict):
-    """Positive: isi kategori = link yg langsung di kategori itu (sub-nya ga ikut), tanpa kolom Kategori & tombol export."""
+    """Positive: isi kategori cuma link yg langsung di kategori itu."""
     web = category_dict["Web"]
     sub = make_sub_category(registered_user, web, "SAP")
     create_entry(registered_user, web, "Langsung Web")
@@ -238,8 +236,7 @@ def test_csrf_and_rate_limit_errors_are_json_for_scripts(monkeypatch):
 
 
 def test_description_is_plain_text_in_table(logged_in_client, registered_user, category_dict, read_entry_table):
-    """Positive (temuan audit, dibantah): deskripsi link itu teks polos (input <textarea>, tag HTML dibuang pas disimpan),
-    bukan rich text. Jadi tabel React ga pernah nerima/nampilin tag HTML."""
+    """Positive: deskripsi di tabel teks polos."""
     create_access_entry(registered_user, {
         "category_id": category_dict["Web"].id, "title": "Portal", "url": "https://portal.spindo.com", "address": "",
         "port": "", "username": "", "access_note": "", "visibility": VISIBILITY_PRIVATE,

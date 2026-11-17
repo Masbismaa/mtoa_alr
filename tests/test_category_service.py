@@ -36,8 +36,7 @@ def test_create_category_active_and_logged(app, admin_user, category_dict):
     assert audit_log.action == "create"
 
 def test_create_main_category_private_to_owner(app, registered_user, other_user, category_dict):
-    """Positive + negative: kategori utama bikinan user langsung aktif & kecatat di audit log, cuma pembuatnya
-    yg bisa pake & kelola; akun lain boleh bikin nama yg sama buat dirinya sendiri."""
+    """Positive + negative: kategori utama pribadi cuma buat pembuatnya."""
     category = create_category(registered_user, {"name": "Database", "description": "Server DB"})
     assert category.is_active is True and category.parent_id is None and category.user_id == registered_user.id
     assert category in list_usable_category(registered_user)
@@ -149,8 +148,7 @@ def test_delete_unused_category(app, admin_user, category_dict):
     assert "delete" in action_list
 
 def test_category_summary_counts_entry(app, registered_user, other_user, category_dict):
-    """Positive + negative (security): ringkasan nampilin jumlah link yg boleh diliat + tanda bawaan;
-    link Private orang lain ga ikut kehitung."""
+    """Positive + negative (security): ringkasan ga ngitung link Private orang lain."""
     create_access_entry(registered_user, build_entry_data(category_dict["Network"]))
     summary_dict = {summary["category"].name: summary for summary in list_category_summary(registered_user)}
     assert summary_dict["Network"]["entry_count"] == 1
@@ -160,8 +158,7 @@ def test_category_summary_counts_entry(app, registered_user, other_user, categor
     assert other_summary_dict["Network"]["entry_count"] == 0
 
 def test_database_rejects_same_name_different_case(app, admin_user, registered_user, category_dict):
-    """Negative (temuan audit): database sendiri nolak "sap" kalau "SAP" udah ada di induk & akun yg sama
-    (biar 2 request barengan ga bisa lolos dua-duanya), tapi nama sama di induk / akun beda tetep boleh."""
+    """Negative: database nolak nama kategori kembar beda huruf."""
     from sqlalchemy.exc import IntegrityError
 
     web, application = category_dict["Web"], category_dict["Application"]

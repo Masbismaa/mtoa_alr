@@ -1,5 +1,5 @@
 """Aturan hak akses data link & group. Satu tempat, dipake route, service, dan query."""
-from sqlalchemy import or_
+from sqlalchemy import or_, true
 from sqlalchemy.orm import aliased
 from app.extensions import db
 from app.models import AccessEntry, Group, GroupEntry, GroupEntryViewer, GroupMember
@@ -15,10 +15,7 @@ def is_entry_owner(user, entry):
     return entry.user_id == user.id
 
 def build_visible_group_entry_condition(user):
-    """SATU-SATUNYA aturan link di group yg boleh diliat user: link ga terbatas, atau user = pemilik group /
-    yg nambahin link / pemilik link-nya / viewer yg dipilih. Dipake daftar & hitungan di halaman group
-    (group_service) dan akses detail link (build_shared_entry_id_query), jadi hasilnya selalu sama.
-    Query pemakainya wajib join Group. Pemilik link dicek pake alias biar ga nyambung ke AccessEntry di query luar."""
+    """Satu-satunya aturan link group yg boleh diliat user; query pemakai wajib join Group."""
     link_entry = aliased(AccessEntry)
     is_viewer = db.select(GroupEntryViewer.id).where(
         GroupEntryViewer.group_entry_id == GroupEntry.id, GroupEntryViewer.user_id == user.id,
@@ -50,8 +47,8 @@ def is_entry_shared_with_user(user, entry):
     return db.session.execute(shared_query).first() is not None
 
 def can_view_entry(user, entry):
-    """Boleh liat: punya sendiri, Public, atau dibagiin lewat group."""
-    if is_entry_owner(user, entry) or entry.visibility == VISIBILITY_PUBLIC:
+    """Boleh liat: punya sendiri, Public, dibagiin lewat group, atau admin (data link ga nyimpen kredensial)."""
+    if is_entry_owner(user, entry) or entry.visibility == VISIBILITY_PUBLIC or is_admin(user):
         return True
     return is_entry_shared_with_user(user, entry)
 
@@ -63,6 +60,8 @@ def can_edit_entry(user, entry):
 
 def build_visible_entry_filter(user):
     """Filter query: data yg boleh dilihat user (sama kayak can_view_entry)."""
+    if is_admin(user):
+        return true()
     return or_(
         AccessEntry.user_id == user.id,
         AccessEntry.visibility == VISIBILITY_PUBLIC,
@@ -100,7 +99,5 @@ def is_private_audit_data(audit_log):
     )
 
 def can_view_audit_data(user, audit_log):
-    """Admin boleh liat isi perubahan, kecuali data Private punya orang lain."""
-    if not is_admin(user):
-        return False
-    return audit_log.user_id == user.id or not is_private_audit_data(audit_log)
+    """Isi perubahan cuma buat admin (termasuk data Private orang lain, sama kayak aturan lihat link)."""
+    return is_admin(user)

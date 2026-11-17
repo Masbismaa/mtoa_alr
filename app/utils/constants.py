@@ -36,8 +36,7 @@ CATEGORY_STYLE_DICT = {
 }
 DEFAULT_CATEGORY_STYLE = {"icon": "category", "color_class": "bg-secondary"}
 
-# Audit log
-# jenis aksi yg boleh dicatat, di luar ini ditolak
+# Audit log: jenis aksi yg boleh dicatat
 AUDIT_ACTION_CREATE = "create"
 AUDIT_ACTION_UPDATE = "update"
 AUDIT_ACTION_DELETE = "delete"
@@ -71,9 +70,7 @@ MASKED_VALUE = "********"
 MAX_TEXT_LENGTH = 1000
 MIN_PASSWORD_LENGTH = 8
 
-# Login & OTP
-# salah password / OTP (digabung) 3 kali -> akunnya dikunci (users.locked_until, status Locked, bisa di-unlock admin)
-# + email itu diblokir di auth_throttle biar email ga terdaftar dapet pesan yg sama
+# Login & OTP: salah password/OTP sekian kali -> akun dikunci
 LOGIN_MAX_FAILED_COUNT = 3
 LOGIN_LOCK_MINUTES = 15
 # kode lupa password ke satu email maksimal sekian kali per sekian menit (anti spam kotak masuk orang)
@@ -160,8 +157,7 @@ CATEGORY_NAME_APPLICATION = "Application"
 CATEGORY_NAME_NETWORK = "Network"
 CATEGORY_NAME_GENERAL = "General"
 
-# field khusus per kategori.
-# judul, deskripsi, visibilitas selalu ada. username + access note ada kalau has_credential_field True
+# field khusus per kategori
 CATEGORY_SPECIFIC_FIELD_LIST = ["url", "address", "port"]
 CREDENTIAL_FIELD_LIST = ["username", "access_note"]
 CATEGORY_FIELD_RULE_DICT = {
@@ -275,8 +271,7 @@ AUDIT_ENTITY_LABEL_DICT = {
     "backups": "Backup",
 }
 
-# dashboard (grafik & aktivitas)
-# feed aktivitas tim: sekian hari terakhir, maks sekian baris (abis digabung), link Down milik sendiri maks sekian
+# dashboard: batas feed aktivitas & daftar link Down
 DASHBOARD_ACTIVITY_DAY_COUNT = 7
 DASHBOARD_TEAM_ACTIVITY_LIMIT = 8
 DASHBOARD_ATTENTION_LIMIT = 5

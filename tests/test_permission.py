@@ -32,8 +32,7 @@ def test_panel_cannot_touch_admin_account(app, admin_user, registered_user):
     assert other_admin.is_active is True
 
 def test_user_entry_sees_admin_menu_locked(app, admin_user, registered_user):
-    """Positive & negative (RBAC): Audit Logs, Users cuma kebuka buat admin; user biasa liat menunya dikunci.
-    Categories kebuka buat semua user."""
+    """Positive & negative (RBAC): Audit Logs & Users cuma buat admin."""
     with app.test_request_context("/"):
         user_label_list = get_nav_label_list(registered_user)
         admin_label_list = get_nav_label_list(admin_user)

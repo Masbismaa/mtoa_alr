@@ -46,7 +46,7 @@ def test_inactive_category_hidden_from_user(logged_in_client, registered_user, c
     assert logged_in_client.get(f"/categories/{sap.id}").status_code == 404
 
 def test_private_sub_category_of_other_user_hidden(logged_in_client, other_user, category_dict):
-    """Negative (security): sub-kategori pribadi orang lain -> 404 (halaman, tabel, tambah sub), namanya ga bocor di Web."""
+    """Negative (security): sub-kategori pribadi orang lain -> 404."""
     other_sap = create_sub_category(other_user, category_dict["Web"], {"name": "SAP Orang", "description": ""})
     assert logged_in_client.get(f"/categories/{other_sap.id}").status_code == 404
     assert logged_in_client.get(f"/categories/{other_sap.id}/table-data").status_code == 404
@@ -63,8 +63,7 @@ def test_add_link_here_preselects_category(logged_in_client, registered_user, ca
     option_html = html_text.split(f'value="{sap.id}"')[1].split(">")[0]
     assert "selected" in option_html
 def test_owner_deletes_sub_with_links_via_page(logged_in_client, registered_user, other_user, category_dict):
-    """Positive + negative: pemilik hapus sub di kategori bawaan walau ada link-nya -> link pindah ke induk & dikasih tau.
-    Akun lain ga bisa hapus sub itu."""
+    """Positive + negative: pemilik hapus sub berisi link, link pindah ke induk."""
     from app.models import AccessEntry
     from tests.conftest import create_entry_as_is
 

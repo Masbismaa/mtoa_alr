@@ -1,4 +1,4 @@
-"""Test tabel ala ALV: urutan kolom (?sort=), layout kolom per akun, hasil pencarian langsung ke tabel, balik dari detail bawa filter."""
+"""Test tabel ala ALV."""
 import pytest
 from werkzeug.datastructures import MultiDict
 from app import create_app
@@ -126,7 +126,7 @@ def test_save_layout_requires_json_object(logged_in_client):
     assert logged_in_client.post(LAYOUT_URL, data="bukan json", content_type="text/plain").status_code == 400
 
 def test_save_layout_requires_login(client):
-    """Negative (security): belum login ditolak 401 JSON (dipanggil dari script, jadi bukan redirect ke halaman login)."""
+    """Negative (security): simpan layout tanpa login -> 401 JSON."""
     response = client.post(LAYOUT_URL, json={"table_key": "entry"})
     assert response.status_code == 401 and response.get_json()["is_success"] is False
 
@@ -169,8 +169,7 @@ def test_settings_text_matches_save_button(logged_in_client):
 
 
 def test_stale_layout_save_from_same_tab_ignored(logged_in_client, registered_user):
-    """Negative (temuan audit): kiriman lama dari tab yg sama telat nyampe (sequence lebih kecil) -> diabaikan,
-    layout terbaru ga ketimpa. Tab lain (client_id beda) tetep boleh nimpa."""
+    """Negative: kiriman layout lama dari tab yg sama diabaikan."""
     from app.services.preference_service import get_table_layout
 
     newer = {"table_key": "entry", "hidden_list": ["owner"], "width_dict": {}, "client_id": "tab-satu-123", "sequence": 5}
@@ -193,8 +192,7 @@ def test_layout_save_order_must_be_valid(logged_in_client):
     assert logged_in_client.post(LAYOUT_URL, json=bad_payload).status_code == 400
 
 def test_stale_layout_save_rejected_even_after_other_tab(logged_in_client, registered_user):
-    """Negative (temuan audit): urutan nyampe A-2 -> B-1 -> A-1. A-1 lebih lama dari A-2 (tab yg sama) ->
-    tetep diabaikan walau di antaranya ada kiriman tab B."""
+    """Negative: kiriman lama tetep diabaikan walau ada tab lain di antaranya."""
     from app.services.preference_service import get_table_layout
 
     def payload(client_id, sequence, hidden_list):

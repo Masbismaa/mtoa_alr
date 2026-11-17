@@ -105,7 +105,8 @@ Untuk menemukan file yatim, termasuk sisa rollback/crash:
 .\.venv\Scripts\python.exe -m flask --app run cleanup-attachments --delete
 ```
 
-Perintah default hanya menghitung; penghapusan hanya untuk file tanpa referensi database
-yang sudah berumur 24 jam. Jalankan pemeliharaan pada folder upload khusus aplikasi dan
+Perintah default hanya menghitung; `--delete` hanya memindahkan file tanpa referensi database
+yang sudah berumur 24 jam ke `BACKUP_FOLDER/website/orphan/` (tidak dihapus permanen, karena
+setelah restore database lama file itu bisa masih dirujuk safety backup). Kosongkan folder itu manual. Jalankan pemeliharaan pada folder upload khusus aplikasi dan
 buat backup database serta lampiran bersama. Ini belum merupakan backup atau pemindaian
 ulang antivirus untuk semua lampiran lama.

@@ -84,7 +84,7 @@ def test_filter_includes_sub_category(app, registered_user, category_dict):
     assert direct_title_list == ["Portal HR"]
 
 def test_forum_count_hides_private_of_other_user(app, registered_user, other_user, category_dict):
-    """Negative (security): jumlah & link terbaru di forum ga ngitung link Private orang lain, sub orang lain ga tampil."""
+    """Negative (security): forum ga ngitung link Private orang lain."""
     sap = build_sub(registered_user, category_dict["Web"], "SAP")
     other_sap = build_sub(other_user, category_dict["Web"], "SAP Orang")
     create_entry(registered_user, sap, "SAP Fiori")
@@ -104,8 +104,7 @@ def test_only_creator_can_edit_sub(app, registered_user, other_user, admin_user,
     assert sap.name == "SAP ERP"
 
 def test_sub_category_is_private_per_account(app, admin_user, other_user, category_dict):
-    """Positive + negative (security): sub-kategori cuma keliatan & kepake pembuatnya (admin juga), akun lain boleh pake
-    nama sama. Link Public di sub orang lain tetep keliatan, tapi dianggap ada langsung di kategori utamanya."""
+    """Positive + negative (security): sub-kategori pribadi per akun."""
     web = category_dict["Web"]
     sap = build_sub(admin_user, web, "SAP")
     create_entry(admin_user, sap, "SAP Fiori")
@@ -128,8 +127,7 @@ def test_user_cannot_edit_root_category(app, registered_user, category_dict):
         update_category(registered_user, category_dict["Web"], {"name": "Web", "description": "diubah"})
 
 def test_delete_sub_with_child_moves_all_links_to_parent(app, registered_user, category_dict):
-    """Positive: sub di dalem kategori bawaan yg masih punya sub & link tetep bisa dihapus: sub di dalemnya ikut
-    kehapus, semua link-nya pindah ke induk sub yg dihapus (Web), ga ada yg ilang."""
+    """Positive: hapus sub bertingkat, semua link pindah ke induk."""
     from app.extensions import db
     from app.models import AccessEntry, Category
 
