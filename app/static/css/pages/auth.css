@@ -49,3 +49,6 @@
   letter-spacing: 0.5em;
   text-align: center;
 }
+
+/* ikon mata bawaan Edge cuma muncul pas ngetik & dobel sama tombol mata kita -> disembunyiin */
+.input-group:has([data-password-toggle]) input::-ms-reveal { display: none; }
