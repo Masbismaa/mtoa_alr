@@ -13,7 +13,7 @@ SIDEBAR_SECTION_LIST = [
     ]},
     {"title": "Data", "item_list": [
         {"label": "Links", "icon": "link", "child_list": [
-            {"label": "Link List", "endpoint": "entries.index"},
+            {"label": "All Links", "endpoint": "entries.index"},
             {"label": "Add Link", "endpoint": "entries.create"},
             {"label": "Import Links", "endpoint": "entries.import_page"},
             {"label": "Public Links", "endpoint": "entries.index", "query_dict": {"visibility": "public"}},

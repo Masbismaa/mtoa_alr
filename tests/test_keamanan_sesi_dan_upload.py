@@ -71,7 +71,19 @@ def test_smtp_encrypts_before_authentication(app, registered_user, monkeypatch):
     assert connection.send_message.call_args.args[0]["To"] == registered_user.email
 
 
-@pytest.mark.parametrize("pin, sent", [(hashlib.sha256(b"cert-der").hexdigest(), True), ("0" * 64, False)])
+def test_otp_email_has_autofill_link(app, registered_user, monkeypatch):
+    """Positive: email OTP punya tombol yg buka halaman OTP dgn kode di #fragment (ga kekirim ke server)."""
+    app.config.update(OTP_DELIVERY_MODE="smtp", SMTP_HOST="mail.test", SMTP_FROM="otp@test.local")
+    connection = MagicMock()
+    connection.__enter__.return_value = connection
+    monkeypatch.setattr(notification_service.smtplib, "SMTP", MagicMock(return_value=connection))
+    with app.test_request_context():
+        notification_service.send_otp_code(registered_user, "123456")
+    html = connection.send_message.call_args.args[0].get_body(("html",)).get_content()
+    assert "/auth/otp#code=123456" in html and "Isi Kode Otomatis" in html
+
+
+@pytest.mark.parametrize("pin, sent",[(hashlib.sha256(b"cert-der").hexdigest(), True), ("0" * 64, False)])
 def test_smtp_pinned_cert_checked_before_login(app, registered_user, monkeypatch, pin, sent):
     app.config.update(OTP_DELIVERY_MODE="smtp", SMTP_HOST="mail.test", SMTP_FROM="otp@test.local", SMTP_SECURITY="ssl",
                       SMTP_PORT=465, SMTP_USERNAME="relay-user", SMTP_PASSWORD="dummy", SMTP_CERT_SHA256=pin)

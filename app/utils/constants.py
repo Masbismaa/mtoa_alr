@@ -275,7 +275,7 @@ AUDIT_ENTITY_LABEL_DICT = {
 DASHBOARD_ACTIVITY_DAY_COUNT = 7
 DASHBOARD_TEAM_ACTIVITY_LIMIT = 8
 DASHBOARD_ATTENTION_LIMIT = 5
-# folder Favorites di Easy Access: sisanya dibuka lewat Link List filter Favorites
+# folder Favorites di Easy Access: sisanya dibuka lewat All Links filter Favorites
 EASY_ACCESS_FAVORITE_LIMIT = 20
 DASHBOARD_RECENT_ACTIVITY_LIMIT = 5
 

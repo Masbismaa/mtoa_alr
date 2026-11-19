@@ -1,4 +1,4 @@
-"""Test hapus banyak link (admin, centang di tabel Link List)."""
+"""Test hapus banyak link (admin, centang di tabel All Links)."""
 from app.extensions import db
 from app.models import AccessEntry, AuditLog
 from app.services.access_entry_service import create_access_entry

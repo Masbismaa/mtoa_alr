@@ -29,7 +29,7 @@ def test_toggle_favorite_from_detail(logged_in_client, registered_user, category
 
 
 def test_favorites_filter_shows_only_my_favorites(logged_in_client, registered_user, other_user, category_dict, read_entry_table):
-    """Positive: Link List ?favorite=1 cuma isi link yg dibintangin user ini (bintang orang lain ga ikut)."""
+    """Positive: All Links ?favorite=1 cuma isi link yg dibintangin user ini (bintang orang lain ga ikut)."""
     web = category_dict["Web"]
     starred = make_entry(registered_user, web, "Portal A")
     make_entry(registered_user, web, "Portal B")

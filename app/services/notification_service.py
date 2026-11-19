@@ -5,13 +5,18 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 from pathlib import Path
-from flask import current_app
+from flask import current_app, has_request_context, url_for
 
 from app.utils.constants import (
     ACTIVATION_LINK_EXPIRE_HOURS, OTP_DELIVERY_CONSOLE, OTP_EXPIRE_MINUTES, OTP_PURPOSE_LOGIN, OTP_PURPOSE_RESET,
 )
 
 # judul email per tujuan OTP (kodenya sama-sama dari tabel otp_codes)
+# halaman tujuan tombol "Isi Kode Otomatis" per tujuan OTP
+OTP_ENDPOINT_DICT = {
+    OTP_PURPOSE_LOGIN: "auth.verify_otp",
+    OTP_PURPOSE_RESET: "auth.reset_password",
+}
 OTP_SUBJECT_DICT = {
     OTP_PURPOSE_LOGIN: "Kode login ALR",
     OTP_PURPOSE_RESET: "Kode reset password ALR",
@@ -75,7 +80,12 @@ def send_otp_code(user, otp_code, purpose=OTP_PURPOSE_LOGIN):
         user.email, OTP_SUBJECT_DICT[purpose],
         [f"Halo {user.full_name},", "Gunakan kode berikut untuk melanjutkan di ALR:"],
         code=otp_code,
-        note_list=[f"Kode berlaku {OTP_EXPIRE_MINUTES} menit. Jangan berikan kode ini kepada siapa pun, termasuk tim ICT."],
+        # kode di #fragment: ga ikut kekirim ke server/log, otp.js yg ngisi kolomnya (JS/tombol copy ga jalan di email).
+        # di luar request (CLI/test) url_for ga bisa -> email tetap kekirim tanpa tombol
+        link=url_for(OTP_ENDPOINT_DICT[purpose], _external=True) + "#code=" + otp_code if has_request_context() else None,
+        link_label="Isi Kode Otomatis",
+        note_list=["Buka tombol di browser yang sama dengan tempat Anda login.",
+                   f"Kode berlaku {OTP_EXPIRE_MINUTES} menit. Jangan berikan kode ini kepada siapa pun, termasuk tim ICT."],
     )
 
 def send_activation_link(user, activation_url):
