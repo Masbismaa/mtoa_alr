@@ -9,7 +9,7 @@
 
 {# keterangan halaman (tampil di atas konten) #}
 {% block page_subtitle %}
-  <div class="text-secondary mt-1">A summary of all data you can see. Click a number to open those links. Search &amp; work with data in the <a href="{{ url_for('entries.index') }}">Link List</a>.</div>
+  <div class="text-secondary mt-1">A summary of all data you can see. Click a number to open those links. Search &amp; work with data in the <a href="{{ url_for('entries.index') }}">All Links</a>.</div>
 {% endblock %}
 
 {% block content %}
@@ -64,7 +64,7 @@
       {% endfor %}
     </div>
   {% else %}
-    {# angka ringkas: diklik langsung buka Link List dgn filter yg sesuai #}
+    {# angka ringkas: diklik langsung buka All Links dgn filter yg sesuai #}
     {% set stat_list = [
       ("All links", summary.total, "link", "bg-primary", url_for("entries.index", run=1)),
       ("Your links", dashboard_dict.own_count, "user", "bg-azure", url_for("entries.index", run=1, owner=current_user.email)),

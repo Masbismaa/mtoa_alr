@@ -107,7 +107,7 @@ def index():
     is_run = bool(build_selection_query_dict(request.args, field_list))
     return render_template(
         "pages/entries/index.html",
-        page_title="Link List",
+        page_title="All Links",
         selection_field_list=field_list,
         entry_table_payload=build_entry_table_payload(user, request.args, scope) if is_run else None,
     )

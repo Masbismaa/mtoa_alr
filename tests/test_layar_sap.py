@@ -130,7 +130,7 @@ def test_menu_lists_only_allowed_menu_without_code(logged_in_client):
     """Positive + security: user biasa dapet menu biasa, menu khusus admin ga ikut; kolom kode menu udah ga ada."""
     html_text = get_html(logged_in_client, "/")
     label_list = get_menu_label_list(html_text)
-    assert {"Dashboard", "Link List", "Add Link", "Groups", "Categories", "Settings"} <= set(label_list)
+    assert {"Dashboard", "All Links", "Add Link", "Groups", "Categories", "Settings"} <= set(label_list)
     assert not {"Users", "Link Monitoring", "Backup & Restore", "Audit Logs"} & set(label_list)
     assert "data-command-input" not in html_text and "Menu code" not in html_text
 
@@ -167,7 +167,7 @@ def test_easy_access_tree_shows_favorites_and_allowed_transactions(logged_in_cli
     assert "Portal Orang" not in tree_html
     # lebar pohon paten: ga ada garis geser
     assert "data-easy-access-splitter" not in html_text
-    assert "<span>Link List</span>" in tree_html and "<span>Users</span>" not in tree_html and "ea-code" not in tree_html
+    assert "<span>All Links</span>" in tree_html and "<span>Users</span>" not in tree_html and "ea-code" not in tree_html
 
 def test_easy_access_admin_tree_has_admin_transactions(admin_client):
     """Positive: admin dapet folder Manage lengkap di pohon."""

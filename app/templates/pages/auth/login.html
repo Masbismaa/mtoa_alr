@@ -1,5 +1,6 @@
 {% extends "layouts/auth_base.html" %}
 {% from "components/form_field.html" import render_field %}
+{% from "components/icon.html" import icon %}
 
 {% block title %}Login{% endblock %}
 
@@ -12,7 +13,16 @@
     {{ form.hidden_tag() }}
     {# cukup isi nama depan email, domain kantor nempel di kanan & dilengkapi otomatis di server #}
     {{ render_field(form.email, suffix="@" ~ config.ALLOWED_EMAIL_DOMAIN, value=(form.email.data or "").split("@")[0], placeholder="name", autocomplete="username") }}
-    {{ render_field(form.password, placeholder="Password", autocomplete="current-password") }}
+    <div class="mb-3">
+      {{ form.password.label(class_="form-label required") }}
+      <div class="input-group{{ ' is-invalid' if form.password.errors else '' }}">
+        {{ form.password(class_="form-control" ~ (" is-invalid" if form.password.errors else ""), placeholder="Password", autocomplete="current-password") }}
+        <button type="button" class="btn btn-icon" data-password-toggle="{{ form.password.id }}" aria-label="Show password" title="Show password" aria-pressed="false">
+          <span data-icon-show>{{ icon("eye") }}</span><span data-icon-hide class="d-none">{{ icon("eye_off") }}</span>
+        </button>
+      </div>
+      {% for error in form.password.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+    </div>
     <div class="text-end mt-n2 mb-3"><a href="{{ url_for('auth.forgot_password') }}" class="small">Forgot password?</a></div>
     <div class="form-footer">
       {{ form.submit(class_="btn btn-primary w-100") }}
@@ -22,4 +32,7 @@
 
 {% block after_card %}
   <div class="text-center text-secondary mt-3">Don't have an account? Contact the ICT admin.</div>
+{% endblock %}
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/pages/login.js') }}"></script>
 {% endblock %}
