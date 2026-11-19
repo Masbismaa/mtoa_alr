@@ -49,3 +49,14 @@
   letter-spacing: 0.5em;
   text-align: center;
 }
+
+/* ikon mata bawaan Edge cuma muncul pas ngetik & dobel sama tombol mata kita -> disembunyiin */
+.input-group:has([data-password-toggle]) input::-ms-reveal { display: none; }
+/* tombol mata nyamain kotak "@spindo.com" (input-group-text), kotak persegi setinggi kolom */
+[data-password-toggle] {
+  justify-content: center;
+  min-width: var(--app-field-height);
+  cursor: pointer;
+}
+/* span ikon jadi flex biar ga nambah tinggi baris (d-none tetap menang krn !important) */
+[data-password-toggle] > span { display: flex; }

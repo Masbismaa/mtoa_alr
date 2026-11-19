@@ -17,7 +17,7 @@
       {{ form.password.label(class_="form-label required") }}
       <div class="input-group{{ ' is-invalid' if form.password.errors else '' }}">
         {{ form.password(class_="form-control" ~ (" is-invalid" if form.password.errors else ""), placeholder="Password", autocomplete="current-password") }}
-        <button type="button" class="btn btn-icon" data-password-toggle="{{ form.password.id }}" aria-label="Show password" title="Show password" aria-pressed="false">
+        <button type="button" class="input-group-text" data-password-toggle="{{ form.password.id }}" aria-label="Show password" title="Show password" aria-pressed="false">
           <span data-icon-show>{{ icon("eye") }}</span><span data-icon-hide class="d-none">{{ icon("eye_off") }}</span>
         </button>
       </div>
