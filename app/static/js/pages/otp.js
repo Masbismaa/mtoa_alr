@@ -7,6 +7,12 @@
 
   // langsung fokus ke kolom OTP, user tinggal ngetik
   if (otpInput) {
+    // dari tombol "Isi Kode Otomatis" di email (#code=123456): isi kolom, lalu hapus kode dari address bar
+    const hashCode = new URLSearchParams(window.location.hash.slice(1)).get("code");
+    if (hashCode && /^\d+$/.test(hashCode)) {
+      otpInput.value = hashCode.slice(0, otpInput.maxLength > 0 ? otpInput.maxLength : 6);
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
     otpInput.focus();
 
     // buang selain angka (termasuk pas paste), potong sesuai maxlength
