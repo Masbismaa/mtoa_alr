@@ -1,8 +1,8 @@
 {% extends "layouts/app_base.html" %}
 {% from "components/icon.html" import icon %}
 
-{# layar awal (Home): pohon menu di kiri (Favorites + ALR Menu, isinya ngikut hak akses user dari
-   sidebar_section_list), gambar di kanan. Lebar pohon paten, ga bisa digeser #}
+{# layar awal (Home): pohon menu di kiri (Favorites + ALR Menu, menu tanpa akses tampil
+   digembok, dari sidebar_section_list), gambar di kanan. Lebar pohon paten, ga bisa digeser #}
 
 {% macro transaction_leaf(item) %}
   <li role="none">
@@ -13,11 +13,24 @@
   </li>
 {% endmacro %}
 
+{# menu tanpa akses: diklik -> pop-up peringatan (confirm_dialog.js), ga pindah halaman #}
+{% macro locked_leaf(item) %}
+  <li role="none">
+    <button type="button" role="treeitem" class="ea-leaf ea-leaf-locked" title="{{ item.lock_reason }}"
+            data-locked-message="You are not authorized to open the {{ item.label }} menu. {{ item.lock_reason }}.">
+      {{ icon("lock", "ea-icon") }}
+      <span>{{ item.label }}</span>
+      <span class="visually-hidden">({{ item.lock_reason }})</span>
+    </button>
+  </li>
+{% endmacro %}
+
 {% block title %}ALR Home{% endblock %}
 {% block screen_title %}Access Link Register{% endblock %}
 
 {% block page_help %}
   <p>The start screen. Open a folder in the tree and click a menu.</p>
+  <p>A menu with a lock icon is for admins only.</p>
   <p>Favorites lists your starred links. Star a link with <strong>Add to Favorites</strong> on its detail screen.</p>
 {% endblock %}
 
@@ -59,8 +72,10 @@
                       <span>{{ section.title }}</span>
                     </summary>
                     <ul role="group">
-                      {% for nav_item in section.item_list if not nav_item.is_locked %}
-                        {% if nav_item.child_list %}
+                      {% for nav_item in section.item_list %}
+                        {% if nav_item.is_locked %}
+                          {{ locked_leaf(nav_item) }}
+                        {% elif nav_item.child_list %}
                           <li role="none">
                             <details class="ea-folder">
                               <summary role="treeitem" aria-expanded="false">

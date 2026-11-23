@@ -150,8 +150,8 @@ def test_menu_bar_and_system_toolbar_on_every_screen(logged_in_client):
     assert "data-fkey" not in system_html
 
 # EASY ACCESS (layar awal)
-def test_easy_access_tree_shows_favorites_and_allowed_transactions(logged_in_client, registered_user, other_user, category_dict):
-    """Positive + security: Favorites isinya link favorit yg masih boleh diliat, pohon menu tanpa transaksi admin."""
+def test_easy_access_tree_shows_favorites_and_locked_admin_transactions(logged_in_client, registered_user, other_user, category_dict):
+    """Positive + security: Favorites isinya link favorit yg masih boleh diliat, transaksi admin tampil digembok tanpa link."""
     from app.services.access_entry_service import toggle_favorite
     own_entry = create_entry(registered_user, category_dict["Web"], "Portal Favorit")
     other_entry = create_entry(other_user, category_dict["Web"], "Portal Orang", visibility=VISIBILITY_PUBLIC)
@@ -167,12 +167,17 @@ def test_easy_access_tree_shows_favorites_and_allowed_transactions(logged_in_cli
     assert "Portal Orang" not in tree_html
     # lebar pohon paten: ga ada garis geser
     assert "data-easy-access-splitter" not in html_text
-    assert "<span>All Links</span>" in tree_html and "<span>Users</span>" not in tree_html and "ea-code" not in tree_html
+    assert "<span>All Links</span>" in tree_html and "ea-code" not in tree_html
+    for label in ("Users", "Link Monitoring", "Backup &amp; Restore", "Audit Logs"):
+        assert f'data-locked-message="You are not authorized to open the {label} menu. Admins only."' in tree_html
+    assert tree_html.count("ea-leaf-locked") == 4
+    assert not any(f'href="{url}"' in tree_html for url in ("/users/", "/link-monitoring/", "/backups/", "/audit-logs/"))
 
 def test_easy_access_admin_tree_has_admin_transactions(admin_client):
     """Positive: admin dapet folder Manage lengkap di pohon."""
     tree_html = get_html(admin_client, "/").split('aria-label="ALR menu tree"')[1].split("</nav>")[0]
     assert "<span>Users</span>" in tree_html and "<span>Audit Logs</span>" in tree_html
+    assert "data-locked-message" not in tree_html
 
 def test_dashboard_is_transaction_db(logged_in_client):
     """Positive: Dashboard pindah ke /dashboard, layar awal jadi Easy Access."""

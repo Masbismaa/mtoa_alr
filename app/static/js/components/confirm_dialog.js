@@ -1,6 +1,6 @@
 // dialog konfirmasi: otomatis buat form ber-atribut data-confirm-message,
 // bisa juga dipanggil manual lewat window.AlrConfirm.open({...}).
-// isInfo: true -> cuma pemberitahuan (satu tombol), dipake menu sidebar yg terkunci
+// isInfo: true -> cuma pemberitahuan (satu tombol), dipake menu yg terkunci
 (function () {
   "use strict";
 
@@ -86,7 +86,7 @@
     });
   });
 
-  // menu sidebar yg terkunci: diklik -> muncul pemberitahuan ga ada otoritas
+  // menu yg terkunci (sidebar & pohon Home): diklik -> muncul pemberitahuan ga ada otoritas
   document.querySelectorAll("[data-locked-message]").forEach(function (buttonEl) {
     buttonEl.addEventListener("click", function () {
       open({ title: "Not authorized", message: buttonEl.dataset.lockedMessage, okLabel: "Got it", isInfo: true });

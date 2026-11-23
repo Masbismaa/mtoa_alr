@@ -44,6 +44,15 @@
   border-radius: var(--tblr-border-radius);
 }
 
+/* menu terkunci: tombol polos yg dibikin mirip leaf biasa, warnanya redup */
+.ea-leaf-locked {
+  width: 100%;
+  color: var(--app-label-color);
+  background: none;
+  border: 0;
+  cursor: not-allowed;
+}
+
 .ea-folder > summary {
   list-style: none;
 }
