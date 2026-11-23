@@ -109,7 +109,11 @@ frontend_test:
 # deploy ke server QAS, cuma dari main & lewat tombol di pipeline. Isi .env dari CI/CD Variables (docs/deploy.md)
 deploy_qas:
   stage: deploy
-  image: alpine:3.22
+  # ssh udah ada di image ini; container job ga boleh download paket (apk add ditolak)
+  image:
+    name: alpine/git:2.54.0
+    # entrypoint bawaannya "git", dikosongin biar script jalan
+    entrypoint: [""]
   environment: qas
   # dua deploy ga boleh barengan
   resource_group: qas
@@ -121,7 +125,6 @@ deploy_qas:
       # tanpa ini, stage setelahnya (secret-detection) ikut nunggu tombol dipencet
       allow_failure: true
   before_script:
-    - apk add --no-cache openssh-client
     - mkdir -p ~/.ssh && cp "$SSH_KNOWN_HOSTS" ~/.ssh/known_hosts
     - chmod 400 "$SSH_PRIVATE_KEY"
   script:
