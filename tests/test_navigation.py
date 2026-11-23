@@ -18,6 +18,10 @@ def test_admin_section_locked_for_user(app, registered_user, admin_user):
     assert all(item.get("is_locked") for item in user_manage_item_list if item["label"] != "Categories")
     assert not next(item for item in user_manage_item_list if item["label"] == "Categories").get("is_locked")
     assert not any(item.get("is_locked") for item in admin_manage_item_list)
+    assert get_title_list(user_section_list) == ["Overview", "Data", "Manage", "Administration"]
+    user_admin_item_list = user_section_list[-1]["item_list"]
+    assert [item["label"] for item in user_admin_item_list] == ["Link Monitoring", "Audit Logs"]
+    assert all(item.get("is_locked") for item in user_admin_item_list)
 
 
 def test_dropdown_open_when_child_active(app, registered_user):

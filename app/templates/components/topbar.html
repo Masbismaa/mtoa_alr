@@ -2,7 +2,7 @@
 {% from "components/notification_menu.html" import notification_menu with context %}
 {% from "components/user_menu.html" import user_menu with context %}
 {# bagian atas jendela ala SAP GUI (layar besar), 2 baris:
-   1. menu bar: Overview/Data/Manage/Account (dari sidebar), lonceng + profil di kanan
+   1. menu bar: Overview/Data/Manage/Administration (dari sidebar), lonceng + profil di kanan
    2. toolbar sistem: Enter + command field (kode transaksi), Save/Back/Exit/Cancel, Find, Help/Customize
    tombol standar pake URL yg sama kayak toolbar aplikasi (variabel dari layouts/app_base.html).
    sengaja ga pake class navbar-expand, biar Tabler ga nyembunyiin sidebar #}
@@ -28,8 +28,8 @@
       {% include "components/brand_logo.html" %}
     </a>
 
-    {# isinya sama persis dgn sidebar (sidebar_section_list), menu yg dikunci ga ikut #}
-    {% for section in sidebar_section_list %}
+    {# isinya sama persis dgn sidebar (sidebar_section_list), menu yg dikunci ga ikut. Bagian yg isinya dikunci semua ga ditampilin #}
+    {% for section in sidebar_section_list if section.item_list | rejectattr("is_locked") | list %}
       <div class="dropdown">
         <button type="button" class="app-menubar-item" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">{{ section.title }}</button>
         <div class="dropdown-menu">
@@ -46,14 +46,6 @@
               {{ menu_link(nav_item.url, nav_item.label) }}
             {% endif %}
           {% endfor %}
-          {% if loop.last %}
-            <button type="button" class="dropdown-item" data-status-open>Message history</button>
-            <div class="dropdown-divider"></div>
-            <form method="post" action="{{ url_for('auth.logout') }}">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="dropdown-item">Log out</button>
-            </form>
-          {% endif %}
         </div>
       </div>
     {% endfor %}

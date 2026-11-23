@@ -24,13 +24,13 @@ SIDEBAR_SECTION_LIST = [
     ]},
     {"title": "Manage", "item_list": [
         {"label": "Users", "endpoint": "users.index", "icon": "user", "is_admin_only": True},
-        {"label": "Link Monitoring", "endpoint": "link_monitor.index", "icon": "refresh", "is_admin_only": True},
         {"label": "Backup & Restore", "endpoint": "backup.index", "icon": "download", "is_admin_only": True},
         {"label": "Categories", "endpoint": "categories.index", "icon": "category"},
-        {"label": "Audit Logs", "endpoint": "audit.index", "icon": "audit", "is_admin_only": True},
     ]},
-    {"title": "Account", "item_list": [
-        {"label": "Settings", "endpoint": "settings.index", "icon": "settings"},
+    # Settings & Logout ada di menu profil kanan atas
+    {"title": "Administration", "item_list": [
+        {"label": "Link Monitoring", "endpoint": "link_monitor.index", "icon": "refresh", "is_admin_only": True},
+        {"label": "Audit Logs", "endpoint": "audit.index", "icon": "audit", "is_admin_only": True},
     ]},
 ]
 
