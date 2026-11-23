@@ -12,10 +12,11 @@ def register_cli_commands(app):
     from app.extensions import db
     from app.models import User
     from app.services.user_service import change_user_role
-    from app.utils.constants import ROLE_USER_ENTRY
+    from app.utils.constants import NOTIFICATION_CLEANUP_INTERVAL_SECONDS, ROLE_USER_ENTRY
     from app.utils.exceptions import ValidationError
     from app.utils.text_helper import normalize_email
     from app.services.link_monitor_service import build_run_summary_text, process_pending_monitor, recover_stale_monitor, run_monitor
+    from app.services.user_notification_service import delete_expired_notification
 
     @app.cli.command("seed-categories")
     def seed_categories_command():
@@ -80,7 +81,8 @@ def register_cli_commands(app):
     @app.cli.command("monitor-worker")
     @click.option("--once", is_flag=True, help="Proses satu antrean lalu berhenti.")
     def monitor_worker_command(once):
-        """Proses permintaan tombol admin; tidak membuat pemeriksaan terjadwal."""
+        """Proses permintaan tombol admin & hapus notifikasi lama; tidak membuat pemeriksaan terjadwal."""
+        next_cleanup_at = time.monotonic()
         while True:
             try:
                 # run yg ketinggalan "running" (worker sebelumnya mati di tengah jalan) dicabut otomatis setelah 5 menit
@@ -88,6 +90,9 @@ def register_cli_commands(app):
                 counts = process_pending_monitor()
                 if counts is not None:
                     click.echo(build_run_summary_text(counts))
+                if time.monotonic() >= next_cleanup_at:
+                    next_cleanup_at = time.monotonic() + NOTIFICATION_CLEANUP_INTERVAL_SECONDS
+                    delete_expired_notification()
             except Exception:
                 if once:
                     raise click.ClickException("Pemeriksaan gagal; periksa layanan dan jaringan") from None
@@ -180,7 +185,7 @@ def register_cli_commands(app):
     @app.cli.command("cleanup-old-data")
     @click.option("--delete", is_flag=True, help="Hapus beneran (default cuma ngitung).")
     def cleanup_old_data_command(delete):
-        """Hapus OTP kedaluwarsa & notifikasi lama yg udah dibaca."""
+        """Hapus OTP kedaluwarsa & notifikasi lama."""
         from datetime import timedelta
 
         from app.models import OtpCode, UserNotification
@@ -190,10 +195,8 @@ def register_cli_commands(app):
         now = utc_now()
         target_list = [
             ("OTP kedaluwarsa", OtpCode, OtpCode.expires_at < now - timedelta(days=1)),
-            ("notifikasi lama yang sudah dibaca", UserNotification, db.and_(
-                UserNotification.is_read.is_(True),
-                UserNotification.created_at < now - timedelta(days=NOTIFICATION_RETENTION_DAYS),
-            )),
+            ("notifikasi lama", UserNotification,
+             UserNotification.created_at < now - timedelta(days=NOTIFICATION_RETENTION_DAYS)),
         ]
         for label, model, condition in target_list:
             if delete:

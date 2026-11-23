@@ -221,8 +221,9 @@ PER_PAGE = 10
 # notifikasi lonceng
 MAX_NOTIFICATION_MESSAGE_LENGTH = 255
 NOTIFICATION_MENU_LIMIT = 8
-# notifikasi yg udah dibaca & lebih tua dari ini dibuang perintah cleanup-old-data
-NOTIFICATION_RETENTION_DAYS = 90
+# notifikasi lebih tua dari ini dihapus otomatis sama monitor-worker, dibaca atau belum
+NOTIFICATION_RETENTION_DAYS = 7
+NOTIFICATION_CLEANUP_INTERVAL_SECONDS = 3600
 MAX_SEARCH_KEYWORD_LENGTH = 100
 
 # Select Screen ala SAP: * = wildcard, tiap isian maksimal sekian nilai (Multi Selection)

@@ -128,15 +128,15 @@ def test_worker_recovers_run_left_running_by_dead_worker(app):
 
 
 def test_cleanup_old_data_only_removes_expired_rows(app, registered_user):
-    """Positive & negative: cleanup-old-data cuma ngapus OTP kedaluwarsa & notifikasi lama dibaca."""
+    """Positive & negative: cleanup-old-data cuma ngapus OTP kedaluwarsa & notifikasi lama."""
     from app.models import OtpCode, UserNotification
 
     now = utc_now()
     db.session.add_all([
         OtpCode(user_id=registered_user.id, code_hash="a" * 64, expires_at=now - timedelta(days=2)),
         OtpCode(user_id=registered_user.id, code_hash="b" * 64, expires_at=now + timedelta(minutes=5)),
-        UserNotification(user_id=registered_user.id, message="lama dibaca", is_read=True, created_at=now - timedelta(days=91)),
-        UserNotification(user_id=registered_user.id, message="lama belum dibaca", is_read=False, created_at=now - timedelta(days=91)),
+        UserNotification(user_id=registered_user.id, message="lama dibaca", is_read=True, created_at=now - timedelta(days=8)),
+        UserNotification(user_id=registered_user.id, message="lama belum dibaca", is_read=False, created_at=now - timedelta(days=8)),
         UserNotification(user_id=registered_user.id, message="baru dibaca", is_read=True, created_at=now),
     ])
     db.session.commit()
@@ -149,4 +149,20 @@ def test_cleanup_old_data_only_removes_expired_rows(app, registered_user):
     assert result.exit_code == 0, result.output
     assert db.session.scalar(db.select(db.func.count(OtpCode.id))) == 1
     remaining = set(db.session.scalars(db.select(UserNotification.message)))
-    assert remaining == {"lama belum dibaca", "baru dibaca"}
+    assert remaining == {"baru dibaca"}
+
+
+def test_worker_deletes_notification_older_than_one_week(app, registered_user):
+    """Positive & negative: worker ngapus notifikasi lewat 7 hari (dibaca/belum), yg lebih baru tetep ada."""
+    from app.models import UserNotification
+
+    now = utc_now()
+    db.session.add_all([
+        UserNotification(user_id=registered_user.id, message="8 hari dibaca", is_read=True, created_at=now - timedelta(days=8)),
+        UserNotification(user_id=registered_user.id, message="8 hari belum dibaca", created_at=now - timedelta(days=8)),
+        UserNotification(user_id=registered_user.id, message="6 hari", created_at=now - timedelta(days=6)),
+    ])
+    db.session.commit()
+    result = app.test_cli_runner().invoke(args=["monitor-worker", "--once"])
+    assert result.exit_code == 0, result.output
+    assert set(db.session.scalars(db.select(UserNotification.message))) == {"6 hari"}

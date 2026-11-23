@@ -1,7 +1,10 @@
-"""Notifikasi lonceng: bikin, hitung yg belum dibaca, tandain dibaca."""
+"""Notifikasi lonceng: bikin, hitung yg belum dibaca, tandain dibaca, hapus yg lama."""
+from datetime import timedelta
+
 from app.extensions import db
 from app.models import UserNotification
-from app.utils.constants import MAX_NOTIFICATION_MESSAGE_LENGTH, NOTIFICATION_MENU_LIMIT
+from app.utils.constants import MAX_NOTIFICATION_MESSAGE_LENGTH, NOTIFICATION_MENU_LIMIT, NOTIFICATION_RETENTION_DAYS
+from app.utils.datetime_helper import utc_now
 
 # alamat tujuan ditulis path biasa, soalnya service juga jalan di luar request (url_for ga bisa)
 GROUP_LIST_PATH = "/groups/"
@@ -52,4 +55,11 @@ def mark_all_notification_read(user):
         .where(UserNotification.user_id == user.id, UserNotification.is_read.is_(False))
         .values(is_read=True)
     )
+    db.session.commit()
+
+def delete_expired_notification():
+    """Hapus notifikasi semua user yg udah lewat masa simpan."""
+    db.session.execute(db.delete(UserNotification).where(
+        UserNotification.created_at < utc_now() - timedelta(days=NOTIFICATION_RETENTION_DAYS),
+    ))
     db.session.commit()

@@ -97,7 +97,7 @@ ExecReload=/bin/kill -s HUP $MAINPID
 WantedBy=multi-user.target
 ```
 
-`sudo nano /etc/systemd/system/alr-monitor.service` (worker cek link, tombol "Cek Semua" cuma mengantrekan):
+`sudo nano /etc/systemd/system/alr-monitor.service` (worker cek link & hapus notifikasi lewat 7 hari, tombol "Cek Semua" cuma mengantrekan):
 
 ```ini
 [Unit]
