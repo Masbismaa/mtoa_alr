@@ -140,7 +140,7 @@ deploy_qas:
       && .venv/bin/pip install -r requirements.txt
       && .venv/bin/flask --app run db upgrade
       && sudo -n /usr/bin/systemctl restart alr alr-monitor
-      && curl -fsS --retry 10 --retry-delay 2 --retry-all-errors --unix-socket /run/alr/alr.sock http://localhost/health/ready"
+      && curl -fsS --retry 10 --retry-delay 2 --retry-all-errors http://127.0.0.1:8010/health/ready"
 
 include:
   - template: Auto-DevOps.gitlab-ci.yml

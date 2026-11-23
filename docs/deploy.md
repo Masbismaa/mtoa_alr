@@ -89,7 +89,7 @@ RuntimeDirectory=alr
 RuntimeDirectoryMode=0755
 RuntimeDirectoryPreserve=yes
 # timeout 300 dtk: backup & restore database jalan di dalam request
-ExecStart=/home/bisma/alr/.venv/bin/gunicorn -w 3 --timeout 300 -b unix:/run/alr/alr.sock run:app
+ExecStart=/home/bisma/alr/.venv/bin/gunicorn -w 3 --timeout 300 -b 0.0.0.0:8010 run:app
 Umask=007
 Restart=always
 RestartSec=3
@@ -122,7 +122,7 @@ WantedBy=multi-user.target
 sudo systemctl daemon-reload
 sudo systemctl enable --now alr alr-monitor
 systemctl is-active alr alr-monitor
-curl -s --unix-socket /run/alr/alr.sock http://localhost/health/ready   # semua harus "ok"
+curl -s http://127.0.0.1:8010/health/ready   # semua harus "ok"
 ```
 
 ## 6. nginx
