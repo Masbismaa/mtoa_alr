@@ -32,7 +32,7 @@ variables:
   BUILD_DISABLED: 'true'
   TEST_DISABLED: 'true'
   CODE_QUALITY_DISABLED: 'true'
-  # belum ada deploy, jadi dimatiin sekalian
+  # deploy bawaan auto devops (kubernetes) ga dipake, gantinya job deploy_qas
   AUTO_DEVOPS_PLATFORM_TARGET: ''
   REVIEW_DISABLED: 'true'
   STAGING_ENABLED: ''
@@ -105,6 +105,39 @@ frontend_test:
     - cp -r ../app/static/dist /tmp/dist-committed
     - npm run build
     - diff -r /tmp/dist-committed ../app/static/dist || (echo "app/static/dist beda sama hasil build. Jalankan cd frontend && npm run build, lalu commit app/static/dist" && exit 1)
+
+# deploy ke server QAS, cuma dari main & lewat tombol di pipeline. Isi .env dari CI/CD Variables (docs/deploy.md)
+deploy_qas:
+  stage: deploy
+  image: alpine:3.22
+  environment: qas
+  # dua deploy ga boleh barengan
+  resource_group: qas
+  variables:
+    DEPLOY_HOST: bisma@192.168.0.57
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      # tanpa ini, stage setelahnya (secret-detection) ikut nunggu tombol dipencet
+      allow_failure: true
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh && cp "$SSH_KNOWN_HOSTS" ~/.ssh/known_hosts
+    - chmod 400 "$SSH_PRIVATE_KEY"
+  script:
+    - ssh -i "$SSH_PRIVATE_KEY" "$DEPLOY_HOST" "umask 077 && cat > ~/alr/.env.new" < "$ENV_FILE"
+    # grep: ENCRYPTION_KEY baru harus sama dgn yg lama, kalau beda data terenkripsi ga bisa dibaca lagi
+    - >-
+      ssh -i "$SSH_PRIVATE_KEY" "$DEPLOY_HOST" "cd ~/alr
+      && (grep ^ENCRYPTION_KEY= .env.new | grep -qxFf - .env || (echo ENCRYPTION_KEY beda dengan .env server; exit 1))
+      && .venv/bin/flask --app run backup --only database
+      && git fetch origin
+      && git checkout --detach $CI_COMMIT_SHA
+      && mv .env.new .env
+      && .venv/bin/pip install -r requirements.txt
+      && .venv/bin/flask --app run db upgrade
+      && sudo -n /usr/bin/systemctl restart alr alr-monitor
+      && curl -fsS --retry 10 --retry-delay 2 --retry-all-errors --unix-socket /run/alr/alr.sock http://localhost/health/ready"
 
 include:
   - template: Auto-DevOps.gitlab-ci.yml

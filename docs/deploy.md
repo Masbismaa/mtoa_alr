@@ -28,6 +28,8 @@ python3.13 -m venv .venv
 
 ## 3. File `.env`
 
+Cuma buat pemasangan pertama. Setelah langkah 7, isinya ditimpa dari GitLab tiap deploy.
+
 ```bash
 cp .env.example .env
 chmod 600 .env
@@ -170,12 +172,49 @@ Nginx (user `www-data`) harus bisa baca folder static: `chmod 755 /home/bisma` k
 Nama `alr-qas.spindo.com` perlu didaftarkan ke DNS kantor (minta ke infra), sementara bisa dites lewat
 file hosts di laptop: `192.168.0.57 alr-qas.spindo.com`.
 
+## 7. Sekali di awal: deploy lewat pipeline
+
+Isi `.env` server disimpan di GitLab, jadi ganti isinya di GitLab lalu deploy ulang (edit langsung di server bakal ketimpa).
+
+1. Bikin key khusus deploy (tanpa passphrase) di server lewat MobaXterm, public key-nya dipasang di server itu juga:
+
+   ```bash
+   ssh-keygen -t ed25519 -N "" -C alr-deploy -f ~/alr_deploy
+   cat ~/alr_deploy.pub >> ~/.ssh/authorized_keys
+   chmod 600 ~/.ssh/authorized_keys
+   ```
+
+2. Izin restart tanpa password, cuma buat dua service ini. Di server `sudo visudo -f /etc/sudoers.d/alr`:
+
+   ```
+   bisma ALL=(root) NOPASSWD: /usr/bin/systemctl restart alr alr-monitor
+   ```
+
+3. GitLab → Settings → CI/CD → Variables. Semua **Type: File**, **Protected** dicentang, **Expand variable reference** dimatikan,
+   **Environment scope: `qas`** (`main` harus protected branch):
+
+   | Key | Isi |
+   |---|---|
+   | `ENV_FILE` | isi `.env` server yang sekarang, `ENCRYPTION_KEY` wajib sama |
+   | `SSH_PRIVATE_KEY` | isi `cat ~/alr_deploy`, akhiri baris kosong. Habis itu `rm ~/alr_deploy` |
+   | `SSH_KNOWN_HOSTS` | hasil `ssh-keyscan 192.168.0.57`, cocokkan fingerprint-nya dengan server |
+
+Jangan bikin variable GitLab bernama `DATABASE_URL`: nilainya ngalahin `.gitlab-ci.yml`, jadi `postgres_test` bisa
+ngejalanin `db downgrade` ke database asli.
+
 ## Update versi baru
+
+Merge ke `main` → tunggu test hijau → GitLab **Build → Pipelines** → pencet ▶ di job `deploy_qas`.
+
+Job gagal sebelum langkah `restart` = aplikasi belum diganti; benerin lalu deploy ulang. Mau balik ke versi lama: pencet `deploy_qas` di pipeline lama
+(cuma kodenya yang balik, struktur database nggak ikut turun).
+
+Cara manual kalau pipeline mati:
 
 ```bash
 cd ~/alr
 .venv/bin/flask --app run backup --only database
-git pull
+git fetch origin && git checkout --detach origin/main
 .venv/bin/pip install -r requirements.txt
 .venv/bin/flask --app run db upgrade
 sudo systemctl restart alr alr-monitor
