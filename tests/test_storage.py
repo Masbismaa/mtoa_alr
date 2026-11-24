@@ -61,3 +61,19 @@ def test_admin_moves_folder_from_page(admin_client, tmp_path):
     assert admin_client.post("/manage/OTHER/move").status_code == 404
     response = admin_client.post("/manage/UPLOAD_FOLDER/move", data={"path": str(tmp_path / "x")}, follow_redirects=True)
     assert b"Folder moved" in response.data
+
+
+def test_browse_lists_only_subfolders_for_admin(admin_client, tmp_path):
+    """Positive: Browse ngasih subfolder aja (file ga ikut) + parent-nya."""
+    (tmp_path / "pick" / "b_folder").mkdir(parents=True)
+    (tmp_path / "pick" / "a.txt").write_text("x")
+    body = admin_client.get("/manage/browse", query_string={"path": str(tmp_path / "pick")}).get_json()
+    assert body["data"]["folder_list"] == ["b_folder"]
+    assert body["data"]["parent"] == str(tmp_path.resolve())
+    assert admin_client.get("/manage/browse", query_string={"path": "relative"}).status_code == 400
+    assert admin_client.get("/manage/browse", query_string={"path": str(tmp_path / "missing")}).status_code == 400
+
+
+def test_browse_admin_only(logged_in_client, tmp_path):
+    """Negative (RBAC): user biasa ga boleh ngintip folder server."""
+    assert logged_in_client.get("/manage/browse", query_string={"path": str(tmp_path)}).status_code == 403

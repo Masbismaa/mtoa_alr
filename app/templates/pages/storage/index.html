@@ -17,7 +17,13 @@
         <label class="form-label required" for="path_{{ name }}">New folder</label>
         <div class="input-group">
           <input type="text" class="form-control" id="path_{{ name }}" name="path" required autocomplete="off" placeholder="/data/alr/{{ 'uploads' if name == 'UPLOAD_FOLDER' else 'backups' }}">
+          <button type="button" class="btn" data-browse-toggle aria-expanded="false" aria-controls="browse_{{ name }}">{{ icon("folder_open") }} Browse</button>
           <button type="submit" class="btn btn-primary">{{ icon("upload") }} Move</button>
+        </div>
+        <div class="card card-sm mt-2" id="browse_{{ name }}" data-browse-panel data-start-path="{{ folder_dict[name] }}" hidden>
+          <div class="card-header py-2"><code data-browse-path></code></div>
+          <div class="list-group list-group-flush overflow-auto" style="max-height: 16rem" data-browse-list></div>
+          <div class="card-footer py-2 small text-secondary" data-browse-message role="status" aria-live="polite">Click a folder to open it and use it as the new folder.</div>
         </div>
         <div class="form-hint">Full path on the server. The folder must be empty (or not exist yet) and writable by the app.</div>
       </form>
@@ -32,6 +38,11 @@
 {% block page_subtitle %}<div class="text-secondary mt-1">Choose where the server stores attachments and backups.</div>{% endblock %}
 
 {% block content %}
+  <div hidden id="storage_page" data-browse-url="{{ url_for('storage.browse') }}"></div>
   {{ folder_card("UPLOAD_FOLDER", "Attachment Folder", "paperclip", "Every file uploaded to a link.") }}
   {{ folder_card("BACKUP_FOLDER", "Backup Folder", "database", "Database and website backups from Backup & Restore.") }}
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', filename='js/pages/storage.js') }}" defer></script>
 {% endblock %}
