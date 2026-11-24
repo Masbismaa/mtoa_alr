@@ -151,3 +151,10 @@ def test_locked_menu_visible_but_not_clickable(logged_in_client):
     assert "nav-link-locked" in html_text
     assert 'data-locked-message="You are not authorized to open the Users menu. Admins only."' in html_text
     assert logged_in_client.get("/users/").status_code == 403
+
+def test_selection_panel_closes_after_execute(logged_in_client):
+    """Positive: belum ada kriteria = panel kebuka; abis Execute (URL ada kriteria) panel ketutup sendiri."""
+    assert 'class="collapse show" id="selection_body"' in get_html(logged_in_client, "/entries/")
+    executed_html = get_html(logged_in_client, "/entries/?run=1&title=portal*")
+    assert 'class="collapse" id="selection_body"' in executed_html
+    assert 'aria-expanded="false" aria-controls="selection_body"' in executed_html

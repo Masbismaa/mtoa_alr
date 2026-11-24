@@ -190,6 +190,8 @@
     resultHeadingEl.setAttribute("tabindex", "-1");
     // nunggu browser selesai lompat ke #id dulu, baru fokusnya dipindah (kalau kecepetan, fokusnya ilang lagi)
     window.addEventListener("load", function () {
+      // panel kriteria udah ketutup, jadi hasil udah di atas: balik ke atas biar toolbar Execute tetap keliatan
+      window.scrollTo(0, 0);
       resultHeadingEl.focus({ preventScroll: true });
     });
   }
