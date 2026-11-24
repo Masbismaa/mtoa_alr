@@ -173,10 +173,10 @@ def test_easy_access_tree_shows_favorites_and_locked_admin_transactions(logged_i
     # lebar pohon paten: ga ada garis geser
     assert "data-easy-access-splitter" not in html_text
     assert "<span>All Links</span>" in tree_html and "ea-code" not in tree_html
-    for label in ("Users", "Link Monitoring", "Backup &amp; Restore", "Audit Logs"):
+    for label in ("Users", "Link Monitoring", "Backup &amp; Restore", "Audit Logs", "Manage"):
         assert f'data-locked-message="You are not authorized to open the {label} menu. Admins only."' in tree_html
-    assert tree_html.count("ea-leaf-locked") == 4
-    assert not any(f'href="{url}"' in tree_html for url in ("/users/", "/link-monitoring/", "/backups/", "/audit-logs/"))
+    assert tree_html.count("ea-leaf-locked") == 5
+    assert not any(f'href="{url}"' in tree_html for url in ("/users/", "/link-monitoring/", "/backups/", "/audit-logs/", "/manage/"))
 
 def test_easy_access_admin_tree_has_admin_transactions(admin_client):
     """Positive: admin dapet folder Manage lengkap di pohon."""

@@ -31,6 +31,7 @@ SIDEBAR_SECTION_LIST = [
     {"title": "Administration", "item_list": [
         {"label": "Link Monitoring", "endpoint": "link_monitor.index", "icon": "refresh", "is_admin_only": True},
         {"label": "Audit Logs", "endpoint": "audit.index", "icon": "audit", "is_admin_only": True},
+        {"label": "Manage", "endpoint": "storage.index", "icon": "settings", "is_admin_only": True},
     ]},
 ]
 

@@ -1,0 +1,37 @@
+{% extends "layouts/app_base.html" %}
+{% from "components/icon.html" import icon %}
+
+{# satu kartu per folder: path sekarang + form pindah ke folder baru #}
+{% macro folder_card(name, title, icon_name, description) %}
+  <div class="card mb-3">
+    <div class="card-header">
+      <div>
+        <h3 class="card-title">{{ icon(icon_name) }} {{ title }}</h3>
+        <div class="small text-secondary">{{ description }}</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="mb-3">Current folder: <code>{{ folder_dict[name] }}</code></div>
+      <form method="post" action="{{ url_for('storage.move', name=name) }}" data-confirm-title="Move the {{ title | lower }}?" data-confirm-message="All files are copied to the new folder, then deleted from the current folder. Avoid uploads and backups while this runs." data-confirm-ok="Yes, move">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="form-label required" for="path_{{ name }}">New folder</label>
+        <div class="input-group">
+          <input type="text" class="form-control" id="path_{{ name }}" name="path" required autocomplete="off" placeholder="/data/alr/{{ 'uploads' if name == 'UPLOAD_FOLDER' else 'backups' }}">
+          <button type="submit" class="btn btn-primary">{{ icon("upload") }} Move</button>
+        </div>
+        <div class="form-hint">Full path on the server. The folder must be empty (or not exist yet) and writable by the app.</div>
+      </form>
+    </div>
+  </div>
+{% endmacro %}
+
+{% block title %}Manage{% endblock %}
+
+{% block screen_title %}Display Manage{% endblock %}
+{% block page_pretitle %}Admin{% endblock %}
+{% block page_subtitle %}<div class="text-secondary mt-1">Choose where the server stores attachments and backups.</div>{% endblock %}
+
+{% block content %}
+  {{ folder_card("UPLOAD_FOLDER", "Attachment Folder", "paperclip", "Every file uploaded to a link.") }}
+  {{ folder_card("BACKUP_FOLDER", "Backup Folder", "database", "Database and website backups from Backup & Restore.") }}
+{% endblock %}

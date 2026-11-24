@@ -9,6 +9,7 @@ from app.extensions import db
 from app.models import AccessEntry, Attachment, User
 from app.security.access_policy import build_visible_entry_filter
 from app.security.file_validator import clean_display_filename, detect_content_type
+from app.services.storage_service import get_storage_folder
 from app.utils.constants import ATTACHMENT_MAX_COUNT, ATTACHMENT_MAX_SIZE_BYTES
 from app.utils.exceptions import ValidationError, build_error
 
@@ -17,9 +18,7 @@ ATTACHMENT_FIELD = "attachments"
 
 def get_upload_folder():
     """Folder lampiran, dibikin otomatis kalau belum ada."""
-    upload_folder = Path(current_app.config["UPLOAD_FOLDER"])
-    upload_folder.mkdir(parents=True, exist_ok=True)
-    return upload_folder.resolve()
+    return get_storage_folder("UPLOAD_FOLDER")
 
 
 def get_stored_file_path(stored_filename):

@@ -14,6 +14,7 @@ from sqlalchemy.engine import make_url
 from app.extensions import db
 from app.services.attachment_service import get_upload_folder
 from app.services.audit_service import log_audit
+from app.services.storage_service import get_storage_folder
 from app.utils.constants import AUDIT_ACTION_EXPORT, AUDIT_ACTION_IMPORT
 from app.utils.datetime_helper import utc_now
 from app.utils.exceptions import ValidationError, build_error
@@ -45,8 +46,8 @@ def get_backup_folder(kind):
     """Folder file backup per jenis (di luar static, jadi cuma bisa diunduh lewat halaman admin)."""
     if kind not in BACKUP_PREFIX_DICT:
         fail("Unknown backup type")
-    backup_folder = Path(current_app.config["BACKUP_FOLDER"]) / kind
-    backup_folder.mkdir(parents=True, exist_ok=True)
+    backup_folder = get_storage_folder("BACKUP_FOLDER") / kind
+    backup_folder.mkdir(exist_ok=True)
     return backup_folder.resolve()
 
 

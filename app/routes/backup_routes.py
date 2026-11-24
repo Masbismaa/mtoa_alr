@@ -1,10 +1,11 @@
 """Panel admin Backup & Restore (database & lampiran)."""
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, send_file, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, send_file, url_for
 from flask_login import current_user, login_required
 
 from app.extensions import limiter
 from app.security.role_guard import admin_required
 from app.services.audit_service import log_audit
+from app.services.storage_service import get_storage_folder
 from app.services.backup_service import (
     BACKUP_ENTITY,
     BACKUP_KIND_DATABASE,
@@ -37,7 +38,7 @@ def index():
         page_title="Backup & Restore",
         database_backup_list=list_backup(BACKUP_KIND_DATABASE),
         website_backup_list=list_backup(BACKUP_KIND_WEBSITE),
-        backup_folder=current_app.config["BACKUP_FOLDER"],
+        backup_folder=str(get_storage_folder("BACKUP_FOLDER")),
     )
 
 @backup_bp.post("/<kind>/create")

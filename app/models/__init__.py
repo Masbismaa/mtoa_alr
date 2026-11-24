@@ -1,5 +1,6 @@
 """Kumpulan model ORM, semua diimport di sini biar kebaca Flask-Migrate."""
 from app.models.access_entry import AccessEntry
+from app.models.app_setting import AppSetting
 from app.models.access_entry_field import AccessEntryField
 from app.models.attachment import Attachment
 from app.models.audit_log import AuditLog
@@ -27,7 +28,7 @@ AccessEntry.attachment_count = db.column_property(
 )
 
 __all__ = [
-    "AccessEntry", "AccessEntryField", "Attachment", "AuditLog", "Category",
+    "AccessEntry", "AccessEntryField", "AppSetting", "Attachment", "AuditLog", "Category",
     "Group", "GroupEntry", "GroupEntryViewer", "GroupMember", "OtpCode", "User", "UserPreference",
     "LinkMonitorRun", "UserNotification", "UserFavorite", "SelectionVariant"
 ]

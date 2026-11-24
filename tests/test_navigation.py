@@ -20,7 +20,7 @@ def test_admin_section_locked_for_user(app, registered_user, admin_user):
     assert not any(item.get("is_locked") for item in admin_manage_item_list)
     assert get_title_list(user_section_list) == ["Overview", "Data", "Manage", "Administration"]
     user_admin_item_list = user_section_list[-1]["item_list"]
-    assert [item["label"] for item in user_admin_item_list] == ["Link Monitoring", "Audit Logs"]
+    assert [item["label"] for item in user_admin_item_list] == ["Link Monitoring", "Audit Logs", "Manage"]
     assert all(item.get("is_locked") for item in user_admin_item_list)
 
 
