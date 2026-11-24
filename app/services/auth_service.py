@@ -311,7 +311,6 @@ def can_continue_login(user):
     return user.is_active and not is_account_locked(user)
 
 def ensure_can_continue_login(user):
-    # dicek ulang di langkah OTP, biasa aja akunnya dikunci/dinonaktifkan setelah lolos password
     # dicek ulang di langkah OTP, bisa aja akunnya dikunci/dinonaktifkan setelah lolos password
     if not user.is_active:
         raise AuthError(INACTIVE_ACCOUNT_ERROR)
