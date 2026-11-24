@@ -60,18 +60,6 @@ def validate_new_folder(name, path_text):
     return old_folder, new_folder
 
 
-def list_child_folder(path_text):
-    """Subfolder langsung dari path di server buat tombol Browse (nama folder aja, file ga ikut)."""
-    if not path_text or not os.path.isabs(path_text):
-        fail("path", "Enter a full folder path")
-    folder = Path(path_text).resolve()
-    try:
-        child_list = sorted((child.name for child in folder.iterdir() if child.is_dir()), key=str.lower)
-    except OSError:
-        fail("path", "This folder cannot be opened")
-    return {"path": str(folder), "parent": str(folder.parent), "folder_list": child_list}
-
-
 def remove_path(path):
     if path.is_dir() and not path.is_symlink():
         shutil.rmtree(path)

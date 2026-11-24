@@ -127,7 +127,7 @@
                     <div class="small text-secondary">{{ attachment.file_size | file_size }} · {{ attachment.created_at | local_datetime }}</div>
                   </div>
                   <div class="col-auto">
-                    <a href="{{ url_for('attachments.download', attachment_id=attachment.id) }}" class="btn btn-sm">{{ icon("download") }} Download</a>
+                    <a href="{{ url_for('attachments.download', attachment_id=attachment.id) }}" class="btn btn-sm" data-download-kind="attachment" data-name="{{ attachment.original_filename }}">{{ icon("download") }} Download</a>
                   </div>
                 </div>
               </div>
@@ -203,4 +203,8 @@
       {% endif %}
     </div>
   </div>
+{% endblock %}
+
+{% block page_scripts %}
+  <script src="{{ url_for('static', filename='js/pages/download_folder.js') }}" defer></script>
 {% endblock %}

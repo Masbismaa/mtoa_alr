@@ -27,7 +27,7 @@
                 <td class="text-secondary">{{ backup_path.stat().st_size | filesizeformat }}</td>
                 <td>
                   <div class="d-flex gap-2">
-                    <a href="{{ url_for('backup.download', kind=kind, name=backup_path.name) }}" class="btn btn-sm" data-backup-download data-name="{{ backup_path.name }}">{{ icon("download") }} Download</a>
+                    <a href="{{ url_for('backup.download', kind=kind, name=backup_path.name) }}" class="btn btn-sm" data-download-kind="backup" data-name="{{ backup_path.name }}">{{ icon("download") }} Download</a>
                     <form method="post" action="{{ url_for('backup.restore', kind=kind, name=backup_path.name) }}" data-confirm-title="Restore {{ backup_path.name }}?" data-confirm-message="{{ restore_message }}" data-confirm-ok="Yes, restore">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                       <button type="submit" class="btn btn-sm btn-outline-danger">{{ icon("history") }} Restore</button>
@@ -57,18 +57,6 @@
     <div class="mt-1">Database backups do not contain the encryption key. Without the same key, the access notes inside a backup cannot be read after a restore.</div>
   </div>
 
-  {# folder download di komputer user sendiri (Chrome/Edge); js/pages/backup.js ngurus pilih folder & nyimpen #}
-  <div class="card mb-3" data-download-folder hidden>
-    <div class="card-body d-flex flex-wrap align-items-center gap-2">
-      <span>{{ icon("folder_open") }} Download folder on this computer: <b data-download-folder-name>Downloads (browser default)</b></span>
-      <div class="ms-auto d-flex gap-2">
-        <button type="button" class="btn btn-sm" data-download-folder-choose>{{ icon("folder") }} Choose folder</button>
-        <button type="button" class="btn btn-sm btn-ghost-secondary" data-download-folder-reset hidden>Use browser default</button>
-      </div>
-      <div class="w-100 small text-secondary" data-download-folder-message role="status" aria-live="polite"></div>
-    </div>
-  </div>
-
   {{ backup_card("database", "Database", "database", "The whole PostgreSQL database.", database_backup_list,
        "All current data, including Audit Logs, will be replaced with the data in this backup. A backup of the current database is created first.") }}
   {{ backup_card("website", "Website", "paperclip", "Every attachment uploaded to the website.", website_backup_list,
@@ -77,5 +65,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-  <script src="{{ url_for('static', filename='js/pages/backup.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/pages/download_folder.js') }}" defer></script>
 {% endblock %}
