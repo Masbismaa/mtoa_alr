@@ -31,6 +31,8 @@ BACKUP_NAME_PATTERN_DICT = {
 MANIFEST_NAME = "manifest.json"
 DUMP_NAME = "database.dump"
 UPLOAD_PREFIX = "uploads/"
+# tempat pg_dump / pg_restore biasa dipasang paket postgresql-client di Linux
+PG_FALLBACK_DIR_LIST = ["/usr/bin", "/usr/local/bin"]
 
 
 def fail(message):
@@ -81,10 +83,19 @@ def read_db_revision():
     return db.session.scalar(db.text("SELECT version_num FROM alembic_version"))
 
 
+def find_pg_tool(tool):
+    """Lokasi pg_dump / pg_restore: PG_BIN_DIR kalau diisi, selain itu PATH + folder standar Linux."""
+    if current_app.config["PG_BIN_DIR"]:
+        return shutil.which(tool, path=current_app.config["PG_BIN_DIR"])
+    # service systemd di server ngeset PATH cuma ke .venv/bin, jadi pg_dump di /usr/bin ga ketemu lewat PATH doang
+    search_path = os.pathsep.join([os.environ.get("PATH", ""), *PG_FALLBACK_DIR_LIST])
+    return shutil.which(tool, path=search_path)
+
+
 def run_pg(tool, *arg_list):
     """Jalanin pg_dump / pg_restore; password lewat env."""
     url = read_db_url()
-    executable = shutil.which(tool, path=current_app.config["PG_BIN_DIR"] or None)
+    executable = find_pg_tool(tool)
     if not executable:
         fail(f"{tool} was not found on the server. Install the PostgreSQL client tools or set PG_BIN_DIR")
     env = dict(os.environ)

@@ -1,5 +1,6 @@
 """Test backup & restore (pg_dump / pg_restore dipalsuin)."""
 import json
+import os
 import zipfile
 from pathlib import Path
 
@@ -171,3 +172,41 @@ def test_cli_backup_creates_both_kinds_and_restore_detects_kind(app, fake_pg, tm
     result = runner.invoke(args=["restore", str(outside_path), "--yes"])
     assert result.exit_code != 0 and "sudah ada" in result.output
     assert kept_path.read_bytes() == kept_bytes
+
+
+def make_fake_tool(folder, tool):
+    """Bikin file executable palsu (Windows butuh .exe biar ketemu shutil.which)."""
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / (tool + (".exe" if os.name == "nt" else ""))
+    path.write_text("")
+    path.chmod(0o755)
+    return path
+
+
+def test_find_pg_tool_falls_back_when_service_path_is_venv_only(app, monkeypatch, tmp_path):
+    # kayak systemd di server: PATH cuma .venv/bin, pg_dump aslinya di /usr/bin
+    monkeypatch.setenv("PATH", str(tmp_path / "venv-bin"))
+    fake_path = make_fake_tool(tmp_path / "usr-bin", "pg_dump")
+    monkeypatch.setattr(backup_service, "PG_FALLBACK_DIR_LIST", [str(tmp_path / "usr-bin")])
+    app.config["PG_BIN_DIR"] = ""
+    with app.app_context():
+        assert Path(backup_service.find_pg_tool("pg_dump")) == fake_path
+
+
+def test_find_pg_tool_uses_only_pg_bin_dir_when_set(app, monkeypatch, tmp_path):
+    make_fake_tool(tmp_path / "usr-bin", "pg_restore")
+    custom_path = make_fake_tool(tmp_path / "pg17", "pg_restore")
+    monkeypatch.setattr(backup_service, "PG_FALLBACK_DIR_LIST", [str(tmp_path / "usr-bin")])
+    with app.app_context():
+        app.config["PG_BIN_DIR"] = str(tmp_path / "pg17")
+        assert Path(backup_service.find_pg_tool("pg_restore")) == custom_path
+        app.config["PG_BIN_DIR"] = str(tmp_path / "kosong")
+        assert backup_service.find_pg_tool("pg_restore") is None
+
+
+def test_run_pg_reports_missing_tool(app, monkeypatch, tmp_path):
+    monkeypatch.setattr(backup_service, "read_db_url", lambda: None)
+    monkeypatch.setattr(backup_service, "find_pg_tool", lambda tool: None)
+    with app.app_context(), pytest.raises(ValidationError) as error_info:
+        backup_service.run_pg("pg_dump")
+    assert "pg_dump was not found" in error_info.value.error_list[0]["message"]
