@@ -219,12 +219,13 @@ def find_unused_column_error_list(row_dict, category):
 
 
 def find_duplicate_in_file(clean_dict, seen_dict, row_number):
-    """Cek URL / Address+Port udah dipake baris lain di file ini. Return pesan error atau None."""
+    """Cek URL / Address+Port udah dipake baris lain di kategori/sub yg sama di file ini. Return pesan error atau None."""
     key_dict = {}
+    category_id = clean_dict["category_id"]
     if clean_dict.get("url"):
-        key_dict["URL"] = ("url", clean_dict["url"])
+        key_dict["URL"] = ("url", category_id, clean_dict["url"])
     if clean_dict.get("address"):
-        key_dict["Address/Port"] = ("address", clean_dict["address"], clean_dict.get("port"))
+        key_dict["Address/Port"] = ("address", category_id, clean_dict["address"], clean_dict.get("port"))
     for label, key in key_dict.items():
         if key in seen_dict:
             return f"Same {label} as row {seen_dict[key]}"

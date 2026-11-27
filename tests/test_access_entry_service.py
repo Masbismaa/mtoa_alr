@@ -125,6 +125,16 @@ def test_private_entry_of_other_user_not_counted_as_duplicate(app, registered_us
     assert entry.id is not None
 
 
+def test_same_url_in_other_sub_category_allowed(app, registered_user, category_dict):
+    """Positive: URL sama boleh kalau beda kategori/sub."""
+    from app.services.category_service import create_sub_category
+
+    sub_category = create_sub_category(registered_user, category_dict["Web"], {"name": "Intranet"})
+    create_access_entry(registered_user, build_entry_dict(category_dict["Web"]))
+    entry = create_access_entry(registered_user, build_entry_dict(sub_category, title="HR Intranet"))
+    assert entry.category_id == sub_category.id
+
+
 def test_duplicate_address_and_port_rejected(app, registered_user, category_dict):
     """Negative: kombinasi Address + Port yg sama ditolak."""
     network_dict = build_entry_dict(category_dict["Network"], address="10.0.0.1", port="22")

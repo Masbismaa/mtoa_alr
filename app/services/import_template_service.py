@@ -35,7 +35,8 @@ RULE_LIST = [
     f"Up to {IMPORT_MAX_ROW_COUNT} links per file. Empty rows are skipped.",
     "Every row is checked with the same rules as Add Link. If any row has an error, nothing is imported; "
     "fix the rows listed on screen and upload again.",
-    "A link whose URL (or Address + Port) already exists, or appears twice in the file, is rejected.",
+    "A link whose URL (or Address + Port) already exists in the same category/sub-category, or appears twice "
+    "in the same category/sub-category in the file, is rejected. The same link in a different category is allowed.",
     "A category not listed on the Categories sheet is created as your own category only if you tick "
     "\"Create categories that don't exist yet\" when importing; otherwise the row is rejected.",
     "You become the owner of every imported link.",
