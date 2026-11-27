@@ -3,7 +3,6 @@ import pytest
 
 from app.extensions import db
 from app.models import AccessEntry, AccessEntryField, AuditLog
-from app.security.encryption_service import decrypt_credential
 from app.services.access_entry_service import (
     count_visible_entry_summary,
     create_access_entry,
@@ -55,13 +54,12 @@ def get_error_field_list(error_info):
 # create & validasi
 
 def test_create_web_entry_success(app, registered_user, category_dict):
-    """Positive: URL dirapihin, access note terenkripsi, kecatat di audit."""
+    """Positive: URL dirapihin, access note kesimpen apa adanya, kecatat di audit."""
     entry = create_access_entry(registered_user, build_entry_dict(
         category_dict["Web"], url="HTTPS://HR.Spindo.com/", access_note="Rahasia#123",
     ))
     assert entry.url == "https://hr.spindo.com"
-    assert entry.encrypted_access_note != "Rahasia#123"
-    assert decrypt_credential(entry.encrypted_access_note) == "Rahasia#123"
+    assert entry.access_note == "Rahasia#123"
     assert entry.user_id == registered_user.id
     assert count_entry_audit(AUDIT_ACTION_CREATE) == 1
 

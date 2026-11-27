@@ -14,7 +14,6 @@ from app.services.access_entry_service import (
     get_form_category_list,
     get_visible_entry,
     is_favorite_entry,
-    read_access_note,
     toggle_archive,
     toggle_favorite,
     update_access_entry,
@@ -100,6 +99,11 @@ def render_entry_form(form, category_list, custom_field_pair_list, page_title, f
 @login_required
 def index():
     """Daftar Link: Kriteria Pencarian dulu, tabel baru muncul abis Jalankan."""
+    user = get_current_user()
+    scope = build_index_scope()
+    field_list = build_scope_field_list(user, scope)
+    # belum Jalankan (ga ada kriteria sama sekali) -> tabel ga ditampilin, query-nya juga ga dijalanin
+    is_run = bool(build_selection_query_dict(request.args, field_list))
     user = get_current_user()
     scope = build_index_scope()
     field_list = build_scope_field_list(user, scope)
@@ -237,13 +241,10 @@ def detail(entry_id):
     user = get_current_user()
     entry = get_entry_or_404(user, entry_id)
     is_editable = can_edit_entry(user, entry)
-    access_note, is_note_error = read_access_note(entry)
     return render_template(
         "pages/entries/detail.html",
         page_title="Detail Link",
         entry=entry,
-        access_note=access_note,
-        is_note_error=is_note_error,
         can_edit=is_editable,
         is_favorite=is_favorite_entry(user, entry),
         # riwayat link cuma buat yg boleh ngubah link ini
@@ -288,10 +289,6 @@ def edit(entry_id):
     back_url = read_back_url()
     if request.method == "GET":
         form = AccessEntryForm(obj=entry)
-        access_note, is_note_error = read_access_note(entry)
-        form.access_note.data = access_note
-        if is_note_error:
-            flash("The old access note can't be opened; fill it in again if needed", "warning")
         custom_field_pair_list = [(field.field_label, field.field_content) for field in entry.custom_field_list]
     else:
         form = AccessEntryForm()

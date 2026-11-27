@@ -12,7 +12,7 @@
 
 <p align="center">
   A secure internal web application for managing and sharing access information across an ICT team.<br>
-  Encrypted at rest, permission-aware, fully audited, and built around a workflow inspired by SAP GUI.
+  Permission-aware, fully audited, and built around a workflow inspired by SAP GUI.
 </p>
 
 <p align="center">
@@ -43,7 +43,7 @@ The application is designed around three principles:
 
 | Principle | Implementation |
 |---|---|
-| **Confidentiality** | Access notes are encrypted at rest; passwords are never stored in links |
+| **Confidentiality** | No credentials are stored: access notes are hints only, and passwords are never stored in links |
 | **Accountability** | Every change, sign-in, and export is recorded in an append-only audit log |
 | **Efficiency** | SAP GUI conventions (function keys, selection screens, variants, ALV tables) for users who work in ERP systems every day |
 
@@ -62,7 +62,7 @@ The application is designed around three principles:
 | Backend | Python 3.13, Flask 3.1, SQLAlchemy 2.0, Alembic |
 | Database | PostgreSQL 17 |
 | Frontend | Jinja templates, Tabler UI, React 19 island built with Vite |
-| Security | Argon2id, Fernet (AES), Flask-WTF CSRF, Flask-Limiter with Redis, nh3 sanitizer |
+| Security | Argon2id, Flask-WTF CSRF, Flask-Limiter with Redis, nh3 sanitizer |
 | Documents | openpyxl with defusedxml for Excel import and export |
 | Testing | pytest, Vitest, Testing Library, headless Chrome via the DevTools Protocol |
 
@@ -226,10 +226,10 @@ Expand a module to view its capabilities.
 
 | Capability | Description |
 |---|---|
-| Record types | URL, host or IP address with port, or a structured guide with up to ten custom fields written in a Word-style rich text editor (sanitized and not encrypted, so never meant for passwords) |
+| Record types | URL, host or IP address with port, or a structured guide with up to ten custom fields written in a Word-style rich text editor (sanitized, never meant for passwords) |
 | Categorization | Hierarchical categories up to four levels deep (for example, Web › ERP), selected through cascading inputs |
 | Visibility | Private (owner only) or Public (all users, read-only); only administrators can create Public links, so links from other users, including imported ones, are saved as Private |
-| Access note | A short access hint (for example, sign in via SSO), not a password; encrypted in the database and shown as is on the link detail |
+| Access note | A short access hint (for example, sign in via SSO), not a password; stored as plain text and shown as is on the link detail |
 | Attachments | Up to five files per record: images, PDF, Excel, Word, and plain text |
 | Favorites | Bookmark records and filter the list to favorites only |
 | Archive | Move unused links to the archive; archived links stay visible with an Archived badge, are always listed below active links, and can be restored |
@@ -370,7 +370,7 @@ The web application and the monitoring worker run as independent processes and c
 ```mermaid
 flowchart TB
     R[Routes<br/>request handling, forms, redirects] --> S[Services<br/>business rules, transactions, auditing]
-    S --> P[Security<br/>access policy, throttling, file and URL validation, encryption]
+    S --> P[Security<br/>access policy, throttling, file and URL validation]
     S --> M[Models<br/>SQLAlchemy entities]
     M --> DB[(PostgreSQL)]
 ```
@@ -379,7 +379,7 @@ flowchart TB
 |---|---|
 | `app/routes/` | HTTP boundary: input parsing, responses, and redirects. Contains no business logic. |
 | `app/services/` | Business rules, transaction boundaries, and audit logging |
-| `app/security/` | Access policy, rate limiting, upload validation, outbound URL validation, and encryption |
+| `app/security/` | Access policy, rate limiting, upload validation, and outbound URL validation |
 | `app/models/` | Entities and constraints; all schema changes are versioned with Alembic |
 | `app/schemas/` | Form and selection screen definitions |
 | `frontend/` | React 19 and Vite source for the link table, compiled into `app/static/dist` |
@@ -416,7 +416,7 @@ erDiagram
         string address
         int port
         string username
-        text encrypted_access_note
+        text access_note
         string visibility
         string status
         bool is_archived
@@ -570,7 +570,7 @@ flowchart LR
 
 | Threat | Mitigation |
 |---|---|
-| Database disclosure | Access notes encrypted with Fernet (AES); passwords hashed with Argon2id; one-time codes stored as hashes |
+| Database disclosure | No credentials stored (access notes are hints only); passwords hashed with Argon2id; one-time codes stored as hashes |
 | Account enumeration | Sign-in and password recovery return identical responses for known and unknown emails; there is no self-registration page |
 | Credential brute force | Rate limiting per IP and per email; three failed password or code attempts lock the account for 15 minutes, and an administrator can unlock it earlier |
 | Session hijacking | Versioned sessions; a password change or reset revokes all other sessions |
@@ -651,7 +651,7 @@ Each feature is tested for the expected flow and for misuse: incorrect roles, ac
 │   ├── models/         SQLAlchemy entities (17 tables)
 │   ├── routes/         Blueprints: auth, entries, categories, groups, users, audit, monitoring, settings
 │   ├── schemas/        Form and selection screen definitions
-│   ├── security/       Access policy, throttling, file and URL validation, encryption
+│   ├── security/       Access policy, throttling, file and URL validation
 │   ├── services/       Business rules, import and export, link checking, notifications
 │   ├── static/         Stylesheets, scripts, and the compiled React table (dist/)
 │   ├── templates/      Jinja layouts, components, and pages
@@ -684,8 +684,7 @@ python -m venv .venv
 pip install -r requirements-dev.txt
 
 cp .env.example .env
-# Configure SECRET_KEY, DATABASE_URL, and ENCRYPTION_KEY. Generate an encryption key with:
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Configure SECRET_KEY and DATABASE_URL.
 
 flask --app run db upgrade
 flask --app run seed-categories

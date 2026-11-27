@@ -16,7 +16,7 @@ Flask-WTF==1.3.0
 psycopg[binary]==3.3.6
 # baca file .env
 python-dotenv==1.2.3
-# enkripsi kredensial (Fernet/AES)
+# Fernet: cuma dipake migrasi b3d7e2a9c4f1 buat buka access note lama
 cryptography==50.0.1
 # hash password login (Argon2id)
 argon2-cffi==25.1.0

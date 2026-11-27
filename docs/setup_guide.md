@@ -23,10 +23,10 @@ Isi **tiga** nilai wajib berikut. Aplikasi menolak jalan kalau salah satunya kos
 | Isian | Cara bikin |
 |---|---|
 | `SECRET_KEY` | `.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"` |
-| `ENCRYPTION_KEY` | `.\.venv\Scripts\python.exe -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
 | `DATABASE_URL` | `postgresql+psycopg://USER:PASSWORD@localhost:5432/NAMA_DB` |
 
-`ENCRYPTION_KEY` dipakai untuk mengenkripsi access note. **Jangan diganti** setelah ada data: access note lama tidak akan bisa dibuka lagi.
+Access note disimpan sebagai teks biasa (isinya petunjuk akses, bukan password), jadi ga ada kunci enkripsi.
+Database lama yang masih terenkripsi: isi `ENCRYPTION_KEY` lama selama `flask --app run db upgrade`, abis itu hapus.
 Isian lain boleh dibiarkan sesuai `.env.example` untuk development (OTP dicetak ke terminal, rate limit di memori).
 
 **Backup & Restore** (menu admin, atau `flask --app run backup` / `flask --app run restore FILE`) butuh `pg_dump` dan `pg_restore`
@@ -39,7 +39,7 @@ Backup dipisah dua jenis, masing-masing punya folder sendiri di dalam `BACKUP_FO
 | Website | `backups/website/alr-web-*.zip` | semua lampiran (`uploads/`) | cuma nambahin lampiran yang hilang, file yang ada ga diubah |
 
 `flask --app run backup` bikin dua-duanya (`--only database` / `--only website` buat salah satu).
-`flask --app run restore FILE` milih jenisnya dari nama file. Backup database **tanpa** `ENCRYPTION_KEY`, jadi simpan kunci itu terpisah.
+`flask --app run restore FILE` milih jenisnya dari nama file.
 Restore database ikut ngembaliin Audit Logs ke isi backup. Catatan sesudah backup dibuat tetap ada di backup pengaman yang otomatis dibikin sebelum restore.
 Database besar sebaiknya di-restore lewat `flask --app run restore FILE`: lewat menu web, reverse proxy bisa timeout duluan
 (restore-nya tetap jalan sampai selesai dalam satu transaksi, tapi halamannya error, jadi jangan diklik ulang).

@@ -1,4 +1,4 @@
-"""Backup & restore database dan lampiran (ENCRYPTION_KEY ga ikut)."""
+"""Backup & restore database dan lampiran."""
 import json
 import os
 import re

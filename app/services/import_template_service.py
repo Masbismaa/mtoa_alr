@@ -39,7 +39,7 @@ RULE_LIST = [
     "A category not listed on the Categories sheet is created as your own category only if you tick "
     "\"Create categories that don't exist yet\" when importing; otherwise the row is rejected.",
     "You become the owner of every imported link.",
-    "Access notes are encrypted after import, but this file is not. Delete it once the import is done.",
+    "This file may contain usernames and access notes. Delete it once the import is done.",
 ]
 NON_ADMIN_VISIBILITY_RULE = "Every imported link is saved as Private (only you can see it). Only admins can import Public links."
 

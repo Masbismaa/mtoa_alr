@@ -24,13 +24,13 @@ def test_general_entry_drops_credential(app, registered_user, category_dict):
         [("Langkah", "<p>Buka aplikasi VPN</p>")],
     )
     assert entry.username is None
-    assert entry.encrypted_access_note is None
+    assert entry.access_note is None
 
 def test_web_entry_keeps_credential(app, registered_user, category_dict):
     """Positive: kategori selain General tetep nyimpen username & access note."""
     entry = create_access_entry(registered_user, build_entry_dict(category_dict["Web"], "Portal HR", username="admin", access_note="rahasia"))
     assert entry.username == "admin"
-    assert entry.encrypted_access_note is not None
+    assert entry.access_note == "rahasia"
 
 def test_general_form_hides_credential(logged_in_client, category_dict):
     """Positive: form kategori General nyembunyiin kolom Username & Access Note dari awal."""

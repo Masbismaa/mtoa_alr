@@ -79,7 +79,6 @@ postgres_test:
     - python -m pip install -r requirements-dev.txt
     # kunci acak sekali pakai (database-nya dibuang abis job), sengaja ga ditulis di file ini
     - export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
-    - export ENCRYPTION_KEY="$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
     # tunggu PostgreSQL siap nerima koneksi (maks 60 detik)
     - python scripts/wait_for_db.py
     - python -m flask --app run db upgrade

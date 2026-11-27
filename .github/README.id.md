@@ -12,7 +12,7 @@
 
 <p align="center">
   Aplikasi web internal yang aman untuk mengelola dan membagikan informasi akses di lingkungan tim ICT.<br>
-  Terenkripsi saat disimpan, berbasis izin, teraudit penuh, dan dirancang dengan alur kerja yang terinspirasi SAP GUI.
+  Berbasis izin, teraudit penuh, dan dirancang dengan alur kerja yang terinspirasi SAP GUI.
 </p>
 
 <p align="center">
@@ -43,7 +43,7 @@ Aplikasi ini dirancang berdasarkan tiga prinsip:
 
 | Prinsip | Penerapan |
 |---|---|
-| **Kerahasiaan** | Catatan akses dienkripsi saat disimpan; kata sandi tidak pernah disimpan di tautan |
+| **Kerahasiaan** | Tidak ada kredensial yang disimpan: catatan akses cuma petunjuk, dan kata sandi tidak pernah disimpan di tautan |
 | **Akuntabilitas** | Setiap perubahan, aktivitas masuk, dan ekspor dicatat dalam log audit yang tidak dapat diubah |
 | **Efisiensi** | Konvensi SAP GUI (tombol fungsi, layar seleksi, varian, tabel ALV) bagi pengguna yang bekerja dengan sistem ERP setiap hari |
 
@@ -62,7 +62,7 @@ Aplikasi ini dirancang berdasarkan tiga prinsip:
 | Backend | Python 3.13, Flask 3.1, SQLAlchemy 2.0, Alembic |
 | Basis data | PostgreSQL 17 |
 | Frontend | Templat Jinja, Tabler UI, komponen React 19 yang dibangun dengan Vite |
-| Keamanan | Argon2id, Fernet (AES), CSRF Flask-WTF, Flask-Limiter dengan Redis, sanitasi nh3 |
+| Keamanan | Argon2id, CSRF Flask-WTF, Flask-Limiter dengan Redis, sanitasi nh3 |
 | Dokumen | openpyxl dengan defusedxml untuk impor dan ekspor Excel |
 | Pengujian | pytest, Vitest, Testing Library, Chrome headless melalui DevTools Protocol |
 
@@ -226,10 +226,10 @@ Buka setiap modul untuk melihat kemampuannya.
 
 | Kemampuan | Keterangan |
 |---|---|
-| Jenis data | URL, host atau alamat IP beserta port, atau panduan terstruktur dengan hingga sepuluh kolom tambahan yang ditulis lewat editor teks ala Word (disanitasi dan tidak dienkripsi, jadi bukan untuk kata sandi) |
+| Jenis data | URL, host atau alamat IP beserta port, atau panduan terstruktur dengan hingga sepuluh kolom tambahan yang ditulis lewat editor teks ala Word (disanitasi, bukan untuk kata sandi) |
 | Kategorisasi | Kategori bertingkat hingga empat level (misalnya Web › ERP), dipilih melalui isian berjenjang |
 | Visibilitas | Private (hanya pemilik) atau Public (seluruh pengguna, hanya baca); tautan Public hanya dapat dibuat administrator, sehingga tautan dari pengguna lain, termasuk hasil impor, disimpan sebagai Private |
-| Catatan akses | Petunjuk akses singkat (misalnya masuk via SSO), bukan kata sandi; dienkripsi di basis data dan ditampilkan apa adanya di detail tautan |
+| Catatan akses | Petunjuk akses singkat (misalnya masuk via SSO), bukan kata sandi; disimpan sebagai teks biasa dan ditampilkan apa adanya di detail tautan |
 | Lampiran | Hingga lima berkas per data: gambar, PDF, Excel, Word, dan teks |
 | Favorit | Menandai data dan menyaring daftar khusus favorit |
 | Arsip | Memindahkan tautan yang tidak dipakai ke arsip; tautan yang diarsipkan tetap terlihat dengan label Archived, selalu ditampilkan di bawah tautan aktif, dan dapat dikembalikan |
@@ -370,7 +370,7 @@ Aplikasi web dan worker pemantauan berjalan sebagai proses terpisah dan hanya be
 ```mermaid
 flowchart TB
     R[Routes<br/>penanganan permintaan, formulir, pengalihan] --> S[Services<br/>aturan bisnis, transaksi, audit]
-    S --> P[Security<br/>kebijakan akses, pembatasan, validasi berkas dan URL, enkripsi]
+    S --> P[Security<br/>kebijakan akses, pembatasan, validasi berkas dan URL]
     S --> M[Models<br/>entitas SQLAlchemy]
     M --> DB[(PostgreSQL)]
 ```
@@ -379,7 +379,7 @@ flowchart TB
 |---|---|
 | `app/routes/` | Batas HTTP: pembacaan input, respons, dan pengalihan. Tidak memuat logika bisnis. |
 | `app/services/` | Aturan bisnis, batas transaksi, dan pencatatan audit |
-| `app/security/` | Kebijakan akses, pembatasan laju, validasi unggahan, validasi URL keluar, dan enkripsi |
+| `app/security/` | Kebijakan akses, pembatasan laju, validasi unggahan, dan validasi URL keluar |
 | `app/models/` | Entitas dan batasan; seluruh perubahan skema dikelola dengan Alembic |
 | `app/schemas/` | Definisi formulir dan layar seleksi |
 | `frontend/` | Kode sumber React 19 dan Vite untuk tabel tautan, dikompilasi ke `app/static/dist` |
@@ -416,7 +416,7 @@ erDiagram
         string address
         int port
         string username
-        text encrypted_access_note
+        text access_note
         string visibility
         string status
         bool is_archived
@@ -570,7 +570,7 @@ flowchart LR
 
 | Ancaman | Mitigasi |
 |---|---|
-| Kebocoran basis data | Catatan akses dienkripsi dengan Fernet (AES); kata sandi di-hash dengan Argon2id; kode sekali pakai disimpan sebagai hash |
+| Kebocoran basis data | Tidak ada kredensial yang disimpan (catatan akses cuma petunjuk); kata sandi di-hash dengan Argon2id; kode sekali pakai disimpan sebagai hash |
 | Enumerasi akun | Proses masuk dan pemulihan kata sandi memberikan respons identik untuk email terdaftar maupun tidak; tidak ada halaman pendaftaran mandiri |
 | Serangan brute force | Pembatasan laju per IP dan per email; tiga kali salah kata sandi atau kode mengunci akun selama 15 menit, dan administrator dapat membukanya lebih awal |
 | Pembajakan sesi | Sesi berversi; penggantian atau pemulihan kata sandi mencabut seluruh sesi lain |
@@ -651,7 +651,7 @@ Setiap fitur diuji untuk alur normal maupun penyalahgunaan: peran yang tidak ses
 │   ├── models/         Entitas SQLAlchemy (17 tabel)
 │   ├── routes/         Blueprint: auth, entries, categories, groups, users, audit, monitoring, settings
 │   ├── schemas/        Definisi formulir dan layar seleksi
-│   ├── security/       Kebijakan akses, pembatasan, validasi berkas dan URL, enkripsi
+│   ├── security/       Kebijakan akses, pembatasan, validasi berkas dan URL
 │   ├── services/       Aturan bisnis, impor dan ekspor, pemeriksaan tautan, notifikasi
 │   ├── static/         Stylesheet, skrip, dan tabel React hasil kompilasi (dist/)
 │   ├── templates/      Layout, komponen, dan halaman Jinja
@@ -684,8 +684,7 @@ python -m venv .venv
 pip install -r requirements-dev.txt
 
 cp .env.example .env
-# Atur SECRET_KEY, DATABASE_URL, dan ENCRYPTION_KEY. Buat kunci enkripsi dengan:
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Atur SECRET_KEY dan DATABASE_URL.
 
 flask --app run db upgrade
 flask --app run seed-categories

@@ -22,8 +22,8 @@ class AccessEntry(TimestampMixin, db.Model):
     port = db.Column(db.Integer, nullable=True)
     username = db.Column(db.String(150), nullable=True)
 
-    # password / petunjuk akses, disimpen udah dienkripsi (Fernet)
-    encrypted_access_note = db.Column(db.Text, nullable=True)
+    # petunjuk akses (bukan password), teks biasa
+    access_note = db.Column(db.Text, nullable=True)
     description = db.Column(db.Text, nullable=True)
 
     # default private biar aman kalau lupa milih

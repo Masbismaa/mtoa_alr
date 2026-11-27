@@ -5,7 +5,6 @@ from sqlalchemy.orm import joinedload, selectinload, undefer
 from app.extensions import db
 from app.models import AccessEntry, AccessEntryField, Category, GroupEntry, User, UserFavorite
 from app.security.access_policy import build_visible_entry_filter, can_edit_entry, is_admin, is_entry_owner
-from app.security.encryption_service import decrypt_credential, encrypt_credential
 from app.services.attachment_service import (
     pick_entry_attachment_list,
     prepare_upload_list,
@@ -47,7 +46,7 @@ from app.utils.constants import (
     LINK_STATUS_UNKNOWN,
 )
 from app.utils.data_table import build_order_list
-from app.utils.exceptions import InvalidCredentialError, PermissionDeniedError, ValidationError, build_error
+from app.utils.exceptions import PermissionDeniedError, ValidationError, build_error
 from app.utils.sanitizer import get_plain_text, sanitize_rich_text, sanitize_text
 from app.utils.url_helper import normalize_address, normalize_url, parse_port
 from app.utils.query_helper import build_keyword_filter
@@ -153,7 +152,7 @@ def validate_entry_data(user, data_dict, current_category_id=None):
         raw_access_note = data_dict.get("access_note") or ""
         if len(raw_access_note) > MAX_ACCESS_NOTE_LENGTH:
             error_list.append(build_error("access_note", f"Access note can be at most {MAX_ACCESS_NOTE_LENGTH} characters"))
-        # ga di-sanitize biar password utuh, nanti dienkripsi
+        # ga di-sanitize biar teksnya utuh; aman karena Jinja auto-escape pas ditampilin
         clean_dict["access_note"] = raw_access_note if raw_access_note.strip() else None
 
     clean_dict["description"] = sanitize_text(data_dict.get("description")) or None
@@ -269,10 +268,10 @@ def prepare_entry_data(user, data_dict, custom_field_pair_list, upload_file_list
 
 # SIMPAN
 def apply_entry_data(entry, clean_dict, clean_custom_field_list):
-    """Salin data bersih ke entry (access note dienkripsi, field tambahan diganti semua)."""
+    """Salin data bersih ke entry (field tambahan diganti semua)."""
     for field_name in ENTRY_COLUMN_FIELD_LIST:
         setattr(entry, field_name, clean_dict[field_name])
-    entry.encrypted_access_note = encrypt_credential(clean_dict["access_note"])
+    entry.access_note = clean_dict["access_note"] or None
     entry.custom_field_list = [AccessEntryField(**field_dict) for field_dict in clean_custom_field_list]
 
 def build_entry_audit_dict(entry):
@@ -284,7 +283,7 @@ def build_entry_audit_dict(entry):
         "address": entry.address,
         "port": entry.port,
         "username": entry.username,
-        "has_access_note": entry.encrypted_access_note is not None,
+        "has_access_note": entry.access_note is not None,
         "description": entry.description,
         "visibility": entry.visibility,
         "is_archived": entry.is_archived,
@@ -516,13 +515,6 @@ def count_visible_entry_summary(user):
             summary_dict[visibility] += count
         summary_dict["status"][status] = summary_dict["status"].get(status, 0) + count
     return summary_dict
-
-def read_access_note(entry):
-    """Buka access note. Return (isi, is_error)."""
-    try:
-        return decrypt_credential(entry.encrypted_access_note), False
-    except InvalidCredentialError:
-        return None, True
 
 def is_favorite_entry(user, entry):
     return db.session.execute(

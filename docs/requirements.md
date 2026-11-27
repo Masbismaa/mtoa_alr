@@ -27,7 +27,7 @@ sebelumnya tersebar. Link hanya disimpan sebagai teks (tidak dibuka otomatis).
 |---|---|---|
 | SR-01 | Master Category | 4 kategori utama bawaan: Web, Application, Network, General (sama untuk semua akun, terkunci, deskripsinya dikelola Admin). Kategori utama lain dan sub-kategori milik pribadi tiap akun: hanya terlihat, dipakai, dan bisa diubah oleh pembuatnya. |
 | SR-02 | Master User | Email, nama lengkap, departemen, jabatan, role, status aktif. Tidak ada registrasi mandiri: Admin membuat user (email, nama, role) dengan status Pending Activation, lalu menekan Send Activation Link; user membuka link di email, mengisi password 2 kali, lalu login (password + OTP). |
-| SR-03 | Data Transaksi Access | Title, category, URL, address, port, username, access note (terenkripsi), description, attachment, created by, visibility (Public/Private), status, created at, last changed. |
+| SR-03 | Data Transaksi Access | Title, category, URL, address, port, username, access note (petunjuk akses, bukan password), description, attachment, created by, visibility (Public/Private), status, created at, last changed. |
 | SR-04 | RBAC Public/Private | Aturan hak akses sesuai bagian 5. |
 | SR-05 | Form Input Dinamis | Field menyesuaikan kategori (Web: URL; Network: Address & Port). Kategori General: tombol "Add field" untuk menambah field satu per satu, isi field memakai editor teks dengan toolbar format. Attachment maks 5 file. |
 | SR-06 | Validasi & Duplikasi | URL wajib http/https; deteksi duplikasi URL atau kombinasi Address + Port. |
@@ -64,12 +64,12 @@ Data **Private** hanya dapat dilihat oleh pemiliknya dan Admin (data link tidak 
 - **Theme Customizer & Dark Mode**: preferensi disimpan di tabel `user_preferences` dan localStorage.
 
 ## 7. Kebutuhan Keamanan (Non-Fungsional)
-1. Access note/password dienkripsi (Fernet/AES) sebelum disimpan; password login di-hash (Argon2/Bcrypt).
+1. Aplikasi tidak menyimpan kredensial: access note cuma petunjuk akses (teks biasa); password login di-hash (Argon2/Bcrypt).
 2. OWASP Top 10: SQLAlchemy ORM (anti SQL Injection), sanitasi input & auto-escape Jinja2 (anti XSS), CSRF token, CORS ketat.
 3. Upload hardening sesuai SR-07.
 4. Rate limiting pada Login dan OTP Intramail.
 5. Audit log immutable sesuai SR-15.
-6. Secret (DB password, encryption key) disimpan di environment variable, tidak di repositori.
+6. Secret (DB password, SECRET_KEY) disimpan di environment variable, tidak di repositori.
 
 ## 8. Konvensi Pengembangan
 - Branch: `main` (rilis), `develop` (integrasi), `feature/<nama-fitur>`.

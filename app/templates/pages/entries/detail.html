@@ -72,14 +72,10 @@
             </div>
           {% endif %}
 
-          {% if access_note or is_note_error %}
+          {% if entry.access_note %}
             <div class="mb-3">
               <div class="form-label">Access Note</div>
-              {% if is_note_error %}
-                <div class="text-danger">The access note can't be opened (different encryption key or corrupted data)</div>
-              {% else %}
-                <div class="copy-row"><pre class="copy-value detail-text">{{ access_note }}</pre>{{ copy_button(access_note) }}</div>
-              {% endif %}
+              <div class="copy-row"><pre class="copy-value detail-text">{{ entry.access_note }}</pre>{{ copy_button(entry.access_note) }}</div>
             </div>
           {% endif %}
 
@@ -90,7 +86,7 @@
             </div>
           {% endif %}
 
-          {% if not (entry.url or entry.address or entry.username or access_note or is_note_error or entry.description) %}
+          {% if not (entry.url or entry.address or entry.username or entry.access_note or entry.description) %}
             <p class="text-secondary mb-0">No access data yet.</p>
           {% endif %}
         </div>

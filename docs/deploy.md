@@ -42,7 +42,6 @@ APP_ENV_LABEL=QAS
 # QAS masih HTTP, jadi cookie login boleh lewat HTTP. Production (HTTPS) jangan isi baris ini
 SESSION_COOKIE_SECURE=false
 SECRET_KEY=<hasil: python3.13 -c "import secrets; print(secrets.token_hex(32))">
-ENCRYPTION_KEY=<hasil: .venv/bin/python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())">
 DATABASE_URL=postgresql+psycopg://alr_qas:PASSWORD@localhost:5432/db_alr_qas
 OTP_DELIVERY_MODE=smtp
 SMTP_HOST=intramail.dnsalias.com

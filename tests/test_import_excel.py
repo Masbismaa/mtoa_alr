@@ -5,7 +5,6 @@ from openpyxl import Workbook, load_workbook
 
 from app.extensions import db
 from app.models import AccessEntry, AuditLog, Category
-from app.security.encryption_service import decrypt_credential
 from app.services import import_service
 from app.services.access_entry_service import create_access_entry
 from app.services.category_service import build_category_label
@@ -97,8 +96,8 @@ def test_empty_official_template_has_nothing_to_import(logged_in_client, categor
     assert count_entry() == 0
 
 
-def test_import_creates_all_rows_with_encrypted_note(logged_in_client, registered_user, category_dict):
-    """Positive: semua baris bener -> kesimpen semua (milik yg upload), password dienkripsi, kecatat audit."""
+def test_import_creates_all_rows_with_access_note(logged_in_client, registered_user, category_dict):
+    """Positive: semua baris bener -> kesimpen semua (milik yg upload), access note kesimpen, kecatat audit."""
     sap = Category(parent_id=category_dict["Web"].id, user_id=registered_user.id, name="SAP", is_active=True)
     db.session.add(sap)
     db.session.commit()
@@ -116,8 +115,7 @@ def test_import_creates_all_rows_with_encrypted_note(logged_in_client, registere
     # baris Public dari user biasa ikut Private (Public cuma admin)
     assert entry_list[0].visibility == "private" and entry_list[2].visibility == "private"
     assert entry_list[1].category_id == sap.id and entry_list[2].port == 22
-    assert entry_list[0].encrypted_access_note != "Rahasia123"
-    assert decrypt_credential(entry_list[0].encrypted_access_note) == "Rahasia123"
+    assert entry_list[0].access_note == "Rahasia123"
     import_log = db.session.execute(db.select(AuditLog).filter_by(action=AUDIT_ACTION_IMPORT)).scalar_one()
     assert import_log.new_data == {"row_count": 3, "filename": "links.xlsx"}
     assert db.session.execute(db.select(db.func.count(AuditLog.id)).filter_by(action=AUDIT_ACTION_CREATE)).scalar() >= 3

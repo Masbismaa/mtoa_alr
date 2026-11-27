@@ -63,7 +63,7 @@ AUDIT_ACTION_LIST = [
 ENTITY_HISTORY_LIMIT = 50
 
 # field yg isinya rahasia, di audit log diganti bintang-bintang
-SENSITIVE_FIELD_SET = {"password", "password_hash", "access_note", "encrypted_access_note", "otp_code"}
+SENSITIVE_FIELD_SET = {"password", "password_hash", "access_note", "otp_code"}
 MASKED_VALUE = "********"
 
 # Keamanan input

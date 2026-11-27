@@ -9,7 +9,7 @@ from app.extensions import csrf, db, limiter, login_manager, migrate
 from app.utils.constants import OTP_DELIVERY_CONSOLE, OTP_DELIVERY_SMTP
 
 # config yg wajib diisi, kalau kosong app langsung nolak jalan
-REQUIRED_CONFIG_KEY_LIST = ["SECRET_KEY", "SQLALCHEMY_DATABASE_URI", "ENCRYPTION_KEY"]
+REQUIRED_CONFIG_KEY_LIST = ["SECRET_KEY", "SQLALCHEMY_DATABASE_URI"]
 
 # isi halaman error
 ERROR_PAGE_DICT = {
@@ -86,10 +86,6 @@ def validate_required_config(app):
     missing_key_list = [key for key in REQUIRED_CONFIG_KEY_LIST if not app.config.get(key)]
     if missing_key_list:
         raise RuntimeError(f"Config belum di-set di file .env: {', '.join(missing_key_list)}")
-
-    from app.security.encryption_service import build_fernet
-
-    build_fernet(app.config["ENCRYPTION_KEY"])
 
     if app.config.get("IS_PRODUCTION") and app.config.get("OTP_DELIVERY_MODE") == OTP_DELIVERY_CONSOLE:
         raise RuntimeError("OTP_DELIVERY_MODE=console dilarang di production, pakai smtp")

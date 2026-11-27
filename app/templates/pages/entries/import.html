@@ -45,7 +45,7 @@
             {% endif %}
           </ol>
 
-          <div class="alert alert-warning">{{ icon("lock") }} Access notes are stored encrypted after import, but the Excel file itself is not. Delete the file once the import is done.</div>
+          <div class="alert alert-warning">{{ icon("lock") }} The Excel file may contain usernames and access notes. Delete the file once the import is done.</div>
 
           <form method="post" enctype="multipart/form-data" id="import_form" novalidate>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

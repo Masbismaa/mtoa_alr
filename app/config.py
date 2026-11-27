@@ -3,7 +3,6 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
 # Baca isi file .env ke environment variable sebelum class config dibuat
@@ -20,8 +19,6 @@ class BaseConfig:
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Kunci untuk enkripsi access note.
-    ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY")
 
     # Penanda environment produksi untuk validasi saat aplikasi dimulai.
     IS_PRODUCTION = False
@@ -94,8 +91,6 @@ class TestingConfig(BaseConfig):
     APP_ENV_LABEL = "TEST"
     SECRET_KEY = "test-secret-key"
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-    # Kunci enkripsi acak untuk setiap test run.
-    ENCRYPTION_KEY = Fernet.generate_key().decode()
     # CSRF dinonaktifkan hanya untuk test.
     WTF_CSRF_ENABLED = False
     # Rate limit dinonaktifkan secara default pada test.
