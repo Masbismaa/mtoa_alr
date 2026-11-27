@@ -69,13 +69,13 @@
       ("All links", summary.total, "link", "bg-primary", url_for("entries.index", run=1)),
       ("Your links", dashboard_dict.own_count, "user", "bg-azure", url_for("entries.index", run=1, owner=current_user.email)),
       ("Public", summary.public, "globe", "bg-green", url_for("entries.index", run=1, visibility="public")),
-      ("Private", summary.private, "lock", "bg-orange", url_for("entries.index", run=1, visibility="private")),
       ("Favorites", dashboard_dict.favorite_count, "star", "bg-yellow", url_for("entries.index", run=1, favorite=1)),
       ("Down", dashboard_dict.down_count, "alert_triangle", "bg-red", url_for("entries.index", run=1, status="down")),
     ] %}
     <div class="row row-cards mb-3">
       {% for stat_label, stat_count, stat_icon, stat_color, stat_url in stat_list %}
-        <div class="col-6 col-md-4 col-xl-2">
+        {# 5 kartu: col-xl bagi rata satu baris #}
+        <div class="col-6 col-md-4 col-xl">
           <a href="{{ stat_url }}" class="card card-sm card-link card-link-pop text-reset dashboard-stat">
             <div class="card-body">
               <div class="row align-items-center g-2">

@@ -10,7 +10,12 @@
   document.querySelectorAll("[data-system-find]").forEach(function (buttonEl) {
     buttonEl.addEventListener("click", function () {
       if (!document.querySelector("[data-selection-quick]") || !window.AlrSelection) {
-        notify("There is nothing to search on this screen", "info");
+        const message = "There is no search bar on this screen. Open All Links or another list screen to search.";
+        if (window.AlrConfirm) {
+          window.AlrConfirm.open({ title: "Search not available", message: message, okLabel: "Got it", isInfo: true });
+        } else {
+          notify(message, "info");
+        }
         return;
       }
       window.AlrSelection.focusQuickSearch();

@@ -78,6 +78,12 @@ def test_dashboard_is_summary_only(logged_in_client, registered_user, category_d
     assert 'id="daftar_link"' not in html_text and "data-selection-form" not in html_text
     assert 'href="/entries/"' in html_text
 
+
+def test_user_entry_dashboard_has_no_private_card(logged_in_client, category_dict):
+    """Positive: kartu Private dibuang buat User Entry, udah diwakili Your links."""
+    html_text = logged_in_client.get("/dashboard/").get_data(as_text=True)
+    assert 'small">Your links</div>' in html_text and 'small">Private</div>' not in html_text
+
 def test_dashboard_old_filter_url_redirects(logged_in_client):
     """Positive: link lama /?q=... dilempar ke Daftar Link + kriterianya tetep, langsung ke tabel."""
     response = logged_in_client.get("/?q=router&visibility=public")
